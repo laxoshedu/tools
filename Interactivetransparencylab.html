@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Transparency Lab</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-color: #1e293b;
+            --accent-color: #6366f1;
+            --text-color: #f8fafc;
+            
+            /* Class Colors */
+            --transparent-color: #22c55e;
+            --translucent-color: #eab308;
+            --opaque-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+            text-align: center;
+            font-size: 1.8rem;
+        }
+
+        p.subtitle {
+            margin-top: 0;
+            color: #94a3b8;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Fullscreen Prompt Badge */
+        #fullscreenIndicator {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 11px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #a5b4fc;
+            pointer-events: none;
+            z-index: 100;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .lab-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 1100px;
+            flex: 1;
+            min-height: 0; /* Crucial for preventing flex container overflow */
+        }
+
+        @media (min-width: 768px) {
+            .lab-container {
+                grid-template-columns: 3fr 2fr;
+            }
+        }
+
+        /* Virtual Lab Bench styling */
+        .bench-card {
+            background-color: var(--panel-color);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid #334155;
+            min-height: 0;
+        }
+
+        .lab-viewport {
+            flex: 1;
+            min-height: 200px;
+            background: radial-gradient(circle, #111827 0%, #030712 100%);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            border: 2px solid #475569;
+        }
+
+        /* Responsive Flashlight Torch */
+        .torch-container {
+            position: absolute;
+            left: 5%;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+        }
+
+        .torch {
+            width: 90px;
+            height: 32px;
+            background: linear-gradient(to bottom, #64748b, #334155);
+            border-radius: 5px 15px 15px 5px;
+            position: relative;
+            border: 1px solid #94a3b8;
+        }
+
+        .torch::before {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -6px;
+            width: 12px;
+            height: 42px;
+            background: linear-gradient(to bottom, #cbd5e1, #64748b);
+            border-radius: 3px;
+        }
+
+        .torch-switch {
+            width: 14px;
+            height: 6px;
+            background: var(--opaque-color);
+            position: absolute;
+            top: -6px;
+            left: 35px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .torch-switch.on {
+            background: var(--transparent-color);
+            transform: translateX(10px);
+        }
+
+        /* Responsive Mathematical Light Beams */
+        .beam-before {
+            position: absolute;
+            left: calc(5% + 94px);
+            width: calc(45% - 94px);
+            height: 80px;
+            top: 50%;
+            transform: translateY(-50%);
+            clip-path: polygon(0 35%, 100% 15%, 100% 85%, 0 65%);
+            background: linear-gradient(90deg, rgba(253, 224, 71, 0.8) 0%, rgba(253, 224, 71, 0.5) 100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 2;
+        }
+
+        .beam-after {
+            position: absolute;
+            left: calc(50% + 15px);
+            width: calc(50% - 15px);
+            height: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            clip-path: polygon(0 20%, 100% 0%, 100% 100%, 0 80%);
+            background: linear-gradient(90deg, rgba(253, 224, 71, 0.5) 0%, rgba(253, 224, 71, 0.1) 100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, background 0.3s;
+            z-index: 2;
+        }
+
+        /* Dynamic Material Slot */
+        .material-slot {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 80%;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px dashed #64748b;
+            border-radius: 5px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .material-block {
+            width: 100%;
+            height: 100%;
+            border-radius: 3px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+        }
+
+        /* Custom Material Styling classes */
+        .mat-none { background: transparent; border: none; }
+        .mat-glass { background: rgba(186, 230, 253, 0.3); border: 2px solid rgba(186, 230, 253, 0.8); backdrop-filter: blur(1px); }
+        .mat-water { background: rgba(56, 189, 248, 0.4); border: 1px solid rgba(56, 189, 248, 0.7); }
+        .mat-paper { background: rgba(254, 243, 199, 0.7); border: 1px solid rgba(251, 191, 36, 0.5); backdrop-filter: blur(4px); }
+        .mat-tinted { background: rgba(30, 41, 59, 0.85); border: 1px solid #0f172a; }
+        .mat-wood { background: #78350f; border: 2px solid #451a03; }
+        .mat-iron { background: #475569; border: 2px solid #1e293b; }
+
+        /* Controls Panel styling */
+        .controls-card {
+            background-color: var(--panel-color);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            border: 1px solid #334155;
+            min-height: 0;
+        }
+
+        /* Material Selection Dropdown Styling */
+        .select-style {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #334155;
+            color: #fff;
+            border: 2px solid #475569;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .select-style:focus {
+            border-color: var(--accent-color);
+            background-color: #1e293b;
+        }
+
+        /* Active Power Button */
+        .power-btn {
+            background-color: var(--opaque-color);
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 15px;
+            color: #fff;
+            transition: all 0.2s;
+        }
+
+        .power-btn:hover {
+            opacity: 0.9;
+        }
+
+        .power-btn.active {
+            background-color: var(--transparent-color);
+            box-shadow: 0 0 15px rgba(34, 197, 150, 0.4);
+        }
+
+        /* Interactive Scientific Feedback Box */
+        .results-panel {
+            padding: 12px;
+            background-color: #0f172a;
+            border-radius: 8px;
+            border-left: 5px solid var(--accent-color);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-header {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-transparent { background-color: rgba(34, 197, 94, 0.2); color: var(--transparent-color); }
+        .badge-translucent { background-color: rgba(234, 179, 8, 0.2); color: var(--translucent-color); }
+        .badge-opaque { background-color: rgba(239, 68, 68, 0.2); color: var(--opaque-color); }
+
+        .science-text {
+            font-size: 13.5px;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        /* 
+           PERFECT LANDSCAPE MEDIA QUERY 
+           Hides non-critical text, reduces margins and scales 
+           components horizontally and vertically to guarantee zero scrolls.
+        */
+        @media (orientation: landscape) and (max-height: 600px) {
+            body {
+                padding: 5px 15px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+                margin: 2px 0;
+            }
+
+            p.subtitle {
+                display: none; /* Hide subtitle to preserve height */
+            }
+
+            .lab-container {
+                grid-template-columns: 1.2fr 1fr;
+                gap: 10px;
+                height: calc(100vh - 45px);
+            }
+
+            .bench-card, .controls-card {
+                padding: 10px;
+                height: 100%;
+                justify-content: space-around;
+            }
+
+            .lab-viewport {
+                flex: 1;
+                min-height: 120px;
+            }
+
+            .torch {
+                width: 75px;
+                height: 26px;
+            }
+
+            .torch::before {
+                right: -7px;
+                top: -5px;
+                width: 10px;
+                height: 34px;
+            }
+
+            .beam-before {
+                left: calc(5% + 78px);
+                width: calc(45% - 78px);
+            }
+
+            .select-style, .power-btn {
+                padding: 8px;
+                font-size: 13px;
+            }
+
+            .results-panel {
+                padding: 8px;
+            }
+
+            .result-value {
+                font-size: 15px;
+                margin-bottom: 4px;
+            }
+
+            .science-text {
+                font-size: 12px;
+                line-height: 1.3;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Small active floating fullscreen alert -->
+    <div id="fullscreenIndicator">🖥️ Fullscreen Active (Click anywhere)</div>
+
+    <h1>Interactive Transparency Test Lab</h1>
+    <p class="subtitle">Select a testing material and fire the light source to observe interactions.</p>
+
+    <div class="lab-container">
+        
+        <!-- Virtual Lab Bench Window -->
+        <div class="bench-card">
+            <h3 style="margin:0 0 5px 0; font-size: 14px; color:#cbd5e1;">Lab Viewport</h3>
+            <div class="lab-viewport" id="viewport">
+                
+                <!-- Torch Source -->
+                <div class="torch-container">
+                    <div class="torch">
+                        <div class="torch-switch" id="torchSwitch" onclick="toggleTorch()"></div>
+                    </div>
+                </div>
+
+                <!-- Light Beam before hitting testing material -->
+                <div class="beam-before" id="beamBefore"></div>
+
+                <!-- Material Compartment Slot -->
+                <div class="material-slot" id="slot">
+                    <div class="material-block mat-none" id="materialVisual">None (Air)</div>
+                </div>
+
+                <!-- Light Beam after passing through testing material -->
+                <div class="beam-after" id="beamAfter"></div>
+
+            </div>
+
+            <!-- Status readout bar -->
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size:12px; color: #94a3b8;">
+                <span>🔦 Torch Status: <strong id="torchStatusText" style="color: var(--opaque-color);">OFF</strong></span>
+                <span>Tested Matter: <strong id="activeMaterialText" style="color: #38bdf8;">None (Air)</strong></span>
+            </div>
+        </div>
+
+        <!-- System Controls Card -->
+        <div class="controls-card">
+            <h3 style="margin:0; font-size: 14px; color:#cbd5e1;">Device Operations</h3>
+            
+            <!-- Power Control Button -->
+            <button class="power-btn" id="powerBtn" onclick="toggleTorch()">Turn ON Torch</button>
+
+            <!-- Dropdown Select Selector -->
+            <div>
+                <label style="display:block; margin-bottom: 5px; font-weight: bold; font-size:13px; color:#94a3b8;">Choose Material Compartment:</label>
+                <select id="materialSelect" class="select-style" onchange="selectMaterial(this.value)">
+                    <option value="none">None (Air)</option>
+                    <option value="glass">Clear Glass</option>
+                    <option value="water">Water Tank</option>
+                    <option value="paper">Wax Paper</option>
+                    <option value="tinted">Tinted Glass</option>
+                    <option value="wood">Wood Block</option>
+                    <option value="iron">Iron Plate</option>
+                </select>
+            </div>
+
+            <!-- Dynamic Observation System Results Panel -->
+            <div class="results-panel">
+                <div class="result-header">Lab Observation Results</div>
+                <div class="result-value">
+                    <span id="classificationBadge" class="badge badge-transparent" style="display: none;">No Material</span>
+                </div>
+                
+                <div class="science-text" id="scienceExplanation">
+                    Click anywhere on the lab panel to enter immersive Fullscreen, then turn the torch on to begin analysis.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // System variables
+        let torchOn = false;
+        let selectedMaterial = 'none';
+
+        // Materials database mapping physical state, classifications, and explanations
+        const materials = {
+            none: {
+                name: "None (Air)",
+                class: "mat-none",
+                transparency: "transparent",
+                lightPass: "completely",
+                explanation: "The light passes through the container completely because air offers no physical obstruction. Therefore, empty air space is transparent."
+            },
+            glass: {
+                name: "Clear Glass",
+                class: "mat-glass",
+                transparency: "transparent",
+                lightPass: "completely",
+                explanation: "Light passes through the clear glass completely. Because it does not obstruct, scatter, or absorb light waves, clear glass is transparent."
+            },
+            water: {
+                name: "Water Tank",
+                class: "mat-water",
+                transparency: "transparent",
+                lightPass: "completely",
+                explanation: "Light passes through pure water completely. Because light rays transit straight through the liquid layers cleanly, water is transparent."
+            },
+            paper: {
+                name: "Wax Paper",
+                class: "mat-paper",
+                transparency: "translucent",
+                lightPass: "partially",
+                explanation: "Light passes through the wax paper only partially. The wax-coated fibers scatter the passing light rays, classifying it as translucent."
+            },
+            tinted: {
+                name: "Tinted Glass",
+                class: "mat-tinted",
+                transparency: "translucent",
+                lightPass: "partially",
+                explanation: "Light passes through the tinted glass only partially. Its molecular pigments absorb a significant portion of light energy, making it translucent."
+            },
+            wood: {
+                name: "Wood Block",
+                class: "mat-wood",
+                transparency: "opaque",
+                lightPass: "not-at-all",
+                explanation: "Light does not pass through the wood block at all. The solid fibrous mass reflects or absorbs all incoming light, rendering wood opaque."
+            },
+            iron: {
+                name: "Iron Plate",
+                class: "mat-iron",
+                transparency: "opaque",
+                lightPass: "not-at-all",
+                explanation: "Light does not pass through the iron plate at all. The densely packed metallic atoms block 100% of light waves, confirming iron is opaque."
+            }
+        };
+
+        // DOM elements
+        const torchSwitch = document.getElementById('torchSwitch');
+        const powerBtn = document.getElementById('powerBtn');
+        const beamBefore = document.getElementById('beamBefore');
+        const beamAfter = document.getElementById('beamAfter');
+        const materialVisual = document.getElementById('materialVisual');
+        const classificationBadge = document.getElementById('classificationBadge');
+        const scienceExplanation = document.getElementById('scienceExplanation');
+        const activeMaterialText = document.getElementById('activeMaterialText');
+        const torchStatusText = document.getElementById('torchStatusText');
+        const fullscreenIndicator = document.getElementById('fullscreenIndicator');
+
+        // Force Auto-fullscreen on screen interactions
+        function requestFullScreen() {
+            const docEl = document.documentElement;
+            if (!document.fullscreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.msFullscreenElement) {
+                
+                const request = docEl.requestFullscreen || 
+                                docEl.webkitRequestFullscreen || 
+                                docEl.msRequestFullscreen;
+                if (request) {
+                    request.call(docEl).catch(err => {
+                        console.warn("Fullscreen request was deferred by user action restrictions:", err);
+                    });
+                }
+            }
+        }
+
+        // Keep fullscreen prompt active & auto hide when enabled
+        function updateFullscreenUI() {
+            if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                fullscreenIndicator.style.display = 'none';
+            } else {
+                fullscreenIndicator.style.display = 'block';
+                fullscreenIndicator.innerText = "🖥️ Fullscreen Mode Ready (Click anywhere)";
+            }
+        }
+
+        // Attach interface event listeners for full-screen triggers
+        document.addEventListener('click', requestFullScreen);
+        document.addEventListener('touchstart', requestFullScreen);
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+        document.addEventListener('msfullscreenchange', updateFullscreenUI);
+
+        // Toggle Torch Light
+        function toggleTorch() {
+            torchOn = !torchOn;
+            
+            if (torchOn) {
+                torchSwitch.classList.add('on');
+                powerBtn.classList.add('active');
+                powerBtn.innerText = "Turn OFF Torch";
+                beamBefore.style.opacity = '1';
+                torchStatusText.innerText = "ON";
+                torchStatusText.style.color = "var(--transparent-color)";
+            } else {
+                torchSwitch.classList.remove('on');
+                powerBtn.classList.remove('active');
+                powerBtn.innerText = "Turn ON Torch";
+                beamBefore.style.opacity = '0';
+                torchStatusText.innerText = "OFF";
+                torchStatusText.style.color = "var(--opaque-color)";
+            }
+            updateLabOutput();
+        }
+
+        // Select Material via Dropdown
+        function selectMaterial(materialKey) {
+            selectedMaterial = materialKey;
+            const matData = materials[materialKey];
+
+            // Update container visuals 
+            materialVisual.className = "material-block " + matData.class;
+            materialVisual.innerText = matData.name;
+            activeMaterialText.innerText = matData.name;
+
+            updateLabOutput();
+        }
+
+        // Process material state & visualize physics beam behavior
+        function updateLabOutput() {
+            const matData = materials[selectedMaterial];
+            
+            if (!torchOn) {
+                beamAfter.style.opacity = '0';
+                classificationBadge.style.display = "none";
+                scienceExplanation.innerText = "The light source is currently turned off. Switch the torch power status to active to proceed with test calculations.";
+                return;
+            }
+
+            // Adjust beam behavior after passing through the material slot
+            if (matData.lightPass === "completely") {
+                beamAfter.style.opacity = '1';
+                // Sharp strong output beam
+                beamAfter.style.background = "linear-gradient(90deg, rgba(253, 224, 71, 0.5) 0%, rgba(253, 224, 71, 0.1) 100%)";
+            } else if (matData.lightPass === "partially") {
+                beamAfter.style.opacity = '1';
+                // Scattered weak translucent beam representation 
+                beamAfter.style.background = "linear-gradient(90deg, rgba(253, 224, 71, 0.15) 0%, rgba(253, 224, 71, 0.0) 100%)";
+            } else {
+                // Completely Opaque, blocks exit beam
+                beamAfter.style.opacity = '0';
+            }
+
+            // Apply scientific classification badges based on strict rules
+            classificationBadge.style.display = "inline-block";
+            
+            if (matData.transparency === 'transparent') {
+                classificationBadge.innerText = "Transparent (Passes Completely)";
+                classificationBadge.className = "badge badge-transparent";
+            } else if (matData.transparency === 'translucent') {
+                classificationBadge.innerText = "Translucent (Passes Partially)";
+                classificationBadge.className = "badge badge-translucent";
+            } else {
+                classificationBadge.innerText = "Opaque (Does Not Pass)";
+                classificationBadge.className = "badge badge-opaque";
+            }
+
+            // Update explanation text details
+            scienceExplanation.innerHTML = matData.explanation;
+        }
+
+        // Initial launch configuration setup
+        updateLabOutput();
+    </script>
+</body>
+</html>
