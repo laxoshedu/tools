@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Celestial Eclipse Mechanics Simulator</title>
+    
+    <!-- Tailwind CSS for premium UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for sharp icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Three.js & OrbitControls for fully interactive 3D WebGL scenes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030305;
+            overflow: hidden;
+        }
+
+        .header-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Glassmorphism sidebar drawer and panels */
+        .glass-panel {
+            background: rgba(10, 10, 18, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.7);
+        }
+
+        /* Custom premium scrollbar for configurations list */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 10, 18, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(245, 158, 11, 0.6);
+            border-radius: 4px;
+        }
+
+        /* Glow styling utilities */
+        .glow-orange {
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+        }
+        .glow-red {
+            text-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+        }
+        .glow-blue {
+            text-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+        }
+        
+        .glow-btn {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+            transition: all 0.3s ease;
+        }
+        .glow-btn:hover {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+        }
+
+        /* Landscape orientation warning overlay */
+        #portrait-warning {
+            display: none;
+            z-index: 100;
+        }
+
+        /* Check for portrait orientation on touch-friendly screens and tablets */
+        @media (max-width: 1024px) and (orientation: portrait) {
+            #portrait-warning {
+                display: flex !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col md:flex-row select-none">
+
+    <!-- Landscape Prompt Guardrail Overlay for Mobile/Tablet Users -->
+    <div id="portrait-warning" class="fixed inset-0 bg-[#020204]/98 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-24 h-24 mb-6 relative">
+            <div class="absolute inset-0 rounded-full border-2 border-dashed border-amber-500/40 animate-spin" style="animation-duration: 10s;"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fa-solid fa-mobile-screen text-4xl text-amber-500 animate-bounce"></i>
+            </div>
+        </div>
+        <h2 class="header-font font-bold text-xl text-amber-400 uppercase tracking-widest mb-2">Rotate Your Device</h2>
+        <p class="text-xs text-slate-400 max-w-sm leading-relaxed mb-4">
+            This detailed 3D astronomical simulator requires a landscape canvas. Please rotate your phone to <span class="text-amber-300 font-bold">Landscape mode</span> to continue.
+        </p>
+        <div class="flex items-center gap-2 text-[10px] text-slate-500 font-semibold tracking-wider bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+            <i class="fa-solid fa-circle-notch animate-spin text-amber-500"></i> WAITING FOR ORIENTATION SHIFT
+        </div>
+    </div>
+
+    <!-- Floating Action Menu Button (Top Left) -->
+    <button id="menu-toggle-btn" class="glow-btn fixed top-4 left-4 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 border border-amber-400/20 text-slate-950 font-black text-xs tracking-widest uppercase transition-all duration-300 active:scale-95 shadow-lg">
+        <i id="menu-toggle-icon" class="fa-solid fa-bars text-sm"></i>
+        <span id="menu-toggle-text">Open Menu</span>
+    </button>
+
+    <!-- Side Menu Backdrop (Clicking outside sidebar collapses it) -->
+    <div id="menu-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- Collapsible Slide-Out Configuration Menu Drawer -->
+    <aside id="sidebar-menu" class="fixed top-0 left-0 h-full w-[380px] shrink-0 glass-panel border-r border-slate-800/80 flex flex-col z-40 transition-transform duration-300 transform -translate-x-full overflow-y-auto">
+        
+        <!-- Header Branding -->
+        <div class="p-5 pt-24 border-b border-slate-800/80">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-600 to-rose-500 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+                    <i class="fa-solid fa-circle-notch text-slate-950 text-base animate-spin" style="animation-duration: 8s;"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight header-font tracking-wide bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-400 bg-clip-text text-transparent">ECLIPSE MECHANICS</h1>
+                    <p class="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Volumetric Light & Shadow Lab</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Dashboard Menu Content -->
+        <div class="p-5 space-y-6 flex-1">
+            
+            <!-- Contextual Status Deck inside Menu -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">System Telemetry</label>
+                <div class="glass-panel p-4 rounded-xl flex items-center gap-4 bg-slate-950/40 border border-slate-800/60">
+                    <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800 shrink-0">
+                        <i id="hud-icon" class="fa-solid fa-earth-americas text-blue-400 text-base"></i>
+                    </div>
+                    <div>
+                        <h2 id="hud-mode-title" class="text-[9px] uppercase font-bold tracking-widest text-slate-400">Current View mode</h2>
+                        <p id="hud-mode-desc" class="text-xs font-bold text-white leading-tight">Free Orbit Sandbox Mode</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Align Presets -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Simulation Scenarios</label>
+                <div class="grid grid-cols-1 gap-2">
+                    <button id="btn-solar-mode" class="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 text-amber-300 transition-all text-sm font-medium">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-circle-dot text-amber-500 glow-orange"></i> Solar Eclipse Setup
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+                    </button>
+                    <button id="btn-lunar-mode" class="flex items-center justify-between p-3 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-300 transition-all text-sm font-medium">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-moon text-red-500 glow-red"></i> Lunar Eclipse Setup
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+                    </button>
+                    <button id="btn-free-mode" class="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/25 border border-blue-500/20 text-blue-300 transition-all text-sm font-medium">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-globe text-blue-400 glow-blue"></i> Free Space Sandbox
+                        </span>
+                        <i class="fa-solid fa-chevron-right text-xs opacity-60"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kinetic Physics Adjustment Controls -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Orbital Control Deck</label>
+                <div class="space-y-4">
+                    
+                    <!-- Core Pause Button -->
+                    <div class="flex items-center gap-2">
+                        <button id="btn-play-pause" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-xs font-bold transition-all border border-slate-700/60 flex items-center justify-center gap-2">
+                            <i id="play-pause-icon" class="fa-solid fa-pause text-amber-500"></i>
+                            <span id="play-pause-text">Pause Revolution</span>
+                        </button>
+                        <button id="btn-reset-cam" class="py-2.5 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-all text-xs" title="Reset Orbital Camera View">
+                            <i class="fa-solid fa-arrows-spin"></i>
+                        </button>
+                    </div>
+
+                    <!-- Orbit Velocity Multiplier -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                            <span>Revolution Velocity</span>
+                            <span id="label-speed" class="font-bold text-amber-500">1.0x</span>
+                        </div>
+                        <input id="slider-speed" type="range" min="0" max="3" step="0.1" value="1.0" class="w-full accent-amber-500 bg-slate-800 h-1 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- Moon Orbit Radius Slider -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                            <span>Moon Orbital Distance</span>
+                            <span id="label-distance" class="font-bold text-amber-500">22.0 AU</span>
+                        </div>
+                        <input id="slider-distance" type="range" min="11" max="32" step="0.5" value="22" class="w-full accent-amber-500 bg-slate-800 h-1 rounded-lg cursor-pointer">
+                        <p class="text-[10px] text-slate-500 mt-1">Controls whether the Umbra reaches Earth (Total Eclipse) or the Antumbra reaches Earth (Annular/Ring of Fire).</p>
+                    </div>
+
+                    <!-- Orbital Plane Tilt (Inclination) -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                            <span>Orbital Tilt (Inclination)</span>
+                            <span id="label-inclination" class="font-bold text-amber-500">5.1°</span>
+                        </div>
+                        <input id="slider-inclination" type="range" min="0" max="25" step="0.5" value="5.1" class="w-full accent-amber-500 bg-slate-800 h-1 rounded-lg cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Toggles -->
+            <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Visualization Overlay Filters</label>
+                <div class="space-y-3 bg-slate-900/50 p-4 rounded-2xl border border-slate-800/80">
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle text-black border border-slate-700 bg-black rounded p-1 text-[7px] w-5 text-center"></i> Show Umbra Zone</span>
+                        <input id="toggle-umbra" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle text-blue-500/30 border border-blue-500 bg-blue-950 rounded p-1 text-[7px] w-5 text-center"></i> Show Penumbra Zone</span>
+                        <input id="toggle-penumbra" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle text-rose-500/30 border border-rose-500 bg-rose-950 rounded p-1 text-[7px] w-5 text-center"></i> Show Antumbra Zone</span>
+                        <input id="toggle-antumbra" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-bezier-curve text-amber-400 text-xs w-5 text-center"></i> Show Light Path Rays</span>
+                        <input id="toggle-rays" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-tags text-slate-400 text-xs w-5 text-center"></i> Show Entity Labels</span>
+                        <input id="toggle-labels" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                    <label class="flex items-center justify-between text-xs cursor-pointer hover:text-amber-300 transition-all">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle-notch text-slate-400 text-xs w-5 text-center"></i> Show Orbit Guideline</span>
+                        <input id="toggle-guideline" type="checkbox" checked class="accent-amber-500 w-4 h-4 cursor-pointer">
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Left Sidebar Explainer Footer -->
+        <div class="p-5 border-t border-slate-800/80 bg-slate-950/80 shrink-0">
+            <h2 id="explain-header" class="font-bold text-xs text-amber-400 mb-1.5 flex items-center gap-2 header-font">
+                <i class="fa-solid fa-microscope text-sm"></i> REAL-TIME EXPLICER
+            </h2>
+            <p id="explain-body" class="text-xs text-slate-400 leading-relaxed">
+                Select an eclipse preset above to align the system. Pause orbital motion at any moment to rotate/pinch to zoom and inspect how light intersections form physical shadow cones.
+            </p>
+        </div>
+    </aside>
+
+    <!-- Main Space Simulation Area -->
+    <main class="flex-1 w-full h-screen relative overflow-hidden">
+        
+        <!-- WebGL Canvas Container -->
+        <div id="canvas-container" class="w-full h-full relative bg-[#020203]">
+            
+            <!-- Asset Loading Screen Overlay -->
+            <div id="loader" class="absolute inset-0 flex flex-col items-center justify-center bg-[#030306]/95 z-30 transition-opacity duration-700">
+                <div class="relative w-16 h-16 mb-4">
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-900"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-t-amber-500 border-r-rose-500 animate-spin"></div>
+                </div>
+                <h3 class="font-semibold text-sm header-font tracking-widest text-slate-200">PROCEDURALLY TEXTURING THE COSMOS...</h3>
+                <p class="text-[11px] text-slate-500 mt-1">Generating high-fidelity vector maps and stellar vectors</p>
+            </div>
+
+            <!-- Interactivity Hints HUD (Lower Right) -->
+            <div class="absolute bottom-5 right-5 z-20 flex flex-col items-end gap-2 pointer-events-none">
+                <div class="glass-panel px-3 py-2 rounded-xl text-[10px] font-bold tracking-widest text-emerald-400 flex items-center gap-2 shadow-lg">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+                    WEBGL ACTIVE RENDERING
+                </div>
+                <div id="navigation-hint" class="glass-panel px-3 py-2 rounded-xl text-[10px] text-slate-400 flex items-center gap-2 shadow-lg">
+                    <i class="fa-solid fa-arrows-to-eye text-amber-500"></i>
+                    <span>Interact anywhere to toggle Fullscreen | Drag to rotate | Scroll/Pinch to zoom</span>
+                </div>
+            </div>
+
+            <!-- Dynamic Alert Notifications Floating Panel -->
+            <div class="absolute top-5 right-5 z-20 flex flex-col gap-4 pointer-events-none max-w-sm">
+                
+                <!-- Atmospheric Scattering (Blood Moon) Alert Overlay -->
+                <div id="scattering-alert" class="glass-panel p-4 rounded-2xl hidden items-center gap-4 border-red-500/30 bg-red-950/20 shadow-xl transition-all duration-300">
+                    <div class="w-11 h-11 rounded-xl bg-red-900/30 flex items-center justify-center border border-red-500/40 shrink-0">
+                        <i class="fa-solid fa-circle-radiation text-red-500 animate-pulse text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-[9px] uppercase font-bold tracking-widest text-red-400">Rayleigh Scattering Active</h2>
+                        <p id="scattering-desc" class="text-[11px] text-slate-300 leading-snug">Earth's atmosphere filters shortwave blue light, refracting red wavelengths into the Umbra, transforming the Moon deep crimson!</p>
+                    </div>
+                </div>
+
+                <!-- Eclipse Classification Panel (Annular vs Total) -->
+                <div id="eclipse-type-panel" class="glass-panel p-4 rounded-2xl hidden items-center gap-4 border-amber-500/20 bg-amber-950/10 shadow-xl transition-all duration-300">
+                    <div class="w-11 h-11 rounded-xl bg-amber-900/30 flex items-center justify-center border border-amber-500/40 shrink-0">
+                        <i class="fa-solid fa-star text-amber-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-[9px] uppercase font-bold tracking-widest text-amber-400">Alignment Status</h2>
+                        <p id="eclipse-type-desc" class="text-[11px] text-slate-200 font-bold leading-snug">Verifying geometries...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insertion target container for ThreeJS renderer -->
+            <div id="canvas-3d" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+        </div>
+
+    </main>
+
+    <script>
+        const container = document.getElementById('canvas-3d');
+        const loader = document.getElementById('loader');
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020204);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+        camera.position.set(40, 60, 115);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // OrbitControls for mouse & touch orbital adjustments
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 450;
+        controls.minDistance = 15;
+
+        // Dynamic vector textures generated instantly to bypass external image dependencies
+        function createEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#0a1a36';
+            ctx.fillRect(0, 0, 1024, 512);
+            
+            ctx.fillStyle = '#1c3e1e';
+            const seedNodes = 22;
+            for (let i = 0; i < seedNodes; i++) {
+                const cx = (i / seedNodes) * 1024 + (Math.random() - 0.5) * 60;
+                const cy = 120 + Math.random() * 272;
+                const radius = 90 + Math.random() * 110;
+                
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#102d13';
+                ctx.beginPath();
+                ctx.arc(cx + (Math.random() - 0.5) * 50, cy + (Math.random() - 0.5) * 50, radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#1c3e1e';
+            }
+            
+            ctx.fillStyle = '#564d39';
+            for (let i = 0; i < 30; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 1024, 180 + Math.random() * 152, Math.random() * 30 + 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            for (let i = 0; i < 50; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 1024, Math.random() * 512, Math.random() * 100 + 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createMoonTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#6e6e6e';
+            ctx.fillRect(0, 0, 512, 256);
+            
+            ctx.fillStyle = '#525252';
+            for (let i = 0; i < 10; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 50 + 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            for (let i = 0; i < 60; i++) {
+                const cx = Math.random() * 512;
+                const cy = Math.random() * 256;
+                const r = Math.random() * 10 + 2;
+                
+                ctx.fillStyle = '#3a3a3a';
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = '#919191';
+                ctx.lineWidth = r * 0.15;
+                ctx.beginPath();
+                ctx.arc(cx - r*0.1, cy - r*0.1, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createSunTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#ffdf33';
+            ctx.fillRect(0, 0, 512, 256);
+            
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = 'rgba(255, 61, 0, 0.4)';
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 40 + 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Space geometry metrics
+        const SUN_DIST = 150;
+        const EARTH_RADIUS = 8.5;
+        const SUN_RADIUS = 20;
+        
+        let MOON_RADIUS = 2.2;
+        let MOON_ORBIT_DIST = 22.0;
+        let INCLINATION = 5.1 * (Math.PI / 180);
+        let speedMultiplier = 1.0;
+        let isPaused = false;
+        let currentMode = 'free'; 
+        let theta = Math.PI; 
+
+        const earthTex = createEarthTexture();
+        const moonTex = createMoonTexture();
+        const sunTex = createSunTexture();
+
+        // Sun Mesh
+        const sunGeo = new THREE.SphereGeometry(SUN_RADIUS, 48, 48);
+        const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffffff });
+        const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+        sunMesh.position.set(-SUN_DIST, 0, 0);
+        scene.add(sunMesh);
+
+        // Earth Mesh
+        const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 48, 48);
+        const earthMat = new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.7, metalness: 0.1 });
+        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+        earthMesh.castShadow = true;
+        earthMesh.receiveShadow = true;
+        scene.add(earthMesh);
+
+        // Volumetric atmospheric halo
+        const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.08, 48, 48);
+        const atmosMat = new THREE.MeshBasicMaterial({
+            color: 0x4fa8ff,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending
+        });
+        const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+        scene.add(atmosMesh);
+
+        // Moon Mesh
+        const moonGeo = new THREE.SphereGeometry(MOON_RADIUS, 32, 32);
+        const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.85, metalness: 0.05 });
+        const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+        moonMesh.castShadow = true;
+        moonMesh.receiveShadow = true;
+        scene.add(moonMesh);
+
+        // Umbra and Penumbra lighting points
+        const solarLight = new THREE.PointLight(0xffffff, 2.8, 800, 0.4);
+        solarLight.position.set(-SUN_DIST, 0, 0);
+        solarLight.castShadow = true;
+        solarLight.shadow.mapSize.width = 4096;
+        solarLight.shadow.mapSize.height = 4096;
+        solarLight.shadow.camera.near = 50;
+        solarLight.shadow.camera.far = 400;
+        solarLight.shadow.bias = -0.0003;
+        scene.add(solarLight);
+
+        const stellarLight = new THREE.AmbientLight(0x0b0d13, 0.2);
+        scene.add(stellarLight);
+
+        // Orbital line path
+        const orbitCurve = new THREE.EllipseCurve(0, 0, MOON_ORBIT_DIST, MOON_ORBIT_DIST);
+        const orbitPoints = orbitCurve.getPoints(128);
+        const orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(p => new THREE.Vector3(p.x, 0, p.y)));
+        const orbitMat = new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.2 });
+        const orbitGuideline = new THREE.LineLoop(orbitGeo, orbitMat);
+        scene.add(orbitGuideline);
+
+        // Starfield background
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 2000;
+        const starCoords = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i += 3) {
+            const r = 350 + Math.random() * 450;
+            const u = Math.random();
+            const v = Math.random();
+            const thetaLocal = u * 2.0 * Math.PI;
+            const phiLocal = Math.acos(2.0 * v - 1.0);
+            
+            starCoords[i] = r * Math.sin(phiLocal) * Math.cos(thetaLocal);
+            starCoords[i+1] = r * Math.sin(phiLocal) * Math.sin(thetaLocal);
+            starCoords[i+2] = r * Math.cos(phiLocal);
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starCoords, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.85, transparent: true, opacity: 0.75 });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // Volumetric shadow cones structure
+        const shadowConesGroup = new THREE.Group();
+        scene.add(shadowConesGroup);
+
+        let umbraMesh, penumbraMesh, antumbraMesh;
+
+        function rebuildShadowCones() {
+            while(shadowConesGroup.children.length > 0) {
+                const child = shadowConesGroup.children[0];
+                shadowConesGroup.remove(child);
+                child.geometry.dispose();
+                child.material.dispose();
+            }
+
+            const targetRadius = (currentMode === 'solar') ? MOON_RADIUS : EARTH_RADIUS;
+            const distance = (currentMode === 'solar') ? (SUN_DIST - MOON_ORBIT_DIST) : SUN_DIST;
+            const umbraLength = (targetRadius * distance) / (SUN_RADIUS - targetRadius);
+
+            // A. Umbra dark cone
+            const umbraGeo = new THREE.CylinderGeometry(0, targetRadius, umbraLength, 32, 1, true);
+            const umbraMat = new THREE.MeshBasicMaterial({
+                color: 0x010102,
+                transparent: true,
+                opacity: 0.75,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.NormalBlending
+            });
+            umbraMesh = new THREE.Mesh(umbraGeo, umbraMat);
+            umbraMesh.rotation.x = Math.PI / 2;
+            umbraMesh.position.z = umbraLength / 2;
+            shadowConesGroup.add(umbraMesh);
+
+            // B. Antumbra copper cone
+            const antumbraLength = 160; 
+            const antumbraSlope = targetRadius / umbraLength;
+            const antumbraOuterRadius = antumbraSlope * antumbraLength;
+
+            const antumbraGeo = new THREE.CylinderGeometry(antumbraOuterRadius, 0, antumbraLength, 32, 1, true);
+            const antumbraMat = new THREE.MeshBasicMaterial({
+                color: 0x4a1205, 
+                transparent: true,
+                opacity: 0.35,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            antumbraMesh = new THREE.Mesh(antumbraGeo, antumbraMat);
+            antumbraMesh.rotation.x = Math.PI / 2;
+            antumbraMesh.position.z = umbraLength + (antumbraLength / 2);
+            shadowConesGroup.add(antumbraMesh);
+
+            // C. Penumbra outer cone
+            const penumbraApexDistance = (targetRadius * distance) / (SUN_RADIUS + targetRadius);
+            const penumbraLength = distance + 150; 
+            const penumbraSlope = targetRadius / penumbraApexDistance;
+            const penumbraOuterRadius = targetRadius + (penumbraLength * penumbraSlope);
+
+            const penumbraGeo = new THREE.CylinderGeometry(penumbraOuterRadius, targetRadius, penumbraLength, 32, 1, true);
+            const penumbraMat = new THREE.MeshBasicMaterial({
+                color: 0x1d3557, 
+                transparent: true,
+                opacity: 0.18,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.NormalBlending
+            });
+            penumbraMesh = new THREE.Mesh(penumbraGeo, penumbraMat);
+            penumbraMesh.rotation.x = Math.PI / 2;
+            penumbraMesh.position.z = penumbraLength / 2;
+            shadowConesGroup.add(penumbraMesh);
+        }
+
+        rebuildShadowCones();
+
+        // Light tracking ray lines
+        const rayLinesGroup = new THREE.Group();
+        scene.add(rayLinesGroup);
+
+        function rebuildLightPathRays() {
+            while(rayLinesGroup.children.length > 0) {
+                const child = rayLinesGroup.children[0];
+                rayLinesGroup.remove(child);
+                child.geometry.dispose();
+                child.material.dispose();
+            }
+
+            const targetRadius = (currentMode === 'solar') ? MOON_RADIUS : EARTH_RADIUS;
+            const targetPos = (currentMode === 'solar') ? moonMesh.position : earthMesh.position;
+            const distance = (currentMode === 'solar') ? (SUN_DIST - MOON_ORBIT_DIST) : SUN_DIST;
+
+            const umbraLength = (targetRadius * distance) / (SUN_RADIUS - targetRadius);
+            const apexZ = targetPos.x + umbraLength;
+
+            const sunTop = new THREE.Vector3(-SUN_DIST, 0, SUN_RADIUS);
+            const sunBottom = new THREE.Vector3(-SUN_DIST, 0, -SUN_RADIUS);
+            const targetTop = new THREE.Vector3(targetPos.x, 0, targetRadius);
+            const targetBottom = new THREE.Vector3(targetPos.x, 0, -targetRadius);
+            const apexPoint = new THREE.Vector3(apexZ, 0, 0);
+
+            const neonMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.4 });
+
+            const geoOuter1 = new THREE.BufferGeometry().setFromPoints([sunTop, targetTop, apexPoint]);
+            rayLinesGroup.add(new THREE.Line(geoOuter1, neonMat));
+
+            const geoOuter2 = new THREE.BufferGeometry().setFromPoints([sunBottom, targetBottom, apexPoint]);
+            rayLinesGroup.add(new THREE.Line(geoOuter2, neonMat));
+
+            const extX = targetPos.x + 100;
+            const slopeCrossing = (SUN_RADIUS + targetRadius) / distance;
+            const extY_Inner1 = -targetRadius - (100 * slopeCrossing);
+            const geoCrossing1 = new THREE.BufferGeometry().setFromPoints([sunTop, targetBottom, new THREE.Vector3(extX, 0, extY_Inner1)]);
+            rayLinesGroup.add(new THREE.Line(geoCrossing1, neonMat));
+
+            const extY_Inner2 = targetRadius + (100 * slopeCrossing);
+            const geoCrossing2 = new THREE.BufferGeometry().setFromPoints([sunBottom, targetTop, new THREE.Vector3(extX, 0, extY_Inner2)]);
+            rayLinesGroup.add(new THREE.Line(geoCrossing2, neonMat));
+        }
+
+        // Floating dynamic entity billboard labels
+        const labelGroup = new THREE.Group();
+        scene.add(labelGroup);
+
+        function createBillboardLabel(text, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 72;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = 'rgba(10, 10, 18, 0.85)';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(4, 4, 248, 64, 16);
+            } else {
+                const x = 4, y = 4, w = 248, h = 64, r = 16;
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+            }
+            ctx.fill();
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.font = 'bold 24px Inter, sans-serif';
+            ctx.fillStyle = '#f8fafc';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(text, 128, 36);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(16, 4.5, 1);
+            return sprite;
+        }
+
+        const sunLabel = createBillboardLabel("SUN", "#f59e0b");
+        const earthLabel = createBillboardLabel("EARTH", "#3b82f6");
+        const moonLabel = createBillboardLabel("MOON", "#94a3b8");
+        const umbraLabel = createBillboardLabel("UMBRA", "#0c0a09");
+        const penumbraLabel = createBillboardLabel("PENUMBRA", "#3b82f6");
+        const antumbraLabel = createBillboardLabel("ANTUMBRA", "#ef4444");
+
+        labelGroup.add(sunLabel, earthLabel, moonLabel, umbraLabel, penumbraLabel, antumbraLabel);
+
+        function updateLabelsPosition() {
+            sunLabel.position.set(-SUN_DIST, SUN_RADIUS + 8, 0);
+            earthLabel.position.set(0, EARTH_RADIUS + 8, 0);
+            moonLabel.position.set(moonMesh.position.x, moonMesh.position.y + MOON_RADIUS + 5, moonMesh.position.z);
+            
+            const activeCasterX = (currentMode === 'solar') ? moonMesh.position.x : 0;
+            const activeCasterRad = (currentMode === 'solar') ? MOON_RADIUS : EARTH_RADIUS;
+            const distance = (currentMode === 'solar') ? (SUN_DIST - MOON_ORBIT_DIST) : SUN_DIST;
+            const umbraLength = (activeCasterRad * distance) / (SUN_RADIUS - activeCasterRad);
+
+            umbraLabel.position.set(activeCasterX + (umbraLength * 0.45), -activeCasterRad - 10, 0);
+            penumbraLabel.position.set(activeCasterX + (umbraLength * 1.05), activeCasterRad + 16, 0);
+            antumbraLabel.position.set(activeCasterX + (umbraLength * 1.6), -activeCasterRad - 10, 0);
+        }
+
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 700);
+        }, 1200);
+
+        // Rayleigh scattering calculation details
+        const colorMoonRegular = new THREE.Color(0xa1a1aa);
+        const colorBloodRed = new THREE.Color(0xef4444);
+        const emissiveRed = new THREE.Color(0x450a0a);
+
+        function updateAtmosphericScattering() {
+            if (currentMode === 'lunar') {
+                const distToShadowLine = Math.sqrt(Math.pow(moonMesh.position.y, 2) + Math.pow(moonMesh.position.z, 2));
+                const umbraApexX = (EARTH_RADIUS * SUN_DIST) / (SUN_RADIUS - EARTH_RADIUS);
+                
+                if (moonMesh.position.x > 0 && moonMesh.position.x < umbraApexX) {
+                    const localUmbraRadius = EARTH_RADIUS * (1.0 - (moonMesh.position.x / umbraApexX));
+                    
+                    if (distToShadowLine < localUmbraRadius) {
+                        const penetrationDepth = 1.0 - (distToShadowLine / localUmbraRadius);
+                        
+                        moonMat.color.lerpColors(colorMoonRegular, colorBloodRed, penetrationDepth * 0.95);
+                        moonMat.emissive.lerpColors(new THREE.Color(0x000000), emissiveRed, penetrationDepth * 0.85);
+                        atmosMat.color.setHex(0xef4444);
+                        atmosMat.opacity = 0.5;
+
+                        document.getElementById('scattering-alert').classList.remove('hidden');
+                        document.getElementById('scattering-alert').classList.add('flex');
+                        return;
+                    }
+                }
+            }
+            moonMat.color.lerp(colorMoonRegular, 0.1);
+            moonMat.emissive.lerp(new THREE.Color(0x000000), 0.1);
+            atmosMat.color.setHex(0x4fa8ff);
+            atmosMat.opacity = 0.35;
+            document.getElementById('scattering-alert').classList.add('hidden');
+            document.getElementById('scattering-alert').classList.remove('flex');
+        }
+
+        // Mode preset configuration
+        function setSolarEclipseMode() {
+            currentMode = 'solar';
+            isPaused = true;
+            theta = Math.PI; 
+            animateCamera(new THREE.Vector3(25, 20, 60), new THREE.Vector3(0, 0, 0));
+            updateUIState();
+        }
+
+        function setLunarEclipseMode() {
+            currentMode = 'lunar';
+            isPaused = true;
+            theta = 0; 
+            animateCamera(new THREE.Vector3(30, 15, 65), new THREE.Vector3(20, 0, 0));
+            updateUIState();
+        }
+
+        function setFreeOrbitMode() {
+            currentMode = 'free';
+            isPaused = false;
+            updateUIState();
+        }
+
+        function animateCamera(newPos, target) {
+            let startPos = camera.position.clone();
+            let step = 0;
+            const durationSteps = 50;
+
+            function stepAnimation() {
+                if (step < durationSteps) {
+                    step++;
+                    const t = step / durationSteps;
+                    const ease = 1 - Math.pow(1 - t, 3); 
+                    camera.position.lerpVectors(startPos, newPos, ease);
+                    controls.target.lerp(target, ease);
+                    controls.update();
+                    requestAnimationFrame(stepAnimation);
+                }
+            }
+            stepAnimation();
+        }
+
+        function updateUIState() {
+            const btnSolar = document.getElementById('btn-solar-mode');
+            const btnLunar = document.getElementById('btn-lunar-mode');
+            const btnFree = document.getElementById('btn-free-mode');
+
+            [btnSolar, btnLunar, btnFree].forEach(btn => {
+                btn.className = btn.className.replace(/bg-\w+-500\/20 border-\w+-500\/40/g, "");
+            });
+
+            const hudDesc = document.getElementById('hud-mode-desc');
+            const hudIcon = document.getElementById('hud-icon');
+            const explainHeader = document.getElementById('explain-header');
+            const explainBody = document.getElementById('explain-body');
+            const eclipseTypePanel = document.getElementById('eclipse-type-panel');
+
+            if (currentMode === 'solar') {
+                btnSolar.className += " bg-amber-500/20 border-amber-500/40";
+                hudDesc.innerText = "Total / Annular Solar Alignment";
+                hudIcon.className = "fa-solid fa-sun text-amber-500 text-base glow-orange";
+                explainHeader.innerHTML = "<i class='fa-solid fa-circle-radiation text-amber-400'></i> Solar Alignment Dynamics";
+                explainBody.innerText = "The Moon casts its shadow toward Earth. If the Moon is close, the Umbra cone touches Earth causing a TOTAL solar eclipse. If it is further away, the Umbra falls short, and the Earth enters the ANTUMBRA zone causing an ANNULAR 'Ring of Fire' eclipse!";
+                eclipseTypePanel.classList.remove('hidden');
+                eclipseTypePanel.classList.add('flex');
+            } else if (currentMode === 'lunar') {
+                btnLunar.className += " bg-red-500/20 border-red-500/40";
+                hudDesc.innerText = "Lunar Alignment & Scattering";
+                hudIcon.className = "fa-solid fa-moon text-red-500 text-base glow-red";
+                explainHeader.innerHTML = "<i class='fa-solid fa-vial text-red-400'></i> Rayleigh Light Scattering";
+                explainBody.innerText = "The Earth blocks direct sunlight, casting a large Umbra cone. As the Moon enters, the Earth's atmosphere filters out shortwave blue light, refracting red wavelengths onto the Moon's surface, turning it copper red.";
+                eclipseTypePanel.classList.add('hidden');
+                eclipseTypePanel.classList.remove('flex');
+            } else {
+                btnFree.className += " bg-blue-500/20 border-blue-500/40";
+                hudDesc.innerText = "Free Orbit Sandbox Mode";
+                hudIcon.className = "fa-solid fa-earth-americas text-blue-400 text-base glow-blue";
+                explainHeader.innerHTML = "<i class='fa-solid fa-microscope text-blue-400'></i> Sandbox Operations";
+                explainBody.innerText = "Adjust speed, orbital distance, and inclination using the sliders. Pause motion at any point to freely rotate the 3D space with your mouse, scroll to zoom, and inspect alignments close-up.";
+                eclipseTypePanel.classList.add('hidden');
+                eclipseTypePanel.classList.remove('flex');
+            }
+
+            const playPauseIcon = document.getElementById('play-pause-icon');
+            const playPauseText = document.getElementById('play-pause-text');
+            if (isPaused) {
+                playPauseIcon.className = "fa-solid fa-play text-emerald-500";
+                playPauseText.innerText = "Resume Revolution";
+            } else {
+                playPauseIcon.className = "fa-solid fa-pause text-amber-500";
+                playPauseText.innerText = "Pause Revolution";
+            }
+        }
+
+        // Menu system visibility operations
+        const sidebarMenu = document.getElementById('sidebar-menu');
+        const menuToggleBtn = document.getElementById('menu-toggle-btn');
+        const menuToggleIcon = document.getElementById('menu-toggle-icon');
+        const menuToggleText = document.getElementById('menu-toggle-text');
+        const menuBackdrop = document.getElementById('menu-backdrop');
+
+        function toggleMenuDrawer() {
+            const isClosed = sidebarMenu.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebarMenu.classList.remove('-translate-x-full');
+                sidebarMenu.classList.add('translate-x-0');
+                menuToggleIcon.className = "fa-solid fa-xmark text-sm text-red-400";
+                menuToggleText.innerText = "Close Menu";
+                menuBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+                menuBackdrop.classList.add('opacity-100', 'pointer-events-auto');
+            } else {
+                sidebarMenu.classList.remove('translate-x-0');
+                sidebarMenu.classList.add('-translate-x-full');
+                menuToggleIcon.className = "fa-solid fa-bars text-sm";
+                menuToggleText.innerText = "Open Menu";
+                menuBackdrop.classList.remove('opacity-100', 'pointer-events-auto');
+                menuBackdrop.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        menuToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            toggleMenuDrawer();
+        });
+
+        menuBackdrop.addEventListener('click', toggleMenuDrawer);
+
+        // Immediate global full-screen invocation upon initial tool interaction
+        function triggerImmediateFullscreen() {
+            const docElement = document.documentElement;
+            if (!document.fullscreenElement) {
+                if (docElement.requestFullscreen) {
+                    docElement.requestFullscreen().catch(err => console.log("Fullscreen request deferred: ", err));
+                } else if (docElement.webkitRequestFullscreen) {
+                    docElement.webkitRequestFullscreen();
+                } else if (docElement.msRequestFullscreen) {
+                    docElement.msRequestFullscreen();
+                }
+            }
+        }
+
+        // Bind immediate fallback interaction hook
+        window.addEventListener('click', () => {
+            triggerImmediateFullscreen();
+        }, { once: true });
+
+        window.addEventListener('pointerdown', () => {
+            triggerImmediateFullscreen();
+        }, { once: true });
+
+        // Event settings connections
+        document.getElementById('btn-solar-mode').addEventListener('click', setSolarEclipseMode);
+        document.getElementById('btn-lunar-mode').addEventListener('click', setLunarEclipseMode);
+        document.getElementById('btn-free-mode').addEventListener('click', setFreeOrbitMode);
+
+        document.getElementById('btn-play-pause').addEventListener('click', () => {
+            isPaused = !isPaused;
+            updateUIState();
+        });
+
+        document.getElementById('btn-reset-cam').addEventListener('click', () => {
+            animateCamera(new THREE.Vector3(40, 60, 115), new THREE.Vector3(0, 0, 0));
+        });
+
+        const sliderSpeed = document.getElementById('slider-speed');
+        const labelSpeed = document.getElementById('label-speed');
+        sliderSpeed.addEventListener('input', (e) => {
+            speedMultiplier = parseFloat(e.target.value);
+            labelSpeed.innerText = speedMultiplier.toFixed(1) + "x";
+        });
+
+        const sliderDistance = document.getElementById('slider-distance');
+        const labelDistance = document.getElementById('label-distance');
+        sliderDistance.addEventListener('input', (e) => {
+            MOON_ORBIT_DIST = parseFloat(e.target.value);
+            labelDistance.innerText = MOON_ORBIT_DIST.toFixed(1) + " AU";
+            
+            const newCurve = new THREE.EllipseCurve(0, 0, MOON_ORBIT_DIST, MOON_ORBIT_DIST);
+            const newPoints = newCurve.getPoints(128);
+            orbitGuideline.geometry.setFromPoints(newPoints.map(p => new THREE.Vector3(p.x, 0, p.y)));
+            
+            rebuildShadowCones();
+        });
+
+        const sliderInclination = document.getElementById('slider-inclination');
+        const labelInclination = document.getElementById('label-inclination');
+        sliderInclination.addEventListener('input', (e) => {
+            const deg = parseFloat(e.target.value);
+            INCLINATION = deg * (Math.PI / 180);
+            labelInclination.innerText = deg.toFixed(1) + "°";
+        });
+
+        const toggleUmbra = document.getElementById('toggle-umbra');
+        const togglePenumbra = document.getElementById('toggle-penumbra');
+        const toggleAntumbra = document.getElementById('toggle-antumbra');
+        const toggleRays = document.getElementById('toggle-rays');
+        const toggleLabels = document.getElementById('toggle-labels');
+        const toggleGuideline = document.getElementById('toggle-guideline');
+
+        const clock = new THREE.Clock();
+
+        function checkEclipseType() {
+            if (currentMode !== 'solar') return;
+            
+            const distance = SUN_DIST - MOON_ORBIT_DIST;
+            const umbraLength = (MOON_RADIUS * distance) / (SUN_RADIUS - MOON_RADIUS);
+            const eclipseDesc = document.getElementById('eclipse-type-desc');
+            const apexCoordinate = -MOON_ORBIT_DIST + umbraLength;
+            
+            if (apexCoordinate >= 0) {
+                eclipseDesc.innerHTML = "<span class='text-emerald-400'>TOTAL SOLAR ECLIPSE</span><br><span class='text-[10px] font-normal text-slate-300'>The Moon's Umbra cone touches Earth. Complete blockage!</span>";
+            } else {
+                eclipseDesc.innerHTML = "<span class='text-rose-400'>ANNULAR ECLIPSE</span><br><span class='text-[10px] font-normal text-slate-300'>The Umbra ends before Earth. Earth is inside the ANTUMBRA!</span>";
+            }
+        }
+
+        // Active WebGL loop updates
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+
+            const dt = clock.getDelta();
+
+            if (!isPaused) {
+                theta += dt * 0.22 * speedMultiplier;
+                if (theta > Math.PI * 2) theta -= Math.PI * 2;
+            }
+
+            const mx = Math.cos(theta) * MOON_ORBIT_DIST;
+            const mz = Math.sin(theta) * MOON_ORBIT_DIST;
+            const my = Math.sin(theta) * MOON_ORBIT_DIST * Math.sin(INCLINATION);
+
+            moonMesh.position.set(mx, my, mz);
+
+            updateAtmosphericScattering();
+
+            if (currentMode === 'solar') {
+                shadowConesGroup.position.copy(moonMesh.position);
+                const shadowDirection = new THREE.Vector3().subVectors(moonMesh.position, sunMesh.position).normalize();
+                const shadowTarget = new THREE.Vector3().copy(moonMesh.position).add(shadowDirection);
+                shadowConesGroup.lookAt(shadowTarget);
+                
+                rebuildLightPathRays();
+                checkEclipseType();
+            } else {
+                shadowConesGroup.position.set(0, 0, 0);
+                shadowConesGroup.lookAt(new THREE.Vector3(1, 0, 0));
+                rebuildLightPathRays();
+            }
+
+            if (umbraMesh) umbraMesh.visible = toggleUmbra.checked;
+            if (penumbraMesh) penumbraMesh.visible = togglePenumbra.checked;
+            if (antumbraMesh) antumbraMesh.visible = toggleAntumbra.checked;
+            
+            rayLinesGroup.visible = (currentMode !== 'free') && toggleRays.checked;
+            labelGroup.visible = toggleLabels.checked;
+            orbitGuideline.visible = toggleGuideline.checked;
+
+            if (toggleLabels.checked) {
+                updateLabelsPosition();
+                labelGroup.children.forEach(sprite => {
+                    sprite.quaternion.copy(camera.quaternion);
+                });
+            }
+
+            earthMesh.rotation.y += dt * 0.04;
+            moonMesh.rotation.y += dt * 0.02;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        renderLoop();
+        updateUIState();
+    </script>
+</body>
+</html>
