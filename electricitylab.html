@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Expert Physics Circuit Laboratory Workspace</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            background-color: #080c14;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            touch-action: none;
+        }
+
+        /* TOP NAVIGATION & MENU CONTROLS */
+        header {
+            background-color: #0f172a;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1e293b;
+            z-index: 1000;
+            position: relative;
+            height: 65px;
+        }
+
+        h1 { font-size: 1.15rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.5px; }
+
+        .history-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Collapsible Menu UI Panel */
+        .menu-wrapper { position: relative; }
+        .menu-toggle-btn { background-color: #3b82f6; padding: 10px 16px; border-radius: 8px; font-weight: 700; border: none; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; z-index: 1010; }
+        .menu-toggle-btn:hover { background-color: #2563eb; }
+        
+        .dropdown-menu-content {
+            position: absolute; top: 50px; right: 0; background-color: #1e293b;
+            border: 2px solid #334155; border-radius: 12px; width: 340px; padding: 15px;
+            display: none; flex-direction: column; gap: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); z-index: 1050;
+            max-height: 85vh; overflow-y: auto;
+        }
+        .dropdown-menu-content.open { display: flex; }
+
+        .menu-section { border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 4px; }
+        .menu-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 8px; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        button.action-btn {
+            background-color: #334155; color: white; border: none; padding: 8px 10px;
+            border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.75rem; transition: all 0.2s; text-align: center;
+        }
+        button.action-btn:hover { background-color: #475569; }
+        button.spawn { background-color: #059669; }
+        button.spawn:hover { background-color: #10b981; }
+        button.danger { background-color: #dc2626; }
+        button.danger:hover { background-color: #ef4444; }
+        button.warn-btn { background-color: #d97706; }
+        button.warn-btn:hover { background-color: #f59e0b; }
+
+        /* Wire Color Tool Options */
+        .color-palette { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+        .color-dot {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 2px solid #111827; transition: transform 0.1s;
+        }
+        .color-dot.active { border-color: #ffffff; transform: scale(1.2); box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+
+        /* STATUS DISPLAY PANEL */
+        #status-panel {
+            background-color: #020617; padding: 10px 20px;
+            display: flex; gap: 25px; border-bottom: 1px solid #1e293b;
+            align-items: center; font-size: 0.85rem; z-index: 900; position: relative;
+        }
+        .status-item { display: flex; align-items: center; gap: 8px; }
+        .indicator { width: 12px; height: 12px; border-radius: 50%; background-color: #475569; }
+        .indicator.good { background-color: #10b981; box-shadow: 0 0 10px #10b981; }
+        .indicator.danger { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+        /* WORKSPACE INTERACTIVE CANVAS */
+        #workspace {
+            width: 100vw; height: calc(100vh - 115px); position: relative; overflow: hidden;
+            background-color: #080c14;
+            touch-action: none;
+            cursor: grab;
+        }
+        #workspace:active { cursor: grabbing; }
+
+        /* INFINITE PAN ZOOM WRAPPER ELEMENT */
+        #pan-zoom-content {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            transform-origin: 0 0; pointer-events: none;
+            background-image: radial-gradient(#1e293b 1.5px, transparent 1.5px); background-size: 30px 30px;
+            touch-action: none;
+        }
+        #pan-zoom-content * { pointer-events: auto; }
+        
+        #wire-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 10; touch-action: none; }
+
+        /* FLOATING DISCONNECT HOVER CONTEXT CHIP */
+        #wire-context-popup {
+            position: absolute; background-color: #ef4444; color: white; padding: 6px 12px;
+            border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;
+            display: none; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border: 1px solid #f87171;
+        }
+
+        /* LABORATORY COMPONENT HOUSING BASE BOXES */
+        .component {
+            position: absolute; background-color: #1e293b; border: 2px solid #475569;
+            border-radius: 14px; padding: 15px; cursor: grab; display: flex;
+            flex-direction: column; align-items: center; z-index: 15; touch-action: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4); transform-origin: center center;
+        }
+        .component:active { cursor: grabbing; }
+        .component.selected-comp { border: 2px dashed #38bdf8; box-shadow: 0 0 15px rgba(56,189,248,0.4); }
+
+        /* Clear Visible Labels & Text Signs */
+        .component-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; margin-bottom: 12px; text-shadow: 0 1px 2px black; text-align: center; }
+        .spec-setting { background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #f1f5f9; font-size: 0.7rem; padding: 4px 6px; width: 110px; text-align: center; margin-top: 5px; font-weight: 700; outline: none; }
+        .spec-slider { width: 110px; margin-top: 5px; cursor: pointer; }
+
+        /* 360-DEGREE ROTATION HANDLE MECHANISM */
+        .rotate-crown-handle {
+            position: absolute; top: -28px; width: 22px; height: 22px;
+            background-color: #38bdf8; border: 3px solid #0f172a; border-radius: 50%;
+            cursor: alias; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 50; touch-action: none;
+        }
+        .rotate-crown-handle::after { content: '↻'; font-size: 0.7rem; color: #0f172a; font-weight: 900; }
+
+        /* TERMINALS & SIGNS */
+        .terminal {
+            width: 24px; height: 24px; background: linear-gradient(135deg, #f8fafc, #cbd5e1);
+            border: 4px solid #0f172a; border-radius: 50%; position: absolute; cursor: crosshair; z-index: 20;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4); transition: transform 0.15s; touch-action: none;
+        }
+        .terminal:hover { transform: scale(1.3); background: #38bdf8; }
+        .terminal.selected { background: #22c55e; transform: scale(1.3); box-shadow: 0 0 14px #22c55e; }
+        
+        .sign-lbl { position: absolute; font-size: 0.7rem; font-weight: 900; color: #ffffff; pointer-events: none; text-shadow: 0 1px 3px black; z-index: 25; }
+
+        /* HIGH REALISM BULB & SOCKET STRUCTURE */
+        .bulb-holder { width: 120px; height: 165px; background-color: #0f172a; }
+        .bulb-fixture {
+            width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.08);
+            border: 2px solid #64748b; position: relative; transition: all 0.2s;
+            box-shadow: inset 0 4px 12px rgba(255,255,255,0.05), 0 0 10px rgba(255, 255, 255, 0.05);
+        }
+        .bulb-fixture::before {
+            content: ''; position: absolute; bottom: 8px; left: 19px; width: 22px; height: 26px;
+            border: 2px solid #4b5563; border-bottom: none; border-radius: 10px 10px 0 0;
+        }
+        .bulb-fixture::after {
+            content: ''; position: absolute; bottom: -12px; left: 20px; width: 20px; height: 12px;
+            background: linear-gradient(90deg, #475569, #94a3b8, #475569); border-radius: 0 0 4px 4px;
+        }
+        .socket-tray { width: 90px; height: 26px; background-color: #1e1e2f; border: 2px solid #475569; border-radius: 6px; margin-top: 14px; }
+
+        /* DYNAMIC LIGHTING GLOWS */
+        .bulb-holder.glowing .bulb-fixture {
+            background: radial-gradient(circle, #fffdf0 var(--glow-core, 10%), #facc15 var(--glow-mid, 60%), transparent 100%);
+            border-color: #fde047;
+            box-shadow: 0 0 var(--glow-radius-1, 30px) var(--glow-spread-1, 10px) rgba(254,240,138,0.4),
+                        0 0 var(--glow-radius-2, 60px) var(--glow-spread-2, 20px) rgba(234,179,8,0.2);
+        }
+        .bulb-holder.glowing .bulb-fixture::before { border-color: #ffffff; box-shadow: 0 0 10px #fff; }
+
+        .bulb-holder.blasted .bulb-fixture {
+            background: transparent !important; border-color: #3f3f46 !important; box-shadow: none !important;
+        }
+        .bulb-holder.blasted .bulb-fixture::before { display: none; }
+        .bulb-holder.blasted .bulb-fixture::after { background: #334155; }
+        
+        .shatter-particle {
+            position: absolute; width: 6px; height: 6px; background: rgba(255,255,255,0.7);
+            border-radius: 2px; pointer-events: none; z-index: 60;
+            animation: explodeOut 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        @keyframes explodeOut {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0.2) rotate(var(--tr)); opacity: 0; }
+        }
+
+        /* MECHANICAL KNIFE SWITCH */
+        .switch-holder { width: 130px; height: 95px; }
+        .switch-deck { width: 75px; height: 14px; background-color: #0f172a; border-radius: 4px; position: relative; margin: 12px 0; border: 1px solid #334155; }
+        .switch-arm {
+            width: 52px; height: 8px; background: linear-gradient(#94a3b8, #475569);
+            position: absolute; left: 8px; bottom: 12px; transform-origin: left center;
+            transition: transform 0.2s; cursor: pointer; border-radius: 4px; border: 1px solid #334155;
+        }
+        .switch-holder.open .switch-arm { transform: rotate(-45deg); }
+        .switch-holder.closed .switch-arm { transform: rotate(0deg); background: linear-gradient(#22c55e, #16a34a); box-shadow: 0 0 10px rgba(34,197,94,0.5); }
+
+        /* FAN MOTOR COMPONENT styling */
+        .motor-holder { width: 130px; height: 165px; background-color: #0f172a; }
+        .motor-case {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: radial-gradient(circle, #64748b, #334155);
+            border: 3px solid #475569; position: relative; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .motor-case::after {
+            content: ''; position: absolute; width: 8px; height: 8px;
+            background-color: #94a3b8; border-radius: 50%; border: 1px solid #1e293b;
+        }
+        .fan-blade-assembly {
+            position: absolute; width: 100px; height: 100px;
+            pointer-events: none; z-index: 5;
+        }
+        .fan-blade {
+            position: absolute; top: 10px; left: 42px; width: 16px; height: 40px;
+            background-color: #38bdf8; border-radius: 8px 8px 0 0;
+            transform-origin: 8px 40px; opacity: 0.9;
+        }
+        .fan-blade:nth-child(2) { transform: rotate(120deg); }
+        .fan-blade:nth-child(3) { transform: rotate(240deg); }
+
+        /* LIQUID BEAKER COMPONENT & DYNAMIC ION FIELD */
+        .beaker-holder { width: 150px; height: 215px; background-color: rgba(15, 23, 42, 0.45); }
+        .beaker-cup {
+            width: 100px; height: 100px; border: 3px solid #94a3b8; border-top: none;
+            border-radius: 0 0 14px 14px; position: relative; overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.05); margin-top: 5px;
+        }
+        .beaker-liquid {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 75%;
+            transition: background-color 0.4s; pointer-events: none;
+        }
+        .beaker-electrode {
+            position: absolute; top: 0; width: 10px; height: 65px;
+            background-color: #4b5563; border-radius: 2px;
+            box-shadow: inset 1px 0 2px rgba(255,255,255,0.2);
+        }
+        .beaker-electrode.left-elec { left: 24px; background: linear-gradient(90deg, #64748b, #475569); }
+        .beaker-electrode.right-elec { right: 24px; background: linear-gradient(90deg, #64748b, #475569); }
+        
+        .ion-field { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+        .ion-node {
+            position: absolute; width: 16px; height: 16px; border-radius: 50%;
+            font-size: 0.5rem; font-weight: 900; display: flex; align-items: center;
+            justify-content: center; box-shadow: 0 0 6px var(--glow-color, rgba(255,255,255,0.4));
+            border: 1px solid rgba(255,255,255,0.3); transition: transform 0.1s linear;
+        }
+
+        .bubble-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+        .beaker-bubble {
+            position: absolute; width: 4px; height: 4px; background: rgba(255,255,255,0.7);
+            border-radius: 50%; bottom: 12px;
+            animation: bubbleFloat 1s infinite linear;
+        }
+        @keyframes bubbleFloat {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-55px) scale(0.3); opacity: 0; }
+        }
+
+        /* GAS DISCHARGE CONTAINER & PLASMA EFFECT */
+        .gas-holder { width: 180px; height: 215px; background-color: #0f172a; }
+        .gas-tube-visual {
+            width: 140px; height: 40px; border-radius: 20px; border: 3px solid #64748b;
+            background: rgba(255, 255, 255, 0.03); position: relative; margin-top: 10px;
+            transition: all 0.35s; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .gas-tube-visual::before {
+            content: ''; position: absolute; left: 10px; width: 10px; height: 20px; background-color: #94a3b8; border-radius: 2px; z-index: 10;
+        }
+        .gas-tube-visual::after {
+            content: ''; position: absolute; right: 10px; width: 10px; height: 20px; background-color: #94a3b8; border-radius: 2px; z-index: 10;
+        }
+        
+        .plasma-stream {
+            position: absolute; left: 20px; right: 20px; height: 8px;
+            background: var(--neon-color, #ff4500); opacity: 0; border-radius: 4px;
+            filter: blur(2px); box-shadow: 0 0 15px 4px var(--neon-color, #ff4500);
+            transition: opacity 0.2s ease-in-out; pointer-events: none;
+            z-index: 2;
+        }
+        .glowing-neon .plasma-stream {
+            opacity: 0.85;
+            animation: plasmaFlicker 0.15s infinite alternate;
+        }
+        @keyframes plasmaFlicker {
+            0% { transform: scaleY(0.8) translateY(-1px); filter: blur(1.5px); opacity: 0.8; }
+            100% { transform: scaleY(1.3) translateY(1px); filter: blur(3px); opacity: 0.95; }
+        }
+
+        .gas-holder.glowing-neon .gas-tube-visual {
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 10%, var(--neon-color-alpha, rgba(255, 69, 0, 0.15)) 70%);
+            border-color: var(--neon-color, #ff4500);
+            box-shadow: 0 0 25px var(--neon-color, #ff4500), inset 0 0 10px var(--neon-color, #ff4500);
+        }
+
+        /* CHEMICAL BATTERY CELLS */
+        .cell { width: 145px; height: 85px; background: linear-gradient(90deg, #0f172a 0%, #1e293b 25%, #475569 76%, #fca5a5 77%, #ef4444 100%); }
+        .cell-body-sign { font-weight: 900; font-size: 0.9rem; color: #ffffff; letter-spacing: 1px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+
+        /* CONDUCTOR & INSULATOR VISUALS */
+        .conductor-coin { width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle, #f59e0b, #b45309); border: 3px solid #78350f; }
+        .conductor-key { width: 130px; height: 90px; background: linear-gradient(135deg, #cbd5e1, #64748b); }
+        .key-ring { width: 30px; height: 30px; border-radius: 50%; border: 4px solid #475569; margin-bottom: 5px; }
+        .insulator-eraser { width: 120px; height: 90px; background: linear-gradient(45deg, #f43f5e 50%, #3b82f6 50%); }
+        .insulator-ruler { width: 160px; height: 80px; background-color: rgba(234, 179, 8, 0.25); border: 2px solid #eab308; }
+
+        /* TRANSPARENT ELECTRICAL JUNCTION BOX */
+        .junction-box-holder {
+            min-width: 260px; min-height: 240px;
+            background-color: rgba(8, 12, 20, 0.05) !important;
+            backdrop-filter: none !important;
+            border: 3px dashed #38bdf8 !important;
+            padding: 20px 15px 15px 15px !important;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        .jb-line-row {
+            display: flex; gap: 12px; border: 1px dashed rgba(56,189,248,0.3);
+            padding: 10px; border-radius: 8px; position: relative; background-color: rgba(2,6,23,0.1);
+            min-height: 120px; align-items: center; justify-content: flex-start;
+        }
+        .jb-line-row::before {
+            content: attr(data-row-lbl); position: absolute; top: -8px; left: 10px;
+            font-size: 0.55rem; font-weight: 900; background-color: #080c14;
+            padding: 1px 5px; color: #38bdf8; border-radius: 3px; border: 1px solid #334155;
+        }
+
+        .jb-module-housing {
+            width: 76px; height: 100px; background-color: #1e293b; border: 2px solid #64748b;
+            border-radius: 8px; position: relative; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.15s; touch-action: none;
+        }
+
+        /* Module inner specifics */
+        .jb-sw-rocker { width: 28px; height: 44px; background-color: #0f172a; border-radius: 4px; border: 2px solid #475569; cursor: pointer; position: relative; }
+        .jb-sw-rocker::after {
+            content: ''; position: absolute; left: 2px; width: 20px; height: 18px;
+            background-color: #e2e8f0; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transition: top 0.15s;
+        }
+        .jb-module-housing.closed .jb-sw-rocker::after { top: 2px; background-color: #22c55e; }
+        .jb-module-housing.open .jb-sw-rocker::after { bottom: 2px; background-color: #cbd5e1; }
+
+        .jb-female-socket-frame { width: 50px; height: 50px; background-color: #0f172a; border-radius: 50%; position: relative; border: 2px solid #475569; }
+        .socket-hole { background-color: #000; border-radius: 50%; position: absolute; pointer-events: none; }
+        .socket-hole.earth { width: 9px; height: 9px; top: 8px; left: 19px; }
+        .socket-hole.live { width: 7px; height: 7px; bottom: 12px; left: 10px; }
+        .socket-hole.neutral { width: 7px; height: 7px; bottom: 12px; right: 10px; }
+
+        .jb-red-indicator-lens {
+            width: 24px; height: 24px; border-radius: 50%; background-color: #7f1d1d;
+            border: 2px solid #b91c1c; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6); transition: all 0.2s;
+        }
+        .jb-module-housing.glowing-lamp .jb-red-indicator-lens {
+            background-color: #ef4444; border-color: #f87171;
+            box-shadow: 0 0 14px #ef4444, inset 0 0 4px #fff;
+        }
+
+        .jb-fan-dial-base { width: 44px; height: 44px; border-radius: 50%; background-color: #0f172a; border: 2px solid #475569; position: relative; cursor: pointer; }
+        .jb-fan-dial-knob {
+            width: 8px; height: 20px; background-color: #38bdf8; position: absolute;
+            left: 16px; top: 2px; transform-origin: center bottom; border-radius: 2px;
+            transition: transform 0.2s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* Dynamic row appender config controls */
+        .jb-config-toolbar { display: flex; gap: 8px; align-items: center; width: 100%; border-top: 1px solid #334155; padding-top: 10px; margin-top: 5px; }
+        .jb-add-btn { background-color: #38bdf8; border: none; width: 26px; height: 26px; border-radius: 6px; color: #0f172a; font-weight: 900; cursor: pointer; font-size: 1rem; }
+        .jb-add-btn:hover { background-color: #7dd3fc; }
+
+        /* MALE PLUG CONFIGURATIONS */
+        .male-plug-2pin { width: 90px; height: 80px; background: linear-gradient(135deg, #334155, #1e293b); border: 2px solid #64748b; }
+        .male-plug-3pin { width: 100px; height: 85px; background: linear-gradient(135deg, #475569, #0f172a); border: 2px solid #94a3b8; }
+        
+        .plug-prong-visual {
+            position: absolute; width: 6px; background: linear-gradient(#cbd5e1, #94a3b8);
+            border-radius: 1px; border: 1px solid #475569; z-index: 2; pointer-events: none;
+        }
+        .plug-prong-visual.p-earth { height: 16px; top: -16px; left: 45px; width: 8px; }
+        .plug-prong-visual.p-left { height: 12px; top: -12px; left: 24px; }
+        .plug-prong-visual.p-right { height: 12px; top: -12px; right: 24px; }
+
+        .docked-badge {
+            background-color: #10b981; color: white; font-size: 0.55rem; font-weight: 900;
+            padding: 1px 5px; border-radius: 4px; display: none; margin-top: 2px; letter-spacing: 0.5px;
+        }
+        .component.plug-is-docked {
+            border-color: #10b981 !important; box-shadow: 0 0 15px rgba(16,185,129,0.4) !important;
+        }
+        .component.plug-is-docked .docked-badge { display: block; }
+        .component.plug-is-docked .rotate-crown-handle { display: none !important; }
+
+        /* SAFETY WARNING & LAB MANUAL DIALOG MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(2, 6, 23, 0.9); display: flex; justify-content: center;
+            align-items: center; z-index: 5000; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+        }
+        .modal-overlay.active-modal { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background-color: #1e293b; padding: 25px; border-radius: 16px; border: 2px solid #334155;
+            max-width: 480px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .modal-card h2 { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; margin-bottom: 12px; }
+        .modal-card h2.safety-alert { color: #ef4444; }
+        .modal-card h2.info-alert { color: #38bdf8; }
+        .modal-card p { font-size: 0.9rem; color: #94a3b8; line-height: 1.5; margin-bottom: 15px; }
+        .modal-card ul { padding-left: 20px; margin-bottom: 20px; color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; }
+        
+        .modal-btn-container { display: flex; gap: 10px; width: 100%; }
+        .modal-card button { flex: 1; padding: 12px; border-radius: 8px; color: white; border: none; font-weight: 700; cursor: pointer; }
+        .modal-card .btn-primary { background-color: #3b82f6; }
+        .modal-card .btn-primary:hover { background-color: #2563eb; }
+        .modal-card .btn-secondary { background-color: #4b5563; }
+        .modal-card .btn-secondary:hover { background-color: #6b7280; }
+        
+        .close-x-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 1.6rem;
+            color: #94a3b8; cursor: pointer; font-weight: bold; transition: color 0.2s;
+        }
+        .close-x-btn:hover { color: #f8fafc; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Physics Lab Environment</h1>
+        
+        <div class="history-controls">
+            <button class="action-btn" style="background-color: #4b5563; font-weight: bold; padding: 8px 14px;" onclick="triggerUndoAction()">↶ Undo</button>
+            <button class="action-btn" style="background-color: #4b5563; font-weight: bold; padding: 8px 14px;" onclick="triggerRedoAction()">↷ Redo</button>
+            <div class="menu-wrapper">
+                <button class="menu-toggle-btn" onclick="toggleMenuDropdown()">🛠️ Control Menu</button>
+            </div>
+        </div>
+
+        <div id="control-dropdown" class="dropdown-menu-content">
+            <div class="menu-section">
+                <div class="menu-title">Dynamic Junction Dashboard</div>
+                <div class="btn-grid">
+                    <button class="action-btn spawn" style="background-color:#0284c7; grid-column: span 2;" onclick="spawnLabComponent('junctionbox')">+ Add Transparent Switch Box</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Spawn Separate Male Plugs</div>
+                <div class="btn-grid">
+                    <button class="action-btn spawn" style="background-color:#8b5cf6;" onclick="spawnLabComponent('male2pin')">+ Male 2-Pin Plug</button>
+                    <button class="action-btn spawn" style="background-color:#8b5cf6;" onclick="spawnLabComponent('male3pin')">+ Male 3-Pin Plug</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Spawn Basic Load Components</div>
+                <div class="btn-grid">
+                    <button class="action-btn spawn" onclick="spawnLabComponent('bulb')">+ Add Bulb</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('switch')">+ Add Switch</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('cell')">+ Add Cell</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('motor')">+ Add Motor</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Liquid & Gas Testers</div>
+                <div class="btn-grid">
+                    <button class="action-btn spawn" style="background-color:#0284c7;" onclick="spawnLabComponent('beaker')">+ Add Beaker</button>
+                    <button class="action-btn spawn" style="background-color:#0284c7;" onclick="spawnLabComponent('gas')">+ Gas Tube</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Spawn Conductors/Insulators</div>
+                <div class="btn-grid">
+                    <button class="action-btn spawn" onclick="spawnLabComponent('coin')">+ Copper Coin</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('key')">+ Metal Key</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('eraser')">+ Eraser</button>
+                    <button class="action-btn spawn" onclick="spawnLabComponent('ruler')">+ Ruler</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Active Component Management</div>
+                <div class="btn-grid">
+                    <button class="action-btn danger" style="grid-column: span 2;" onclick="deleteSelectedComponent()">❌ Delete Selected</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Active Wire Colors</div>
+                <div class="color-palette">
+                    <div class="color-dot active" style="background-color: #ef4444;" onclick="changeActiveWireColor('#ef4444', this)"></div>
+                    <div class="color-dot" style="background-color: #22c55e;" onclick="changeActiveWireColor('#22c55e', this)"></div>
+                    <div class="color-dot" style="background-color: #111827; border: 1px solid #4b5563;" onclick="changeActiveWireColor('#111827', this)"></div>
+                    <div class="color-dot" style="background-color: #eab308;" onclick="changeActiveWireColor('#eab308', this)"></div>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Laboratory Resets</div>
+                <div class="btn-grid">
+                    <button class="action-btn warn-btn" onclick="clearAllWires()">Clear Wires</button>
+                    <button class="action-btn action-btn" onclick="toggleGuideModal(true)">Lab Manual</button>
+                </div>
+                <button class="action-btn danger" style="width:100%; margin-top:8px;" onclick="factoryResetLaboratory()">Reset Whole Canvas</button>
+            </div>
+
+            <div class="menu-section" style="border:none; padding-bottom:0; margin-bottom:0;">
+                <div class="menu-title">Saved Circuits Workspace</div>
+                <button class="action-btn spawn" style="width:100%; margin-bottom:8px; background-color:#8b5cf6;" onclick="saveCurrentCircuit()">💾 Save Current Circuit</button>
+                <div id="saved-circuits-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:4px;"></div>
+            </div>
+        </div>
+    </header>
+
+    <div id="status-panel">
+        <div class="status-item"><div id="ind-loop" class="indicator"></div><span>Loop Diagnostics: <strong id="txt-loop">Open Circuit</strong></span></div>
+        <div class="status-item"><div id="ind-short" class="indicator"></div><span>Short Circuit Matrix: <strong id="txt-short">Safe</strong></span></div>
+    </div>
+
+    <div id="workspace">
+        <div id="pan-zoom-content">
+            <svg id="wire-canvas">
+                <path id="live-wire-preview" d="" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="6,4" fill="none" style="display:none;"></path>
+            </svg>
+
+            <div id="wire-context-popup" onclick="triggerWireDisconnect()">Disconnect Wire</div>
+
+            <!-- DEFAULT STARTING COMPONENTS -->
+            <div class="component bulb-holder" id="bulb-1" style="left: 60px; top: 40px;" onclick="selectComponentElement(event, 'bulb-1')">
+                <div class="rotate-crown-handle" onmousedown="initiateRotation(event, 'bulb-1')" ontouchstart="initiateRotation(event, 'bulb-1')"></div>
+                <div class="component-label">Bulb 1</div>
+                <div class="bulb-fixture"></div>
+                <div class="socket-tray"></div>
+                
+                <div style="font-size:0.6rem; color:#94a3b8; margin-top:4px;">Threshold (V):</div>
+                <input type="number" class="spec-setting" id="cap-bulb-1" value="4.5" min="1.5" max="24" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();">
+
+                <div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="bulb-1-a" data-side="bottom"></div>
+                <div class="sign-lbl" style="bottom: 38px; left: 18px;">T1</div>
+                <div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="bulb-1-b" data-side="bottom"></div>
+                <div class="sign-lbl" style="bottom: 38px; right: 18px;">T2</div>
+            </div>
+
+            <div class="component switch-holder open" id="switch-1" style="left: 240px; top: 40px;" onclick="selectComponentElement(event, 'switch-1')">
+                <div class="rotate-crown-handle" onmousedown="initiateRotation(event, 'switch-1')" ontouchstart="initiateRotation(event, 'switch-1')"></div>
+                <div class="component-label">Switch 1</div>
+                <div class="switch-deck"><div class="switch-arm" onclick="toggleKnifeSwitchBlade(event, 'switch-1')"></div></div>
+                
+                <div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="switch-1-a" data-side="bottom"></div>
+                <div class="sign-lbl" style="bottom: 38px; left: 18px;">A</div>
+                <div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="switch-1-b" data-side="bottom"></div>
+                <div class="sign-lbl" style="bottom: 38px; right: 18px;">B</div>
+            </div>
+
+            <div class="component cell" id="cell-1" style="left: 140px; top: 310px;" onclick="selectComponentElement(event, 'cell-1')">
+                <div class="rotate-crown-handle" onmousedown="initiateRotation(event, 'cell-1')" ontouchstart="initiateRotation(event, 'cell-1')"></div>
+                <div class="component-label">Cell 1</div>
+                <div class="cell-body-sign">1.5V DC</div>
+                
+                <input type="number" class="spec-setting" id="cap-cell-1" value="1.5" min="1.5" max="12" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();">
+
+                <div class="terminal" style="top: 30px; left: -12px; background: linear-gradient(135deg, #ef4444, #b91c1c);" data-terminal="cell-1-neg" data-side="left"></div>
+                <div class="sign-lbl" style="top: 6px; left: 12px; color: #ef4444;">-</div>
+                <div class="terminal" style="top: 30px; right: -12px; background: linear-gradient(135deg, #10b981, #047857);" data-terminal="cell-1-pos" data-side="right"></div>
+                <div class="sign-lbl" style="top: 6px; right: 12px; color: #10b981;">+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAFETY OVERVOLTAGE ALERT MODAL -->
+    <div id="safety-modal" class="modal-overlay">
+        <div class="modal-card">
+            <span class="close-x-btn" onclick="closeSafetyModalOnly()">&times;</span>
+            <h2 class="safety-alert">⚠️ Laboratory Safety Alert</h2>
+            <p><strong>Overvoltage Failure Condition Met:</strong> The total series voltage configured in the closed routing path exceeded the maximum structural capacity threshold of your incandescent filament bulb!</p>
+            <div class="modal-btn-container">
+                <button class="btn-secondary" onclick="closeSafetyModalOnly()">Dismiss & Fix Circuit</button>
+                <button class="btn-primary" onclick="repairBulbAndReset()">Replace Filament Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUIDE MODAL MANUAL -->
+    <div id="guide-modal" class="modal-overlay">
+        <div class="modal-card">
+            <span class="close-x-btn" onclick="toggleGuideModal(false)">&times;</span>
+            <h2 class="info-alert">📖 Interactive Physics Guide</h2>
+            <ul>
+                <li><b>Mobile Navigation:</b> Drag 1 finger on background to pan around in 360 degrees. Pinch 2 fingers together or apart to zoom in and out smoothly.</li>
+                <li><b>Junction Boxes:</b> Modular boards with customizable lines. Click sub-modules to select and delete them cleanly.</li>
+                <li><b>Male Plugs (2-Pin / 3-Pin):</b> Completely free-moving items. Hover them within 30px of any matching open socket inside a Switch Box to snap-dock. Double click to disengage.</li>
+            </ul>
+            <button class="btn-primary" onclick="toggleGuideModal(false)">Begin Laboratory Simulations</button>
+        </div>
+    </div>
+
+    <script>
+        let wireTraces = [];
+        let activeSelectedPin = null;
+        let dragObjectElement = null;
+        let currentSelectedComponentId = null;
+        let currentSelectedModule = null; 
+        let rightClickedWireData = null;
+        
+        // Panning & Zooming Mobile Parameters
+        let isPanning = false;
+        let isTwoFingerZoom = false;
+        let currentZoomScale = 1.0;
+        let panOffset = { x: 0, y: 0 };
+        let startPanMouse = { x: 0, y: 0 };
+        let startPanOffset = { x: 0, y: 0 };
+        let startPointerPos = { x: 0, y: 0 };
+        let startObjectPos = { left: 0, top: 0 };
+
+        let initialTouchDistance = 0;
+        let initialZoomScale = 1.0;
+        let initialMidPoint = { x: 0, y: 0 };
+        let initialPanOffset = { x: 0, y: 0 };
+
+        let activeDrawColorHex = '#ef4444';
+        let componentCounters = { bulb: 1, switch: 1, cell: 1, motor: 0, coin: 0, key: 0, eraser: 0, ruler: 0, beaker: 0, gas: 0, junctionbox: 0, male2pin: 0, male3pin: 0 };
+        
+        let isRotatingComponent = false;
+        let rotationTargetId = null;
+        let rotationCenterPt = { x: 0, y: 0 };
+        
+        let latestVoltages = {};
+        let latestNetMap = {};
+        let latestShortCircuit = false;
+
+        let motorAngles = {};
+        let beakerBubbles = {};
+        let beakerIons = {};       
+        let gasElectrons = {};     
+        let gasConductingStates = {}; 
+        
+        let jbModulesRegistry = {}; 
+        let plugDockingRegistry = {}; 
+
+        // Undo/Redo tracking arrays
+        let undoStack = [];
+        let redoStack = [];
+        let isApplyingHistoryState = false;
+
+        const canvasWorkspace = document.getElementById('workspace');
+        const panZoomContainer = document.getElementById('pan-zoom-content');
+        const wireSvgCanvas = document.getElementById('wire-canvas');
+        const livePreviewPath = document.getElementById('live-wire-preview');
+        const wireChipPopup = document.getElementById('wire-context-popup');
+
+        const STORAGE_KEY = 'physics_lab_saved_blueprints';
+
+        class DisjointSetUnion {
+            constructor() { this.parent = {}; }
+            makeSet(v) { if (this.parent[v] === undefined) this.parent[v] = v; }
+            find(v) {
+                if (this.parent[v] === undefined) this.makeSet(v);
+                if (v === this.parent[v]) return v;
+                return this.parent[v] = this.find(this.parent[v]);
+            }
+            union(a, b) {
+                const rootA = this.find(a); const rootB = this.find(b);
+                if (rootA !== rootB) this.parent[rootA] = rootB;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setupDragAndRotation(document.getElementById('bulb-1'));
+            setupDragAndRotation(document.getElementById('switch-1'));
+            setupDragAndRotation(document.getElementById('cell-1'));
+            rebindTerminalClickHooks();
+            
+            spawnLabComponent('junctionbox');
+            setupInfinitePanZoomControls();
+            renderSavedCircuitsList();
+
+            window.addEventListener('click', engageSystemFullscreen, { once: false });
+            window.addEventListener('touchstart', engageSystemFullscreen, { once: false });
+
+            setTimeout(() => { recordStateHistorySnapshot(); }, 120);
+            runLabAnimationsLoop();
+        });
+
+        window.addEventListener('mousemove', handleGlobalPointerMove);
+        window.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+        window.addEventListener('mouseup', terminateGlobalPointerActions);
+        window.addEventListener('touchend', terminateGlobalPointerActions);
+
+        function engageSystemFullscreen() {
+            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function toggleMenuDropdown() { document.getElementById('control-dropdown').classList.toggle('open'); }
+        function closeMenuDropdown() { document.getElementById('control-dropdown').classList.remove('open'); }
+
+        function changeActiveWireColor(hex, element) {
+            activeDrawColorHex = hex;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+            element.classList.add('active');
+            livePreviewPath.setAttribute('stroke', hex);
+        }
+
+        function toggleGuideModal(show) {
+            const m = document.getElementById('guide-modal');
+            if (show) m.classList.add('active-modal');
+            else m.classList.remove('active-modal');
+            closeMenuDropdown();
+        }
+
+        function selectComponentElement(event, id) {
+            event.stopPropagation();
+            document.querySelectorAll('.component').forEach(c => c.classList.remove('selected-comp'));
+            document.querySelectorAll('.jb-module-housing').forEach(m => {
+                m.style.border = '2px solid #64748b'; m.style.boxShadow = 'none';
+            });
+            currentSelectedModule = null;
+
+            const target = document.getElementById(id);
+            if (target) {
+                target.classList.add('selected-comp');
+                currentSelectedComponentId = id;
+            }
+            wireChipPopup.style.display = 'none';
+        }
+
+        function selectModuleElement(event, jbId, rowIdx, modIdx) {
+            event.stopPropagation();
+            document.querySelectorAll('.component').forEach(c => c.classList.remove('selected-comp'));
+            document.querySelectorAll('.jb-module-housing').forEach(m => {
+                m.style.border = '2px solid #64748b'; m.style.boxShadow = 'none';
+            });
+            currentSelectedComponentId = null;
+
+            const modEl = document.getElementById(`${jbId}-r-${rowIdx}-m-${modIdx}`);
+            if (modEl) {
+                modEl.style.border = '2px dashed #eab308';
+                modEl.style.boxShadow = '0 0 10px rgba(234,179,8,0.5)';
+                currentSelectedModule = { jbId: jbId, rowIdx: rowIdx, modIdx: modIdx, elementId: modEl.id };
+            }
+            wireChipPopup.style.display = 'none';
+        }
+
+        canvasWorkspace.addEventListener('click', (e) => {
+            if(e.target === canvasWorkspace || e.target.id === 'pan-zoom-content' || e.target.id === 'wire-canvas') {
+                document.querySelectorAll('.component').forEach(c => c.classList.remove('selected-comp'));
+                document.querySelectorAll('.jb-module-housing').forEach(m => {
+                    m.style.border = '2px solid #64748b'; m.style.boxShadow = 'none';
+                });
+                currentSelectedComponentId = null; currentSelectedModule = null;
+                wireChipPopup.style.display = 'none'; closeMenuDropdown();
+            }
+        });
+
+        /* --- HISTORICAL STATE BLUEPRINT MANAGEMENT ENGINE (UNDO/REDO) --- */
+        function createStateSnapshot() {
+            const comps = [];
+            document.querySelectorAll('.component').forEach(c => {
+                const id = c.id; let type = "";
+                if (id.startsWith('bulb')) type = 'bulb';
+                else if (id.startsWith('switch')) type = 'switch';
+                else if (id.startsWith('cell')) type = 'cell';
+                else if (id.startsWith('motor')) type = 'motor';
+                else if (id.startsWith('beaker')) type = 'beaker';
+                else if (id.startsWith('gas')) type = 'gas';
+                else if (id.startsWith('coin')) type = 'coin';
+                else if (id.startsWith('key')) type = 'key';
+                else if (id.startsWith('eraser')) type = 'eraser';
+                else if (id.startsWith('ruler')) type = 'ruler';
+                else if (id.startsWith('jb')) type = 'junctionbox';
+                else if (id.startsWith('male2pin')) type = 'male2pin';
+                else if (id.startsWith('male3pin')) type = 'male3pin';
+
+                const compData = { id: id, type: type, left: c.style.left, top: c.style.top, angle: c.getAttribute('data-rotation-angle') || "0", className: c.className };
+                if (type === 'bulb') compData.threshold = document.getElementById(`cap-${id}`)?.value || "4.5";
+                if (type === 'cell') compData.voltage = document.getElementById(`cap-${id}`)?.value || "1.5";
+                if (type === 'beaker') compData.fluid = document.getElementById(`fluid-select-${id}`)?.value || 'distilled';
+                if (type === 'gas') {
+                    compData.gasType = document.getElementById(`gas-select-${id}`)?.value || 'neon';
+                    compData.pressure = document.getElementById(`pressure-slider-${id}`)?.value || '1.0';
+                }
+                comps.push(compData);
+            });
+
+            const wires = wireTraces.map(w => ({ a: w.a, b: w.b, sideA: w.sideA, sideB: w.sideB, color: w.pathObject.getAttribute('stroke') }));
+            return JSON.stringify({ componentCounters: { ...componentCounters }, components: comps, wires: wires, jbModulesRegistry: jbModulesRegistry, plugDockingRegistry: plugDockingRegistry });
+        }
+
+        function applyStateSnapshot(snapshotStr) {
+            const blueprint = JSON.parse(snapshotStr);
+            wireTraces.forEach(w => { w.pathObject.remove(); w.particlePathObject.remove(); });
+            wireTraces = [];
+            if (activeSelectedPin) { activeSelectedPin.classList.remove('selected'); activeSelectedPin = null; }
+            livePreviewPath.style.display = 'none'; wireChipPopup.style.display = 'none';
+            
+            document.querySelectorAll('.component').forEach(c => c.remove());
+            
+            componentCounters = { ...blueprint.componentCounters };
+            jbModulesRegistry = blueprint.jbModulesRegistry || {};
+            plugDockingRegistry = blueprint.plugDockingRegistry || {};
+            motorAngles = {}; beakerBubbles = {}; beakerIons = {}; gasElectrons = {}; gasConductingStates = {};
+
+            blueprint.components.forEach(comp => {
+                const div = document.createElement('div'); div.id = comp.id; div.className = comp.className;
+                div.style.left = comp.left; div.style.top = comp.top; div.style.transform = `rotate(${comp.angle}deg)`;
+                div.setAttribute('data-rotation-angle', comp.angle); div.onclick = (e) => selectComponentElement(e, div.id);
+                
+                const idx = comp.id.split('-')[1];
+                if (comp.type === 'junctionbox') {
+                    div.innerHTML = `
+                        <div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div>
+                        <div class="component-label" style="margin-bottom:4px;">Switch Box ${idx}</div>
+                        <div style="font-size:0.55rem; color:#a3e635; text-align:center; margin-bottom:8px; font-weight:bold;">TRANSPARENT CASING</div>
+                        <div class="jb-line-row" data-row-lbl="LINE 1 / ROW A" id="${div.id}-rowcontainer-0"></div>
+                        <div class="jb-line-row" data-row-lbl="LINE 2 / ROW B" id="${div.id}-rowcontainer-1"></div>
+                        <div class="jb-config-toolbar">
+                            <select class="spec-setting" id="jb-type-select-${div.id}" style="width:75px; margin:0;"><option value="switch">Switch</option><option value="socket">Socket</option><option value="indicator">Indicator</option><option value="fan">Fan Reg</option></select>
+                            <select class="spec-setting" id="jb-row-select-${div.id}" style="width:65px; margin:0;"><option value="0">Line A</option><option value="1">Line B</option></select>
+                            <button class="jb-add-btn" onclick="triggerDynamicModuleAddition('${div.id}')">+</button>
+                        </div>
+                    `;
+                    panZoomContainer.appendChild(div); setupDragAndRotation(div);
+                    setTimeout(() => {
+                        const jbData = jbModulesRegistry[div.id];
+                        if (jbData) {
+                            [0, 1].forEach(rowIdx => {
+                                const container = document.getElementById(`${div.id}-rowcontainer-${rowIdx}`);
+                                if (container && jbData.rows[rowIdx]) {
+                                    jbData.rows[rowIdx].forEach((mod, mIdx) => {
+                                        if (!mod) return;
+                                        const housing = document.createElement('div');
+                                        housing.className = `jb-module-housing ${mod.step === 0 && mod.type === 'switch' ? 'open' : ''}`;
+                                        housing.id = `${div.id}-r-${rowIdx}-m-${mIdx}`;
+                                        housing.onclick = (e) => selectModuleElement(e, div.id, rowIdx, mIdx);
+                                        if (mod.type === 'switch') {
+                                            housing.innerHTML = `<div style="font-size:0.55rem; color:#94a3b8; margin-bottom:4px;">SWITCH</div><div class="jb-sw-rocker" onclick="toggleJbSwitchModule(event, '${div.id}', ${rowIdx}, ${mIdx})"></div><div class="terminal" style="top:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-top" data-side="top"></div><div class="terminal" style="bottom:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-bottom" data-side="bottom"></div>`;
+                                        } else if (mod.type === 'socket') {
+                                            housing.innerHTML = `<div style="font-size:0.52rem; color:#94a3b8; margin-bottom:2px;">3-PIN PLUG</div><div class="jb-female-socket-frame" id="${div.id}-socket-frame-${rowIdx}-${mIdx}"><div class="socket-hole earth"></div><div class="socket-hole live"></div><div class="socket-hole neutral"></div></div><div class="terminal" style="top:-10px; left:24px; background:#4b5563;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-earth" data-side="top"></div><div class="terminal" style="bottom:-10px; left:4px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-live" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:4px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-neutral" data-side="bottom"></div>`;
+                                        } else if (mod.type === 'indicator') {
+                                            housing.innerHTML = `<div style="font-size:0.55rem; color:#ef4444; margin-bottom:6px; font-weight:bold;">INDICATOR</div><div class="jb-red-indicator-lens"></div><div class="terminal" style="top:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-top" data-side="top"></div><div class="terminal" style="bottom:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-bottom" data-side="bottom"></div>`;
+                                        } else if (mod.type === 'fan') {
+                                            housing.innerHTML = `<div style="font-size:0.55rem; color:#38bdf8; margin-bottom:4px;">FAN REG</div><div class="jb-fan-dial-base" onclick="advanceJbFanController(event, '${div.id}', ${rowIdx}, ${mIdx})"><div class="jb-fan-dial-knob" id="${div.id}-knob-${rowIdx}-${mIdx}"></div></div><div class="terminal" style="top:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-top" data-side="top"></div><div class="terminal" style="bottom:-10px; left:24px;" data-terminal="${div.id}-r-${rowIdx}-m-${mIdx}-bottom" data-side="bottom"></div>`;
+                                        }
+                                        container.appendChild(housing);
+                                        if (mod.type === 'fan') document.getElementById(`${div.id}-knob-${rowIdx}-${mIdx}`).style.transform = `rotate(${mod.step * 45}deg)`;
+                                    });
+                                }
+                            });
+                        }
+                    }, 15);
+                } else if (comp.type === 'male2pin') {
+                    div.ondblclick = () => releasePlugFromDock(div.id);
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="plug-prong-visual p-left"></div><div class="plug-prong-visual p-right"></div><div style="font-size:0.6rem; color:#fff; font-weight:bold; margin-top:10px; text-align:center;">MALE 2-PIN</div><div class="docked-badge">CONNECTED</div><div class="terminal" style="bottom:-10px; left:12px;" data-terminal="${div.id}-l" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:12px;" data-terminal="${div.id}-n" data-side="bottom"></div>`;
+                    panZoomContainer.appendChild(div); setupDragAndRotation(div);
+                } else if (comp.type === 'male3pin') {
+                    div.ondblclick = () => releasePlugFromDock(div.id);
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="plug-prong-visual p-earth"></div><div class="plug-prong-visual p-left"></div><div class="plug-prong-visual p-right"></div><div style="font-size:0.6rem; color:#fff; font-weight:bold; margin-top:12px; text-align:center;">MALE 3-PIN</div><div class="docked-badge">CONNECTED</div><div class="terminal" style="bottom:-10px; left:6px;" data-terminal="${div.id}-l" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:6px;" data-terminal="${div.id}-n" data-side="bottom"></div><div class="terminal" style="bottom:-10px; left:40px; background:#4b5563;" data-terminal="${div.id}-e" data-side="bottom"></div>`;
+                    panZoomContainer.appendChild(div); setupDragAndRotation(div);
+                } else {
+                    if (comp.type === 'bulb') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Bulb</div><div class="bulb-fixture"></div><div class="socket-tray"></div><div style="font-size:0.6rem; color:#94a3b8; margin-top:4px;">Threshold (V):</div><input type="number" class="spec-setting" id="cap-${div.id}" value="${comp.threshold}" min="1.5" max="24" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();"><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="${div.id}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="${div.id}-b" data-side="bottom"></div>`;
+                    } else if (comp.type === 'switch') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Switch</div><div class="switch-deck"><div class="switch-arm" onclick="toggleKnifeSwitchBlade(event, '${div.id}')"></div></div><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="${div.id}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="${div.id}-b" data-side="bottom"></div>`;
+                    } else if (comp.type === 'cell') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Cell</div><div class="cell-body-sign">1.5V DC</div><input type="number" class="spec-setting" id="cap-${div.id}" value="${comp.voltage}" min="1.5" max="12" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();"><div class="terminal" style="top: 30px; left: -12px; background: linear-gradient(135deg, #ef4444, #b91c1c);" data-terminal="${div.id}-neg" data-side="left"></div><div class="terminal" style="top: 30px; right: -12px; background: linear-gradient(135deg, #10b981, #047857);" data-terminal="${div.id}-pos" data-side="right"></div>`;
+                    } else if (comp.type === 'motor') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">DC Motor</div><div class="motor-case"><div class="fan-blade-assembly" id="fan-${div.id}"><div class="fan-blade"></div><div class="fan-blade"></div><div class="fan-blade"></div></div></div><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="${div.id}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="${div.id}-b" data-side="bottom"></div>`;
+                        motorAngles[div.id] = { angle: 0, speed: 0 };
+                    } else if (comp.type === 'beaker') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Beaker</div><div class="beaker-cup"><div class="beaker-liquid" id="liquid-color-${div.id}"></div><div class="beaker-electrode left-elec"></div><div class="beaker-electrode right-elec"></div><div class="bubble-container" id="bubbles-${div.id}"></div><div class="ion-field" id="ions-${div.id}"></div></div><select class="spec-setting" id="fluid-select-${div.id}" onchange="changeBeakerFluid('${div.id}')"><option value="distilled">Distilled H2O</option><option value="tap">Drinking H2O</option><option value="well">Well H2O</option><option value="salt">Salt H2O</option></select><div class="terminal" style="top: -6px; left: 18px;" data-terminal="${div.id}-a" data-side="top"></div><div class="terminal" style="top: -6px; right: 18px;" data-terminal="${div.id}-b" data-side="top"></div>`;
+                        beakerBubbles[div.id] = { active: false, timer: 0 };
+                        setTimeout(() => { document.getElementById(`fluid-select-${div.id}`).value = comp.fluid; changeBeakerFluid(div.id); }, 20);
+                    } else if (comp.type === 'gas') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Gas Tube</div><div class="gas-tube-visual" id="neon-glow-${div.id}"><div class="plasma-stream" id="plasma-${div.id}"></div></div><select class="spec-setting" id="gas-select-${div.id}" onchange="runCircuitGraphEvaluation()"><option value="neon">Neon (Ne)</option><option value="argon">Argon (Ar)</option><option value="helium">Helium (He)</option><option value="air">Air</option></select><div style="font-size:0.55rem; color:#38bdf8; margin-top:4px; font-family:monospace;" id="gas-hud-${div.id}">Vapp: 0.0V | Vth: 0.0V</div><input type="range" class="spec-slider" id="pressure-slider-${div.id}" min="0.1" max="50.0" step="0.1" value="1.0" oninput="updateGasPressureReadout('${div.id}')"><div class="terminal" style="top: 48px; left: -10px;" data-terminal="${div.id}-a" data-side="left"></div><div class="terminal" style="top: 48px; right: -10px;" data-terminal="${div.id}-b" data-side="right"></div>`;
+                        gasConductingStates[div.id] = false;
+                        setTimeout(() => { document.getElementById(`gas-select-${div.id}`).value = comp.gasType; document.getElementById(`pressure-slider-${div.id}`).value = comp.pressure; updateGasPressureReadout(div.id); }, 20);
+                    } else if (comp.type === 'coin') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#d97706; margin-top:15px;">COPPER COIN</div><div class="terminal" style="top: 40px; left: -10px; background-color:#d97706;" data-terminal="${div.id}-a" data-side="left"></div><div class="terminal" style="top: 40px; right: -10px; background-color:#d97706;" data-terminal="${div.id}-b" data-side="right"></div>`;
+                    } else if (comp.type === 'key') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="key-ring"></div><div class="component-label" style="color:#e2e8f0; font-size:0.65rem;">STEEL KEY</div><div class="terminal" style="top: 30px; left: -10px; background-color:#94a3b8;" data-terminal="${div.id}-a" data-side="left"></div><div class="terminal" style="top: 30px; right: -10px; background-color:#94a3b8;" data-terminal="${div.id}-b" data-side="right"></div>`;
+                    } else if (comp.type === 'eraser') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#f8fafc; margin-top:10px;">RUBBER ERASER</div><div class="terminal" style="top: 30px; left: -10px; background-color:#f43f5e;" data-terminal="${div.id}-a" data-side="left"></div><div class="terminal" style="top: 30px; right: -10px; background-color:#3b82f6;" data-terminal="${div.id}-b" data-side="right"></div>`;
+                    } else if (comp.type === 'ruler') {
+                        div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#eab308; margin-top:5px;">PLASTIC RULER</div><div class="terminal" style="top: 25px; left: -10px; background-color:#eab308;" data-terminal="${div.id}-a" data-side="left"></div><div class="terminal" style="top: 25px; right: -10px; background-color:#eab308;" data-terminal="${div.id}-b" data-side="right"></div>`;
+                    }
+                    panZoomContainer.appendChild(div); setupDragAndRotation(div);
+                }
+            });
+
+            setTimeout(() => {
+                rebindTerminalClickHooks();
+                blueprint.wires.forEach(wData => {
+                    const pathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathNode.setAttribute('stroke', wData.color); pathNode.setAttribute('stroke-width', '7.0'); pathNode.setAttribute('fill', 'none');
+                    pathNode.style.cursor = 'pointer'; pathNode.style.pointerEvents = 'auto';
+
+                    const particlePathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    particlePathNode.setAttribute('stroke', '#38bdf8'); particlePathNode.setAttribute('stroke-width', '2.2');
+                    particlePathNode.setAttribute('fill', 'none'); particlePathNode.setAttribute('stroke-linecap', 'round');
+                    particlePathNode.setAttribute('stroke-dasharray', '4,14'); particlePathNode.style.pointerEvents = 'none';
+                    
+                    pathNode.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        const cBox = panZoomContainer.getBoundingClientRect();
+                        wireChipPopup.style.left = ((ev.clientX - cBox.left) / currentZoomScale - 40) + 'px';
+                        wireChipPopup.style.top = ((ev.clientY - cBox.top) / currentZoomScale - 35) + 'px';
+                        wireChipPopup.style.display = 'block';
+                        rightClickedWireData = { a: wData.a, b: wData.b, pathObject: pathNode, particlePathObject: particlePathNode };
+                    });
+
+                    wireSvgCanvas.appendChild(pathNode); wireSvgCanvas.appendChild(particlePathNode);
+                    wireTraces.push({ a: wData.a, b: wData.b, sideA: wData.sideA, sideB: wData.sideB, pathObject: pathNode, particlePathObject: particlePathNode, dashOffset: 0 });
+                });
+                recalculateWireVesselCurves(); runCircuitGraphEvaluation();
+            }, 60);
+        }
+
+        function recordStateHistorySnapshot() {
+            if (isApplyingHistoryState) return;
+            const snap = createStateSnapshot();
+            if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snap) return;
+            undoStack.push(snap);
+            if (undoStack.length > 50) undoStack.shift();
+            redoStack = [];
+        }
+
+        function triggerUndoAction() {
+            if (undoStack.length <= 1) return;
+            const currentState = undoStack.pop();
+            redoStack.push(currentState);
+            const targetState = undoStack[undoStack.length - 1];
+            isApplyingHistoryState = true; applyStateSnapshot(targetState); isApplyingHistoryState = false;
+        }
+
+        function triggerRedoAction() {
+            if (redoStack.length === 0) return;
+            const nextState = redoStack.pop();
+            undoStack.push(nextState);
+            isApplyingHistoryState = true; applyStateSnapshot(nextState); isApplyingHistoryState = false;
+        }
+
+        /* --- MOBILE TOUCH PAN & PINCH ZOOM CONTROLS --- */
+        function setupInfinitePanZoomControls() {
+            canvasWorkspace.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomIntensity = 1.08; const rect = canvasWorkspace.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+                const previousScale = currentZoomScale;
+                if (e.deltaY < 0) currentZoomScale *= zoomIntensity; else currentZoomScale /= zoomIntensity;
+                currentZoomScale = Math.max(0.15, Math.min(currentZoomScale, 12));
+                panOffset.x = mouseX - (mouseX - panOffset.x) * (currentZoomScale / previousScale);
+                panOffset.y = mouseY - (mouseY - panOffset.y) * (currentZoomScale / previousScale);
+                updatePanZoomTransform();
+            }, { passive: false });
+
+            canvasWorkspace.addEventListener('mousedown', (e) => {
+                if (e.target === canvasWorkspace || e.target.id === 'pan-zoom-content' || e.target.id === 'wire-canvas') {
+                    isPanning = true; startPanMouse.x = e.clientX; startPanMouse.y = e.clientY;
+                    startPanOffset.x = panOffset.x; startPanOffset.y = panOffset.y;
+                }
+            });
+
+            // Touch listeners for mobile devices
+            canvasWorkspace.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    const target = e.target;
+                    const isBg = (target === canvasWorkspace || target.id === 'pan-zoom-content' || target.id === 'wire-canvas' || target.classList.contains('ion-field') || target.classList.contains('bubble-container'));
+                    if (isBg) {
+                        isPanning = true; isTwoFingerZoom = false;
+                        startPanMouse.x = e.touches[0].clientX; startPanMouse.y = e.touches[0].clientY;
+                        startPanOffset.x = panOffset.x; startPanOffset.y = panOffset.y;
+                    }
+                } else if (e.touches.length === 2) {
+                    isPanning = false; dragObjectElement = null; isRotatingComponent = false;
+                    isTwoFingerZoom = true;
+                    
+                    const t1 = e.touches[0]; const t2 = e.touches[1];
+                    initialTouchDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                    initialZoomScale = currentZoomScale;
+                    
+                    const clientMidX = (t1.clientX + t2.clientX) / 2;
+                    const clientMidY = (t1.clientY + t2.clientY) / 2;
+                    
+                    initialMidPoint = { x: clientMidX, y: clientMidY };
+                    initialPanOffset = { x: panOffset.x, y: panOffset.y };
+                }
+            }, { passive: false });
+        }
+
+        function updatePanZoomTransform() {
+            panZoomContainer.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${currentZoomScale})`;
+        }
+
+        function setupDragAndRotation(element) {
+            if(!element.getAttribute('data-rotation-angle')) {
+                element.setAttribute('data-rotation-angle', '0');
+            }
+            element.addEventListener('mousedown', (e) => startMoveAction(e, element));
+            element.addEventListener('touchstart', (e) => startMoveAction(e, element), { passive: true });
+        }
+
+        function startMoveAction(e, element) {
+            if (e.target.classList.contains('terminal') || e.target.classList.contains('switch-arm') || e.target.classList.contains('rotate-crown-handle') || e.target.classList.contains('jb-add-btn') || e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'select') return;
+            if (plugDockingRegistry[element.id] && plugDockingRegistry[element.id].isDocked) return;
+
+            dragObjectElement = element;
+            const x = e.touches ? e.touches[0].clientX : e.clientX;
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            startPointerPos.x = x; startPointerPos.y = y;
+            startObjectPos.left = parseFloat(element.style.left) || 0;
+            startObjectPos.top = parseFloat(element.style.top) || 0;
+            selectComponentElement(e, element.id);
+        }
+
+        function initiateRotation(e, id) {
+            e.stopPropagation(); e.preventDefault();
+            isRotatingComponent = true; rotationTargetId = id;
+            const target = document.getElementById(id); const b = target.getBoundingClientRect();
+            rotationCenterPt.x = b.left + b.width / 2; rotationCenterPt.y = b.top + b.height / 2;
+        }
+
+        function processMovementLogic(x, y) {
+            if (isRotatingComponent && rotationTargetId) {
+                const radians = Math.atan2(y - rotationCenterPt.y, x - rotationCenterPt.x);
+                let degrees = radians * (180 / Math.PI) - 90;
+                const target = document.getElementById(rotationTargetId);
+                target.setAttribute('data-rotation-angle', degrees.toFixed(2));
+                target.style.transform = `rotate(${degrees}deg)`;
+                recalculateWireVesselCurves();
+            }
+
+            if (dragObjectElement && !isRotatingComponent) {
+                let dx = (x - startPointerPos.x) / currentZoomScale;
+                let dy = (y - startPointerPos.y) / currentZoomScale;
+                dragObjectElement.style.left = (startObjectPos.left + dx) + 'px';
+                dragObjectElement.style.top = (startObjectPos.top + dy) + 'px';
+                recalculateWireVesselCurves();
+
+                if (dragObjectElement.id.startsWith('male2pin') || dragObjectElement.id.startsWith('male3pin')) {
+                    sniffAndProcessPlugSnapping(dragObjectElement);
+                }
+            }
+
+            if (activeSelectedPin) {
+                const cBox = panZoomContainer.getBoundingClientRect();
+                const pinCenter = parseAbsoluteTerminalCenter(activeSelectedPin);
+                const mouseX = (x - cBox.left) / currentZoomScale; const mouseY = (y - cBox.top) / currentZoomScale;
+                livePreviewPath.style.display = 'block';
+                const side = activeSelectedPin.getAttribute('data-side');
+                const pathStr = computeDirectionalSmartCurve(pinCenter, {x: mouseX, y: mouseY}, side, 'omni');
+                livePreviewPath.setAttribute('d', pathStr);
+            }
+        }
+
+        function handleGlobalPointerMove(e) {
+            if (isPanning) {
+                panOffset.x = startPanOffset.x + (e.clientX - startPanMouse.x);
+                panOffset.y = startPanOffset.y + (e.clientY - startPanMouse.y);
+                updatePanZoomTransform(); return;
+            }
+            processMovementLogic(e.clientX, e.clientY);
+        }
+
+        function handleGlobalTouchMove(e) {
+            if (isPanning || isTwoFingerZoom || dragObjectElement || isRotatingComponent || activeSelectedPin) {
+                if (e.cancelable) e.preventDefault();
+            }
+
+            if (e.touches.length === 2 && isTwoFingerZoom) {
+                const t1 = e.touches[0]; const t2 = e.touches[1];
+                const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                if (initialTouchDistance > 0) {
+                    const factor = currentDist / initialTouchDistance;
+                    let newScale = initialZoomScale * factor;
+                    newScale = Math.max(0.15, Math.min(newScale, 12));
+
+                    const currentMidX = (t1.clientX + t2.clientX) / 2;
+                    const currentMidY = (t1.clientY + t2.clientY) / 2;
+
+                    const rect = canvasWorkspace.getBoundingClientRect();
+                    const originX = initialMidPoint.x - rect.left;
+                    const originY = initialMidPoint.y - rect.top;
+
+                    const scaleChange = newScale / initialZoomScale;
+                    
+                    panOffset.x = currentMidX - rect.left - (originX - initialPanOffset.x) * scaleChange;
+                    panOffset.y = currentMidY - rect.top - (originY - initialPanOffset.y) * scaleChange;
+                    
+                    currentZoomScale = newScale;
+                    updatePanZoomTransform();
+                }
+                return;
+            }
+
+            if (isPanning && e.touches.length === 1) {
+                panOffset.x = startPanOffset.x + (e.touches[0].clientX - startPanMouse.x);
+                panOffset.y = startPanOffset.y + (e.touches[0].clientY - startPanMouse.y);
+                updatePanZoomTransform();
+                return;
+            }
+
+            if ((dragObjectElement || isRotatingComponent || activeSelectedPin) && e.touches.length === 1) {
+                processMovementLogic(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }
+
+        function terminateGlobalPointerActions(e) {
+            if (dragObjectElement || isRotatingComponent) { recordStateHistorySnapshot(); }
+            dragObjectElement = null; isRotatingComponent = false; rotationTargetId = null; isPanning = false;
+            if (e && e.touches && e.touches.length < 2) { isTwoFingerZoom = false; }
+            else if (!e || !e.touches) { isTwoFingerZoom = false; }
+        }
+
+        function rebindTerminalClickHooks() {
+            document.querySelectorAll('.terminal').forEach(pin => {
+                pin.onclick = (e) => { e.stopPropagation(); processTerminalMappingEvent(pin); };
+            });
+        }
+
+        function processTerminalMappingEvent(pin) {
+            if (pin.parentElement.classList.contains('blasted')) return;
+            if (!activeSelectedPin) {
+                activeSelectedPin = pin; pin.classList.add('selected');
+            } else {
+                if (activeSelectedPin === pin) {
+                    activeSelectedPin.classList.remove('selected'); activeSelectedPin = null;
+                    livePreviewPath.style.display = 'none'; return;
+                }
+                const srcId = activeSelectedPin.getAttribute('data-terminal');
+                const dstId = pin.getAttribute('data-terminal');
+                const redundant = wireTraces.some(w => (w.a === srcId && w.b === dstId) || (w.a === dstId && w.b === srcId));
+                if (!redundant) {
+                    const pathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathNode.setAttribute('stroke', activeDrawColorHex); pathNode.setAttribute('stroke-width', '7.0'); pathNode.setAttribute('fill', 'none');
+                    pathNode.style.cursor = 'pointer'; pathNode.style.pointerEvents = 'auto';
+                    
+                    const particlePathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    particlePathNode.setAttribute('stroke', '#38bdf8'); particlePathNode.setAttribute('stroke-width', '2.2');
+                    particlePathNode.setAttribute('fill', 'none'); particlePathNode.setAttribute('stroke-linecap', 'round');
+                    particlePathNode.setAttribute('stroke-dasharray', '4,14'); particlePathNode.style.pointerEvents = 'none';
+
+                    pathNode.addEventListener('click', (ev) => {
+                        ev.stopPropagation(); const cBox = panZoomContainer.getBoundingClientRect();
+                        wireChipPopup.style.left = ((ev.clientX - cBox.left) / currentZoomScale - 40) + 'px';
+                        wireChipPopup.style.top = ((ev.clientY - cBox.top) / currentZoomScale - 35) + 'px';
+                        wireChipPopup.style.display = 'block';
+                        rightClickedWireData = { a: srcId, b: dstId, pathObject: pathNode, particlePathObject: particlePathNode };
+                    });
+
+                    wireSvgCanvas.appendChild(pathNode); wireSvgCanvas.appendChild(particlePathNode);
+                    wireTraces.push({ a: srcId, b: dstId, sideA: activeSelectedPin.getAttribute('data-side'), sideB: pin.getAttribute('data-side'), pathObject: pathNode, particlePathObject: particlePathNode, dashOffset: 0 });
+                    recordStateHistorySnapshot();
+                }
+                activeSelectedPin.classList.remove('selected'); activeSelectedPin = null;
+                livePreviewPath.style.display = 'none'; recalculateWireVesselCurves(); runCircuitGraphEvaluation();
+            }
+        }
+
+        function triggerWireDisconnect() {
+            if (rightClickedWireData) {
+                rightClickedWireData.pathObject.remove(); rightClickedWireData.particlePathObject.remove();
+                wireTraces = wireTraces.filter(w => w.pathObject !== rightClickedWireData.pathObject);
+                rightClickedWireData = null; wireChipPopup.style.display = 'none';
+                recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+            }
+        }
+
+        function parseAbsoluteTerminalCenter(pin) {
+            const cBox = panZoomContainer.getBoundingClientRect(); const pBox = pin.getBoundingClientRect();
+            return { x: (pBox.left - cBox.left + pBox.width / 2) / currentZoomScale, y: (pBox.top - cBox.top + pBox.height / 2) / currentZoomScale };
+        }
+
+        function computeDirectionalSmartCurve(ptA, ptB, sideA, sideB) {
+            const distX = Math.abs(ptB.x - ptA.x); const distY = Math.abs(ptB.y - ptA.y);
+            const force = Math.max(40, Math.min(120, (distX + distY) * 0.35));
+            let cpXA = ptA.x; let cpYA = ptA.y; let cpXB = ptB.x; let cpYB = ptB.y;
+            if (sideA === 'left') cpXA -= force; else if (sideA === 'right') cpXA += force; else if (sideA === 'top') cpYA -= force; else cpYA += force;
+            if (sideB === 'left') cpXB -= force; else if (sideB === 'right') cpXB += force; else if (sideB === 'top') cpYA -= force; else if (sideB === 'bottom') cpYB += force;
+            else { if (ptB.x < ptA.x) cpXB += force; else cpXB -= force; }
+            return `M ${ptA.x} ${ptA.y} C ${cpXA} ${cpYA}, ${cpXB} ${cpYB}, ${ptB.x} ${ptB.y}`;
+        }
+
+        function recalculateWireVesselCurves() {
+            wireTraces.forEach(wire => {
+                const elA = document.querySelector(`[data-terminal="${wire.a}"]`); const elB = document.querySelector(`[data-terminal="${wire.b}"]`);
+                if (elA && elB) {
+                    const ptA = parseAbsoluteTerminalCenter(elA); const ptB = parseAbsoluteTerminalCenter(elB);
+                    const pathStr = computeDirectionalSmartCurve(ptA, ptB, wire.sideA, wire.sideB);
+                    wire.pathObject.setAttribute('d', pathStr); wire.particlePathObject.setAttribute('d', pathStr);
+                }
+            });
+        }
+
+        function toggleKnifeSwitchBlade(e, id) {
+            e.stopPropagation(); const sw = document.getElementById(id);
+            if (sw.classList.contains('open')) sw.className = 'component switch-holder closed'; else sw.className = 'component switch-holder open';
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function toggleJbSwitchModule(e, jbId, rowIdx, modIdx) {
+            e.stopPropagation(); const housing = document.getElementById(`${jbId}-r-${rowIdx}-m-${modIdx}`);
+            if (housing.classList.contains('open')) { housing.classList.remove('open'); housing.classList.add('closed'); }
+            else { housing.classList.remove('closed'); housing.classList.add('open'); }
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function advanceJbFanController(e, jbId, rowIdx, modIdx) {
+            e.stopPropagation(); const moduleData = jbModulesRegistry[jbId].rows[rowIdx][modIdx];
+            moduleData.step = (moduleData.step + 1) % 5;
+            const knob = document.getElementById(`${jbId}-knob-${rowIdx}-${modIdx}`);
+            if (knob) knob.style.transform = `rotate(${moduleData.step * 45}deg)`;
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function triggerDynamicModuleAddition(jbId) {
+            const selectType = document.getElementById(`jb-type-select-${jbId}`); const selectRow = document.getElementById(`jb-row-select-${jbId}`);
+            if (!selectType || !selectRow) return;
+            const type = selectType.value; const rowIdx = parseInt(selectRow.value);
+            const targetRowContainer = document.getElementById(`${jbId}-rowcontainer-${rowIdx}`); if (!targetRowContainer) return;
+
+            const currentMods = jbModulesRegistry[jbId].rows[rowIdx]; const modIdx = currentMods.length;
+            let moduleObj = { type: type, step: 0 }; currentMods.push(moduleObj);
+
+            const housing = document.createElement('div'); housing.className = `jb-module-housing open`; housing.id = `${jbId}-r-${rowIdx}-m-${modIdx}`;
+            housing.onclick = (e) => selectModuleElement(e, jbId, rowIdx, modIdx);
+
+            if (type === 'switch') {
+                housing.innerHTML = `<div style="font-size:0.55rem; color:#94a3b8; margin-bottom:4px;">SWITCH</div><div class="jb-sw-rocker" onclick="toggleJbSwitchModule(event, '${jbId}', ${rowIdx}, ${modIdx})"></div><div class="terminal" style="top: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-top" data-side="top"></div><div class="terminal" style="bottom: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-bottom" data-side="bottom"></div>`;
+            } else if (type === 'socket') {
+                housing.innerHTML = `<div style="font-size:0.52rem; color:#94a3b8; margin-bottom:2px;">3-PIN PLUG</div><div class="jb-female-socket-frame" id="${jbId}-socket-frame-${rowIdx}-${modIdx}"><div class="socket-hole earth"></div><div class="socket-hole live"></div><div class="socket-hole neutral"></div></div><div class="terminal" style="top:-10px; left:24px; background:#4b5563;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-earth" data-side="top"></div><div class="terminal" style="bottom:-10px; left:4px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-live" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:4px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-neutral" data-side="bottom"></div>`;
+            } else if (type === 'indicator') {
+                housing.innerHTML = `<div style="font-size:0.55rem; color:#ef4444; margin-bottom:6px; font-weight:bold;">INDICATOR</div><div class="jb-red-indicator-lens"></div><div class="terminal" style="top: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-top" data-side="top"></div><div class="terminal" style="bottom: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-bottom" data-side="bottom"></div>`;
+            } else if (type === 'fan') {
+                housing.innerHTML = `<div style="font-size:0.55rem; color:#38bdf8; margin-bottom:4px;">FAN REG</div><div class="jb-fan-dial-base" onclick="advanceJbFanController(event, '${jbId}', ${rowIdx}, ${modIdx})"><div class="jb-fan-dial-knob" id="${jbId}-knob-${rowIdx}-${modIdx}"></div></div><div class="terminal" style="top: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-top" data-side="top"></div><div class="terminal" style="bottom: -10px; left: 24px;" data-terminal="${jbId}-r-${rowIdx}-m-${modIdx}-bottom" data-side="bottom"></div>`;
+            }
+            targetRowContainer.appendChild(housing); rebindTerminalClickHooks(); recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function sniffAndProcessPlugSnapping(plugEl) {
+            const plugRect = plugEl.getBoundingClientRect();
+            const pX = plugRect.left + plugRect.width / 2; const pY = plugRect.top + plugRect.height / 2;
+            document.querySelectorAll('.jb-female-socket-frame').forEach(socketFrame => {
+                const sId = socketFrame.id; if (Object.values(plugDockingRegistry).some(d => d.isDocked && d.socketFrameId === sId)) return;
+                const sRect = socketFrame.getBoundingClientRect();
+                const sX = sRect.left + sRect.width / 2; const sY = sRect.top + sRect.height / 2;
+                if (Math.hypot(pX - sX, pY - sY) < 30) { executeMechanicalPlugDock(plugEl, socketFrame); }
+            });
+        }
+
+        function executeMechanicalPlugDock(plugEl, socketFrame) {
+            const cBox = panZoomContainer.getBoundingClientRect(); const sRect = socketFrame.getBoundingClientRect();
+            plugEl.style.left = ((sRect.left - cBox.left) / currentZoomScale - 10) + 'px';
+            plugEl.style.top = ((sRect.top - cBox.top) / currentZoomScale - 15) + 'px';
+            plugEl.style.transform = 'rotate(0deg)'; plugEl.setAttribute('data-rotation-angle', '0');
+            plugEl.classList.add('plug-is-docked');
+
+            const token = socketFrame.id.split('-'); 
+            const jbId = `${token[0]}-${token[1]}`; 
+            const rIdx = parseInt(token[4]); 
+            const mIdx = parseInt(token[5]);
+
+            plugDockingRegistry[plugEl.id] = { isDocked: true, socketFrameId: socketFrame.id, jbId: jbId, rowIdx: rIdx, moduleIdx: mIdx, type: plugEl.id.startsWith('male3pin') ? '3pin' : '2pin' };
+            dragObjectElement = null; recalculateWireVesselCurves(); recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function releasePlugFromDock(plugId) {
+            const data = plugDockingRegistry[plugId];
+            if (data && data.isDocked) {
+                const plugEl = document.getElementById(plugId);
+                if (plugEl) { plugEl.classList.remove('plug-is-docked'); plugEl.style.top = (parseFloat(plugEl.style.top) + 60) + 'px'; }
+                plugDockingRegistry[plugId] = { isDocked: false };
+                recalculateWireVesselCurves(); recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+            }
+        }
+
+        function spawnLabComponent(type) {
+            componentCounters[type]++; const idx = componentCounters[type]; const div = document.createElement('div');
+            const spacingOffset = (idx * 25) % 150; div.style.left = (150 + spacingOffset) + 'px'; div.style.top = (160 + spacingOffset) + 'px';
+
+            if (type === 'junctionbox') {
+                div.className = 'component junction-box-holder'; div.id = `jb-${idx}`;
+                div.onclick = (e) => selectComponentElement(e, div.id);
+                div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="margin-bottom:4px;">Switch Box ${idx}</div><div style="font-size:0.55rem; color:#a3e635; text-align:center; margin-bottom:8px; font-weight:bold;">TRANSPARENT CASING</div><div class="jb-line-row" data-row-lbl="LINE 1 / ROW A" id="${div.id}-rowcontainer-0"></div><div class="jb-line-row" data-row-lbl="LINE 2 / ROW B" id="${div.id}-rowcontainer-1"></div><div class="jb-config-toolbar"><select class="spec-setting" id="jb-type-select-${div.id}" style="width:75px; margin:0;"><option value="switch">Switch</option><option value="socket">Socket</option><option value="indicator">Indicator</option><option value="fan">Fan Reg</option></select><select class="spec-setting" id="jb-row-select-${div.id}" style="width:65px; margin:0;"><option value="0">Line A</option><option value="1">Line B</option></select><button class="jb-add-btn" onclick="triggerDynamicModuleAddition('${div.id}')">+</button></div>`;
+                jbModulesRegistry[div.id] = { rows: { 0: [], 1: [] } }; panZoomContainer.appendChild(div);
+                setTimeout(() => { document.getElementById(`jb-type-select-${div.id}`).value = 'switch'; document.getElementById(`jb-row-select-${div.id}`).value = '0'; triggerDynamicModuleAddition(div.id); document.getElementById(`jb-type-select-${div.id}`).value = 'socket'; document.getElementById(`jb-row-select-${div.id}`).value = '1'; triggerDynamicModuleAddition(div.id); }, 20);
+            } else if (type === 'male2pin') {
+                div.className = 'component male-plug-2pin'; div.id = `male2pin-${idx}`; div.onclick = (e) => selectComponentElement(e, div.id); div.ondblclick = () => releasePlugFromDock(div.id);
+                div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="plug-prong-visual p-left"></div><div class="plug-prong-visual p-right"></div><div style="font-size:0.6rem; color:#fff; font-weight:bold; margin-top:10px; text-align:center;">MALE 2-PIN</div><div class="docked-badge">CONNECTED</div><div class="terminal" style="bottom:-10px; left:12px;" data-terminal="${div.id}-l" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:12px;" data-terminal="${div.id}-n" data-side="bottom"></div>`;
+                plugDockingRegistry[div.id] = { isDocked: false }; panZoomContainer.appendChild(div);
+            } else if (type === 'male3pin') {
+                div.className = 'component male-plug-3pin'; div.id = `male3pin-${idx}`; div.onclick = (e) => selectComponentElement(e, div.id); div.ondblclick = () => releasePlugFromDock(div.id);
+                div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="plug-prong-visual p-earth"></div><div class="plug-prong-visual p-left"></div><div class="plug-prong-visual p-right"></div><div style="font-size:0.6rem; color:#fff; font-weight:bold; margin-top:12px; text-align:center;">MALE 3-PIN</div><div class="docked-badge">CONNECTED</div><div class="terminal" style="bottom:-10px; left:6px;" data-terminal="${div.id}-l" data-side="bottom"></div><div class="terminal" style="bottom:-10px; right:6px;" data-terminal="${div.id}-n" data-side="bottom"></div><div class="terminal" style="bottom:-10px; left:40px; background:#4b5563;" data-terminal="${div.id}-e" data-side="bottom"></div>`;
+                plugDockingRegistry[div.id] = { isDocked: false }; panZoomContainer.appendChild(div);
+            } else {
+                if (type === 'bulb') {
+                    div.className = 'component bulb-holder'; div.id = `bulb-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Bulb ${idx}</div><div class="bulb-fixture"></div><div class="socket-tray"></div><div style="font-size:0.6rem; color:#94a3b8; margin-top:4px;">Threshold (V):</div><input type="number" class="spec-setting" id="cap-bulb-${idx}" value="4.5" min="1.5" max="24" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();"><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="bulb-${idx}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="bulb-${idx}-b" data-side="bottom"></div>`;
+                } else if (type === 'switch') {
+                    div.className = 'component switch-holder open'; div.id = `switch-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Switch ${idx}</div><div class="switch-deck"><div class="switch-arm" onclick="toggleKnifeSwitchBlade(event, '${div.id}')"></div></div><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="switch-${idx}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="switch-${idx}-b" data-side="bottom"></div>`;
+                } else if (type === 'cell') {
+                    div.className = 'component cell'; div.id = `cell-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Cell ${idx}</div><div class="cell-body-sign">1.5V DC</div><input type="number" class="spec-setting" id="cap-cell-${idx}" value="1.5" min="1.5" max="12" step="1.5" onchange="runCircuitGraphEvaluation(); recordStateHistorySnapshot();"><div class="terminal" style="top: 30px; left: -12px; background: linear-gradient(135deg, #ef4444, #b91c1c);" data-terminal="cell-${idx}-neg" data-side="left"></div><div class="terminal" style="top: 30px; right: -12px; background: linear-gradient(135deg, #10b981, #047857);" data-terminal="cell-${idx}-pos" data-side="right"></div>`;
+                } else if (type === 'motor') {
+                    div.className = 'component motor-holder'; div.id = `motor-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">DC Motor ${idx}</div><div class="motor-case"><div class="fan-blade-assembly" id="fan-${div.id}"><div class="fan-blade"></div><div class="fan-blade"></div><div class="fan-blade"></div></div></div><div class="terminal" style="bottom: 12px; left: 12px;" data-terminal="motor-${idx}-a" data-side="bottom"></div><div class="terminal" style="bottom: 12px; right: 12px;" data-terminal="motor-${idx}-b" data-side="bottom"></div>`;
+                    motorAngles[div.id] = { angle: 0, speed: 0 };
+                } else if (type === 'beaker') {
+                    div.className = 'component beaker-holder'; div.id = `beaker-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Beaker ${idx}</div><div class="beaker-cup"><div class="beaker-liquid" id="liquid-color-${div.id}" style="background-color: rgba(173, 216, 230, 0.15);"></div><div class="beaker-electrode left-elec"></div><div class="beaker-electrode right-elec"></div><div class="bubble-container" id="bubbles-${div.id}"></div><div class="ion-field" id="ions-${div.id}"></div></div><select class="spec-setting" id="fluid-select-${div.id}" onchange="changeBeakerFluid('${div.id}')"><option value="distilled">Distilled H2O</option><option value="tap">Drinking H2O</option><option value="well">Well H2O</option><option value="salt">Salt H2O</option></select><div class="terminal" style="top: -6px; left: 18px;" data-terminal="beaker-${idx}-a" data-side="top"></div><div class="terminal" style="top: -6px; right: 18px;" data-terminal="beaker-${idx}-b" data-side="top"></div>`;
+                    beakerBubbles[div.id] = { active: false, timer: 0 }; setTimeout(() => initializeBeakerIons(div.id, 'distilled'), 50);
+                } else if (type === 'gas') {
+                    div.className = 'component gas-holder'; div.id = `gas-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label">Gas Tube ${idx}</div><div class="gas-tube-visual" id="neon-glow-${div.id}"><div class="plasma-stream" id="plasma-${div.id}"></div></div><select class="spec-setting" id="gas-select-${div.id}" onchange="runCircuitGraphEvaluation()"><option value="neon">Neon (Ne)</option><option value="argon">Argon (Ar)</option><option value="helium">Helium (He)</option><option value="air">Air</option></select><div style="font-size:0.55rem; color:#38bdf8; margin-top:4px; font-family:monospace;" id="gas-hud-${div.id}">Vapp: 0.0V | Vth: 0.0V</div><input type="range" class="spec-slider" id="pressure-slider-${div.id}" min="0.1" max="50.0" step="0.1" value="1.0" oninput="updateGasPressureReadout('${div.id}')"><div class="terminal" style="top: 48px; left: -10px;" data-terminal="gas-${idx}-a" data-side="left"></div><div class="terminal" style="top: 48px; right: -10px;" data-terminal="gas-${idx}-b" data-side="right"></div>`;
+                    gasConductingStates[div.id] = false;
+                } else if (type === 'coin') {
+                    div.className = 'component conductor-coin'; div.id = `coin-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#d97706; margin-top:15px;">COPPER COIN</div><div class="terminal" style="top: 40px; left: -10px; background-color:#d97706;" data-terminal="coin-${idx}-a" data-side="left"></div><div class="terminal" style="top: 40px; right: -10px; background-color:#d97706;" data-terminal="coin-${idx}-b" data-side="right"></div>`;
+                } else if (type === 'key') {
+                    div.className = 'component conductor-key'; div.id = `key-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="key-ring"></div><div class="component-label" style="color:#e2e8f0; font-size:0.65rem;">STEEL KEY</div><div class="terminal" style="top: 30px; left: -10px; background-color:#94a3b8;" data-terminal="key-${idx}-a" data-side="left"></div><div class="terminal" style="top: 30px; right: -10px; background-color:#94a3b8;" data-terminal="key-${idx}-b" data-side="right"></div>`;
+                } else if (type === 'eraser') {
+                    div.className = 'component insulator-eraser'; div.id = `eraser-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#f8fafc; margin-top:10px;">RUBBER ERASER</div><div class="terminal" style="top: 30px; left: -10px; background-color:#f43f5e;" data-terminal="eraser-${idx}-a" data-side="left"></div><div class="terminal" style="top: 30px; right: -10px; background-color:#3b82f6;" data-terminal="eraser-${idx}-b" data-side="right"></div>`;
+                } else if (type === 'ruler') {
+                    div.className = 'component insulator-ruler'; div.id = `ruler-${idx}`;
+                    div.innerHTML = `<div class="rotate-crown-handle" onmousedown="initiateRotation(event, '${div.id}')" ontouchstart="initiateRotation(event, '${div.id}')"></div><div class="component-label" style="color:#eab308; margin-top:5px;">PLASTIC RULER</div><div class="terminal" style="top: 25px; left: -10px; background-color:#eab308;" data-terminal="ruler-${idx}-a" data-side="left"></div><div class="terminal" style="top: 25px; right: -10px; background-color:#eab308;" data-terminal="ruler-${idx}-b" data-side="right"></div>`;
+                }
+                panZoomContainer.appendChild(div);
+            }
+
+            setupDragAndRotation(div); rebindTerminalClickHooks(); closeMenuDropdown();
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function initializeBeakerIons(id, fluid) {
+            const container = document.getElementById(`ions-${id}`); if (!container) return;
+            container.innerHTML = ''; beakerIons[id] = [];
+            let ionSpecs = []; let quantity = 0;
+            if (fluid === 'distilled') {
+                quantity = 2; ionSpecs = [{ symbol: 'H⁺', charge: 1, color: '#f87171', shadow: 'rgba(248,113,113,0.6)' }, { symbol: 'OH⁻', charge: -1, color: '#60a5fa', shadow: 'rgba(96,165,250,0.6)' }];
+            } else if (fluid === 'tap') {
+                quantity = 8; ionSpecs = [{ symbol: 'Na⁺', charge: 1, color: '#fca5a5', shadow: 'rgba(252,165,165,0.5)' }, { symbol: 'Cl⁻', charge: -1, color: '#93c5fd', shadow: 'rgba(147,197,253,0.5)' }];
+            } else if (fluid === 'well') {
+                quantity = 14; ionSpecs = [{ symbol: 'Mg²⁺', charge: 2, color: '#fde047', shadow: 'rgba(253,224,71,0.6)' }, { symbol: 'SO₄²⁻', color: '#67e8f9', charge: -2, shadow: 'rgba(103,233,249,0.6)' }];
+            } else if (fluid === 'salt') {
+                quantity = 26; ionSpecs = [{ symbol: 'Na⁺', charge: 1, color: '#f87171', shadow: 'rgba(248,113,113,0.8)' }, { symbol: 'Cl⁻', charge: -1, color: '#3b82f6', shadow: 'rgba(59,130,248,0.8)' }];
+            }
+
+            for (let i = 0; i < quantity; i++) {
+                const spec = ionSpecs[i % ionSpecs.length]; const ionNode = document.createElement('div');
+                ionNode.className = 'ion-node'; ionNode.innerText = spec.symbol;
+                ionNode.style.color = spec.color; ionNode.style.borderColor = spec.color;
+                ionNode.style.setProperty('--glow-color', spec.shadow); container.appendChild(ionNode);
+                beakerIons[id].push({ el: ionNode, x: 10 + Math.random() * 80, y: 35 + Math.random() * 55, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, charge: spec.charge });
+            }
+        }
+
+        function changeBeakerFluid(id) {
+            const select = document.getElementById(`fluid-select-${id}`); const colorDiv = document.getElementById(`liquid-color-${id}`);
+            if (select && colorDiv) {
+                const val = select.value;
+                if (val === 'distilled') colorDiv.style.backgroundColor = 'rgba(173, 216, 230, 0.15)';
+                else if (val === 'tap') colorDiv.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+                else if (val === 'well') colorDiv.style.backgroundColor = 'rgba(20, 184, 166, 0.4)';
+                else if (val === 'salt') colorDiv.style.backgroundColor = 'rgba(16, 185, 129, 0.5)';
+                initializeBeakerIons(id, val);
+            }
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function updateGasPressureReadout(id) {
+            const slider = document.getElementById('pressure-slider-' + id); const lbl = document.getElementById('gas-pressure-lbl-' + id);
+            if (slider && lbl) lbl.innerText = `Pressure: ${parseFloat(slider.value).toFixed(1)} Torr`;
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function deleteSelectedComponent() {
+            if (currentSelectedModule) {
+                const { jbId, rowIdx, modIdx, elementId } = currentSelectedModule;
+                const matchPrefix = `${jbId}-r-${rowIdx}-m-${modIdx}`;
+                
+                wireTraces = wireTraces.filter(wire => {
+                    if (wire.a.startsWith(matchPrefix) || wire.b.startsWith(matchPrefix)) {
+                        wire.pathObject.remove(); wire.particlePathObject.remove(); return false;
+                    }
+                    return true;
+                });
+
+                const target = document.getElementById(elementId);
+                if (target) target.remove();
+                
+                if (jbModulesRegistry[jbId] && jbModulesRegistry[jbId].rows[rowIdx]) {
+                    jbModulesRegistry[jbId].rows[rowIdx][modIdx] = null;
+                }
+                
+                currentSelectedModule = null; recordStateHistorySnapshot(); runCircuitGraphEvaluation(); closeMenuDropdown(); return;
+            }
+
+            if (!currentSelectedComponentId) return;
+            
+            wireTraces = wireTraces.filter(wire => {
+                if (wire.a.startsWith(currentSelectedComponentId) || wire.b.startsWith(currentSelectedComponentId)) {
+                    wire.pathObject.remove(); wire.particlePathObject.remove(); return false;
+                }
+                return true;
+            });
+
+            const target = document.getElementById(currentSelectedComponentId);
+            if (target) target.remove();
+            
+            delete motorAngles[currentSelectedComponentId]; delete jbModulesRegistry[currentSelectedComponentId]; delete plugDockingRegistry[currentSelectedComponentId];
+            currentSelectedComponentId = null; closeMenuDropdown(); recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function clearAllWires() {
+            wireTraces.forEach(w => { w.pathObject.remove(); w.particlePathObject.remove(); }); wireTraces = [];
+            if (activeSelectedPin) { activeSelectedPin.classList.remove('selected'); activeSelectedPin = null; }
+            livePreviewPath.style.display = 'none'; wireChipPopup.style.display = 'none';
+            closeMenuDropdown(); recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function factoryResetLaboratory() {
+            clearAllWires();
+            document.querySelectorAll('.component').forEach(c => { if (c.id !== 'bulb-1' && c.id !== 'switch-1' && c.id !== 'cell-1') c.remove(); });
+            componentCounters = { bulb: 1, switch: 1, cell: 1, motor: 0, coin: 0, key: 0, eraser: 0, ruler: 0, beaker: 0, gas: 0, junctionbox: 0, male2pin: 0, male3pin: 0 };
+            currentSelectedComponentId = null; currentSelectedModule = null; motorAngles = {}; beakerBubbles = {}; beakerIons = {}; jbModulesRegistry = {}; plugDockingRegistry = {};
+            currentZoomScale = 1.0; panOffset = { x: 0, y: 0 }; updatePanZoomTransform();
+            recordStateHistorySnapshot(); runCircuitGraphEvaluation();
+        }
+
+        function closeSafetyModalOnly() { document.getElementById('safety-modal').classList.remove('active-modal'); }
+        function repairBulbAndReset() {
+            document.getElementById('safety-modal').classList.remove('active-modal');
+            document.querySelectorAll('.bulb-holder.blasted').forEach(b => b.classList.remove('blasted'));
+            runCircuitGraphEvaluation();
+        }
+
+        function runLabAnimationsLoop() {
+            for (let id in motorAngles) {
+                const spec = motorAngles[id];
+                if (Math.abs(spec.speed) > 0.01) {
+                    spec.angle = (spec.angle + spec.speed) % 360; const fanEl = document.getElementById(`fan-${id}`);
+                    if (fanEl) fanEl.style.transform = `rotate(${spec.angle}deg)`;
+                }
+            }
+
+            for (let id in beakerBubbles) {
+                const state = beakerBubbles[id];
+                if (state.active) {
+                    state.timer++;
+                    if (state.timer % 12 === 0) {
+                        const container = document.getElementById(`bubbles-${id}`);
+                        if (container) {
+                            const bL = document.createElement('div'); bL.className = 'beaker-bubble'; bL.style.left = '27px';
+                            container.appendChild(bL); setTimeout(() => bL.remove(), 1100);
+                        }
+                    }
+                }
+            }
+
+            for (let id in beakerIons) {
+                const ions = beakerIons[id]; const beakerEl = document.getElementById(id); if (!beakerEl) continue;
+                const vA = parseFloat(beakerEl.getAttribute('data-vA')) || 0; const vB = parseFloat(beakerEl.getAttribute('data-vB')) || 0;
+                const voltDiff = vA - vB;
+                ions.forEach(ion => {
+                    ion.vx += (Math.random() - 0.5) * 0.05; ion.vy += (Math.random() - 0.5) * 0.05;
+                    if (Math.abs(voltDiff) > 0.01) { ion.vx -= voltDiff * 0.05 * ion.charge; }
+                    ion.x += ion.vx; ion.y += ion.vy; ion.vx *= 0.92; ion.vy *= 0.92;
+                    if (ion.x < 5) { ion.x = 5; ion.vx *= -0.5; } if (ion.x > 82) { ion.x = 82; ion.vx *= -0.5; }
+                    if (ion.y < 35) { ion.y = 35; ion.vy *= -0.5; } if (ion.y > 85) { ion.y = 85; ion.vy *= -0.5; }
+                    ion.el.style.transform = `translate3d(${ion.x}px, ${ion.y}px, 0)`;
+                });
+            }
+
+            wireTraces.forEach(wire => {
+                const vA = latestVoltages[wire.a] || 0; const vB = latestVoltages[wire.b] || 0;
+                const vDrop = vA - vB; const wireCurrent = vDrop / 0.2;
+                if (latestShortCircuit) {
+                    wire.dashOffset = (wire.dashOffset || 0) + 8; wire.particlePathObject.setAttribute('stroke-dasharray', '4,8'); wire.particlePathObject.setAttribute('stroke-dashoffset', wire.dashOffset);
+                } else if (Math.abs(wireCurrent) > 0.01) {
+                    const speed = Math.max(0.8, Math.min(Math.abs(wireCurrent) * 5.0, 11));
+                    wire.dashOffset = (wire.dashOffset || 0) + (wireCurrent > 0 ? speed : -speed); wire.particlePathObject.setAttribute('stroke-dasharray', '4,14'); wire.particlePathObject.setAttribute('stroke-dashoffset', wire.dashOffset);
+                }
+            });
+
+            document.querySelectorAll('.bulb-holder.glowing').forEach(b => {
+                const vA = latestVoltages[`${b.id}-a`] || 0; const vB = latestVoltages[`${b.id}-b`] || 0;
+                const thresholdMax = parseFloat(document.getElementById(`cap-${b.id}`).value) || 4.5;
+                let intensityRatio = Math.abs(vA - vB) / thresholdMax;
+                let connectedToBeaker = false; let fluidType = 'none';
+                document.querySelectorAll('.beaker-holder').forEach(bk => {
+                    if (latestNetMap[`${bk.id}-a`] === latestNetMap[`${b.id}-a`] || latestNetMap[`${bk.id}-b`] === latestNetMap[`${b.id}-a`]) { connectedToBeaker = true; fluidType = document.getElementById(`fluid-select-${bk.id}`)?.value || 'none'; }
+                });
+                if (connectedToBeaker) {
+                    if (fluidType === 'tap') intensityRatio *= (0.62 + Math.random() * 0.38); else if (fluidType === 'well') intensityRatio *= (0.80 + Math.random() * 0.20); else if (fluidType === 'salt') intensityRatio *= (0.96 + Math.random() * 0.04); else if (fluidType === 'distilled') intensityRatio *= (0.15 + Math.random() * 0.85);
+                }
+                b.style.setProperty('--glow-radius-1', `${20 + (intensityRatio * 35)}px`); b.style.setProperty('--glow-spread-1', `${5 + (intensityRatio * 15)}px`); b.style.setProperty('--glow-core', `${Math.max(5, 25 - (intensityRatio * 15))}%`); b.style.setProperty('--glow-mid', `${Math.min(95, 50 + (intensityRatio * 30))}%`);
+            });
+
+            for (let jbId in jbModulesRegistry) {
+                const jbData = jbModulesRegistry[jbId];
+                for (let rIdx in jbData.rows) {
+                    jbData.rows[rIdx].forEach((mod, mIdx) => {
+                        if (mod && mod.type === 'indicator') {
+                            const vA = latestVoltages[`${jbId}-r-${rIdx}-m-${mIdx}-top`] || 0; const vB = latestVoltages[`${jbId}-r-${rIdx}-m-${mIdx}-bottom`] || 0;
+                            const housing = document.getElementById(`${jbId}-r-${rIdx}-m-${mIdx}`);
+                            if (housing) { if (Math.abs(vA - vB) > 1.2) housing.classList.add('glowing-lamp'); else housing.classList.remove('glowing-lamp'); }
+                        }
+                    });
+                }
+            }
+            requestAnimationFrame(runLabAnimationsLoop);
+        }
+
+        function solveLinearMNA(A, B) {
+            const n = A.length;
+            for (let i = 0; i < n; i++) {
+                let maxRow = i; let maxEl = Math.abs(A[i][i]);
+                for (let k = i + 1; k < n; k++) { if (Math.abs(A[k][i]) > maxEl) { maxEl = Math.abs(A[k][i]); maxRow = k; } }
+                const tempRow = A[i]; A[i] = A[maxRow]; A[maxRow] = tempRow; const tempVal = B[i]; B[i] = B[maxRow]; B[maxRow] = tempVal;
+                if (Math.abs(A[i][i]) < 1e-12) A[i][i] = 1e-12;
+                for (let k = i + 1; k < n; k++) {
+                    const factor = -A[k][i] / A[i][i];
+                    for (let j = i; j < n; j++) { A[k][j] += factor * A[i][j]; } B[k] += factor * B[i];
+                }
+            }
+            const x = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = 0; for (let j = i + 1; j < n; j++) { sum += A[i][j] * x[j]; } x[i] = (B[i] - sum) / A[i][i];
+            }
+            return x;
+        }
+
+        function runCircuitGraphEvaluation() {
+            const terminals = []; document.querySelectorAll('.terminal').forEach(p => { terminals.push(p.getAttribute('data-terminal')); });
+            const dsu = new DisjointSetUnion(); terminals.forEach(t => dsu.makeSet(t));
+
+            document.querySelectorAll('.switch-holder').forEach(sw => { if (sw.classList.contains('closed')) dsu.union(`${sw.id}-a`, `${sw.id}-b`); });
+            document.querySelectorAll('.conductor-coin').forEach(coin => { dsu.union(`${coin.id}-a`, `${coin.id}-b`); });
+            document.querySelectorAll('.conductor-key').forEach(key => { dsu.union(`${key.id}-a`, `${key.id}-b`); });
+
+            for (let jbId in jbModulesRegistry) {
+                const jbData = jbModulesRegistry[jbId];
+                for (let rIdx in jbData.rows) {
+                    jbData.rows[rIdx].forEach((mod, mIdx) => {
+                        if (!mod) return;
+                        const baseToken = `${jbId}-r-${rIdx}-m-${mIdx}`;
+                        if (mod.type === 'switch' && document.getElementById(baseToken)?.classList.contains('closed')) {
+                            dsu.union(`${baseToken}-top`, `${baseToken}-bottom`);
+                        }
+                    });
+                }
+            }
+
+            for (let plugId in plugDockingRegistry) {
+                const dData = plugDockingRegistry[plugId];
+                if (dData && dData.isDocked) {
+                    const sockToken = `${dData.jbId}-r-${dData.rowIdx}-m-${dData.moduleIdx}`;
+                    dsu.union(`${plugId}-l`, `${sockToken}-live`); dsu.union(`${plugId}-n`, `${sockToken}-neutral`);
+                    if (dData.type === '3pin') dsu.union(`${plugId}-e`, `${sockToken}-earth`);
+                }
+            }
+
+            const netMap = {}; let netCount = 0; const uniqueNets = {};
+            terminals.forEach(t => { const root = dsu.find(t); if (uniqueNets[root] === undefined) uniqueNets[root] = netCount++; netMap[t] = uniqueNets[root]; });
+            latestNetMap = netMap; if (netCount === 0) return;
+
+            const activeBulbs = Array.from(document.querySelectorAll('.bulb-holder:not(.blasted)'));
+            const activeMotors = Array.from(document.querySelectorAll('.motor-holder'));
+            const activeBeakers = Array.from(document.querySelectorAll('.beaker-holder'));
+            const activeGases = Array.from(document.querySelectorAll('.gas-holder'));
+            const activeCells = Array.from(document.querySelectorAll('.cell')); const M = activeCells.length;
+
+            const size = netCount + M; const A = Array.from({ length: size }, () => new Array(size).fill(0)); const B = new Array(size).fill(0);
+            for (let i = 0; i < netCount; i++) { A[i][i] += 1e-8; }
+
+            function addConductance(t1, t2, resistance) {
+                const u = netMap[t1]; const v = netMap[t2];
+                if (u !== undefined && v !== undefined && u !== v) { const cond = 1.0 / resistance; A[u][u] += cond; A[v][v] += cond; A[u][v] -= cond; A[v][u] -= cond; }
+            }
+
+            wireTraces.forEach(w => { addConductance(w.a, w.b, 0.2); });
+            activeBulbs.forEach(b => { addConductance(`${b.id}-a`, `${b.id}-b`, 15); });
+            activeMotors.forEach(m => { addConductance(`${m.id}-a`, `${m.id}-b`, 20); });
+            
+            activeBeakers.forEach(bk => {
+                const fluid = document.getElementById(`fluid-select-${bk.id}`)?.value || 'distilled';
+                let res = 1e7; if (fluid === 'tap') res = 2500; if (fluid === 'well') res = 800; if (fluid === 'salt') res = 25;
+                addConductance(`${bk.id}-a`, `${bk.id}-b`, res);
+            });
+            activeGases.forEach(g => { addConductance(`${g.id}-a`, `${g.id}-b`, gasConductingStates[g.id] ? 50 : 1e8); });
+
+            for (let jbId in jbModulesRegistry) {
+                const jbData = jbModulesRegistry[jbId];
+                for (let rIdx in jbData.rows) {
+                    jbData.rows[rIdx].forEach((mod, mIdx) => {
+                        if (!mod) return;
+                        const baseToken = `${jbId}-r-${rIdx}-m-${mIdx}`;
+                        if (mod.type === 'indicator') addConductance(`${baseToken}-top`, `${baseToken}-bottom`, 2000);
+                        else if (mod.type === 'fan') {
+                            let fanRes = 0.5; if (mod.step === 1) fanRes = 15; else if (mod.step === 2) fanRes = 50; else if (mod.step === 3) fanRes = 120; else if (mod.step === 4) fanRes = 300;
+                            addConductance(`${baseToken}-top`, `${baseToken}-bottom`, fanRes);
+                        }
+                    });
+                }
+            }
+
+            let shortCircuitDetected = false;
+            activeCells.forEach((cell, idx) => {
+                const p = netMap[`${cell.id}-pos`]; const m = netMap[`${cell.id}-neg`];
+                const vVal = parseFloat(document.getElementById(`cap-${cell.id}`).value) || 1.5;
+                if (p === m) { shortCircuitDetected = true; A[netCount + idx][netCount + idx] = 1; }
+                else { A[p][netCount + idx] += 1; A[m][netCount + idx] -= 1; A[netCount + idx][p] += 1; A[netCount + idx][m] -= 1; B[netCount + idx] = vVal; }
+            });
+
+            A[0].fill(0); A[0][0] = 1; B[0] = 0;
+            const X = solveLinearMNA(A, B);
+
+            const voltages = {}; terminals.forEach(t => { voltages[t] = X[netMap[t]] || 0; });
+            latestVoltages = voltages; latestShortCircuit = shortCircuitDetected;
+
+            let safetyAlertTriggered = false;
+            activeBulbs.forEach(b => {
+                const vDrop = Math.abs((voltages[`${b.id}-a`] || 0) - (voltages[`${b.id}-b`] || 0));
+                const thresholdMax = parseFloat(document.getElementById(`cap-${b.id}`).value) || 4.5;
+                if (vDrop > 0.1 && !shortCircuitDetected) {
+                    if (vDrop > thresholdMax) { b.classList.add('blasted'); triggerShatterAnimationParticles(b.id); safetyAlertTriggered = true; } else b.classList.add('glowing');
+                } else b.classList.remove('glowing');
+            });
+
+            activeMotors.forEach(m => {
+                const signedVDrop = (voltages[`${m.id}-a`] || 0) - (voltages[`${m.id}-b`] || 0);
+                if (Math.abs(signedVDrop) > 0.1 && !shortCircuitDetected) { if (motorAngles[m.id]) motorAngles[m.id].speed = signedVDrop * 5.0; } else { if (motorAngles[m.id]) motorAngles[m.id].speed = 0; }
+            });
+
+            const indLoop = document.getElementById('ind-loop'); if (shortCircuitDetected) indLoop.className = "indicator danger"; else indLoop.className = "indicator good";
+            if (safetyAlertTriggered) { setTimeout(() => { document.getElementById('safety-modal').classList.add('active-modal'); }, 400); }
+        }
+
+        function triggerShatterAnimationParticles(bulbId) {
+            const b = document.getElementById(bulbId); if (!b) return; const fixture = b.querySelector('.bulb-fixture'); if (!fixture) return;
+            for (let i = 0; i < 12; i++) {
+                const shard = document.createElement('div'); shard.className = 'shatter-particle'; const angle = Math.random() * Math.PI * 2; const dist = 30 + Math.random() * 40;
+                shard.style.setProperty('--tx', `${Math.cos(angle) * dist}px`); shard.style.setProperty('--ty', `${Math.sin(angle) * dist}px`); shard.style.setProperty('--tr', `200deg`);
+                shard.style.left = '32px'; shard.style.top = '32px'; fixture.appendChild(shard); setTimeout(() => shard.remove(), 600);
+            }
+        }
+
+        /* --- DEVICE LOCAL STORAGE BLUEPRINT PERSISTENCE --- */
+        function getSavedBlueprints() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                console.error("Failed to parse blueprints from local storage:", e);
+                return [];
+            }
+        }
+
+        function saveCurrentCircuit() {
+            const title = prompt("Enter a title for this circuit blueprint:");
+            if (!title || !title.trim()) return;
+
+            const snapshot = createStateSnapshot();
+            const savedList = getSavedBlueprints();
+
+            const newBlueprint = {
+                id: 'bp_' + Date.now(),
+                title: title.trim(),
+                timestamp: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                snapshot: snapshot
+            };
+
+            savedList.unshift(newBlueprint);
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedList));
+                renderSavedCircuitsList();
+                alert(`Circuit Blueprint "${newBlueprint.title}" successfully saved to your device!`);
+            } catch (e) {
+                alert("Could not save to local device storage. Storage might be full or disabled.");
+            }
+        }
+
+        function renderSavedCircuitsList() {
+            const container = document.getElementById('saved-circuits-list');
+            if (!container) return;
+
+            const savedList = getSavedBlueprints();
+            if (savedList.length === 0) {
+                container.innerHTML = '<div style="font-size:0.7rem; color:#64748b; text-align:center; padding:8px 0;">No saved blueprints found in device storage.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            savedList.forEach((bp) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; gap: 6px;';
+                
+                const titleEscaped = bp.title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+                item.innerHTML = `
+                    <div style="overflow: hidden; flex: 1;">
+                        <div style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${titleEscaped}</div>
+                        <div style="font-size: 0.6rem; color: #64748b;">${bp.timestamp || ''}</div>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                        <button class="action-btn" style="background-color:#10b981; padding: 4px 8px; font-size:0.65rem;" onclick="loadSavedCircuit('${bp.id}')">Load</button>
+                        <button class="action-btn danger" style="padding: 4px 8px; font-size:0.65rem;" onclick="deleteSavedCircuit('${bp.id}')">✕</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function loadSavedCircuit(id) {
+            const savedList = getSavedBlueprints();
+            const bp = savedList.find(item => item.id === id);
+            if (!bp) return;
+
+            if (confirm(`Load blueprint "${bp.title}"? Unsaved changes in your current workspace will be replaced.`)) {
+                isApplyingHistoryState = true;
+                applyStateSnapshot(bp.snapshot);
+                isApplyingHistoryState = false;
+                recordStateHistorySnapshot();
+                closeMenuDropdown();
+            }
+        }
+
+        function deleteSavedCircuit(id) {
+            let savedList = getSavedBlueprints();
+            const bp = savedList.find(item => item.id === id);
+            if (!bp) return;
+
+            if (confirm(`Are you sure you want to delete blueprint "${bp.title}" from device storage?`)) {
+                savedList = savedList.filter(item => item.id !== id);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedList));
+                renderSavedCircuitsList();
+            }
+        }
+    </script>
+</body>
+</html>
