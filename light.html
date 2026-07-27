@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Interactive Optics Lab</title>
+    <style>
+        :root {
+            --bg-color: #05080f; /* Deepest black/blue for maximum laser contrast */
+            --panel-color: #0f172a;
+            --accent-color: #6366f1;
+            --text-color: #f1f5f9;
+            
+            /* UI Label Colors */
+            --incident-ui: #06b6d4;
+            --reflected-ui: #f43f5e;
+            --refracted-ui: #a855f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #1e293b;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .lab-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        @media (min-width: 768px) {
+            .lab-layout {
+                grid-template-columns: 2.8fr 1.2fr;
+            }
+        }
+
+        /* Viewport Canvas Wrapper */
+        .canvas-card {
+            background-color: var(--panel-color);
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 0;
+            position: relative;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background-color: #02040a; /* Ultra dark core background */
+            border-radius: 8px;
+            border: 2px solid #1e293b;
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar Panels */
+        .controls-card {
+            background-color: var(--panel-color);
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Styled inputs */
+        .select-input, .range-input {
+            width: 100%;
+            background-color: #1e293b;
+            color: #fff;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            font-size: 12.5px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .select-input {
+            padding: 9px;
+            cursor: pointer;
+        }
+
+        .select-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .select-input option {
+            background-color: #0f172a;
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-val {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--accent-color);
+            min-width: 40px;
+        }
+
+        /* Toggle Switches */
+        .mode-switch-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background-color: #1e293b;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .mode-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background-color: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Readout Metrics */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .metric-box {
+            background-color: #070b14;
+            border-radius: 6px;
+            padding: 8px;
+            border: 1px solid #1e293b;
+            text-align: center;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .metric-val {
+            font-size: 15px;
+            font-weight: bold;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        #metric-incident .metric-val { color: var(--incident-ui); }
+        #metric-reflected .metric-val { color: var(--reflected-ui); }
+        #metric-refracted .metric-val { color: var(--refracted-ui); }
+        #metric-critical .metric-val { color: #fbbf24; }
+
+        /* Dynamic Scientific Explanation Panel */
+        .info-panel {
+            background-color: #02040a;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #cbd5e1;
+            border: 1px solid #1e293b;
+            border-left-width: 4px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        /* General Warning Badges */
+        .badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .badge-normal { background-color: rgba(6, 182, 212, 0.15); color: var(--incident-ui); border: 1px solid rgba(6, 182, 212, 0.3); }
+        .badge-warning { background-color: rgba(244, 63, 94, 0.15); color: var(--reflected-ui); border: 1px solid rgba(244, 63, 94, 0.3); }
+
+        #fullscreenPrompt {
+            font-size: 10px;
+            background-color: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px dashed rgba(99, 102, 241, 0.3);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        @media (orientation: landscape) and (max-height: 600px) {
+            body { padding: 4px; }
+            header { margin-bottom: 4px; padding: 4px 15px; }
+            h1 { font-size: 1.1rem; }
+            .subtitle { display: none; }
+            .lab-layout { grid-template-columns: 1.4fr 1fr; gap: 8px; }
+            .canvas-card, .controls-card { padding: 8px; height: 100%; }
+            .metric-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+            .metric-box { padding: 4px; }
+            .metric-val { font-size: 12px; }
+            .control-group { gap: 2px; }
+            .select-input { padding: 5px; font-size: 11.5px; }
+            .info-panel { font-size: 11px; padding: 6px; }
+            #fullscreenPrompt { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Advanced Optics Laser Laboratory</h1>
+            <p class="subtitle">Drag the laser torch. Real-time realistic rendering of Specular/Diffuse Reflection & Refraction physics.</p>
+        </div>
+        <div id="fullscreenPrompt" onclick="triggerFullScreen()">🖥️ Enter Fullscreen</div>
+    </header>
+
+    <div class="lab-layout">
+        
+        <!-- Interactive Canvas Card -->
+        <div class="canvas-card">
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="opticsCanvas"></canvas>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size:11px; color:#94a3b8;">
+                <span>🎯 Click/Drag inside upper hemisphere to aim realistic laser</span>
+                <span id="tirWarning" class="badge badge-normal">SYSTEM NORMAL</span>
+            </div>
+        </div>
+
+        <!-- Sidebar Lab Controls -->
+        <div class="controls-card">
+            <h3 style="margin:0; font-size: 12px; color:#cbd5e1; text-transform: uppercase; letter-spacing: 0.5px;">Lab Configuration</h3>
+            
+            <!-- Category Toggle: Reflection or Refraction -->
+            <div class="control-group">
+                <label>Physics Phenomenon:</label>
+                <div class="mode-switch-group">
+                    <button class="mode-btn active" id="btn-cat-reflect" onclick="setCategory('reflection')">Reflection</button>
+                    <button class="mode-btn" id="btn-cat-refract" onclick="setCategory('refraction')">Refraction</button>
+                </div>
+            </div>
+
+            <!-- Subtype Toggle -->
+            <div class="control-group">
+                <label id="subtypeLabel">Type of Reflection:</label>
+                <div class="mode-switch-group" id="reflection-subtypes">
+                    <button class="mode-btn active" id="btn-sub-specular" onclick="setSubtype('specular')">Specular</button>
+                    <button class="mode-btn" id="btn-sub-diffuse" onclick="setSubtype('diffuse')">Diffuse</button>
+                </div>
+                <div class="mode-switch-group" id="refraction-subtypes" style="display: none;">
+                    <button class="mode-btn active" id="btn-sub-towards" onclick="setSubtype('towards')">Towards Normal</button>
+                    <button class="mode-btn" id="btn-sub-away" onclick="setSubtype('away')">Away / T.I.R.</button>
+                </div>
+            </div>
+
+            <!-- Top Medium Dropdown -->
+            <div class="control-group" id="top-medium-container">
+                <label>Medium 1 (Top, $n_1$):</label>
+                <select id="topMediumSelect" class="select-input" onchange="changeMedium('top', this.value)">
+                    <option value="1.00">Vacuum / Air (n = 1.00)</option>
+                    <option value="1.31">Ice (n = 1.31)</option>
+                    <option value="1.33">Water (n = 1.33)</option>
+                    <option value="1.36">Ethanol (n = 1.36)</option>
+                    <option value="1.47">Olive Oil (n = 1.47)</option>
+                    <option value="1.52">Crown Glass (n = 1.52)</option>
+                    <option value="1.62">Flint Glass (n = 1.62)</option>
+                    <option value="1.77">Sapphire (n = 1.77)</option>
+                    <option value="2.42">Diamond (n = 2.42)</option>
+                    <option value="custom">Custom index...</option>
+                </select>
+                <div id="top-custom-slider-box" class="range-container" style="display: none; margin-top: 4px;">
+                    <input type="range" class="range-input" id="customTopN" min="1.00" max="3.00" step="0.01" value="1.00" oninput="updateCustomN('top', this.value)">
+                    <span class="range-val" id="customTopNVal">1.00</span>
+                </div>
+            </div>
+
+            <!-- Bottom Medium Dropdown -->
+            <div class="control-group" id="bottom-medium-container">
+                <label>Medium 2 (Bottom, $n_2$):</label>
+                <select id="bottomMediumSelect" class="select-input" onchange="changeMedium('bottom', this.value)">
+                    <option value="1.00">Vacuum / Air (n = 1.00)</option>
+                    <option value="1.31">Ice (n = 1.31)</option>
+                    <option value="1.33">Water (n = 1.33)</option>
+                    <option value="1.36">Ethanol (n = 1.36)</option>
+                    <option value="1.47">Olive Oil (n = 1.47)</option>
+                    <option value="1.52" selected>Crown Glass (n = 1.52)</option>
+                    <option value="1.62">Flint Glass (n = 1.62)</option>
+                    <option value="1.77">Sapphire (n = 1.77)</option>
+                    <option value="2.42">Diamond (n = 2.42)</option>
+                    <option value="custom">Custom index...</option>
+                </select>
+                <div id="bottom-custom-slider-box" class="range-container" style="display: none; margin-top: 4px;">
+                    <input type="range" class="range-input" id="customBottomN" min="1.00" max="3.00" step="0.01" value="1.52" oninput="updateCustomN('bottom', this.value)">
+                    <span class="range-val" id="customBottomNVal">1.52</span>
+                </div>
+            </div>
+
+            <!-- Angle of Incidence manual slider -->
+            <div class="control-group">
+                <label>Incident Angle Beam (&theta;<sub>i</sub>):</label>
+                <div class="range-container">
+                    <input type="range" class="range-input" id="angleSlider" min="0" max="89.0" step="0.5" value="45" oninput="setAngleFromSlider(this.value)">
+                    <span class="range-val" id="angleVal">45.0°</span>
+                </div>
+            </div>
+
+            <!-- Scientific Angle Metrics Panel -->
+            <div class="control-group">
+                <div class="metric-grid">
+                    <div class="metric-box" id="metric-incident">
+                        <div class="metric-label">Incident (&theta;i)</div>
+                        <div class="metric-val" id="val-incident">45.0°</div>
+                    </div>
+                    <div class="metric-box" id="metric-reflected">
+                        <div class="metric-label">Reflected (&theta;r)</div>
+                        <div class="metric-val" id="val-reflected">45.0°</div>
+                    </div>
+                    <div class="metric-box" id="metric-refracted">
+                        <div class="metric-label">Refracted (&theta;t)</div>
+                        <div class="metric-val" id="val-refracted">28.1°</div>
+                    </div>
+                    <div class="metric-box" id="metric-critical">
+                        <div class="metric-label">Critical (&theta;c)</div>
+                        <div class="metric-val" id="val-critical">N/A</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Educational Info Card -->
+            <div class="info-panel" id="infoPanel">
+                <div class="info-title" id="infoTitle">Specular Reflection</div>
+                <div id="infoText">Light rays reflect off a perfectly smooth mirror. The angle of incidence equals the angle of reflection (&theta;i = &theta;r) producing a perfectly crisp rebounding beam.</div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // System variables
+        let activeCategory = 'reflection'; // reflection or refraction
+        let activeSubtype = 'specular'; 
+        
+        let n1 = 1.00; // Medium 1
+        let n2 = 1.52; // Medium 2
+        let incidentAngle = 45.0 * (Math.PI / 180); 
+        let isDragging = false;
+
+        // Realistic Laser Neon RGB Colors
+        const C_INCIDENT = '6, 182, 212';    // Cyan
+        const C_REFLECT = '244, 63, 94';     // Rose Red
+        const C_REFRACT = '168, 85, 247';    // Electric Purple
+
+        // Auto-Fullscreen Trigger
+        function triggerFullScreen() {
+            const docEl = document.documentElement;
+            const req = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen;
+            if (req) req.call(docEl).catch(err => console.log("Fullscreen deferred"));
+        }
+        document.getElementById('canvasContainer').addEventListener('pointerdown', triggerFullScreen);
+
+        // HTML Setup elements
+        const container = document.getElementById('canvasContainer');
+        const canvas = document.getElementById('opticsCanvas');
+        const ctx = canvas.getContext('2d');
+        const tirWarning = document.getElementById('tirWarning');
+        const angleSlider = document.getElementById('angleSlider');
+        const angleVal = document.getElementById('angleVal');
+        
+        // Panels Setup
+        const reflectionSubtypes = document.getElementById('reflection-subtypes');
+        const refractionSubtypes = document.getElementById('refraction-subtypes');
+        const subtypeLabel = document.getElementById('subtypeLabel');
+        const topMediumSelect = document.getElementById('topMediumSelect');
+        const bottomMediumSelect = document.getElementById('bottomMediumSelect');
+        const topMediumContainer = document.getElementById('top-medium-container');
+        const bottomMediumContainer = document.getElementById('bottom-medium-container');
+
+        const infoTitle = document.getElementById('infoTitle');
+        const infoText = document.getElementById('infoText');
+
+        // Dynamic metrics
+        const valIncident = document.getElementById('val-incident');
+        const valReflected = document.getElementById('val-reflected');
+        const valRefracted = document.getElementById('val-refracted');
+        const valCritical = document.getElementById('val-critical');
+
+        // Layout syncing
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Drag interactions for rotating laser
+        container.addEventListener('pointerdown', (e) => { isDragging = true; trackDrag(e); });
+        window.addEventListener('pointermove', (e) => { if (isDragging) trackDrag(e); });
+        window.addEventListener('pointerup', () => { isDragging = false; });
+        window.addEventListener('pointerleave', () => { isDragging = false; });
+
+        function trackDrag(e) {
+            const rect = canvas.getBoundingClientRect();
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            if (my < cy) {
+                let angle = Math.atan2(mx - cx, cy - my);
+                angle = Math.max(-89.0 * (Math.PI / 180), Math.min(89.0 * (Math.PI / 180), angle));
+                incidentAngle = angle;
+                
+                const deg = Math.abs(angle * (180 / Math.PI));
+                angleSlider.value = deg.toFixed(1);
+                angleVal.innerText = `${deg.toFixed(1)}°`;
+                
+                draw();
+            }
+        }
+
+        // Category modifications
+        function setCategory(cat) {
+            activeCategory = cat;
+            document.getElementById('btn-cat-reflect').className = cat === 'reflection' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btn-cat-refract').className = cat === 'refraction' ? 'mode-btn active' : 'mode-btn';
+
+            if (cat === 'reflection') {
+                subtypeLabel.innerText = "Type of Reflection:";
+                reflectionSubtypes.style.display = 'grid';
+                refractionSubtypes.style.display = 'none';
+                topMediumContainer.style.display = 'none';
+                bottomMediumContainer.style.display = 'none';
+                setSubtype('specular');
+            } else {
+                subtypeLabel.innerText = "Type of Refraction:";
+                reflectionSubtypes.style.display = 'none';
+                refractionSubtypes.style.display = 'grid';
+                topMediumContainer.style.display = 'flex';
+                bottomMediumContainer.style.display = 'flex';
+                setSubtype('towards');
+            }
+        }
+
+        function setSubtype(sub) {
+            activeSubtype = sub;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                if (btn.id.startsWith('btn-sub-')) btn.classList.remove('active');
+            });
+            document.getElementById(`btn-sub-${sub}`).classList.add('active');
+
+            if (sub === 'specular') {
+                n1 = 1.00; n2 = 1.00;
+                setInfoText("Specular (Regular) Reflection", "Highly concentrated light rays reflect off a perfectly smooth mirror surface. The incident laser bounces back retaining full intensity where incident angle equals reflected angle (&theta;i = &theta;r).");
+            } else if (sub === 'diffuse') {
+                n1 = 1.00; n2 = 1.00;
+                setInfoText("Diffuse (Scattered) Reflection", "The laser beam strikes an irregular, rough surface. It scatters in multiple randomized directions. The beam loses its core shape, diffusing its glowing intensity over a wide area.");
+            } else if (sub === 'towards') {
+                n1 = 1.00; n2 = 1.52; // Air to Glass
+                topMediumSelect.value = "1.00"; bottomMediumSelect.value = "1.52";
+                document.getElementById('top-custom-slider-box').style.display = 'none';
+                document.getElementById('bottom-custom-slider-box').style.display = 'none';
+                setInfoText("Refracting Towards Normal (n1 < n2)", "Entering a denser medium slows the light wave down. This deceleration causes the laser to sharply bend TOWARDS the vertical normal line, resulting in &theta;t < &theta;i.");
+            } else if (sub === 'away') {
+                n1 = 1.52; n2 = 1.00; // Glass to Air
+                topMediumSelect.value = "1.52"; bottomMediumSelect.value = "1.00";
+                document.getElementById('top-custom-slider-box').style.display = 'none';
+                document.getElementById('bottom-custom-slider-box').style.display = 'none';
+                setInfoText("Refracting Away Normal & T.I.R. (n1 > n2)", "Entering a rarer medium speeds the light up, bending it AWAY from the normal. Drag the laser wide: exceeding the 'Critical Angle' triggers Total Internal Reflection (TIR).");
+            }
+            draw();
+        }
+
+        function setInfoText(title, body) {
+            infoTitle.innerText = title;
+            infoText.innerText = body;
+        }
+
+        // Change Medium via Select/Slider
+        function changeMedium(position, val) {
+            const sliderBox = document.getElementById(`${position}-custom-slider-box`);
+            const slider = document.getElementById(`custom${position.charAt(0).toUpperCase() + position.slice(1)}N`);
+
+            if (val === 'custom') {
+                sliderBox.style.display = 'flex';
+                updateCustomN(position, slider.value);
+            } else {
+                sliderBox.style.display = 'none';
+                if (position === 'top') n1 = parseFloat(val);
+                else n2 = parseFloat(val);
+                draw();
+            }
+        }
+
+        function updateCustomN(position, val) {
+            document.getElementById(`custom${position.charAt(0).toUpperCase() + position.slice(1)}NVal`).innerText = parseFloat(val).toFixed(2);
+            if (position === 'top') n1 = parseFloat(val);
+            else n2 = parseFloat(val);
+            draw();
+        }
+
+        function setAngleFromSlider(val) {
+            const sign = incidentAngle >= 0 ? 1 : -1;
+            incidentAngle = sign * parseFloat(val) * (Math.PI / 180);
+            angleVal.innerText = `${parseFloat(val).toFixed(1)}°`;
+            draw();
+        }
+
+        // ----------------------------------------------------
+        // LASER RENDERING GRAPHICS ENGINE
+        // ----------------------------------------------------
+
+        // Draws highly realistic neon laser lines using additive blending
+        function drawRealisticLaser(x1, y1, x2, y2, rgbColor, intensity) {
+            if (intensity <= 0.02) return;
+            
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen'; // Additive light blending!
+            
+            // 1. Ambient Wide Bloom
+            ctx.beginPath();
+            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            ctx.strokeStyle = `rgba(${rgbColor}, ${0.15 * intensity})`;
+            ctx.lineWidth = 15;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // 2. Outer Glow
+            ctx.beginPath();
+            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            ctx.strokeStyle = `rgba(${rgbColor}, ${0.4 * intensity})`;
+            ctx.lineWidth = 7;
+            ctx.stroke();
+
+            // 3. Inner Core Glow
+            ctx.beginPath();
+            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            ctx.strokeStyle = `rgba(${rgbColor}, ${0.8 * intensity})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 4. White Hot Core
+            ctx.beginPath();
+            ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${intensity})`;
+            ctx.lineWidth = 1.0;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Draws intense light flare at interface collision point
+        function drawFlare(x, y, rgbColor, intensity) {
+            if (intensity <= 0.02) return;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            const radius = 25 * intensity;
+            let grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+            grad.addColorStop(0.15, `rgba(${rgbColor}, ${0.9 * intensity})`);
+            grad.addColorStop(1, `rgba(${rgbColor}, 0)`);
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // Main Draw Loop
+        function draw() {
+            if (canvas.width === 0 || canvas.height === 0) return;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) * 0.40;
+
+            // Clean background
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Draw Medium Base Tints
+            if (activeCategory === 'reflection') {
+                if (activeSubtype === 'specular') {
+                    // Mirror Base
+                    const mirrorGrad = ctx.createLinearGradient(0, cy, 0, h);
+                    mirrorGrad.addColorStop(0, '#1e293b');
+                    mirrorGrad.addColorStop(1, '#02040a');
+                    ctx.fillStyle = mirrorGrad;
+                    ctx.fillRect(0, cy, w, h - cy);
+                } else {
+                    // Diffuse matte block
+                    const clayGrad = ctx.createLinearGradient(0, cy, 0, h);
+                    clayGrad.addColorStop(0, '#451a03');
+                    clayGrad.addColorStop(1, '#0c0a09');
+                    ctx.fillStyle = clayGrad;
+                    ctx.fillRect(0, cy, w, h - cy);
+                }
+            } else {
+                // Refraction Tint (Scales based on Index density n)
+                ctx.fillStyle = `rgba(14, 165, 233, ${Math.min(0.2, (n1 - 1) * 0.15)})`;
+                ctx.fillRect(0, 0, w, cy);
+
+                ctx.fillStyle = `rgba(168, 85, 247, ${Math.min(0.25, (n2 - 1) * 0.15)})`;
+                ctx.fillRect(0, cy, w, h - cy);
+            }
+
+            // 2. Interface Boundary Line
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            if (activeCategory === 'reflection' && activeSubtype === 'diffuse') {
+                ctx.moveTo(0, cy);
+                ctx.lineTo(cx - 40, cy);
+                for(let i = cx - 40; i <= cx + 40; i += 5) {
+                    ctx.lineTo(i, cy - 2 + (Math.sin(i * 1.8) * 3)); // Jagged bump math
+                }
+                ctx.lineTo(cx + 40, cy);
+                ctx.lineTo(w, cy);
+            } else {
+                ctx.moveTo(0, cy);
+                ctx.lineTo(w, cy);
+            }
+            ctx.stroke();
+
+            // 3. Normal Dashed Line
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(cx, 15);
+            ctx.lineTo(cx, h - 15);
+            ctx.stroke();
+            ctx.setLineDash([]); 
+
+            // 4. Protractor Scale Lines
+            drawProtractor(cx, cy, radius);
+
+            // 5. Physics Tracing Math
+            const theta_i = Math.abs(incidentAngle);
+            const sign = incidentAngle >= 0 ? 1 : -1;
+
+            const beamLen = radius + 40;
+            const incX = cx - beamLen * Math.sin(incidentAngle);
+            const incY = cy - beamLen * Math.cos(incidentAngle);
+
+            const refX = cx + beamLen * Math.sin(incidentAngle);
+            const refY = cy - beamLen * Math.cos(incidentAngle);
+
+            let isTIR = false;
+            let refractedAngle = 0;
+            let criticalAngleVal = null;
+            let partialReflectIntensity = 0;
+
+            if (activeCategory === 'refraction') {
+                if (n1 > n2) criticalAngleVal = Math.asin(n2 / n1);
+
+                const sin_t = (n1 / n2) * Math.sin(theta_i);
+
+                if (sin_t >= 1.0) {
+                    isTIR = true;
+                } else {
+                    refractedAngle = Math.asin(sin_t);
+                    // Fresnel reflection approximation intensity
+                    partialReflectIntensity = 0.04 + Math.pow(theta_i / (Math.PI / 2), 3) * 0.4;
+                }
+            }
+
+            const refrX = cx + beamLen * Math.sin(sign * refractedAngle);
+            const refrY = cy + beamLen * Math.cos(refractedAngle);
+
+            // 6. Draw Lasers using Realistic Multi-layer Additive rendering
+            
+            // A. Incident Laser
+            drawRealisticLaser(incX, incY, cx, cy, C_INCIDENT, 1.0);
+
+            // B. Reflected / Scattered Lasers
+            if (activeCategory === 'reflection') {
+                if (activeSubtype === 'specular') {
+                    drawRealisticLaser(cx, cy, refX, refY, C_REFLECT, 0.95);
+                    drawFlare(cx, cy, C_INCIDENT, 1.0); // Bright hit spark
+                } else {
+                    // Diffuse Scattering - draws multiple weak chaotic rays
+                    for (let d = -75; d <= 75; d += 15) {
+                        const diffuseAngle = d * (Math.PI / 180);
+                        const sX = cx + beamLen * 0.8 * Math.sin(diffuseAngle);
+                        const sY = cy - beamLen * 0.8 * Math.cos(diffuseAngle);
+                        const intensity = 0.1 + Math.random() * 0.2; 
+                        drawRealisticLaser(cx, cy, sX, sY, C_REFLECT, intensity);
+                    }
+                    drawFlare(cx, cy, C_REFLECT, 0.5); // Dimmer scatter flare
+                }
+            } else {
+                if (isTIR) {
+                    drawRealisticLaser(cx, cy, refX, refY, C_REFLECT, 1.0);
+                    drawFlare(cx, cy, C_REFLECT, 1.0);
+                } else {
+                    // Partial reflection branch
+                    drawRealisticLaser(cx, cy, refX, refY, C_REFLECT, partialReflectIntensity);
+                    // Main Refracted branch
+                    drawRealisticLaser(cx, cy, refrX, refrY, C_REFRACT, 1.0 - partialReflectIntensity);
+                    
+                    // Mixed flare spark
+                    drawFlare(cx, cy, C_INCIDENT, 0.8);
+                }
+            }
+
+            // 7. Render dynamic text labels and arcs
+            drawCanvasLabels(cx, cy, sign, theta_i, refractedAngle, isTIR);
+
+            // 8. Render Torch Prop
+            drawLaserTorch(incX, incY, cx, cy);
+
+            // 9. Sync Readouts
+            valIncident.innerText = `${(theta_i * (180 / Math.PI)).toFixed(1)}°`;
+            valReflected.innerText = `${(theta_i * (180 / Math.PI)).toFixed(1)}°`;
+
+            if (activeCategory === 'reflection') {
+                valRefracted.innerText = "N/A";
+                valCritical.innerText = "N/A";
+                tirWarning.innerText = activeSubtype === 'specular' ? "SPECULAR MIRROR" : "DIFFUSE MATTE SURFACE";
+                tirWarning.className = "badge badge-warning";
+            } else {
+                valRefracted.innerText = isTIR ? "T.I.R." : `${(refractedAngle * (180 / Math.PI)).toFixed(1)}°`;
+                valCritical.innerText = criticalAngleVal ? `${(criticalAngleVal * (180 / Math.PI)).toFixed(1)}°` : "None";
+                
+                if (isTIR) {
+                    tirWarning.innerText = "⚡ TOTAL INTERNAL REFLECTION (TIR)";
+                    tirWarning.className = "badge badge-warning";
+                } else {
+                    tirWarning.innerText = "STANDARD REFRACTION";
+                    tirWarning.className = "badge badge-normal";
+                }
+            }
+        }
+
+        // Draw physical laser chassis
+        function drawLaserTorch(tx, ty, cx, cy) {
+            ctx.save();
+            const angle = Math.atan2(cy - ty, cx - tx);
+            ctx.translate(tx, ty);
+            ctx.rotate(angle);
+
+            const grad = ctx.createLinearGradient(0, -9, 0, 9);
+            grad.addColorStop(0, '#64748b');
+            grad.addColorStop(0.5, '#334155');
+            grad.addColorStop(1, '#0f172a');
+            
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.rect(-32, -7, 32, 14);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ef4444'; // Power decal
+            ctx.fillRect(-20, -4, 6, 8);
+
+            ctx.fillStyle = '#02040a'; // Head bezel
+            ctx.fillRect(0, -9, 4, 18);
+
+            // Emitter diode glow
+            drawFlare(3, 0, C_INCIDENT, 0.6);
+
+            ctx.restore();
+        }
+
+        // Draw mathematical canvas labels & arcs
+        function drawCanvasLabels(cx, cy, sign, theta_i, theta_t, isTIR) {
+            ctx.save();
+            ctx.font = "bold 11px sans-serif";
+            
+            ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+            ctx.fillText("NORMAL", cx + 6, 30);
+            ctx.fillText("INTERFACE", 15, cy - 8);
+
+            if (activeCategory === 'refraction') {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.fillText(`M₁ (n = ${n1.toFixed(2)})`, 20, 30);
+                ctx.fillText(`M₂ (n = ${n2.toFixed(2)})`, 20, cy + 30);
+            }
+
+            // Labels with drop shadow for legibility over bright lasers
+            ctx.shadowColor = "#000";
+            ctx.shadowBlur = 4;
+
+            ctx.fillStyle = `rgb(${C_INCIDENT})`;
+            const incX = cx - (130 * Math.sin(incidentAngle)) - (sign * 15);
+            const incY = cy - (130 * Math.cos(incidentAngle)) - 10;
+            ctx.fillText("Incident Ray", incX, incY);
+
+            if (activeCategory === 'reflection') {
+                if (activeSubtype === 'specular') {
+                    ctx.fillStyle = `rgb(${C_REFLECT})`;
+                    ctx.fillText("Reflected Ray", cx + (130 * Math.sin(incidentAngle)) - (sign * 10), cy - (130 * Math.cos(incidentAngle)) - 10);
+                } else {
+                    ctx.fillStyle = "rgba(244, 63, 94, 0.8)";
+                    ctx.fillText("Scattered Rays", cx + 70, cy - 50);
+                }
+            } else {
+                if (isTIR) {
+                    ctx.fillStyle = `rgb(${C_REFLECT})`;
+                    ctx.fillText("T.I.R. Ray", cx + (130 * Math.sin(incidentAngle)) - 10, cy - (130 * Math.cos(incidentAngle)) - 10);
+                } else {
+                    ctx.fillStyle = `rgb(${C_REFRACT})`;
+                    ctx.fillText("Refracted Ray", cx + (130 * Math.sin(sign * theta_t)) + 15, cy + (130 * Math.cos(theta_t)) + 10);
+                }
+            }
+
+            // Angular Arcs
+            ctx.lineWidth = 1.2;
+            const arcRadius = 40;
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = `rgb(${C_INCIDENT})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, arcRadius, -Math.PI / 2, -Math.PI / 2 - incidentAngle, incidentAngle < 0);
+            ctx.stroke();
+            ctx.fillStyle = "#fff";
+            ctx.fillText("θi", cx - sign * 20, cy - arcRadius - 8);
+
+            if (activeCategory === 'reflection' && activeSubtype === 'specular' || isTIR) {
+                ctx.strokeStyle = `rgb(${C_REFLECT})`;
+                ctx.beginPath();
+                ctx.arc(cx, cy, arcRadius, -Math.PI / 2, -Math.PI / 2 + incidentAngle, incidentAngle >= 0);
+                ctx.stroke();
+                ctx.fillStyle = "#fff";
+                ctx.fillText("θr", cx + sign * 15, cy - arcRadius - 8);
+            }
+
+            if (activeCategory === 'refraction' && !isTIR) {
+                ctx.strokeStyle = `rgb(${C_REFRACT})`;
+                ctx.beginPath();
+                ctx.arc(cx, cy, arcRadius, Math.PI / 2, Math.PI / 2 + (sign * theta_t), sign < 0);
+                ctx.stroke();
+                ctx.fillStyle = "#fff";
+                ctx.fillText("θt", cx + sign * 15, cy + arcRadius + 15);
+            }
+            ctx.restore();
+        }
+
+        // Draw tick scale
+        function drawProtractor(cx, cy, r) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            for (let deg = 0; deg <= 360; deg += 10) {
+                if (deg === 90 || deg === 270) continue; 
+                const rad = deg * (Math.PI / 180);
+                const xUnit = Math.sin(rad);
+                const yUnit = Math.cos(rad);
+
+                const startR = r;
+                const endR = deg % 30 === 0 ? r - 12 : r - 6;
+
+                ctx.beginPath();
+                ctx.moveTo(cx + startR * xUnit, cy - startR * yUnit);
+                ctx.lineTo(cx + endR * xUnit, cy - endR * yUnit);
+                ctx.stroke();
+
+                if (deg % 30 === 0 && deg < 180) {
+                    let normalRelativeAngle = deg;
+                    if (deg > 90) normalRelativeAngle = 180 - deg;
+                    ctx.fillText(`${normalRelativeAngle}°`, cx + (r - 22) * xUnit, cy - (r - 22) * yUnit);
+                }
+            }
+            ctx.restore();
+        }
+
+        // Launch Application
+        resizeCanvas();
+        setCategory('reflection');
+    </script>
+</body>
+</html>
