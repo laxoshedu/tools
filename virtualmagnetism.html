@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Physics Lab - 3D Magnets & Magnetism</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Three.js (3D Engine) & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Custom scrollbar for control sidebar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #0284c7;
+        }
+
+        /* Range slider styling */
+        input[type=range] {
+            accent-color: #0284c7;
+        }
+
+        /* Glassmorphism panels light theme */
+        .glass-panel-light {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        /* Mobile Landscape Prompt display logic */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            #landscapePrompt {
+                display: flex !important;
+            }
+        }
+
+        canvas {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden antialiased selection:bg-sky-500 selection:text-white flex flex-col md:flex-row">
+
+    <!-- Mobile Landscape Orientation Notice -->
+    <div id="landscapePrompt" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-xl hidden flex-col items-center justify-center p-6 text-center select-none text-white">
+        <div class="p-4 bg-sky-500/20 border border-sky-400/30 rounded-full text-sky-400 mb-4 animate-bounce">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">Rotate Your Device</h2>
+        <p class="text-xs text-slate-300 max-w-xs leading-relaxed mb-4">
+            For the best 3D Virtual Magnetism Lab experience, please rotate your mobile device to <strong class="text-sky-400">Landscape Mode</strong>.
+        </p>
+        <div class="text-[10px] font-mono bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-400">
+            Click anywhere to enter Fullscreen
+        </div>
+    </div>
+
+    <!-- Sidebar / Control Panel (Light Theme) -->
+    <aside class="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex flex-col h-auto md:h-full z-20 shadow-xl flex-shrink-0">
+        
+        <!-- Header -->
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="p-2 bg-sky-500/10 border border-sky-500/30 rounded-xl text-sky-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                        MAGNETISM LAB <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 font-mono border border-sky-200">3D WHITE</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-medium">Interactive Physics Workbench</p>
+                </div>
+            </div>
+            <button id="btnFullscreen" class="text-slate-500 hover:text-sky-600 p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors" title="Toggle Fullscreen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Scrollable Controls Container -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            
+            <!-- Experiment Module Selector -->
+            <div>
+                <label for="moduleSelect" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.18.12l-.33.136a2 2 0 00-1.09 1.83V20A2 2 0 005 22h14a2 2 0 002-2v-2.616a2 2 0 00-1.572-1.956z"/></svg>
+                    Select Lab Experiment
+                </label>
+                <select id="moduleSelect" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all">
+                    <option value="paper">1. Iron Filings on Paper Sheet</option>
+                    <option value="multimagnet">2. Drag & Connect Multiple Magnets</option>
+                    <option value="materials">3. Interactive Material Testing Bench</option>
+                    <option value="electromagnet">4. Electromagnet (Current & Coil)</option>
+                    <option value="cut">5. Cutting a Magnet (Pole Splitting)</option>
+                </select>
+            </div>
+
+            <!-- Dynamic Settings Panel -->
+            <div id="dynamicSettings" class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">
+                <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    Experiment Parameters
+                </h2>
+
+                <!-- Module 1 Controls: Iron Filings on Paper Sheet -->
+                <div id="ctrlPaper" class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-slate-700 font-semibold mb-1">Magnet Geometry on Paper</label>
+                        <select id="shapeSelect" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium">
+                            <option value="bar">Bar Magnet (Standard)</option>
+                            <option value="horseshoe">Horseshoe Magnet (U-Shape)</option>
+                            <option value="ring">Ring Magnet (Toroidal)</option>
+                            <option value="disc">Disc Magnet</option>
+                            <option value="lodestone">Natural Lodestone Mineral</option>
+                        </select>
+                    </div>
+
+                    <!-- Filings Density Slider -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span class="text-slate-700">Iron Filings Density</span>
+                            <span id="filingsVal" class="font-mono text-sky-600">1,500 Filings</span>
+                        </div>
+                        <input id="filingsSlider" type="range" min="500" max="4000" step="250" value="1500" class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                    </div>
+
+                    <div class="pt-1 space-y-2 text-xs">
+                        <label class="flex items-center justify-between cursor-pointer font-medium text-slate-700">
+                            <span>Show Iron Filings Pattern</span>
+                            <input type="checkbox" id="chkPaperFilings" checked class="w-4 h-4 accent-sky-600">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer font-medium text-slate-700">
+                            <span>Show Directional Field Lines (N &rarr; S)</span>
+                            <input type="checkbox" id="chkPaperLines" checked class="w-4 h-4 accent-sky-600">
+                        </label>
+                        <label class="flex items-center justify-between cursor-pointer font-medium text-slate-700">
+                            <span>Animate Magnetic Vector Direction</span>
+                            <input type="checkbox" id="chkAnimateFlow" checked class="w-4 h-4 accent-sky-600">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Module 2 Controls: Multi Magnet Sandbox -->
+                <div id="ctrlMultiMagnet" class="space-y-2.5 hidden">
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Drag magnets around. Bring <strong>N</strong> and <strong>S</strong> poles together to snap & connect magnets into a single long magnet! Push <strong>N-N / S-S</strong> together to feel real physical repulsion.
+                    </p>
+                    <div class="flex gap-2">
+                        <button id="btnAddMagnet" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1 shadow-md shadow-sky-500/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Add Bar Magnet
+                        </button>
+                        <button id="btnClearMagnets" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-3 rounded-lg text-xs transition-all border border-slate-300">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Module 3 Controls: Material Testing -->
+                <div id="ctrlMaterials" class="space-y-2.5 hidden">
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Use your mouse or finger to <strong>grab and drag objects</strong> toward the central magnet to test magnetic attraction!
+                    </p>
+                    <button id="btnResetMaterials" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-1.5 px-3 rounded-lg text-xs transition-all border border-slate-300">
+                        Reset All Materials to Bench
+                    </button>
+                </div>
+
+                <!-- Module 4 Controls: Electromagnet -->
+                <div id="ctrlElectromagnet" class="space-y-2.5 hidden">
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span class="text-slate-700">Electric Current (I)</span>
+                            <span id="currentVal" class="font-mono text-sky-600">2.5 A</span>
+                        </div>
+                        <input id="currentSlider" type="range" min="0" max="6" step="0.1" value="2.5" class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold mb-1">
+                            <span class="text-slate-700">Wire Coil Turns (N)</span>
+                            <span id="turnsVal" class="font-mono text-sky-600">15 Turns</span>
+                        </div>
+                        <input id="turnsSlider" type="range" min="5" max="30" step="1" value="15" class="w-full h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-700 font-semibold mb-1">Core Material</label>
+                        <select id="coreMaterialSelect" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium">
+                            <option value="soft_iron">Soft Iron Core (High Permeability - Strong)</option>
+                            <option value="air">Air Core (No Core - Weak)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Module 5 Controls: Cut Magnet -->
+                <div id="ctrlCut" class="space-y-2.5 hidden">
+                    <button id="btnCutMagnet" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 0L4 4m5 5l-5 5"/></svg>
+                        <span>Cut Bar Magnet in Half</span>
+                    </button>
+                    <button id="btnResetCut" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-1.5 px-3 rounded-lg text-xs transition-all border border-slate-300">
+                        Rejoin Magnet
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Educational Theory Card -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <h3 id="infoTitle" class="text-xs font-extrabold text-sky-700">Iron Filings on Paper Sheet</h3>
+                        <p id="infoSubtitle" class="text-[10px] text-slate-500 font-semibold">Field Pattern Visualizer</p>
+                    </div>
+                    <span id="infoBadge" class="px-2 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] text-slate-700 font-bold">
+                        Field Vector B
+                    </span>
+                </div>
+                
+                <p id="infoDesc" class="text-[11px] text-slate-600 leading-relaxed">
+                    When a magnet is placed under or on a sheet of white paper sprinkled with iron filings, each tiny filing turns into a magnetic dipole and aligns along the magnetic field lines.
+                </p>
+
+                <!-- Key Rules Card -->
+                <div id="infoRulesBox" class="bg-white border border-slate-200 rounded-lg p-2.5 text-[11px] shadow-sm">
+                    <span class="font-bold text-sky-700 uppercase text-[9px] block mb-0.5">Golden Pole Interaction Rule</span>
+                    <span id="infoRuleText" class="text-slate-700 font-medium">Like poles repel (N-N, S-S). Unlike poles attract (N-S).</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Panel Footer -->
+        <div class="p-2.5 border-t border-slate-200 bg-slate-50 text-[10px] text-slate-500 text-center font-mono">
+            Direct Dragging Active • Touch/Mouse Enabled
+        </div>
+    </aside>
+
+    <!-- Main Viewport (3D Canvas & HUD Overlays) -->
+    <main class="flex-1 relative h-full bg-slate-100 overflow-hidden flex flex-col">
+        
+        <!-- Live HUD Overlay -->
+        <div class="absolute top-3 left-3 right-3 flex justify-between items-start pointer-events-none z-10">
+            <div class="glass-panel-light px-3.5 py-2.5 rounded-xl text-[11px] font-mono space-y-0.5 shadow-lg">
+                <div class="text-slate-500">Field Strength (B): <span id="hudFieldStrength" class="text-sky-700 font-bold">50.0 mT</span></div>
+                <div class="text-slate-500">Magnetic Force (F): <span id="hudForce" class="text-emerald-700 font-bold">0.15 N</span></div>
+                <div class="text-slate-500">Active Objects: <span id="hudPoles" class="text-rose-600 font-bold">Interactive</span></div>
+            </div>
+            
+            <div class="glass-panel-light px-3.5 py-2.5 rounded-xl text-[11px] font-mono text-right shadow-lg">
+                <div class="text-slate-500">State: <span id="hudInteraction" class="text-slate-900 font-bold">Ready to Drag</span></div>
+                <div class="text-slate-500">FPS: <span id="fpsCounter" class="text-sky-600 font-bold">60</span></div>
+            </div>
+        </div>
+
+        <!-- Interactive Legend -->
+        <div class="absolute bottom-3 left-3 glass-panel-light px-3.5 py-2 rounded-xl text-[10px] font-mono flex items-center gap-3 z-10 shadow-lg">
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 bg-rose-500 inline-block rounded-sm shadow-sm"></span>
+                <span class="text-slate-700 font-semibold">North Pole (N)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-3.5 bg-blue-600 inline-block rounded-sm shadow-sm"></span>
+                <span class="text-slate-700 font-semibold">South Pole (S)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3.5 h-1 bg-sky-500 inline-block rounded-full"></span>
+                <span class="text-slate-700 font-semibold">Directional Lines (N &rarr; S)</span>
+            </div>
+        </div>
+
+        <!-- Three.js Canvas Container -->
+        <div id="canvasContainer" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+    </main>
+
+    <!-- JavaScript Logic & Three.js Simulation -->
+    <script>
+        // --- 1. Educational Data Dictionary ---
+        const MODULE_INFO = {
+            paper: {
+                title: "1. Iron Filings on Paper Sheet",
+                badge: "Field Vector B",
+                desc: "Sprinkling iron filings onto a white paper sheet placed over a magnet visualizes the invisible magnetic field. Filings align along field lines from North to South Pole.",
+                rule: "Notice how filings cluster densely around the poles where magnetic force is strongest!"
+            },
+            multimagnet: {
+                title: "2. Drag & Connect Multiple Magnets",
+                badge: "Pole Interaction",
+                desc: "Drag magnets with your finger or mouse. Bring N and S poles together to snap & build longer combined magnets. Like poles push each other away in real-time!",
+                rule: "Connecting N to S creates a unified, stronger compound magnet."
+            },
+            materials: {
+                title: "3. Interactive Material Bench",
+                badge: "Ferromagnetism",
+                desc: "Drag test materials with your mouse or hand toward the magnet. Ferromagnetic items (Iron, Steel, Nickel) pull and snap to the magnet!",
+                rule: "Non-magnetic materials (Wood, Glass, Copper, Plastic) feel zero force."
+            },
+            electromagnet: {
+                title: "4. Electromagnet Lab",
+                badge: "Current Coil",
+                desc: "Electric current through a solenoid wire coil creates an adjustable temporary magnetic field. Soft iron cores boost field strength dramatically.",
+                rule: "Current OFF = Zero Magnetic Field!"
+            },
+            cut: {
+                title: "5. Cutting a Magnet in Half",
+                badge: "No Monopoles",
+                desc: "Cutting a bar magnet in half instantly creates TWO smaller, complete magnets, each with its own North and South poles.",
+                rule: "Isolated North or South poles do NOT exist in nature!"
+            }
+        };
+
+        // --- 2. Application & 3D Scene State ---
+        let state = {
+            activeModule: 'paper',
+            magnetShape: 'bar',
+            filingsCount: 1500,
+            showPaperFilings: true,
+            showPaperLines: true,
+            animateFlow: true,
+            current: 2.5,
+            turns: 15,
+            coreMaterial: 'soft_iron',
+            isCut: false,
+            lastTime: performance.now(),
+            fps: 60
+        };
+
+        // --- 3. DOM Cache ---
+        const DOM = {
+            moduleSelect: document.getElementById('moduleSelect'),
+            shapeSelect: document.getElementById('shapeSelect'),
+            filingsSlider: document.getElementById('filingsSlider'),
+            filingsVal: document.getElementById('filingsVal'),
+            chkPaperFilings: document.getElementById('chkPaperFilings'),
+            chkPaperLines: document.getElementById('chkPaperLines'),
+            chkAnimateFlow: document.getElementById('chkAnimateFlow'),
+            btnAddMagnet: document.getElementById('btnAddMagnet'),
+            btnClearMagnets: document.getElementById('btnClearMagnets'),
+            btnResetMaterials: document.getElementById('btnResetMaterials'),
+            currentSlider: document.getElementById('currentSlider'),
+            currentVal: document.getElementById('currentVal'),
+            turnsSlider: document.getElementById('turnsSlider'),
+            turnsVal: document.getElementById('turnsVal'),
+            coreMaterialSelect: document.getElementById('coreMaterialSelect'),
+            btnCutMagnet: document.getElementById('btnCutMagnet'),
+            btnResetCut: document.getElementById('btnResetCut'),
+            btnFullscreen: document.getElementById('btnFullscreen'),
+            
+            // Dynamic Control Boxes
+            ctrlPaper: document.getElementById('ctrlPaper'),
+            ctrlMultiMagnet: document.getElementById('ctrlMultiMagnet'),
+            ctrlMaterials: document.getElementById('ctrlMaterials'),
+            ctrlElectromagnet: document.getElementById('ctrlElectromagnet'),
+            ctrlCut: document.getElementById('ctrlCut'),
+            
+            // Educational Readouts
+            infoTitle: document.getElementById('infoTitle'),
+            infoSubtitle: document.getElementById('infoSubtitle'),
+            infoBadge: document.getElementById('infoBadge'),
+            infoDesc: document.getElementById('infoDesc'),
+            infoRuleText: document.getElementById('infoRuleText'),
+            
+            // HUD
+            hudFieldStrength: document.getElementById('hudFieldStrength'),
+            hudForce: document.getElementById('hudForce'),
+            hudPoles: document.getElementById('hudPoles'),
+            hudInteraction: document.getElementById('hudInteraction'),
+            fpsCounter: document.getElementById('fpsCounter')
+        };
+
+        // --- 4. Three.js Engine Setup (White Theme) ---
+        const container = document.getElementById('canvasContainer');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8fafc); // Bright Slate 50
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 18, 26);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.1; // Don't go under floor
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(15, 30, 15);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0x0284c7, 0.6, 50);
+        pointLight.position.set(-10, 15, -10);
+        scene.add(pointLight);
+
+        // Lab Bench Grid Floor (Light)
+        const gridHelper = new THREE.GridHelper(60, 60, 0xcbd5e1, 0xe2e8f0);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // --- STREAMING_CHUNK:Creating materials, pole textures, and 3D geometry builders... ---
+        function createPoleTexture(text, bgColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 120px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const northTex = createPoleTexture('N', '#f43f5e'); // Crimson North
+        const southTex = createPoleTexture('S', '#2563eb'); // Royal South
+
+        const matNorth = new THREE.MeshStandardMaterial({ color: 0xf43f5e, map: northTex, roughness: 0.3, metalness: 0.2 });
+        const matSouth = new THREE.MeshStandardMaterial({ color: 0x2563eb, map: southTex, roughness: 0.3, metalness: 0.2 });
+        const matMetal = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.2, metalness: 0.8 });
+        const matCopper = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.7 });
+        const matWood = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.8 });
+        const matPlastic = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4 });
+        const matGlass = new THREE.MeshPhysicalMaterial({ color: 0x38bdf8, transmission: 0.9, opacity: 0.85, transparent: true, roughness: 0.1 });
+        const matPaper = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
+
+        // Root group holding scene objects
+        let activeGroup = new THREE.Group();
+        scene.add(activeGroup);
+
+        // Active Interactive Objects Array for Dragging & Particles
+        let draggables = [];
+        let activeMagnetsList = []; // Array of active bar magnet objects for field calculations
+        let fieldFlowParticles = []; // Flowing arrows along field lines
+        let fieldLinesGroup = null; // Dynamic field lines group reference
+
+        // --- 6. 3D Magnet Geometry Builders ---
+        function createBarMagnetMesh(length = 6, width = 1.6, height = 1.0) {
+            const group = new THREE.Group();
+            const halfL = length / 2;
+
+            // North Half
+            const northGeo = new THREE.BoxGeometry(halfL, height, width);
+            const northMesh = new THREE.Mesh(northGeo, [matMetal, matMetal, matMetal, matMetal, matNorth, matMetal]);
+            northMesh.position.set(-halfL / 2, height / 2, 0);
+            northMesh.castShadow = true;
+            group.add(northMesh);
+
+            // South Half
+            const southGeo = new THREE.BoxGeometry(halfL, height, width);
+            const southMesh = new THREE.Mesh(southGeo, [matMetal, matMetal, matMetal, matMetal, matSouth, matMetal]);
+            southMesh.position.set(halfL / 2, height / 2, 0);
+            southMesh.castShadow = true;
+            group.add(southMesh);
+
+            group.userData = {
+                type: 'magnet',
+                length: length,
+                attachedTo: null,
+                attachOffset: new THREE.Vector3(),
+                getNorthPos: () => group.position.clone().add(new THREE.Vector3(-length * 0.4, height / 2, 0).applyQuaternion(group.quaternion)),
+                getSouthPos: () => group.position.clone().add(new THREE.Vector3(length * 0.4, height / 2, 0).applyQuaternion(group.quaternion))
+            };
+
+            return group;
+        }
+
+        function buildHorseshoeMagnet() {
+            const group = new THREE.Group();
+            const torusGeo = new THREE.TorusGeometry(2.5, 0.7, 16, 32, Math.PI);
+            const torusMesh = new THREE.Mesh(torusGeo, matMetal);
+            torusMesh.rotation.x = Math.PI / 2;
+            torusMesh.position.y = 0.7;
+            torusMesh.castShadow = true;
+            group.add(torusMesh);
+
+            const armN = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.5, 16), matNorth);
+            armN.position.set(-2.5, 0.7, 1.75);
+            armN.rotation.x = Math.PI / 2;
+            armN.castShadow = true;
+            group.add(armN);
+
+            const armS = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 3.5, 16), matSouth);
+            armS.position.set(2.5, 0.7, 1.75);
+            armS.rotation.x = Math.PI / 2;
+            armS.castShadow = true;
+            group.add(armS);
+
+            group.userData = {
+                type: 'magnet',
+                attachedTo: null,
+                attachOffset: new THREE.Vector3(),
+                getNorthPos: () => group.position.clone().add(new THREE.Vector3(-2.5, 0.7, 3.2).applyQuaternion(group.quaternion)),
+                getSouthPos: () => group.position.clone().add(new THREE.Vector3(2.5, 0.7, 3.2).applyQuaternion(group.quaternion))
+            };
+
+            return group;
+        }
+
+        function buildRingMagnet() {
+            const group = new THREE.Group();
+            const topGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.4, 32);
+            const topMesh = new THREE.Mesh(topGeo, matNorth);
+            topMesh.position.y = 0.6;
+            group.add(topMesh);
+
+            const botGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.4, 32);
+            const botMesh = new THREE.Mesh(botGeo, matSouth);
+            botMesh.position.y = 0.2;
+            group.add(botMesh);
+
+            group.userData = {
+                type: 'magnet',
+                attachedTo: null,
+                attachOffset: new THREE.Vector3(),
+                getNorthPos: () => group.position.clone().add(new THREE.Vector3(0, 0.8, 0)),
+                getSouthPos: () => group.position.clone().add(new THREE.Vector3(0, 0.0, 0))
+            };
+
+            return group;
+        }
+
+        function buildLodestone() {
+            const group = new THREE.Group();
+            const geo = new THREE.DodecahedronGeometry(2.5, 1);
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                pos.setXYZ(
+                    i,
+                    pos.getX(i) + (Math.random() - 0.5) * 0.4,
+                    pos.getY(i) + (Math.random() - 0.5) * 0.4,
+                    pos.getZ(i) + (Math.random() - 0.5) * 0.4
+                );
+            }
+            geo.computeVertexNormals();
+            const matStone = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.95 });
+            const mesh = new THREE.Mesh(geo, matStone);
+            mesh.position.y = 2.2;
+            mesh.castShadow = true;
+            group.add(mesh);
+
+            group.userData = {
+                type: 'magnet',
+                attachedTo: null,
+                attachOffset: new THREE.Vector3(),
+                getNorthPos: () => group.position.clone().add(new THREE.Vector3(-1.8, 2.0, 0).applyQuaternion(group.quaternion)),
+                getSouthPos: () => group.position.clone().add(new THREE.Vector3(1.8, 2.0, 0).applyQuaternion(group.quaternion))
+            };
+
+            return group;
+        }
+
+        // --- STREAMING_CHUNK:Implementing dynamic vector field calculation and iron filings pattern logic... ---
+        let ironFilingsMesh = null;
+        let filingsBasePositions = [];
+
+        function getMagneticField(pos) {
+            const B = new THREE.Vector3(0, 0, 0);
+            if (!activeMagnetsList || activeMagnetsList.length === 0) return B;
+
+            activeMagnetsList.forEach((mag) => {
+                const N = mag.userData.getNorthPos();
+                const S = mag.userData.getSouthPos();
+                const strength = mag.userData.strength || 18.0;
+
+                // Vector from N to point pos
+                const rN = pos.clone().sub(N);
+                const distN = Math.max(rN.length(), 0.6);
+                // Field emerges from N (+): +rN / distN^3
+                const fN = rN.clone().normalize().multiplyScalar(strength / (distN * distN));
+
+                // Vector from S to point pos
+                const rS = pos.clone().sub(S);
+                const distS = Math.max(rS.length(), 0.6);
+                // Field enters S (-): -rS / distS^3
+                const fS = rS.clone().normalize().multiplyScalar(-strength / (distS * distS));
+
+                B.add(fN).add(fS);
+            });
+
+            return B;
+        }
+
+        function setupPaperWithFilings() {
+            // White Paper Sheet Plane
+            const paperGeo = new THREE.PlaneGeometry(26, 20);
+            const paperMesh = new THREE.Mesh(paperGeo, matPaper);
+            paperMesh.rotation.x = -Math.PI / 2;
+            paperMesh.position.set(0, 0.02, 0);
+            paperMesh.receiveShadow = true;
+            activeGroup.add(paperMesh);
+
+            const currentCount = state.filingsCount;
+
+            // Iron Filings Instanced Needles
+            const needleGeo = new THREE.BoxGeometry(0.22, 0.035, 0.035);
+            const needleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.8 });
+            
+            if (ironFilingsMesh) {
+                activeGroup.remove(ironFilingsMesh);
+                ironFilingsMesh.geometry.dispose();
+            }
+
+            ironFilingsMesh = new THREE.InstancedMesh(needleGeo, needleMat, currentCount);
+
+            const dummy = new THREE.Object3D();
+            filingsBasePositions = [];
+
+            for (let i = 0; i < currentCount; i++) {
+                const x = (Math.random() - 0.5) * 24;
+                const z = (Math.random() - 0.5) * 18;
+
+                filingsBasePositions.push(new THREE.Vector3(x, 0.06, z));
+                dummy.position.set(x, 0.06, z);
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.updateMatrix();
+                ironFilingsMesh.setMatrixAt(i, dummy.matrix);
+            }
+
+            ironFilingsMesh.instanceMatrix.needsUpdate = true;
+            activeGroup.add(ironFilingsMesh);
+        }
+
+        function updateIronFilingsPattern() {
+            if (!ironFilingsMesh || activeMagnetsList.length === 0 || filingsBasePositions.length === 0) return;
+
+            const dummy = new THREE.Object3D();
+            const count = Math.min(state.filingsCount, filingsBasePositions.length);
+
+            for (let i = 0; i < count; i++) {
+                const basePos = filingsBasePositions[i];
+                const pos = basePos.clone();
+
+                // Compute exact dipolar B-Field at position
+                const B = getMagneticField(pos);
+                const bMag = B.length();
+
+                // Subtle physical clustering towards nearest pole
+                if (bMag > 0.1) {
+                    let nearestPoleDist = Infinity;
+                    let nearestPolePos = null;
+
+                    activeMagnetsList.forEach(mag => {
+                        const N = mag.userData.getNorthPos();
+                        const S = mag.userData.getSouthPos();
+                        const dN = pos.distanceTo(N);
+                        const dS = pos.distanceTo(S);
+
+                        if (dN < nearestPoleDist) { nearestPoleDist = dN; nearestPolePos = N; }
+                        if (dS < nearestPoleDist) { nearestPoleDist = dS; nearestPolePos = S; }
+                    });
+
+                    if (nearestPolePos && nearestPoleDist < 8.0) {
+                        const pullFactor = Math.min(0.22, 0.75 / (nearestPoleDist * nearestPoleDist + 0.4));
+                        pos.lerp(nearestPolePos, pullFactor);
+                    }
+                }
+
+                // Align needle strictly along magnetic field direction in X-Z plane
+                let angle = 0;
+                if (bMag > 0.001) {
+                    angle = Math.atan2(-B.z, B.x);
+                } else {
+                    angle = Math.random() * Math.PI;
+                }
+
+                dummy.position.copy(pos);
+                dummy.rotation.set(0, angle, 0);
+                dummy.updateMatrix();
+                ironFilingsMesh.setMatrixAt(i, dummy.matrix);
+            }
+
+            ironFilingsMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        // --- STREAMING_CHUNK:Building 3D vector field line tracer and directional particle flow... ---
+        function create3DFieldLinesGroup() {
+            const fieldGroup = new THREE.Group();
+            fieldFlowParticles = [];
+
+            if (!activeMagnetsList || activeMagnetsList.length === 0) return fieldGroup;
+
+            const lineMat = new THREE.LineBasicMaterial({
+                color: 0x0284c7,
+                transparent: true,
+                opacity: 0.6,
+                linewidth: 2
+            });
+
+            const arrowMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+
+            activeMagnetsList.forEach((mag) => {
+                const N = mag.userData.getNorthPos();
+                const S = mag.userData.getSouthPos();
+
+                // Generate seed points around North Pole
+                const seedPoints = [];
+                const numRings = 4;
+                const ptsPerRing = 8;
+
+                for (let r = 1; r <= numRings; r++) {
+                    const radius = 0.5 + r * 0.4;
+                    for (let i = 0; i < ptsPerRing; i++) {
+                        const phi = (i / ptsPerRing) * Math.PI * 2;
+                        const theta = (r / (numRings + 1)) * Math.PI - Math.PI / 2;
+
+                        const offset = new THREE.Vector3(
+                            radius * Math.cos(theta) * Math.cos(phi),
+                            radius * Math.sin(theta),
+                            radius * Math.cos(theta) * Math.sin(phi)
+                        );
+
+                        offset.applyQuaternion(mag.quaternion);
+                        seedPoints.push(N.clone().add(offset));
+                    }
+                }
+
+                // Trace field line using Euler integration of vector field B(r)
+                seedPoints.forEach((startPt) => {
+                    const linePoints = [startPt.clone()];
+                    let curr = startPt.clone();
+                    const stepSize = 0.28;
+                    const maxSteps = 90;
+
+                    for (let step = 0; step < maxSteps; step++) {
+                        const B = getMagneticField(curr);
+                        const bLen = B.length();
+                        if (bLen < 0.001) break;
+
+                        const dir = B.clone().normalize();
+                        curr.add(dir.multiplyScalar(stepSize));
+                        linePoints.push(curr.clone());
+
+                        // Terminate cleanly if reached South Pole of any magnet
+                        let reachedSouth = false;
+                        activeMagnetsList.forEach((m) => {
+                            if (curr.distanceTo(m.userData.getSouthPos()) < 0.8) {
+                                reachedSouth = true;
+                            }
+                        });
+
+                        if (reachedSouth) break;
+                        if (curr.length() > 35 || Math.abs(curr.y) > 20) break;
+                    }
+
+                    if (linePoints.length > 3) {
+                        const curve = new THREE.CatmullRomCurve3(linePoints);
+                        const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(Math.min(linePoints.length * 2, 60)));
+                        const line = new THREE.Line(geometry, lineMat);
+                        fieldGroup.add(line);
+
+                        // Directional Arrow Flow Particle (Emerges N -> Enters S)
+                        const arrowGeo = new THREE.ConeGeometry(0.12, 0.35, 8);
+                        arrowGeo.rotateX(Math.PI / 2);
+                        const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+
+                        arrowMesh.userData = {
+                            curve: curve,
+                            progress: Math.random()
+                        };
+
+                        fieldGroup.add(arrowMesh);
+                        fieldFlowParticles.push(arrowMesh);
+                    }
+                });
+            });
+
+            return fieldGroup;
+        }
+
+        function rebuild3DFieldLines() {
+            if (fieldLinesGroup) {
+                activeGroup.remove(fieldLinesGroup);
+                fieldLinesGroup.traverse((child) => {
+                    if (child.geometry) child.geometry.dispose();
+                });
+                fieldLinesGroup = null;
+            }
+
+            fieldFlowParticles = [];
+
+            if (!state.showPaperLines || activeMagnetsList.length === 0) return;
+
+            fieldLinesGroup = create3DFieldLinesGroup();
+            activeGroup.add(fieldLinesGroup);
+        }
+
+        // --- STREAMING_CHUNK:Configuring module switcher and experiment setups... ---
+        function updateLabModule() {
+            // Clear current objects
+            while (activeGroup.children.length > 0) {
+                activeGroup.remove(activeGroup.children[0]);
+            }
+            draggables = [];
+            activeMagnetsList = [];
+            fieldFlowParticles = [];
+            fieldLinesGroup = null;
+            state.isCut = false;
+
+            // Hide all sidebar parameter panels
+            DOM.ctrlPaper.classList.add('hidden');
+            DOM.ctrlMultiMagnet.classList.add('hidden');
+            DOM.ctrlMaterials.classList.add('hidden');
+            DOM.ctrlElectromagnet.classList.add('hidden');
+            DOM.ctrlCut.classList.add('hidden');
+
+            const info = MODULE_INFO[state.activeModule];
+            DOM.infoTitle.textContent = info.title;
+            DOM.infoBadge.textContent = info.badge;
+            DOM.infoDesc.textContent = info.desc;
+            DOM.infoRuleText.textContent = info.rule;
+
+            switch (state.activeModule) {
+
+                case 'paper':
+                    DOM.ctrlPaper.classList.remove('hidden');
+                    
+                    let paperMagnet;
+                    if (state.magnetShape === 'bar') paperMagnet = createBarMagnetMesh();
+                    else if (state.magnetShape === 'horseshoe') paperMagnet = buildHorseshoeMagnet();
+                    else if (state.magnetShape === 'ring') paperMagnet = buildRingMagnet();
+                    else if (state.magnetShape === 'disc') paperMagnet = createBarMagnetMesh(4, 2, 0.8);
+                    else if (state.magnetShape === 'lodestone') paperMagnet = buildLodestone();
+
+                    paperMagnet.position.set(0, 0.1, 0);
+                    activeGroup.add(paperMagnet);
+                    draggables.push(paperMagnet); // Enable direct drag interaction on paper sheet
+                    activeMagnetsList.push(paperMagnet);
+
+                    if (state.showPaperFilings) {
+                        setupPaperWithFilings();
+                    }
+
+                    rebuild3DFieldLines();
+                    updateIronFilingsPattern();
+                    DOM.hudFieldStrength.textContent = "50.0 mT";
+                    DOM.hudForce.textContent = "0.15 N";
+                    DOM.hudInteraction.textContent = "Paper Sheet View - Drag Magnet to Move Field";
+                    break;
+
+                case 'multimagnet':
+                    DOM.ctrlMultiMagnet.classList.remove('hidden');
+                    
+                    const m1 = createBarMagnetMesh();
+                    m1.position.set(-5, 0, 0);
+                    activeGroup.add(m1);
+                    draggables.push(m1);
+                    activeMagnetsList.push(m1);
+
+                    const m2 = createBarMagnetMesh();
+                    m2.position.set(5, 0, 0);
+                    activeGroup.add(m2);
+                    draggables.push(m2);
+                    activeMagnetsList.push(m2);
+
+                    rebuild3DFieldLines();
+
+                    DOM.hudFieldStrength.textContent = "Multi-Dipole";
+                    DOM.hudForce.textContent = "Drag Magnets Close";
+                    DOM.hudInteraction.textContent = "Attract or Repel";
+                    break;
+
+                case 'materials':
+                    DOM.ctrlMaterials.classList.remove('hidden');
+                    
+                    const centerMagnet = createBarMagnetMesh(7, 1.6, 1);
+                    centerMagnet.position.set(0, 0, 0);
+                    activeGroup.add(centerMagnet);
+                    activeMagnetsList.push(centerMagnet);
+
+                    const testItems = [
+                        { name: "Iron Nail", magnetic: true, mat: matMetal, geo: new THREE.CylinderGeometry(0.12, 0.12, 2.5), pos: new THREE.Vector3(-8, 0.5, -4) },
+                        { name: "Steel Paperclip", magnetic: true, mat: matMetal, geo: new THREE.TorusGeometry(0.4, 0.1, 8, 16), pos: new THREE.Vector3(-8, 0.5, 0) },
+                        { name: "Nickel Coin", magnetic: true, mat: matMetal, geo: new THREE.CylinderGeometry(0.7, 0.7, 0.2), pos: new THREE.Vector3(-8, 0.2, 4) },
+                        { name: "Wood Block", magnetic: false, mat: matWood, geo: new THREE.BoxGeometry(1.4, 1.4, 1.4), pos: new THREE.Vector3(8, 0.7, -4) },
+                        { name: "Plastic Ball", magnetic: false, mat: matPlastic, geo: new THREE.SphereGeometry(0.8, 16, 16), pos: new THREE.Vector3(8, 0.8, 0) },
+                        { name: "Glass Bead", magnetic: false, mat: matGlass, geo: new THREE.SphereGeometry(0.7, 16, 16), pos: new THREE.Vector3(8, 0.7, 4) },
+                        { name: "Copper Wire", magnetic: false, mat: matCopper, geo: new THREE.CylinderGeometry(0.15, 0.15, 2.8), pos: new THREE.Vector3(0, 0.5, 7) }
+                    ];
+
+                    testItems.forEach((item) => {
+                        const mesh = new THREE.Mesh(item.geo, item.mat);
+                        mesh.position.copy(item.pos);
+                        mesh.castShadow = true;
+                        mesh.userData = {
+                            type: 'material',
+                            name: item.name,
+                            magnetic: item.magnetic,
+                            origPos: item.pos.clone()
+                        };
+                        activeGroup.add(mesh);
+                        draggables.push(mesh);
+                    });
+
+                    DOM.hudFieldStrength.textContent = "45.0 mT";
+                    DOM.hudForce.textContent = "Drag Items to Magnet";
+                    DOM.hudInteraction.textContent = "Testing Bench";
+                    break;
+
+                case 'electromagnet':
+                    DOM.ctrlElectromagnet.classList.remove('hidden');
+                    
+                    const emGroup = new THREE.Group();
+                    const coreMat = state.coreMaterial === 'soft_iron' ? matMetal : matGlass;
+                    const coreMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 8, 32), coreMat);
+                    coreMesh.rotation.z = Math.PI / 2;
+                    coreMesh.position.y = 1.0;
+                    coreMesh.castShadow = true;
+                    emGroup.add(coreMesh);
+
+                    const turns = state.turns;
+                    const curvePoints = [];
+                    for (let i = 0; i <= turns * 16; i++) {
+                        const t = i / (turns * 16);
+                        const angle = t * Math.PI * 2 * turns;
+                        const x = (t - 0.5) * 7.2;
+                        const y = Math.sin(angle) * 1.25 + 1.0;
+                        const z = Math.cos(angle) * 1.25;
+                        curvePoints.push(new THREE.Vector3(x, y, z));
+                    }
+                    const helixCurve = new THREE.CatmullRomCurve3(curvePoints);
+                    const coilGeo = new THREE.TubeGeometry(helixCurve, 180, 0.12, 8, false);
+                    const coilMesh = new THREE.Mesh(coilGeo, matCopper);
+                    emGroup.add(coilMesh);
+
+                    activeGroup.add(emGroup);
+
+                    const mu = state.coreMaterial === 'soft_iron' ? 180 : 1;
+                    const bField = (mu * state.turns * state.current * 0.12).toFixed(1);
+                    DOM.hudFieldStrength.textContent = `${bField} mT`;
+                    DOM.hudForce.textContent = `${(bField * 0.04).toFixed(2)} N`;
+                    DOM.hudInteraction.textContent = state.current > 0 ? "Electromagnet ACTIVE" : "OFF (0 Current)";
+                    break;
+
+                case 'cut':
+                    DOM.ctrlCut.classList.remove('hidden');
+                    const uncutMagnet = createBarMagnetMesh(10, 2, 1.2);
+                    uncutMagnet.position.set(0, 0, 0);
+                    activeGroup.add(uncutMagnet);
+
+                    DOM.hudFieldStrength.textContent = "60.0 mT";
+                    DOM.hudForce.textContent = "1 Full Magnet";
+                    DOM.hudInteraction.textContent = "Uncut Bar Magnet";
+                    break;
+            }
+        }
+
+        // --- STREAMING_CHUNK:Implementing magnet repulsion, attraction snapping, and attachment tracking... ---
+        function moveMagnetChain(leadMag, targetPos) {
+            const delta = targetPos.clone().sub(leadMag.position);
+            leadMag.position.copy(targetPos);
+
+            // Move any attached magnets seamlessly together
+            activeMagnetsList.forEach(other => {
+                if (other !== leadMag && other.userData.attachedTo === leadMag) {
+                    const offset = other.userData.attachOffset.clone().applyQuaternion(leadMag.quaternion);
+                    other.position.copy(leadMag.position).add(offset);
+                    other.quaternion.copy(leadMag.quaternion);
+                }
+            });
+        }
+
+        function applyMagnetInteractions() {
+            if (state.activeModule !== 'multimagnet' || activeMagnetsList.length < 2) return;
+
+            let moved = false;
+
+            for (let i = 0; i < activeMagnetsList.length; i++) {
+                for (let j = i + 1; j < activeMagnetsList.length; j++) {
+                    const magA = activeMagnetsList[i];
+                    const magB = activeMagnetsList[j];
+
+                    // Skip if already attached
+                    if (magA.userData.attachedTo === magB || magB.userData.attachedTo === magA) continue;
+
+                    const NA = magA.userData.getNorthPos();
+                    const SA = magA.userData.getSouthPos();
+                    const NB = magB.userData.getNorthPos();
+                    const SB = magB.userData.getSouthPos();
+
+                    const distNN = NA.distanceTo(NB);
+                    const distSS = SA.distanceTo(SB);
+                    const distNS = NA.distanceTo(SB);
+                    const distSN = SA.distanceTo(NB);
+
+                    const lenA = magA.userData.length || 6;
+                    const lenB = magB.userData.length || 6;
+
+                    // 1. Repulsion between Like Poles (N-N and S-S)
+                    if (distNN < 4.5) {
+                        moved = true;
+                        const pushVector = NB.clone().sub(NA).setY(0);
+                        if (pushVector.lengthSq() < 0.001) pushVector.set(1, 0, 0);
+                        pushVector.normalize();
+                        
+                        const forceMag = Math.min((4.5 - distNN) * 0.25, 0.6);
+                        
+                        if (magA === draggedObject) {
+                            moveMagnetChain(magB, magB.position.clone().add(pushVector.clone().multiplyScalar(forceMag)));
+                        } else if (magB === draggedObject) {
+                            moveMagnetChain(magA, magA.position.clone().add(pushVector.clone().negate().multiplyScalar(forceMag)));
+                        } else {
+                            moveMagnetChain(magB, magB.position.clone().add(pushVector.clone().multiplyScalar(forceMag * 0.5)));
+                            moveMagnetChain(magA, magA.position.clone().add(pushVector.clone().negate().multiplyScalar(forceMag * 0.5)));
+                        }
+                        DOM.hudInteraction.textContent = "REPULSION! Like Poles (N-N) Push Apart";
+                    }
+
+                    if (distSS < 4.5) {
+                        moved = true;
+                        const pushVector = SB.clone().sub(SA).setY(0);
+                        if (pushVector.lengthSq() < 0.001) pushVector.set(1, 0, 0);
+                        pushVector.normalize();
+                        
+                        const forceMag = Math.min((4.5 - distSS) * 0.25, 0.6);
+                        
+                        if (magA === draggedObject) {
+                            moveMagnetChain(magB, magB.position.clone().add(pushVector.clone().multiplyScalar(forceMag)));
+                        } else if (magB === draggedObject) {
+                            moveMagnetChain(magA, magA.position.clone().add(pushVector.clone().negate().multiplyScalar(forceMag)));
+                        } else {
+                            moveMagnetChain(magB, magB.position.clone().add(pushVector.clone().multiplyScalar(forceMag * 0.5)));
+                            moveMagnetChain(magA, magA.position.clone().add(pushVector.clone().negate().multiplyScalar(forceMag * 0.5)));
+                        }
+                        DOM.hudInteraction.textContent = "REPULSION! Like Poles (S-S) Push Apart";
+                    }
+
+                    // 2. Attraction & Seamless Snapping between Opposite Poles (N-S and S-N)
+                    if (distNS < 5.0) {
+                        moved = true;
+                        const offsetB = new THREE.Vector3(-(lenA / 2 + lenB / 2), 0, 0);
+
+                        if (distNS < 2.2) {
+                            // Snap tightly end-to-end and attach as unified magnet!
+                            magB.userData.attachedTo = magA;
+                            magB.userData.attachOffset.copy(offsetB);
+                            magB.quaternion.copy(magA.quaternion);
+                            moveMagnetChain(magB, magA.position.clone().add(offsetB.clone().applyQuaternion(magA.quaternion)));
+                        } else {
+                            // Smooth attraction pull
+                            if (magA === draggedObject) {
+                                const targetB = magA.position.clone().add(offsetB.clone().applyQuaternion(magA.quaternion));
+                                moveMagnetChain(magB, magB.position.clone().lerp(targetB, 0.25));
+                                magB.quaternion.slerp(magA.quaternion, 0.20);
+                            } else if (magB === draggedObject) {
+                                const offsetA = new THREE.Vector3(lenA / 2 + lenB / 2, 0, 0);
+                                const targetA = magB.position.clone().add(offsetA.clone().applyQuaternion(magB.quaternion));
+                                moveMagnetChain(magA, magA.position.clone().lerp(targetA, 0.25));
+                                magA.quaternion.slerp(magB.quaternion, 0.20);
+                            }
+                        }
+                        DOM.hudInteraction.textContent = "ATTRACTION! Opposite Poles (N-S) Snapped & Combined";
+                    } else if (distSN < 5.0) {
+                        moved = true;
+                        const offsetB = new THREE.Vector3((lenA / 2 + lenB / 2), 0, 0);
+
+                        if (distSN < 2.2) {
+                            // Snap tightly end-to-end and attach!
+                            magB.userData.attachedTo = magA;
+                            magB.userData.attachOffset.copy(offsetB);
+                            magB.quaternion.copy(magA.quaternion);
+                            moveMagnetChain(magB, magA.position.clone().add(offsetB.clone().applyQuaternion(magA.quaternion)));
+                        } else {
+                            // Smooth attraction pull
+                            if (magA === draggedObject) {
+                                const targetB = magA.position.clone().add(offsetB.clone().applyQuaternion(magA.quaternion));
+                                moveMagnetChain(magB, magB.position.clone().lerp(targetB, 0.25));
+                                magB.quaternion.slerp(magA.quaternion, 0.20);
+                            } else if (magB === draggedObject) {
+                                const offsetA = new THREE.Vector3(-(lenA / 2 + lenB / 2), 0, 0);
+                                const targetA = magB.position.clone().add(offsetA.clone().applyQuaternion(magB.quaternion));
+                                moveMagnetChain(magA, magA.position.clone().lerp(targetA, 0.25));
+                                magA.quaternion.slerp(magB.quaternion, 0.20);
+                            }
+                        }
+                        DOM.hudInteraction.textContent = "ATTRACTION! Opposite Poles (S-N) Snapped & Combined";
+                    }
+                }
+            }
+
+            // Dynamically update field lines & filings whenever magnets move or are actively dragged
+            if (moved || draggedObject) {
+                rebuild3DFieldLines();
+                if (state.activeModule === 'paper') {
+                    updateIronFilingsPattern();
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK:Binding raycasting pointer events and dynamic mouse dragging... ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const planeIntersect = new THREE.Vector3();
+
+        let draggedObject = null;
+
+        function getPointerPos(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: ((clientX - rect.left) / rect.width) * 2 - 1,
+                y: -((clientY - rect.top) / rect.height) * 2 + 1
+            };
+        }
+
+        function onPointerDown(e) {
+            if (draggables.length === 0) return;
+            
+            const p = getPointerPos(e);
+            mouse.x = p.x; mouse.y = p.y;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(draggables, true);
+            if (intersects.length > 0) {
+                let rootObj = intersects[0].object;
+                while (rootObj.parent && rootObj.parent !== activeGroup) {
+                    rootObj = rootObj.parent;
+                }
+                
+                // If attached to a parent magnet, drag the lead root magnet
+                if (rootObj.userData.attachedTo) {
+                    rootObj = rootObj.userData.attachedTo;
+                }
+
+                draggedObject = rootObj;
+                controls.enabled = false;
+                DOM.hudInteraction.textContent = "Dragging Object...";
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!draggedObject) return;
+
+            const p = getPointerPos(e);
+            mouse.x = p.x; mouse.y = p.y;
+            raycaster.setFromCamera(mouse, camera);
+
+            if (raycaster.ray.intersectPlane(dragPlane, planeIntersect)) {
+                const targetPos = new THREE.Vector3(planeIntersect.x, 0, planeIntersect.z);
+                
+                // Move dragged magnet and any attached chain items
+                if (draggedObject.userData.type === 'magnet') {
+                    moveMagnetChain(draggedObject, targetPos);
+                } else {
+                    draggedObject.position.copy(targetPos);
+                }
+
+                // Material Attraction Snap logic
+                if (draggedObject.userData.type === 'material' && draggedObject.userData.magnetic) {
+                    activeMagnetsList.forEach((mag) => {
+                        const N = mag.userData.getNorthPos();
+                        const S = mag.userData.getSouthPos();
+                        const distN = draggedObject.position.distanceTo(N);
+                        const distS = draggedObject.position.distanceTo(S);
+
+                        if (distN < 4.0) {
+                            draggedObject.position.lerp(N, 0.35);
+                            DOM.hudInteraction.textContent = `ATTRACTED: ${draggedObject.userData.name} Snapped to North Pole!`;
+                        } else if (distS < 4.0) {
+                            draggedObject.position.lerp(S, 0.35);
+                            DOM.hudInteraction.textContent = `ATTRACTED: ${draggedObject.userData.name} Snapped to South Pole!`;
+                        }
+                    });
+                }
+
+                // Dynamically update field lines and iron filings as magnet is dragged
+                if (draggedObject.userData.type === 'magnet') {
+                    rebuild3DFieldLines();
+                }
+
+                if (state.activeModule === 'paper') {
+                    updateIronFilingsPattern();
+                }
+            }
+        }
+
+        function onPointerUp() {
+            if (draggedObject) {
+                draggedObject = null;
+                controls.enabled = true;
+                DOM.hudInteraction.textContent = "Ready";
+            }
+        }
+
+        renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+
+        // --- STREAMING_CHUNK:Connecting UI buttons, sliders, and animation render loop... ---
+        DOM.btnAddMagnet.addEventListener('click', () => {
+            const newMag = createBarMagnetMesh();
+            newMag.position.set((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 6);
+            activeGroup.add(newMag);
+            draggables.push(newMag);
+            activeMagnetsList.push(newMag);
+            rebuild3DFieldLines();
+            DOM.hudInteraction.textContent = "New Magnet Added!";
+        });
+
+        DOM.btnClearMagnets.addEventListener('click', () => {
+            updateLabModule();
+        });
+
+        DOM.btnResetMaterials.addEventListener('click', () => {
+            updateLabModule();
+        });
+
+        DOM.btnCutMagnet.addEventListener('click', () => {
+            if (state.isCut) return;
+            state.isCut = true;
+
+            while (activeGroup.children.length > 0) {
+                activeGroup.remove(activeGroup.children[0]);
+            }
+
+            const leftPiece = createBarMagnetMesh(4.5, 2, 1.2);
+            leftPiece.position.set(-3, 0, 0);
+
+            const rightPiece = createBarMagnetMesh(4.5, 2, 1.2);
+            rightPiece.position.set(3, 0, 0);
+
+            activeGroup.add(leftPiece);
+            activeGroup.add(rightPiece);
+
+            DOM.hudForce.textContent = "2 Complete Magnets!";
+            DOM.hudInteraction.textContent = "2 New Sets of N-S Poles Created";
+        });
+
+        DOM.btnResetCut.addEventListener('click', () => {
+            updateLabModule();
+        });
+
+        DOM.moduleSelect.addEventListener('change', (e) => {
+            state.activeModule = e.target.value;
+            updateLabModule();
+        });
+
+        DOM.shapeSelect.addEventListener('change', (e) => {
+            state.magnetShape = e.target.value;
+            updateLabModule();
+        });
+
+        DOM.filingsSlider.addEventListener('input', (e) => {
+            state.filingsCount = parseInt(e.target.value);
+            DOM.filingsVal.textContent = state.filingsCount.toLocaleString() + " Filings";
+            updateLabModule();
+        });
+
+        DOM.chkPaperFilings.addEventListener('change', (e) => {
+            state.showPaperFilings = e.target.checked;
+            updateLabModule();
+        });
+
+        DOM.chkPaperLines.addEventListener('change', (e) => {
+            state.showPaperLines = e.target.checked;
+            updateLabModule();
+        });
+
+        DOM.chkAnimateFlow.addEventListener('change', (e) => {
+            state.animateFlow = e.target.checked;
+        });
+
+        DOM.currentSlider.addEventListener('input', (e) => {
+            state.current = parseFloat(e.target.value);
+            DOM.currentVal.textContent = state.current.toFixed(1) + " A";
+            updateLabModule();
+        });
+
+        DOM.turnsSlider.addEventListener('input', (e) => {
+            state.turns = parseInt(e.target.value);
+            DOM.turnsVal.textContent = state.turns + " Turns";
+            updateLabModule();
+        });
+
+        DOM.coreMaterialSelect.addEventListener('change', (e) => {
+            state.coreMaterial = e.target.value;
+            updateLabModule();
+        });
+
+        // --- Fullscreen & Mobile Setup ---
+        function enterFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const docElm = document.documentElement;
+                if (docElm.requestFullscreen) docElm.requestFullscreen().catch(() => {});
+                else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
+            }
+        }
+
+        document.body.addEventListener('pointerdown', enterFullscreen, { once: false });
+        DOM.btnFullscreen.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            } else {
+                enterFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // --- Main Animation & Render Loop ---
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            const dt = (currentTime - state.lastTime) / 1000;
+            state.lastTime = currentTime;
+            if (dt > 0) {
+                state.fps = Math.round(1 / dt);
+                DOM.fpsCounter.textContent = state.fps;
+            }
+
+            // Calculate real-time physical magnet repulsion and attraction
+            applyMagnetInteractions();
+
+            // Animate magnetic directional field flow (N -> S)
+            if (state.animateFlow && fieldFlowParticles.length > 0) {
+                fieldFlowParticles.forEach((particle) => {
+                    const data = particle.userData;
+                    if (data && data.curve) {
+                        data.progress += 0.008;
+                        if (data.progress > 1) data.progress = 0;
+
+                        const pt = data.curve.getPoint(data.progress);
+                        const tangent = data.curve.getTangent(data.progress);
+
+                        particle.position.copy(pt);
+                        particle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+                    }
+                });
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize Virtual Physics Lab
+        window.addEventListener('load', () => {
+            updateLabModule();
+            requestAnimationFrame(animate);
+        });
+
+    </script>
+</body>
+</html>
