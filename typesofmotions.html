@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Physics Lab - Motion & Its Types</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom sleek scrollbar for side panel */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+        /* Range slider customization */
+        input[type=range] {
+            accent-color: #38bdf8;
+        }
+        /* Glassmorphism containers */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Mobile Landscape Prompt CSS display logic */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            #landscapePrompt {
+                display: flex !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden antialiased selection:bg-cyan-500 selection:text-slate-900 flex flex-col md:flex-row">
+
+    <div id="landscapePrompt" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 text-center select-none">
+        <div class="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 mb-4 animate-bounce">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+        </div>
+        <h2 class="text-xl font-bold text-slate-100 mb-2">Please Rotate Your Phone</h2>
+        <p class="text-xs text-slate-400 max-w-xs leading-relaxed mb-4">
+            For the best Virtual Lab interactive experience, turn your device to <strong class="text-cyan-400">Landscape Mode</strong>.
+        </p>
+        <div class="text-[10px] font-mono bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-slate-500">
+            Auto-Fullscreen active on touch
+        </div>
+    </div>
+
+    <aside class="w-full md:w-80 lg:w-96 bg-slate-900 border-r border-slate-800 flex flex-col h-auto md:h-full z-20 shadow-2xl flex-shrink-0">
+        
+        <!-- Header Section -->
+        <div class="p-4 border-b border-slate-800 bg-slate-950/50 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="p-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                        PHYSICS LAB <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">2.0</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Interactive Motion Simulator</p>
+                </div>
+            </div>
+            <button id="btnFullscreen" class="text-slate-400 hover:text-cyan-400 p-1.5 rounded-lg bg-slate-800 border border-slate-700 transition-colors" title="Toggle Fullscreen">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Scrollable Inner Settings Panel -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            
+            <!-- Motion Type Dropdown Selector -->
+            <div>
+                <label for="motionSelect" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                    Select Motion Type
+                </label>
+                <select id="motionSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all">
+                    <optgroup label="1. Linear & Path Motion">
+                        <option value="rectilinear" selected>1. Rectilinear Motion (Straight Path)</option>
+                        <option value="curvilinear">2. Curvilinear Motion (Curved Path)</option>
+                        <option value="translatory">3. Translatory Motion (Rigid Body)</option>
+                    </optgroup>
+                    <optgroup label="2. Circular & Rotational">
+                        <option value="circular">4. Circular Motion (Around Axis)</option>
+                        <option value="rotational">5. Rotational Motion (Spinning Body)</option>
+                    </optgroup>
+                    <optgroup label="3. Harmonic & Oscillation">
+                        <option value="oscillatory">6. Oscillatory Motion (Pendulum)</option>
+                        <option value="vibratory">7. Vibratory Motion (Tuning Fork)</option>
+                        <option value="reciprocating">8. Reciprocating Motion (Engine Piston)</option>
+                    </optgroup>
+                    <optgroup label="4. Time & Speed Dynamics">
+                        <option value="periodic">9. Periodic Motion (Regular Cycle)</option>
+                        <option value="nonperiodic">10. Non-Periodic Motion (Traffic Bursts)</option>
+                        <option value="uniform">11. Uniform Motion (Constant Speed)</option>
+                        <option value="nonuniform">12. Non-Uniform Motion (Accelerating)</option>
+                    </optgroup>
+                    <optgroup label="5. Complex Trajectories">
+                        <option value="projectile">13. Projectile Motion (Gravity Arc)</option>
+                        <option value="random">14. Random Motion (Erratic Butterfly)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Parameters Controls Container -->
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 space-y-3">
+                <h2 class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    Simulation Parameters
+                </h2>
+
+                <!-- Speed / Velocity Slider -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">Speed Multiplier</span>
+                        <span id="speedVal" class="font-mono text-cyan-400 font-semibold">1.0x</span>
+                    </div>
+                    <input id="speedSlider" type="range" min="0.1" max="3.0" step="0.1" value="1.0" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Frequency Slider -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">Frequency / Cycles</span>
+                        <span id="freqVal" class="font-mono text-cyan-400 font-semibold">1.0 Hz</span>
+                    </div>
+                    <input id="freqSlider" type="range" min="0.2" max="3.0" step="0.1" value="1.0" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Launch Angle Slider (For Projectile) -->
+                <div id="angleContainer" class="hidden">
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">Launch Angle</span>
+                        <span id="angleVal" class="font-mono text-cyan-400 font-semibold">45°</span>
+                    </div>
+                    <input id="angleSlider" type="range" min="15" max="75" step="1" value="45" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Toggles -->
+                <div class="pt-2 border-t border-slate-800 space-y-1.5 text-xs">
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-slate-300 group-hover:text-slate-100">Show Vectors (v, a)</span>
+                        <input type="checkbox" id="toggleVectors" checked class="w-3.5 h-3.5 rounded accent-cyan-500 bg-slate-900 border-slate-700">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-slate-300 group-hover:text-slate-100">Show Motion Path Trail</span>
+                        <input type="checkbox" id="toggleTrail" checked class="w-3.5 h-3.5 rounded accent-cyan-500 bg-slate-900 border-slate-700">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-slate-300 group-hover:text-slate-100">Show Grid & Axes</span>
+                        <input type="checkbox" id="toggleGrid" checked class="w-3.5 h-3.5 rounded accent-cyan-500 bg-slate-900 border-slate-700">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2">
+                <button id="btnPlayPause" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs shadow-lg shadow-cyan-500/20 active:scale-95">
+                    <svg id="playIcon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                    <svg id="pauseIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5 0a1 1 0 012 0v4a1 1 0 11-2 0V8z" clip-rule="evenodd"/></svg>
+                    <span id="btnPlayText">Pause</span>
+                </button>
+                <button id="btnReset" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold p-2 rounded-lg border border-slate-700 transition-all active:scale-95 text-xs" title="Reset Simulation">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+            </div>
+
+            <!-- Educational Explanation Card -->
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <h3 id="infoTitle" class="text-xs font-bold text-cyan-400">Rectilinear Motion</h3>
+                        <p id="infoSubtitle" class="text-[10px] text-slate-400 font-medium">Translatory Path</p>
+                    </div>
+                    <span id="infoFormula" class="px-2 py-0.5 bg-slate-900 border border-slate-800 rounded font-mono text-[10px] text-slate-300">
+                        v = dx/dt
+                    </span>
+                </div>
+                
+                <p id="infoDesc" class="text-[11px] text-slate-300 leading-relaxed">
+                    Motion in which an object travels along a straight line path with continuous orientation.
+                </p>
+
+                <div class="bg-slate-900/80 border border-slate-800/80 rounded p-2 text-[11px]">
+                    <span class="font-bold text-cyan-400 uppercase text-[9px] block mb-0.5">Real-World Example</span>
+                    <span id="infoExample" class="text-slate-300">A train moving along a straight railway track.</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Panel Footer -->
+        <div class="p-2.5 border-t border-slate-800 bg-slate-950/50 text-[10px] text-slate-500 text-center font-mono">
+            Click anywhere to enter Fullscreen
+        </div>
+    </aside>
+
+    <main class="flex-1 relative h-full bg-slate-950 overflow-hidden flex flex-col">
+        
+        <!-- Canvas Real-Time HUD Overlay -->
+        <div class="absolute top-3 left-3 right-3 flex justify-between items-start pointer-events-none z-10">
+            <div class="glass-panel px-3 py-2 rounded-xl text-[11px] font-mono space-y-0.5 shadow-lg border border-slate-700/50">
+                <div class="text-slate-400">Position (x, y): <span id="hudPos" class="text-cyan-300 font-semibold">(0, 0) px</span></div>
+                <div class="text-slate-400">Velocity (|v|): <span id="hudVel" class="text-emerald-400 font-semibold">0.0 px/s</span></div>
+                <div class="text-slate-400">Acceleration (|a|): <span id="hudAccel" class="text-amber-400 font-semibold">0.0 px/s²</span></div>
+            </div>
+            
+            <div class="glass-panel px-3 py-2 rounded-xl text-[11px] font-mono text-right shadow-lg border border-slate-700/50">
+                <div class="text-slate-400">Time: <span id="hudTime" class="text-slate-100 font-semibold">0.00 s</span></div>
+                <div class="text-slate-400">FPS: <span id="fpsCounter" class="text-cyan-400 font-semibold">60</span></div>
+            </div>
+        </div>
+
+        <!-- Vector Legend overlay -->
+        <div id="vectorLegend" class="absolute bottom-3 left-3 glass-panel px-3 py-1.5 rounded-lg text-[10px] font-mono flex items-center gap-3 z-10 border border-slate-700/50">
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-0.5 bg-emerald-400 inline-block rounded-full"></span>
+                <span class="text-slate-300">Velocity (v)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="w-3 h-0.5 bg-amber-400 inline-block rounded-full"></span>
+                <span class="text-slate-300">Accel (a)</span>
+            </div>
+        </div>
+
+        <!-- Simulation Physics Canvas -->
+        <canvas id="physicsCanvas" class="w-full h-full block bg-slate-950 cursor-crosshair"></canvas>
+    </main>
+
+    <script>
+        // --- 14 Motion Educational Dictionary ---
+        const MOTION_DATA = {
+            rectilinear: {
+                title: "1. Rectilinear Motion",
+                subtitle: "Translatory Path",
+                formula: "v = dx/dt = const",
+                desc: "Motion in which an object travels along a straight line path with continuous direction.",
+                example: "A train moving along a straight railway track."
+            },
+            curvilinear: {
+                title: "2. Curvilinear Motion",
+                subtitle: "Curved Trajectory",
+                formula: "y = A·sin(k·x)",
+                desc: "Motion of an object along a smooth curved path where the direction of velocity continuously changes.",
+                example: "A car driving along a curved highway bend."
+            },
+            translatory: {
+                title: "3. Translatory Motion",
+                subtitle: "Rigid Body Dynamics",
+                formula: "Δr₁ = Δr₂ = Δr₃",
+                desc: "Motion in which all particles of a body move through equal distances in parallel lines without rotation.",
+                example: "A block sliding across a smooth horizontal table surface."
+            },
+            circular: {
+                title: "4. Circular Motion",
+                subtitle: "Orbital Radial",
+                formula: "a_c = v² / r",
+                desc: "Motion along a circular perimeter around a fixed central pivot under centripetal acceleration.",
+                example: "Hands of an analog clock or stone tied to a spinning string."
+            },
+            rotational: {
+                title: "5. Rotational Motion",
+                subtitle: "Spinning Axis",
+                formula: "ω = dθ/dt",
+                desc: "Motion where a body spins around its internal central axis. Speed increases further from the axis.",
+                example: "The Earth spinning on its axis or a spinning top wheel."
+            },
+            oscillatory: {
+                title: "6. Oscillatory Motion",
+                subtitle: "Harmonic Swing",
+                formula: "T = 2π√(L/g)",
+                desc: "Repetitive to-and-fro motion of a body about a central mean equilibrium position.",
+                example: "A simple pendulum swinging back and forth in a clock."
+            },
+            vibratory: {
+                title: "7. Vibratory Motion",
+                subtitle: "High Frequency Oscillations",
+                formula: "f = 1 / T (High Freq)",
+                desc: "Extremely rapid, small-amplitude to-and-fro vibrations of particles producing sound waves.",
+                example: "A vibrating tuning fork or a plucked guitar string."
+            },
+            reciprocating: {
+                title: "8. Reciprocating Motion",
+                subtitle: "Mechanical Linear",
+                formula: "x(t) = r·cos(ωt) + L",
+                desc: "Repetitive back-and-forth linear motion confined within a straight guide track.",
+                example: "The piston moving back and forth inside an engine cylinder."
+            },
+            periodic: {
+                title: "9. Periodic Motion",
+                subtitle: "Equal Time Cycles",
+                formula: "f(t + T) = f(t)",
+                desc: "Any motion that repeats itself at exact, constant time intervals.",
+                example: "Earth's annual orbit around the Sun."
+            },
+            nonperiodic: {
+                title: "10. Non-Periodic Motion",
+                subtitle: "Irregular Bursts",
+                formula: "T₁ ≠ T₂ ≠ T₃",
+                desc: "Motion that does not repeat at regular predictable time intervals.",
+                example: "A car accelerating, decelerating, and stopping in heavy city traffic."
+            },
+            uniform: {
+                title: "11. Uniform Motion",
+                subtitle: "Constant Speed",
+                formula: "v = constant, a = 0",
+                desc: "Motion covering equal distances in equal intervals of time along a straight line.",
+                example: "A spacecraft cruising at constant speed in deep space."
+            },
+            nonuniform: {
+                title: "12. Non-Uniform Motion",
+                subtitle: "Accelerated Motion",
+                formula: "a = dv/dt ≠ 0",
+                desc: "Motion covering unequal distances in equal time intervals due to acceleration.",
+                example: "A ball rolling down a steep inclined plane."
+            },
+            projectile: {
+                title: "13. Projectile Motion",
+                subtitle: "2D Gravity Parabola",
+                formula: "y = x·tan(θ) - (g·x²)/(2v₀²cos²θ)",
+                desc: "Motion of an object thrown into the air following a parabolic curve under constant gravity.",
+                example: "A cricket ball hit into the air over a field."
+            },
+            random: {
+                title: "14. Random Motion",
+                subtitle: "Stochastic Vector",
+                formula: "v(t) = Random Vector",
+                desc: "Motion with no fixed path or predictable direction, continuously changing course.",
+                example: "A butterfly fluttering in air or dust particles in sunlight."
+            }
+        };
+
+        const canvas = document.getElementById('physicsCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Application State
+        let state = {
+            motionType: 'rectilinear',
+            isRunning: true,
+            speedMultiplier: 1.0,
+            frequency: 1.0,
+            angleDeg: 45,
+            showVectors: true,
+            showTrail: true,
+            showGrid: true,
+            time: 0,
+            lastFrameTime: performance.now(),
+            fps: 60,
+            trailPoints: [],
+            
+            // Motion specific variables
+            randomParticle: { x: 0, y: 0, vx: 2, vy: -2, targetTimer: 0 },
+            projectileData: { x: 0, y: 0, vx: 0, vy: 0, active: true },
+            nonPeriodicData: { burstTimer: 0, currentSpeed: 0 }
+        };
+
+        // DOM Element Cache
+        const DOM = {
+            motionSelect: document.getElementById('motionSelect'),
+            speedSlider: document.getElementById('speedSlider'),
+            speedVal: document.getElementById('speedVal'),
+            freqSlider: document.getElementById('freqSlider'),
+            freqVal: document.getElementById('freqVal'),
+            angleContainer: document.getElementById('angleContainer'),
+            angleSlider: document.getElementById('angleSlider'),
+            angleVal: document.getElementById('angleVal'),
+            toggleVectors: document.getElementById('toggleVectors'),
+            toggleTrail: document.getElementById('toggleTrail'),
+            toggleGrid: document.getElementById('toggleGrid'),
+            btnPlayPause: document.getElementById('btnPlayPause'),
+            btnPlayText: document.getElementById('btnPlayText'),
+            playIcon: document.getElementById('playIcon'),
+            pauseIcon: document.getElementById('pauseIcon'),
+            btnReset: document.getElementById('btnReset'),
+            btnFullscreen: document.getElementById('btnFullscreen'),
+            hudPos: document.getElementById('hudPos'),
+            hudVel: document.getElementById('hudVel'),
+            hudAccel: document.getElementById('hudAccel'),
+            hudTime: document.getElementById('hudTime'),
+            fpsCounter: document.getElementById('fpsCounter'),
+            infoTitle: document.getElementById('infoTitle'),
+            infoSubtitle: document.getElementById('infoSubtitle'),
+            infoFormula: document.getElementById('infoFormula'),
+            infoDesc: document.getElementById('infoDesc'),
+            infoExample: document.getElementById('infoExample')
+        };
+
+        // --- Auto Fullscreen Logic on Interaction ---
+        function enterFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const docElm = document.documentElement;
+                if (docElm.requestFullscreen) {
+                    docElm.requestFullscreen().catch(() => {});
+                } else if (docElm.webkitRequestFullscreen) {
+                    docElm.webkitRequestFullscreen();
+                }
+            }
+        }
+
+        // Trigger fullscreen on user interaction anywhere on body
+        document.body.addEventListener('pointerdown', enterFullscreen, { once: false });
+        DOM.btnFullscreen.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            } else {
+                enterFullscreen();
+            }
+        });
+
+        // --- Canvas Resize Handling ---
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Event Listeners ---
+        DOM.motionSelect.addEventListener('change', (e) => {
+            state.motionType = e.target.value;
+            resetSimulation();
+            updateInfoPanel();
+        });
+
+        DOM.speedSlider.addEventListener('input', (e) => {
+            state.speedMultiplier = parseFloat(e.target.value);
+            DOM.speedVal.textContent = state.speedMultiplier.toFixed(1) + 'x';
+        });
+
+        DOM.freqSlider.addEventListener('input', (e) => {
+            state.frequency = parseFloat(e.target.value);
+            DOM.freqVal.textContent = state.frequency.toFixed(1) + ' Hz';
+        });
+
+        DOM.angleSlider.addEventListener('input', (e) => {
+            state.angleDeg = parseInt(e.target.value);
+            DOM.angleVal.textContent = state.angleDeg + '°';
+            if (state.motionType === 'projectile') resetSimulation();
+        });
+
+        DOM.toggleVectors.addEventListener('change', (e) => state.showVectors = e.target.checked);
+        DOM.toggleTrail.addEventListener('change', (e) => state.showTrail = e.target.checked);
+        DOM.toggleGrid.addEventListener('change', (e) => state.showGrid = e.target.checked);
+
+        DOM.btnPlayPause.addEventListener('click', togglePlayPause);
+        DOM.btnReset.addEventListener('click', resetSimulation);
+
+        function togglePlayPause() {
+            state.isRunning = !state.isRunning;
+            if (state.isRunning) {
+                DOM.btnPlayText.textContent = 'Pause';
+                DOM.playIcon.classList.add('hidden');
+                DOM.pauseIcon.classList.remove('hidden');
+            } else {
+                DOM.btnPlayText.textContent = 'Play';
+                DOM.playIcon.classList.remove('hidden');
+                DOM.pauseIcon.classList.add('hidden');
+            }
+        }
+
+        function resetSimulation() {
+            state.time = 0;
+            state.trailPoints = [];
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+
+            // Reset random particle
+            state.randomParticle = {
+                x: width / 2,
+                y: height / 2,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
+                targetTimer: 0
+            };
+
+            // Reset projectile
+            const rad = (state.angleDeg * Math.PI) / 180;
+            const v0 = 110 * state.speedMultiplier;
+            state.projectileData = {
+                x: 60,
+                y: height - 60,
+                vx: v0 * Math.cos(rad),
+                vy: -v0 * Math.sin(rad),
+                active: true
+            };
+        }
+
+        function updateInfoPanel() {
+            const data = MOTION_DATA[state.motionType];
+            if (!data) return;
+
+            DOM.infoTitle.textContent = data.title;
+            DOM.infoSubtitle.textContent = data.subtitle;
+            DOM.infoFormula.textContent = data.formula;
+            DOM.infoDesc.textContent = data.desc;
+            DOM.infoExample.textContent = data.example;
+
+            if (state.motionType === 'projectile') {
+                DOM.angleContainer.classList.remove('hidden');
+            } else {
+                DOM.angleContainer.classList.add('hidden');
+            }
+        }
+
+        function drawGrid(width, height) {
+            if (!state.showGrid) return;
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+            ctx.lineWidth = 1;
+
+            const gridSize = 40;
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0); ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y); ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Draw center coordinate axes
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0); ctx.lineTo(width / 2, height);
+            ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawVector(x, y, vx, vy, color, label) {
+            if (!state.showVectors || (Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01)) return;
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+
+            const scale = 0.5;
+            const endX = x + vx * scale;
+            const endY = y + vy * scale;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            const angle = Math.atan2(vy, vx);
+            const headLen = 6;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.fill();
+
+            if (label) {
+                ctx.font = '10px JetBrains Mono';
+                ctx.fillText(label, endX + 4, endY + 4);
+            }
+            ctx.restore();
+        }
+
+        function drawTrail() {
+            if (!state.showTrail || state.trailPoints.length < 2) return;
+
+            ctx.save();
+            ctx.lineWidth = 2;
+            for (let i = 1; i < state.trailPoints.length; i++) {
+                const p1 = state.trailPoints[i - 1];
+                const p2 = state.trailPoints[i];
+                const alpha = (i / state.trailPoints.length) * 0.6;
+                ctx.strokeStyle = p1.color || `rgba(56, 189, 248, ${alpha})`;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function addTrailPoint(x, y, color) {
+            state.trailPoints.push({ x, y, color });
+            if (state.trailPoints.length > 120) {
+                state.trailPoints.shift();
+            }
+        }
+
+        // --- Primary Physics Rendering Engine ---
+        function renderSimulation(dt) {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, width, height);
+            drawGrid(width, height);
+
+            let px = 0, py = 0, vx = 0, vy = 0, ax = 0, ay = 0;
+            const t = state.time;
+
+            switch (state.motionType) {
+                
+                case 'rectilinear': {
+                    const speed = 120 * state.speedMultiplier;
+                    px = (t * speed) % (width - 100) + 50;
+                    py = height / 2;
+                    vx = speed;
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'curvilinear': {
+                    const speed = 100 * state.speedMultiplier;
+                    px = (t * speed) % (width - 100) + 50;
+                    const amplitude = 60 * state.frequency;
+                    const freq = 0.02;
+                    py = height / 2 + amplitude * Math.sin(freq * px);
+
+                    vx = speed;
+                    vy = amplitude * freq * Math.cos(freq * px) * speed;
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'translatory': {
+                    const speed = 90 * state.speedMultiplier;
+                    const baseX = (t * speed) % (width - 160) + 50;
+                    const baseY = height / 2 + 30 * Math.sin(0.015 * baseX);
+
+                    const boxW = 80, boxH = 50;
+                    px = baseX + boxW / 2;
+                    py = baseY + boxH / 2;
+                    vx = speed;
+                    vy = 30 * 0.015 * Math.cos(0.015 * baseX) * speed;
+
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(baseX, baseY, boxW, boxH);
+                    ctx.strokeRect(baseX, baseY, boxW, boxH);
+
+                    const corners = [
+                        { x: baseX, y: baseY },
+                        { x: baseX + boxW, y: baseY },
+                        { x: baseX, y: baseY + boxH },
+                        { x: baseX + boxW, y: baseY + boxH }
+                    ];
+
+                    corners.forEach((c) => {
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.beginPath(); ctx.arc(c.x, c.y, 4, 0, Math.PI * 2); ctx.fill();
+                    });
+
+                    addTrailPoint(baseX, baseY, 'rgba(245, 158, 11, 0.5)');
+                    addTrailPoint(baseX + boxW, baseY + boxH, 'rgba(56, 189, 248, 0.5)');
+                    break;
+                }
+
+                case 'circular': {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const radius = 100;
+                    const omega = 2 * Math.PI * state.frequency * state.speedMultiplier;
+                    const angle = omega * t;
+
+                    px = centerX + radius * Math.cos(angle);
+                    py = centerY + radius * Math.sin(angle);
+
+                    vx = -radius * omega * Math.sin(angle);
+                    vy = radius * omega * Math.cos(angle);
+
+                    ax = -radius * omega * omega * Math.cos(angle);
+                    ay = -radius * omega * omega * Math.sin(angle);
+
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, Math.PI * 2); ctx.stroke();
+
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+                    ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(px, py); ctx.stroke();
+
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath(); ctx.arc(centerX, centerY, 5, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'rotational': {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const radius = 110;
+                    const omega = 3 * state.speedMultiplier * state.frequency;
+                    const angle = omega * t;
+
+                    px = centerX; py = centerY;
+
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(angle);
+
+                    ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 6; i++) {
+                        const a = (i * Math.PI) / 3;
+                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius * Math.cos(a), radius * Math.sin(a)); ctx.stroke();
+                    }
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath(); ctx.arc(radius - 18, 0, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath(); ctx.arc(centerX, centerY, 6, 0, Math.PI * 2); ctx.fill();
+                    break;
+                }
+
+                case 'oscillatory': {
+                    const pivotX = width / 2;
+                    const pivotY = 60;
+                    const length = height - 160;
+                    const maxAngle = (Math.PI / 4) * (1 / state.frequency);
+                    const omega = 2.5 * state.speedMultiplier * state.frequency;
+                    const theta = maxAngle * Math.sin(omega * t);
+
+                    px = pivotX + length * Math.sin(theta);
+                    py = pivotY + length * Math.cos(theta);
+
+                    const vMag = length * maxAngle * omega * Math.cos(omega * t);
+                    vx = vMag * Math.cos(theta);
+                    vy = -vMag * Math.sin(theta);
+
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(pivotX, pivotY); ctx.lineTo(px, py); ctx.stroke();
+
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(pivotX - 25, pivotY - 10, 50, 10);
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(px, py, 20, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'vibratory': {
+                    const centerX = width / 2;
+                    const centerY = height / 2 + 30;
+                    const freq = 45 * state.frequency;
+                    const amplitude = 18 * state.speedMultiplier;
+                    const vibOffset = amplitude * Math.sin(freq * t);
+
+                    px = centerX + vibOffset; py = centerY - 60;
+                    vx = amplitude * freq * Math.cos(freq * t);
+
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 12;
+                    ctx.beginPath(); ctx.moveTo(centerX, centerY + 80); ctx.lineTo(centerX, centerY); ctx.stroke();
+
+                    ctx.lineWidth = 8;
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.moveTo(centerX - 25, centerY); ctx.lineTo(centerX - 25 + vibOffset, centerY - 100); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(centerX + 25, centerY); ctx.lineTo(centerX + 25 - vibOffset, centerY - 100); ctx.stroke();
+
+                    ctx.strokeStyle = `rgba(56, 189, 248, ${Math.abs(Math.sin(freq * t)) * 0.5})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(centerX - 40, centerY - 100, 20 + Math.abs(vibOffset), -Math.PI / 2, Math.PI / 2, true); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(centerX + 40, centerY - 100, 20 + Math.abs(vibOffset), -Math.PI / 2, Math.PI / 2); ctx.stroke();
+                    break;
+                }
+
+                case 'reciprocating': {
+                    const centerX = width / 2 - 40;
+                    const centerY = height / 2;
+                    const crankRadius = 50;
+                    const rodLength = 140;
+                    const omega = 3 * state.speedMultiplier;
+                    const crankAngle = omega * t;
+
+                    const crankPinX = centerX + crankRadius * Math.cos(crankAngle);
+                    const crankPinY = centerY + crankRadius * Math.sin(crankAngle);
+
+                    const pistonX = crankPinX + Math.sqrt(rodLength * rodLength - Math.pow(crankPinY - centerY, 2));
+                    const pistonY = centerY;
+
+                    px = pistonX; py = pistonY;
+                    vx = -crankRadius * omega * Math.sin(crankAngle);
+
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(centerX + 90, centerY - 35, 120, 70);
+
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(centerX, centerY, crankRadius, 0, Math.PI * 2); ctx.stroke();
+
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(crankPinX, crankPinY); ctx.stroke();
+
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(crankPinX, crankPinY); ctx.lineTo(pistonX, pistonY); ctx.stroke();
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(pistonX - 20, pistonY - 25, 40, 50);
+                    addTrailPoint(pistonX, pistonY);
+                    break;
+                }
+
+                case 'periodic': {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const radiusX = 140;
+                    const radiusY = 80;
+                    const T_period = 4 / state.speedMultiplier;
+                    const angle = (2 * Math.PI * (t % T_period)) / T_period;
+
+                    px = centerX + radiusX * Math.cos(angle);
+                    py = centerY + radiusY * Math.sin(angle);
+
+                    vx = -radiusX * (2 * Math.PI / T_period) * Math.sin(angle);
+                    vy = radiusY * (2 * Math.PI / T_period) * Math.cos(angle);
+
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2); ctx.stroke();
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath(); ctx.arc(centerX, centerY, 22, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'nonperiodic': {
+                    state.nonPeriodicData.burstTimer += dt * state.speedMultiplier;
+                    if (state.nonPeriodicData.burstTimer > 3) {
+                        state.nonPeriodicData.burstTimer = 0;
+                        state.nonPeriodicData.currentSpeed = Math.random() > 0.4 ? Math.random() * 180 + 30 : 0;
+                    }
+
+                    const speed = state.nonPeriodicData.currentSpeed;
+                    px = ((t * 80 + Math.sin(t * 3) * 40) * state.speedMultiplier) % (width - 100) + 50;
+                    py = height / 2;
+                    vx = speed;
+
+                    ctx.fillStyle = speed === 0 ? '#ef4444' : '#10b981';
+                    ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'uniform': {
+                    const v_const = 110 * state.speedMultiplier;
+                    px = (t * v_const) % (width - 100) + 50;
+                    py = height / 2;
+                    vx = v_const;
+
+                    for (let x = 50; x < width - 50; x += 60) {
+                        ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+                        ctx.beginPath(); ctx.moveTo(x, py - 20); ctx.lineTo(x, py + 20); ctx.stroke();
+                    }
+
+                    ctx.fillStyle = '#10b981';
+                    ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'nonuniform': {
+                    const cycleT = (t * state.speedMultiplier) % 4;
+                    const accel = 40;
+                    px = 50 + 0.5 * accel * cycleT * cycleT;
+                    if (px > width - 50) px = width - 50;
+                    py = height / 2;
+
+                    vx = accel * cycleT;
+                    ax = accel;
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'projectile': {
+                    const g = 180;
+                    const p = state.projectileData;
+
+                    if (p.active) {
+                        p.x += p.vx * dt;
+                        p.vy += g * dt;
+                        p.y += p.vy * dt;
+
+                        if (p.y >= height - 60) {
+                            p.y = height - 60;
+                            p.active = false;
+                        }
+                    }
+
+                    px = p.x; py = p.y;
+                    vx = p.vx; vy = p.vy;
+                    ay = g;
+
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(30, height - 60); ctx.lineTo(width - 30, height - 60); ctx.stroke();
+
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(40, height - 70, 30, 10);
+
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.fill();
+                    if (p.active) addTrailPoint(px, py);
+                    break;
+                }
+
+                case 'random': {
+                    const rp = state.randomParticle;
+                    rp.targetTimer -= dt;
+
+                    if (rp.targetTimer <= 0) {
+                        rp.vx = (Math.random() - 0.5) * 160 * state.speedMultiplier;
+                        rp.vy = (Math.random() - 0.5) * 160 * state.speedMultiplier;
+                        rp.targetTimer = 0.4 + Math.random() * 0.6;
+                    }
+
+                    rp.x += rp.vx * dt;
+                    rp.y += rp.vy * dt;
+
+                    if (rp.x < 50 || rp.x > width - 50) rp.vx *= -1;
+                    if (rp.y < 50 || rp.y > height - 50) rp.vy *= -1;
+
+                    px = rp.x; py = rp.y;
+                    vx = rp.vx; vy = rp.vy;
+
+                    ctx.fillStyle = '#ec4899';
+                    ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+                    addTrailPoint(px, py);
+                    break;
+                }
+            }
+
+            drawTrail();
+            drawVector(px, py, vx, vy, '#10b981', 'v');
+            drawVector(px, py, ax, ay, '#f59e0b', 'a');
+
+            const vMag = Math.sqrt(vx * vx + vy * vy);
+            const aMag = Math.sqrt(ax * ax + ay * ay);
+
+            DOM.hudPos.textContent = `(${Math.round(px)}, ${Math.round(py)}) px`;
+            DOM.hudVel.textContent = `${vMag.toFixed(1)} px/s`;
+            DOM.hudAccel.textContent = `${aMag.toFixed(1)} px/s²`;
+            DOM.hudTime.textContent = `${state.time.toFixed(2)} s`;
+        }
+
+        // --- Animation Loop ---
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            const dt = (currentTime - state.lastFrameTime) / 1000;
+            state.lastFrameTime = currentTime;
+
+            if (dt > 0) {
+                state.fps = Math.round(1 / dt);
+                DOM.fpsCounter.textContent = state.fps;
+            }
+
+            if (state.isRunning) {
+                state.time += dt;
+                renderSimulation(dt);
+            }
+        }
+
+        // --- Startup Initialization ---
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            resetSimulation();
+            updateInfoPanel();
+            requestAnimationFrame(animate);
+        });
+
+    </script>
+</body>
+</html>
