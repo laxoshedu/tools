@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Discovery of Neutron</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100vw; height: 100vh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    will-change: transform;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
+&lt;title&gt;Offline Neutron Discovery Simulator (Chadwick 1932)&lt;/title&gt;
+&lt;style&gt;
+  :root{
+    --bg1:#0e1323; --bg2:#111827; --panel:rgba(255,255,255,0.06); --panelStroke:rgba(255,255,255,0.18);
+    --alpha:#fca5a5; --neutron:#93c5fd; --proton:#86efac; --carbon: #fde047; --accent:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#e5e7eb;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  
+  /* MAIN WRAPPER: ALWAYS SIDE BY SIDE &amp; CENTERED */
+  .wrap{
+    display:flex; flex-direction:row; flex-wrap:nowrap; gap:16px;
+    width:96vw; max-width:1280px; height:min(840px, calc(100vh - 32px));
+    margin:auto; padding:0; box-sizing:border-box;
+  }
+  
+  /* SIMULATION CARD */
+  .view{
+    flex:1 1 0%; min-width:0; height:100%; background:var(--panel);
+    border:1px solid var(--panelStroke); border-radius:14px; position:relative; overflow:hidden;
+  }
+  #sim{position:absolute;inset:0;display:block}
+  
+  /* SIDE PANEL */
+  .side{
+    flex:0 0 350px; width:350px; height:100%; display:flex; flex-direction:column; gap:10px; overflow:hidden;
+  }
+  .panel{background:var(--panel);border:1px solid var(--panelStroke);border-radius:14px;padding:10px}
+  h1{margin:0 0 6px;font-size:18px}
+  .legend{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);
+    border-radius:999px;padding:4px 8px;font-size:12px}
+  .dot{width:10px;height:10px;border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:9px;font-weight:bold;color:#000;}
+  .dot.alpha{background:var(--alpha)}
+  .dot.neutron{background:var(--neutron)}
+  .dot.proton{background:var(--proton)}
+  .dot.carbon{background:var(--carbon)}
+  .controls{display:grid;grid-template-columns:1fr;gap:10px}
+  .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+  .row label{font-size:12px;color:#cbd5e1}
+  .row .val{font-size:12px;color:#93c5fd;min-width:3ch;text-align:right}
+  input[type=&quot;range&quot;]{width:100%}
+  .buttons{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{appearance:none;cursor:pointer;background:linear-gradient(180deg,#2b374b,#1f2a3a);border:1px solid rgba(255,255,255,0.15);
+    color:#e5e7eb;padding:8px 12px;border-radius:10px;font-weight:600}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
+  .metric{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:8px}
+  .metric .lab{font-size:12px;color:#94a3b8}
+  .metric .val{font-size:18px;color:#fff;font-weight:700}
+  #hist{width:100%;height:130px;display:block;border-radius:10px;background:rgba(0,0,0,0.2)}
+  .hist-panel{flex-shrink:0}
+  .note{font-size:12px;color:#9ca3af;margin:4px 0 0}
+  .titlebar{position:absolute;left:12px;top:10px;display:flex;gap:8px;align-items:center;pointer-events:none}
+  .title{background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:999px;padding:6px 10px;font-size:12px}
+  .toggle-group{border-top: 1px solid var(--panelStroke); margin-top: 8px; padding-top: 8px;}
+  
+  /* CONTROL PANEL TOGGLE &amp; INTERNAL SCROLLING STYLES */
+  .control-toggle{
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+    background:linear-gradient(180deg,#374151,#1f2937);border:2px solid var(--accent);
+    border-radius:12px;padding:10px 14px;margin-bottom:0;transition:all 0.3s ease;flex-shrink:0;
+  }
+  .control-toggle:hover{background:linear-gradient(180deg,#4b5563,#374151);transform:translateY(-1px);}
+  .control-toggle .title{font-size:15px;font-weight:700;color:#e5e7eb}
+  .control-toggle .icon{font-size:16px;color:var(--accent);transition:transform 0.3s ease}
+  .control-toggle.expanded .icon{transform:rotate(180deg)}
+  
+  .control-content{
+    max-height:0; overflow:hidden; transition:max-height 0.3s ease-out, opacity 0.3s ease; opacity:0;
+    flex-shrink:1; border-radius:14px;
+  }
+  .control-content.expanded{
+    max-height:350px; /* FIXED HEIGHT FOR INNER SCROLLING */
+    overflow-y:auto; opacity:1;
+    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.25) transparent;
+  }
+  
+  /* Webkit custom scrollbar for controls */
+  .control-content::-webkit-scrollbar{width:6px}
+  .control-content::-webkit-scrollbar-track{background:transparent}
+  .control-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.25);border-radius:4px}
+  .control-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.4)}
+  
+  .control-panel{background:var(--panel);border:1px solid var(--panelStroke);border-radius:14px;padding:10px}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div class=&quot;wrap&quot;&gt;
+    &lt;!-- Simulation Card --&gt;
+    &lt;div class=&quot;view panel&quot;&gt;
+      &lt;canvas id=&quot;sim&quot;&gt;&lt;/canvas&gt;
+      &lt;div class=&quot;titlebar&quot;&gt;
+        &lt;div class=&quot;title&quot;&gt;Neutron Discovery Simulator (Chadwick 1932) — Enhanced&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Right Side Panel --&gt;
+    &lt;div class=&quot;side&quot;&gt;
+      &lt;!-- Control Panel Toggle --&gt;
+      &lt;div class=&quot;control-toggle&quot; id=&quot;controlToggle&quot;&gt;
+        &lt;div class=&quot;title&quot;&gt;⚛️ Control Panel&lt;/div&gt;
+        &lt;div class=&quot;icon&quot;&gt;▼&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;!-- Collapsible &amp; Scrollable Control Content --&gt;
+      &lt;div class=&quot;control-content&quot; id=&quot;controlContent&quot;&gt;
+        &lt;div class=&quot;control-panel&quot;&gt;
+          &lt;h1&gt;Controls&lt;/h1&gt;
+          &lt;div class=&quot;legend&quot;&gt;
+            &lt;div class=&quot;chip&quot;&gt;&lt;span class=&quot;dot alpha&quot;&gt;α&lt;/span&gt;Alpha&lt;/div&gt;
+            &lt;div class=&quot;chip&quot;&gt;&lt;span class=&quot;dot carbon&quot;&gt;C&lt;/span&gt;Carbon&lt;/div&gt;
+            &lt;div class=&quot;chip&quot;&gt;&lt;span class=&quot;dot neutron&quot;&gt;n&lt;/span&gt;Neutron&lt;/div&gt;
+            &lt;div class=&quot;chip&quot;&gt;&lt;span class=&quot;dot proton&quot;&gt;p&lt;/span&gt;Proton&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;controls&quot; style=&quot;margin-top:8px&quot;&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Alpha rate (s⁻¹)&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_rate&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;rate&quot; type=&quot;range&quot; min=&quot;1&quot; max=&quot;800&quot; step=&quot;1&quot; value=&quot;1&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Alpha energy (MeV)&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_ea&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;eAlpha&quot; type=&quot;range&quot; min=&quot;1.0&quot; max=&quot;7.5&quot; step=&quot;0.1&quot; value=&quot;5.0&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Be thickness&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_be&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;beThick&quot; type=&quot;range&quot; min=&quot;6&quot; max=&quot;60&quot; step=&quot;2&quot; value=&quot;16&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Neutron forward bias&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_bias&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;bias&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;1&quot; step=&quot;0.05&quot; value=&quot;0.8&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Wax thickness&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_wax&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;wax&quot; type=&quot;range&quot; min=&quot;40&quot; max=&quot;240&quot; step=&quot;5&quot; value=&quot;140&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot;&gt;
+              &lt;label&gt;Detector distance&lt;/label&gt;
+              &lt;span class=&quot;val&quot; id=&quot;v_det&quot;&gt;&lt;/span&gt;
+              &lt;input id=&quot;detDist&quot; type=&quot;range&quot; min=&quot;40&quot; max=&quot;350&quot; step=&quot;5&quot; value=&quot;180&quot;&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;toggle-group&quot;&gt;
+              &lt;label style=&quot;display:flex;align-items:center;gap:6px;font-size:12px&quot;&gt;
+                &lt;input id=&quot;b1_toggle&quot; type=&quot;checkbox&quot;&gt; Enable Field 1 (α)
+              &lt;/label&gt;
+              &lt;div class=&quot;row&quot;&gt;
+                &lt;label&gt;Field 1 Bz (T)&lt;/label&gt;
+                &lt;span class=&quot;val&quot; id=&quot;v_B1&quot;&gt;&lt;/span&gt;
+                &lt;input id=&quot;B1&quot; type=&quot;range&quot; min=&quot;-2&quot; max=&quot;2&quot; step=&quot;0.01&quot; value=&quot;0&quot;&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;toggle-group&quot;&gt;
+              &lt;label style=&quot;display:flex;align-items:center;gap:6px;font-size:12px&quot;&gt;
+                &lt;input id=&quot;b2_toggle&quot; type=&quot;checkbox&quot;&gt; Enable Field 2 (n, C)
+              &lt;/label&gt;
+              &lt;div class=&quot;row&quot;&gt;
+                &lt;label&gt;Field 2 Bz (T)&lt;/label&gt;
+                &lt;span class=&quot;val&quot; id=&quot;v_B2&quot;&gt;&lt;/span&gt;
+                &lt;input id=&quot;B2&quot; type=&quot;range&quot; min=&quot;-2&quot; max=&quot;2&quot; step=&quot;0.01&quot; value=&quot;0&quot;&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;toggle-group&quot;&gt;
+              &lt;label style=&quot;display:flex;align-items:center;gap:6px;font-size:12px&quot;&gt;
+                &lt;input id=&quot;b3_toggle&quot; type=&quot;checkbox&quot;&gt; Enable Field 3 (p)
+              &lt;/label&gt;
+              &lt;div class=&quot;row&quot;&gt;
+                &lt;label&gt;Field 3 Bz (T)&lt;/label&gt;
+                &lt;span class=&quot;val&quot; id=&quot;v_B3&quot;&gt;&lt;/span&gt;
+                &lt;input id=&quot;B3&quot; type=&quot;range&quot; min=&quot;-2&quot; max=&quot;2&quot; step=&quot;0.01&quot; value=&quot;0&quot;&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;buttons&quot; style=&quot;margin-top:8px&quot;&gt;
+              &lt;button id=&quot;play&quot; class=&quot;btn&quot;&gt;⏸ Pause&lt;/button&gt;
+              &lt;button id=&quot;reset&quot; class=&quot;btn&quot;&gt;↺ Reset&lt;/button&gt;
+              &lt;label style=&quot;display:flex;align-items:center;gap:6px;font-size:12px&quot;&gt;
+                &lt;input id=&quot;trails&quot; type=&quot;checkbox&quot; checked&gt; Trails
+              &lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;note&quot;&gt;Hydrogen atoms spawn dynamically based on neutron production. Watch the wax populate!&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;metrics&quot;&gt;
+        &lt;div class=&quot;metric&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Neutron rate (s⁻¹)&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;m_nRate&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;metric&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Proton rate (s⁻¹)&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;m_pRate&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;metric&quot;&gt;&lt;div class=&quot;lab&quot;&gt;Total neutrons&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;m_nTot&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;metric&quot;&gt;&lt;div class=&quot;lab&quot;&gt;H atoms in wax&lt;/div&gt;&lt;div class=&quot;val&quot; id=&quot;m_hAtoms&quot;&gt;0&lt;/div&gt;&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;panel hist-panel&quot;&gt;
+        &lt;canvas id=&quot;hist&quot; width=&quot;320&quot; height=&quot;130&quot;&gt;&lt;/canvas&gt;
+        &lt;div class=&quot;note&quot;&gt;Proton energy histogram (last second, arbitrary units)&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;script&gt;
+(function(){
+  // Control Panel Toggle Functionality
+  var controlToggle = document.getElementById(&#39;controlToggle&#39;);
+  var controlContent = document.getElementById(&#39;controlContent&#39;);
+  var isExpanded = false;
+
+  controlToggle.addEventListener(&#39;click&#39;, function(){
+    isExpanded = !isExpanded;
+    if(isExpanded){
+      controlToggle.classList.add(&#39;expanded&#39;);
+      controlContent.classList.add(&#39;expanded&#39;);
+    } else {
+      controlToggle.classList.remove(&#39;expanded&#39;);
+      controlContent.classList.remove(&#39;expanded&#39;);
+    }
+  });
+
+  // Basic polyfills
+  if (!window.requestAnimationFrame){
+    window.requestAnimationFrame = window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame ||
+      function(cb){ return setTimeout(function(){ cb(Date.now()); }, 16); };
+  }
+  if (!window.cancelAnimationFrame){
+    window.cancelAnimationFrame = window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame || clearTimeout;
+  }
+  if (!window.performance || !performance.now){
+    window.performance = window.performance || {};
+    performance.now = performance.now || function(){ return Date.now(); };
+  }
+
+  // DOM
+  var canvas = document.getElementById(&#39;sim&#39;);
+  var histCanvas = document.getElementById(&#39;hist&#39;);
+  var ctx = canvas.getContext(&#39;2d&#39;);
+  var hctx = histCanvas.getContext(&#39;2d&#39;);
+
+  // Controls
+  var elRate = document.getElementById(&#39;rate&#39;), vRate = document.getElementById(&#39;v_rate&#39;);
+  var elEAlpha = document.getElementById(&#39;eAlpha&#39;), vEA = document.getElementById(&#39;v_ea&#39;);
+  var elBe = document.getElementById(&#39;beThick&#39;), vBe = document.getElementById(&#39;v_be&#39;);
+  var elBias = document.getElementById(&#39;bias&#39;), vBias = document.getElementById(&#39;v_bias&#39;);
+  var elWax = document.getElementById(&#39;wax&#39;), vWax = document.getElementById(&#39;v_wax&#39;);
+  var elDet = document.getElementById(&#39;detDist&#39;), vDet = document.getElementById(&#39;v_det&#39;);
+  
+  var elB1Toggle = document.getElementById(&#39;b1_toggle&#39;);
+  var elB1 = document.getElementById(&#39;B1&#39;), vB1 = document.getElementById(&#39;v_B1&#39;);
+  var elB2Toggle = document.getElementById(&#39;b2_toggle&#39;);
+  var elB2 = document.getElementById(&#39;B2&#39;), vB2 = document.getElementById(&#39;v_B2&#39;);
+  var elB3Toggle = document.getElementById(&#39;b3_toggle&#39;);
+  var elB3 = document.getElementById(&#39;B3&#39;), vB3 = document.getElementById(&#39;v_B3&#39;);
+  
+  var elPlay = document.getElementById(&#39;play&#39;);
+  var elReset = document.getElementById(&#39;reset&#39;);
+  var elTrails = document.getElementById(&#39;trails&#39;);
+
+  var mNR = document.getElementById(&#39;m_nRate&#39;);
+  var mPR = document.getElementById(&#39;m_pRate&#39;);
+  var mNT = document.getElementById(&#39;m_nTot&#39;);
+  var mHAtoms = document.getElementById(&#39;m_hAtoms&#39;);
+
+  // Layout/World
+  var DPR = Math.max(1, window.devicePixelRatio || 1);
+  var W=0, H=0;
+  var xSrc=0, xColl=0, xBe=0, xWaxStart=0, xWaxEnd=0, xDet=0;
+  var beThickPx=16, waxThickPx=140;
+  var xB1_start, xB1_end, xB2_start, xB2_end, xB3_start, xB3_end;
+  var detectorGlow = 0; // Detector glow intensity
+
+  function resize(){
+    DPR = Math.max(1, window.devicePixelRatio || 1);
+    var rect = canvas.parentNode.getBoundingClientRect();
+    W = Math.max(320, Math.floor(rect.width));
+    H = Math.max(360, Math.floor(rect.height));
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + &#39;px&#39;;
+    canvas.style.height = H + &#39;px&#39;;
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+
+    var L = 60;
+    xSrc = L;
+    xColl = L + 80;
+    xBe = L + 200;
+    xWaxStart = L + 340;
+    xWaxEnd = xWaxStart + waxThickPx;
+    
+    // Dynamic Detector Position based on slider
+    xDet = Math.min(W - 20, xWaxEnd + params.detDist);
+    
+    // Magnetic field regions
+    xB1_start = xColl + 20; xB1_end = xBe - 20;
+    xB2_start = xBe + 20; xB2_end = xWaxStart - 20;
+    xB3_start = xWaxEnd + 20; xB3_end = Math.max(xB3_start + 10, xDet - 20);
+
+    beRect.x = xBe - beThickPx/2; beRect.w = beThickPx; beRect.y = (H/2) - 90; beRect.h = 180;
+    waxRect.x = xWaxStart; waxRect.w = Math.max(10, waxThickPx); waxRect.y = (H/2) - 100; waxRect.h = 200;
+  }
+  window.addEventListener(&#39;resize&#39;, resize);
+
+  // Apparatus bounds
+  var beRect = {x:0,y:0,w:16,h:180};
+  var waxRect = {x:0,y:0,w:140,h:200};
+
+  // Params
+  var params = {
+    running: true, rate: 1, eAlpha: 5.0, beThick: 16, nForward: 0.8,
+    waxThick: 140, detDist: 180, trails: true,
+    b1_enabled: false, b1_val: 0,
+    b2_enabled: false, b2_val: 0,
+    b3_enabled: false, b3_val: 0,
+  };
+
+  function refreshLabels(){
+    vRate.textContent = params.rate.toString();
+    vEA.textContent = params.eAlpha.toFixed(1);
+    vBe.textContent = params.beThick.toString()+&#39;px&#39;;
+    vBias.textContent = params.nForward.toFixed(2);
+    vWax.textContent = params.waxThick.toString()+&#39;px&#39;;
+    vDet.textContent = params.detDist.toString()+&#39;px&#39;;
+    vB1.textContent = params.b1_val.toFixed(2);
+    vB2.textContent = params.b2_val.toFixed(2);
+    vB3.textContent = params.b3_val.toFixed(2);
+  }
+
+  // Wire controls
+  elRate.addEventListener(&#39;input&#39;, function(){ params.rate = parseInt(this.value,10)||0; refreshLabels(); });
+  elEAlpha.addEventListener(&#39;input&#39;, function(){ params.eAlpha = parseFloat(this.value)||5.0; refreshLabels(); });
+  elBe.addEventListener(&#39;input&#39;, function(){
+    params.beThick = parseInt(this.value,10)||16; beThickPx = params.beThick; resize(); refreshLabels();
+  });
+  elBias.addEventListener(&#39;input&#39;, function(){ params.nForward = parseFloat(this.value)||0; refreshLabels(); });
+  elWax.addEventListener(&#39;input&#39;, function(){
+    params.waxThick = parseInt(this.value,10)||140; waxThickPx = params.waxThick; resize(); refreshLabels();
+  });
+  elDet.addEventListener(&#39;input&#39;, function(){
+    params.detDist = parseInt(this.value,10)||180; resize(); refreshLabels();
+  });
+  elTrails.addEventListener(&#39;change&#39;, function(){ params.trails = !!this.checked; });
+  
+  elB1Toggle.addEventListener(&#39;change&#39;, function(){ params.b1_enabled = this.checked; });
+  elB1.addEventListener(&#39;input&#39;, function(){ params.b1_val = parseFloat(this.value); refreshLabels(); });
+  elB2Toggle.addEventListener(&#39;change&#39;, function(){ params.b2_enabled = this.checked; });
+  elB2.addEventListener(&#39;input&#39;, function(){ params.b2_val = parseFloat(this.value); refreshLabels(); });
+  elB3Toggle.addEventListener(&#39;change&#39;, function(){ params.b3_enabled = this.checked; });
+  elB3.addEventListener(&#39;input&#39;, function(){ params.b3_val = parseFloat(this.value); refreshLabels(); });
+
+  elPlay.addEventListener(&#39;click&#39;, function(){
+    params.running = !params.running;
+    elPlay.textContent = params.running ? &#39;⏸ Pause&#39; : &#39;▶ Play&#39;;
+  });
+  elReset.addEventListener(&#39;click&#39;, function(){ resetSim(); });
+
+  // Physics helpers
+  function clamp(v,a,b){ return v&lt;a?a:(v&gt;b?b:v); }
+  function randNorm(){
+    var u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  }
+
+  var A=[], N=[], P=[], C=[]; // Alphas, Neutrons, Protons, Carbon
+  var hydrogenAtoms = []; // Hydrogen atoms in wax
+  var C_ALPHA = &#39;#fca5a5&#39;, C_NEUT=&#39;#93c5fd&#39;, C_PROT=&#39;#86efac&#39;, C_CARB = &#39;#fde047&#39;;
+  var V_SCALE = 50;
+  var LORENTZ_K = 0.8;
+  var emitAcc = 0, nRate=0, pRate=0, rateTimer=0, nTot=0, pTot=0;
+  var protonEnergies = [];
+
+  // Initialize hydrogen atoms in wax - START WITH JUST A FEW
+  function initHydrogen(){
+    hydrogenAtoms = [];
+    addHydrogen(5); // Start with only 5 atoms
+  }
+
+  // DYNAMIC: Add hydrogen atoms at random positions
+  function addHydrogen(count){
+    var marginX = 15, marginY = 15;
+    var usableW = waxRect.w - 2*marginX;
+    var usableH = waxRect.h - 2*marginY;
+    
+    for(var i=0; i&lt;count; i++){
+      // Check if we haven&#39;t exceeded reasonable density
+      if(hydrogenAtoms.length &gt;= 60) break; // Max 60 atoms to avoid overcrowding
+      
+      hydrogenAtoms.push({
+        x: waxRect.x + marginX + Math.random() * usableW,
+        y: waxRect.y + marginY + Math.random() * usableH,
+        ionized: false,
+        hasNeutron: false,
+        electronAngle: Math.random() * Math.PI * 2,
+        opacity: 1.0
+      });
+    }
+  }
+
+  function spawnAlpha(){
+    var y = H/2 + randNorm()*6;
+    var spd = V_SCALE * Math.sqrt(clamp(params.eAlpha,0.1,10));
+    A.push({ type:&#39;a&#39;, x:xSrc, y:y, vx: spd, vy: spd*(randNorm()*0.02), m:4, q:2, life:0, prevX:xSrc, prevY:y, energy: params.eAlpha*100 });
+  }
+
+  function createProducts(x, y, eAlpha) {
+      var isoX=randNorm(), isoY=randNorm(), isoLen=Math.sqrt(isoX*isoX+isoY*isoY)||1; isoX/=isoLen; isoY/=isoLen;
+      var mix=clamp(params.nForward,0,1), dx=mix*1+(1-mix)*isoX, dy=(1-mix)*isoY, dlen=Math.sqrt(dx*dx+dy*dy)||1; dx/=dlen; dy/=dlen;
+      var eMeV = clamp(0.2 + 0.5*eAlpha*0.5 + Math.random()*1.5, 0.2, 6.0);
+      
+      // Spawn 1 Neutron (with opacity for fading if no collision)
+      var spdN = V_SCALE * 0.9 * Math.sqrt(eMeV);
+      N.push({ type:&#39;n&#39;, x:x, y:y, vx:dx*spdN, vy:dy*spdN, m:1, q:0, life:0, prevX:x, prevY:y, hit:0, energy:eMeV*100, opacity:1.0, inWax:false });
+      nTot++; nRate++;
+      
+      // DYNAMIC HYDROGEN GENERATION: Add 2 new hydrogen atoms per neutron
+      addHydrogen(2);
+      
+      // Spawn 1 Carbon - static and with opacity for SLOW fading (5 seconds)
+      C.push({ type:&#39;c&#39;, x:x, y:y, vx:0, vy:0, m:12, q:0, life:0, prevX:x, prevY:y, opacity: 1.0 });
+  }
+
+  function spawnProtonFromHydrogen(hAtom, neutronEnergy){
+    var e = clamp(neutronEnergy * (0.6 + Math.random()*0.4), 5, 200);
+    var spd = V_SCALE * 1.0 * Math.sqrt(e*0.01);
+    var vx = spd * (0.8 + Math.random()*0.2);
+    var vy = spd * (Math.random() - 0.5) * 0.3;
+    P.push({ type:&#39;p&#39;, x:hAtom.x, y:hAtom.y, vx:vx, vy:vy, m:1, q:1, life:0, prevX:hAtom.x, prevY:hAtom.y, energy:e });
+    protonEnergies.push(e);
+    pRate++;
+  }
+
+  function step(dt){
+    if (params.running){
+      emitAcc += params.rate * dt;
+      var n = (emitAcc|0);
+      if (n&gt;0){ emitAcc -= n; for (var i=0;i&lt;n;i++) spawnAlpha(); }
+    }
+
+    // Detector glow decay
+    if(detectorGlow &gt; 0) detectorGlow -= dt * 3;
+    if(detectorGlow &lt; 0) detectorGlow = 0;
+
+    function lorentz(p){
+      if (p.q === 0) return;
+      var Bz = 0;
+      if (params.b1_enabled &amp;&amp; p.x &gt; xB1_start &amp;&amp; p.x &lt; xB1_end) Bz = params.b1_val;
+      else if (params.b2_enabled &amp;&amp; p.x &gt; xB2_start &amp;&amp; p.x &lt; xB2_end) Bz = params.b2_val;
+      else if (params.b3_enabled &amp;&amp; p.x &gt; xB3_start &amp;&amp; p.x &lt; xB3_end) Bz = params.b3_val;
+      if (Bz === 0) return;
+      
+      var ax =  LORENTZ_K * (p.q/p.m) * (p.vy * Bz);
+      var ay = -LORENTZ_K * (p.q/p.m) * (p.vx * Bz);
+      p.vx += ax * dt; p.vy += ay * dt;
+    }
+
+    // Update hydrogen atoms
+    for(var i=hydrogenAtoms.length-1; i&gt;=0; i--){
+      var h = hydrogenAtoms[i];
+      h.electronAngle += dt * 3; // Electron rotation
+      
+      if(h.ionized){
+        // Fade out ionized atoms slowly (over 3 seconds)
+        h.opacity -= dt * 0.33;
+        if(h.opacity &lt;= 0){
+          hydrogenAtoms.splice(i, 1);
+        }
+      }
+    }
+
+    // Particle updates
+    [A,N,P,C].forEach(function(arr){
+      for(var i=arr.length-1; i&gt;=0; i--){
+        var p = arr[i];
+
+        // Carbon fading - VERY SLOW (5 seconds)
+        if (p.type === &#39;c&#39;) {
+            p.opacity -= dt * 0.2;
+            if (p.opacity &lt;= 0) {
+                arr.splice(i,1);
+                continue;
+            }
+        }
+        
+        p.prevX=p.x; p.prevY=p.y;
+        lorentz(p);
+        p.x += p.vx*dt; p.y += p.vy*dt; p.life += dt;
+
+        if (p.type === &#39;a&#39; &amp;&amp; p.x&gt;=beRect.x &amp;&amp; p.x&lt;=beRect.x+beRect.w &amp;&amp; p.y&gt;=beRect.y &amp;&amp; p.y&lt;=beRect.y+beRect.h){
+          createProducts(p.x, p.y, params.eAlpha);
+          arr.splice(i,1); continue;
+        }
+
+        // STRICT NEUTRON BOUNDARY RULE
+        if (p.type === &#39;n&#39; &amp;&amp; p.hit===0) {
+          // Check if neutron is inside wax
+          if(p.x &gt;= waxRect.x &amp;&amp; p.x &lt;= waxRect.x + waxRect.w &amp;&amp; p.y &gt;= waxRect.y &amp;&amp; p.y &lt;= waxRect.y + waxRect.h){
+            p.inWax = true;
+            
+            // Check collision with hydrogen atoms
+            var collided = false;
+            for(var j=0; j&lt;hydrogenAtoms.length; j++){
+              var h = hydrogenAtoms[j];
+              if(!h.ionized){
+                var dx = p.x - h.x, dy = p.y - h.y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist &lt; 12){ // Collision radius
+                  // Eject proton
+                  spawnProtonFromHydrogen(h, p.energy);
+                  // Mark hydrogen as ionized with neutron
+                  h.ionized = true;
+                  h.hasNeutron = true;
+                  // REMOVE neutron - it&#39;s captured
+                  N.splice(i,1);
+                  collided = true;
+                  break;
+                }
+              }
+            }
+            
+            if(!collided){
+              // STRICT RULE: Check if neutron is approaching exit boundary
+              var distToExit = (waxRect.x + waxRect.w) - p.x;
+              var fadeZone = 30; // Start fading 30px before exit
+              
+              if(distToExit &lt; fadeZone){
+                // Fade neutron as it approaches boundary
+                p.opacity -= dt * 4; // Fade quickly
+                if(p.opacity &lt;= 0 || distToExit &lt; 5){
+                  // Remove neutron - NEVER crosses boundary
+                  N.splice(i,1);
+                  continue;
+                }
+              }
+              
+              // Also check top/bottom boundaries
+              if(p.y &lt; waxRect.y + 10 || p.y &gt; waxRect.y + waxRect.h - 10){
+                p.opacity -= dt * 4;
+                if(p.opacity &lt;= 0){
+                  N.splice(i,1);
+                  continue;
+                }
+              }
+            }
+          }
+        }
+
+        // Proton hits detector - GLOW EFFECT
+        if (p.type === &#39;p&#39; &amp;&amp; p.prevX &lt; xDet &amp;&amp; p.x &gt;= xDet){
+          pTot++;
+          detectorGlow = 1.0; // Trigger glow
+          P.splice(i,1); 
+          continue;
+        }
+        
+        var maxLife = p.type===&#39;a&#39;?8:(p.type===&#39;n&#39;?6:5);
+        if (p.type !== &#39;c&#39; &amp;&amp; (p.x&lt;0 || p.x&gt;W || p.y&lt;0 || p.y&gt;H || p.life &gt; maxLife)) arr.splice(i,1);
+      }
+    });
+
+    rateTimer += dt;
+    if (rateTimer &gt;= 1.0){
+      mNR.textContent = nRate.toString(); 
+      mPR.textContent = pRate.toString();
+      mNT.textContent = nTot.toString(); 
+      mHAtoms.textContent = hydrogenAtoms.length.toString();
+      nRate=0; pRate=0; rateTimer=0;
+      drawHistogram(); protonEnergies.length=0;
+    }
+  }
+
+  function drawApparatus(){
+    if (!params.trails) ctx.clearRect(0,0,W,H);
+    else { ctx.fillStyle = &#39;rgba(14,19,35,0.18)&#39;; ctx.fillRect(0,0,W,H); }
+
+    var g = ctx.createLinearGradient(0,H/2-40,0,H/2+40);
+    g.addColorStop(0,&#39;rgba(255,255,255,0.04)&#39;); g.addColorStop(0.5,&#39;rgba(255,255,255,0.02)&#39;); g.addColorStop(1,&#39;rgba(0,0,0,0.05)&#39;);
+    ctx.fillStyle = g; ctx.fillRect(0,H/2-40,W,80);
+    
+    drawLabels();
+    ctx.fillStyle=&#39;#fca5a5&#39;; ctx.beginPath(); ctx.arc(xSrc,H/2,10,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=&#39;rgba(255,255,255,0.15)&#39;; ctx.fillRect(xSrc-30,H/2-22,40,44);
+    ctx.fillStyle=&#39;#6b7280&#39;; ctx.fillRect(xColl-20,H/2-30,40,60); ctx.fillStyle=&#39;var(--bg2)&#39;; ctx.fillRect(xColl-20,H/2-6,40,12);
+    ctx.fillStyle=&#39;rgba(125,211,252,0.35)&#39;; ctx.strokeStyle=&#39;rgba(125,211,252,0.8)&#39;; ctx.lineWidth=1.5; roundRect(beRect.x,beRect.y,beRect.w,beRect.h,6,1,1);
+    ctx.fillStyle=&#39;rgba(254,243,199,0.30)&#39;; ctx.strokeStyle=&#39;rgba(254,243,199,0.9)&#39;; roundRect(waxRect.x,waxRect.y,waxRect.w,waxRect.h,8,1,1);
+    
+    // Draw hydrogen atoms
+    drawHydrogen();
+    
+    // Detector with glow effect
+    if(detectorGlow &gt; 0){
+      ctx.shadowColor = &#39;#86efac&#39;;
+      ctx.shadowBlur = 20 * detectorGlow;
+    }
+    ctx.strokeStyle = detectorGlow &gt; 0 ? &#39;rgba(134,239,172,&#39; + (0.9 + detectorGlow*0.1) + &#39;)&#39; : &#39;rgba(147,197,253,0.9)&#39;;
+    ctx.lineWidth = 2 + detectorGlow * 3;
+    ctx.beginPath(); ctx.moveTo(xDet,H/2-110); ctx.lineTo(xDet,H/2+110); ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    if (params.b1_enabled) drawMagBars(xB1_start, xB1_end, params.b1_val);
+    if (params.b2_enabled) drawMagBars(xB2_start, xB2_end, params.b2_val);
+    if (params.b3_enabled) drawMagBars(xB3_start, xB3_end, params.b3_val);
+  }
+  
+  function drawLabels(){
+    ctx.fillStyle = &#39;rgba(255,255,255,0.6)&#39;; ctx.font = &#39;11px sans-serif&#39;; ctx.textAlign = &#39;center&#39;;
+    ctx.fillText(&#39;Alpha Source&#39;, xSrc-10, H/2 - 50);
+    ctx.fillText(&#39;Collimator&#39;, xColl, H/2 - 40);
+    ctx.fillText(&#39;Beryllium Target&#39;, beRect.x + beRect.w/2, beRect.y - 8);
+    ctx.fillText(&#39;Paraffin Wax (H atoms)&#39;, waxRect.x + waxRect.w/2, waxRect.y - 8);
+    ctx.fillText(&#39;Detector&#39;, xDet, H/2 - 120);
+  }
+
+  function drawHydrogen(){
+    hydrogenAtoms.forEach(function(h){
+      var x = h.x;
+      var y = h.y;
+      
+      ctx.save();
+      ctx.globalAlpha = h.opacity;
+      
+      // Electron orbit
+      ctx.strokeStyle = &#39;rgba(100,200,255,0.5)&#39;;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, 2*Math.PI);
+      ctx.stroke();
+      
+      // Electron
+      var ex = x + Math.cos(h.electronAngle) * 8;
+      var ey = y + Math.sin(h.electronAngle) * 8;
+      ctx.fillStyle = &#39;#60a5fa&#39;;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2, 0, 2*Math.PI);
+      ctx.fill();
+      
+      // Nucleus
+      if(h.hasNeutron){
+        // Deuterium - show neutron captured
+        ctx.fillStyle = &#39;#93c5fd&#39;;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillStyle = &#39;#000&#39;;
+        ctx.font = &#39;bold 5px sans-serif&#39;;
+        ctx.textAlign = &#39;center&#39;;
+        ctx.textBaseline = &#39;middle&#39;;
+        ctx.fillText(&#39;n&#39;, x, y);
+      } else {
+        // Normal hydrogen - proton
+        ctx.fillStyle = h.ionized ? &#39;rgba(134,239,172,0.3)&#39; : &#39;#86efac&#39;;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2*Math.PI);
+        ctx.fill();
+        if(!h.ionized){
+          ctx.fillStyle = &#39;#000&#39;;
+          ctx.font = &#39;bold 5px sans-serif&#39;;
+          ctx.textAlign = &#39;center&#39;;
+          ctx.textBaseline = &#39;middle&#39;;
+          ctx.fillText(&#39;p&#39;, x, y);
+        }
+      }
+      
+      ctx.restore();
+    });
+  }
+
+  function drawParticles(){
+    [A,C,N,P].forEach(function(arr){
+      for(var i=0;i&lt;arr.length;i++){
+        var p=arr[i];
+        var color = C_ALPHA, label = &#39;α&#39;, opacity = 1.0;
+
+        if(p.type===&#39;n&#39;){ color=C_NEUT; label=&#39;n&#39;; opacity = p.opacity || 1.0; }
+        else if(p.type===&#39;p&#39;){ color=C_PROT; label=&#39;p&#39;; }
+        else if(p.type===&#39;c&#39;){ color=C_CARB; label=&#39;C&#39;; opacity = p.opacity; }
+        
+        drawDot(p.x,p.y,5,color,label, opacity);
+      }
+    });
+  }
+
+  function drawDot(x,y,r,color,label, opacity){
+    opacity = (opacity === undefined) ? 1.0 : opacity;
+    ctx.save();
+    ctx.globalAlpha = opacity;
+
+    ctx.beginPath();
+    ctx.fillStyle=color; 
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = &#39;rgba(0,0,0,&#39; + opacity + &#39;)&#39;;
+    ctx.font = &#39;bold &#39; + (r*1.5) + &#39;px sans-serif&#39;;
+    ctx.textAlign = &#39;center&#39;;
+    ctx.textBaseline = &#39;middle&#39;;
+    ctx.fillText(label, x, y);
+    
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r,fill,stroke){
+    if(w&lt;2*r)r=w/2; if(h&lt;2*r)r=h/2;
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r);
+    if(fill)ctx.fill(); if(stroke)ctx.stroke();
+  }
+
+  function drawMagBars(startX, endX, Bz){
+    if (Bz === 0) return;
+    var isNtop = Bz &gt; 0;
+    var xPos = (startX + endX) / 2, width = endX - startX, height=25, gap=100;
+    ctx.font = &#39;bold 16px sans-serif&#39;; ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;;
+    var topY = H/2 - gap/2 - height;
+    ctx.fillStyle = isNtop ? &#39;#ef4444&#39; : &#39;#3b82f6&#39;;
+    ctx.fillRect(xPos - width/2, topY, width, height);
+    ctx.fillStyle = &#39;#fff&#39;; ctx.fillText(isNtop ? &#39;N&#39; : &#39;S&#39;, xPos, topY + height/2);
+    var bottomY = H/2 + gap/2;
+    ctx.fillStyle = isNtop ? &#39;#3b82f6&#39; : &#39;#ef4444&#39;;
+    ctx.fillRect(xPos - width/2, bottomY, width, height);
+    ctx.fillStyle = &#39;#fff&#39;; ctx.fillText(isNtop ? &#39;S&#39; : &#39;N&#39;, xPos, bottomY + height/2);
+  }
+
+  function drawHistogram(){
+    var w=histCanvas.width, h=histCanvas.height; hctx.setTransform(1,0,0,1,0,0);
+    hctx.clearRect(0,0,w,h); hctx.fillStyle=&#39;rgba(0,0,0,0.25)&#39;; hctx.fillRect(0,0,w,h);
+    var bins=10, maxE=200, counts=new Array(bins).fill(0);
+    protonEnergies.forEach(function(e){ var bi=Math.floor((e/maxE)*bins); counts[clamp(bi,0,bins-1)]++; });
+    var cmax=Math.max(1, ...counts);
+    var padL=24, padR=6, padB=16, padT=6, gw=w-padL-padR, gh=h-padT-padB;
+    hctx.strokeStyle=&#39;rgba(255,255,255,0.25)&#39;; hctx.lineWidth=1; hctx.beginPath();
+    hctx.moveTo(padL,padT); hctx.lineTo(padL,padT+gh); hctx.lineTo(padL+gw,padT+gh); hctx.stroke();
+    var bw=gw/bins*0.8, gap=(gw/bins)*0.2;
+    counts.forEach(function(c,i){
+      var x=padL+i*(bw+gap)+gap*0.5, bh=gh*(c/cmax), y=padT+gh-bh;
+      hctx.fillStyle=&#39;rgba(134,239,172,0.7)&#39;; hctx.fillRect(x,y,bw,bh);
+    });
+    hctx.fillStyle=&#39;rgba(255,255,255,0.65)&#39;; hctx.font=&#39;10px sans-serif&#39;;
+    for(var i=0;i&lt;bins;i++) hctx.fillText((i*20).toString(), padL+i*(bw+gap)+(bw+gap)/2-8, h-2);
+  }
+
+  var lastT = performance.now();
+  function frame(ts){
+    var dt = (ts - lastT)/1000; if(dt&gt;0.05) dt=0.05; lastT = ts;
+    step(dt);
+    drawApparatus();
+    drawParticles();
+    requestAnimationFrame(frame);
+  }
+
+  function resetSim(){
+    A.length=0; N.length=0; P.length=0; C.length=0;
+    emitAcc=0; nRate=0; pRate=0; rateTimer=0; nTot=0; pTot=0;
+    protonEnergies.length=0;
+    detectorGlow = 0;
+    mNR.textContent=&#39;0&#39;; mPR.textContent=&#39;0&#39;; mNT.textContent=&#39;0&#39;; mHAtoms.textContent=&#39;0&#39;;
+    initHydrogen();
+    drawHistogram();
+  }
+
+  // Init
+  resize();
+  refreshLabels();
+  initHydrogen();
+  drawHistogram();
+  requestAnimationFrame(frame);
+})();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 46.2;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      const windowW = window.innerWidth;
+      const windowH = window.innerHeight;
+      baseScale = Math.min(windowW / STAGE_W, windowH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => { checkOrientation(); resizeStage(); });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { checkOrientation(); resizeStage(); }, 200);
+  });
+
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
