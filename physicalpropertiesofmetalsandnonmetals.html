@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>physicalpropertiesofmetalsandnonmetals</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100vw; height: 100vh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 549px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    will-change: transform;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot; /&gt;
+&lt;title&gt;Metals vs Non-metals — Side‑by‑side Simulations per Property&lt;/title&gt;
+&lt;style&gt;
+  :root{
+    --bg1:#0B1220;
+    --bg2:#0E1A2E;
+    --glass: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.12);
+    --text:#e8f0ff;
+    --muted:#b8c7e6;
+    --accent:#73f3d1;
+    --accent2:#8ecbff;
+    --metal:#8df7c5;
+    --nonmetal:#ffd18e;
+    --ok:#9dffbd;
+    --warn:#ffde9a;
+    --bad:#ff6b7a;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; color:var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, &quot;Apple Color Emoji&quot;,&quot;Segoe UI Emoji&quot;,&quot;Segoe UI Symbol&quot;;
+    background:
+      radial-gradient(1200px 600px at 10% 10%, #16335a 0%, transparent 60%),
+      radial-gradient(900px 400px at 80% 0%, #193a51 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+  }
+  .wrap{ max-width:1200px; margin:16px auto; padding:16px; }
+  .topbar{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between; margin-bottom:12px; }
+  .title{ display:flex; align-items:center; gap:10px; }
+  .logo{
+    width:40px; height:40px; border-radius:12px; display:grid; place-items:center; font-weight:900; color:#0a1724;
+    background:linear-gradient(135deg, #62e7c2, #7cc7ff);
+    box-shadow: 0 10px 30px rgba(124,199,255,0.32), inset 0 0 8px rgba(255,255,255,0.35);
+  }
+  h1{ font-size:18px; margin:0; }
+  .muted{ color:var(--muted); font-size:13px; }
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .toggle{ display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--border); border-radius:12px; background:var(--glass); }
+  .toggle input{ accent-color: var(--accent); width:18px; height:18px; }
+  button{
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border:1px solid var(--border); color:var(--text);
+    padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700; transition: all .15s ease;
+  }
+  button:hover{ transform:translateY(-1px); border-color: rgba(255,255,255,0.25); }
+  input[type=&quot;range&quot;], select{
+    -webkit-appearance:none; appearance:none; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.12);
+    outline:none; border:1px solid var(--border);
+  }
+  input[type=&quot;range&quot;]{ width: 180px; }
+  input[type=&quot;range&quot;]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background: linear-gradient(180deg, #73f3d1, #8ecbff);
+    border:1px solid rgba(255,255,255,0.55); box-shadow: 0 6px 20px rgba(115,243,209,0.4); cursor:pointer;
+  }
+  input[type=&quot;range&quot;]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background: linear-gradient(180deg, #73f3d1, #8ecbff);
+    border:1px solid rgba(255,255,255,0.55); box-shadow: 0 6px 20px rgba(115,243,209,0.4); cursor:pointer;
+  }
+  select{
+    padding:6px 10px; height:auto; border-radius:10px; color:var(--text); background: rgba(255,255,255,0.06);
+  }
+
+  /* Deck (crossfade slides) */
+  .deck{ position:relative; border:1px solid var(--border); border-radius:16px; overflow:hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 14px 40px rgba(5,10,20,0.45);
+  }
+  .slides-viewport{ position:relative; height: clamp(520px, 64vh, 820px); overflow:hidden; }
+  .slides-layer{ position:relative; width:100%; height:100%; }
+  .slide{
+    position:absolute; inset:0; padding:22px; display:flex; flex-direction:column; gap:16px;
+    opacity:0; transform: scale(.985); pointer-events:none; transition: opacity .45s ease, transform .45s ease;
+  }
+  .slide.active{ opacity:1; transform: scale(1); pointer-events:auto; }
+  .ph{ display:flex; align-items:center; gap:12px; }
+  .icon{
+    width:44px; height:44px; border-radius:10px; display:grid; place-items:center; font-size:22px;
+    background:linear-gradient(135deg, rgba(115,243,209,0.15), rgba(142,203,255,0.12));
+    border:1px solid var(--border);
+  }
+  .t{ font-size:20px; font-weight:800; letter-spacing:0.2px;}
+  .d{ font-size:14px; color:var(--muted); }
+
+  .slidegrid{
+    display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; align-items:stretch; min-height:0;
+  }
+  @media (max-width: 960px){ .slidegrid{ grid-template-columns: 1fr; } }
+
+  .cards{
+    display:grid; grid-template-columns: 1fr 1fr; gap:12px; height: 100%;
+  }
+  @media (max-width: 640px){ .cards{ grid-template-columns: 1fr; } }
+
+  .card{
+    position:relative; border:1px solid var(--border); border-radius:16px; padding:14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    overflow:hidden; display:flex; flex-direction:column; gap:8px;
+  }
+  .pill{ font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border);
+    background:rgba(255,255,255,0.04); color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.4px; width:max-content; }
+  .metal .pill{ color:#0e3024; background: linear-gradient(180deg, rgba(141,247,197,0.8), rgba(141,247,197,0.45)); border-color: rgba(141,247,197,0.65); }
+  .nonmetal .pill{ color:#3a2200; background: linear-gradient(180deg, rgba(255,209,142,0.9), rgba(255,209,142,0.5)); border-color: rgba(255,209,142,0.65); }
+  .body{ font-size:15px; line-height:1.5; color:#eaf3ff; }
+  .body .ex{ color:#cfe8ff; opacity:0.9; }
+  .body .exception{ color:#ffdd9b; font-weight:600; }
+
+  .simcard{
+    border:1px solid var(--border); border-radius:16px; padding:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    display:flex; flex-direction:column; gap:10px; min-height: 260px;
+  }
+  .sim-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .sim-title{ font-weight:800; display:flex; align-items:center; gap:8px; }
+  .sim-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .mini{ font-size:12px; color:var(--muted); }
+  canvas.simcvs{ display:block; width:100%; height:auto; border-radius:12px; border:1px solid var(--border); background:#0a1322; }
+
+  .navbtn{
+    position:absolute; top:50%; transform: translateY(-50%); z-index:10;
+    width:48px; height:48px; border-radius:12px; border:1px solid var(--border);
+    display:grid; place-items:center; background: rgba(4,12,24,0.45); backdrop-filter: blur(6px);
+    cursor:pointer; color:#eaf3ff; font-size:22px; user-select:none;
+  }
+  .navbtn:hover{ border-color: rgba(255,255,255,0.3); transform: translateY(-50%) scale(1.03); }
+  .navbtn.left{ left: 10px; } .navbtn.right{ right: 10px; }
+
+  .deck-footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 12px 16px; border-top:1px solid var(--border); background: rgba(255,255,255,0.03); }
+  .dots{ display:flex; gap:6px; flex-wrap:wrap; }
+  .dot{ width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.15); border:1px solid var(--border); cursor:pointer; transition: all .2s ease; }
+  .dot.active{ background: linear-gradient(180deg, var(--accent), #49d7f2); box-shadow: 0 0 0 4px rgba(115,243,209,0.15); }
+  .counter{ font-size:13px; color:var(--muted); }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;wrap&quot;&gt;
+  &lt;div class=&quot;topbar&quot;&gt;
+    &lt;div class=&quot;title&quot;&gt;
+      &lt;div class=&quot;logo&quot;&gt;⚖️&lt;/div&gt;
+      &lt;div&gt;
+        &lt;h1&gt;Metals vs Non‑metals — Each property with a live simulation&lt;/h1&gt;
+        &lt;div class=&quot;muted&quot;&gt;Use ← →, swipe, or dots to navigate. Interact with the sim panel on each slide.&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;controls&quot;&gt;
+      &lt;div class=&quot;toggle&quot;&gt;
+        &lt;input id=&quot;autoplay&quot; type=&quot;checkbox&quot; /&gt;
+        &lt;label for=&quot;autoplay&quot;&gt;Autoplay&lt;/label&gt;
+        &lt;span class=&quot;muted&quot; id=&quot;speedLabel&quot;&gt;• 3s&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;input id=&quot;speed&quot; type=&quot;range&quot; min=&quot;2&quot; max=&quot;6&quot; step=&quot;1&quot; value=&quot;3&quot; aria-label=&quot;Autoplay interval (seconds)&quot; /&gt;
+      &lt;button id=&quot;prevBtn&quot; title=&quot;Previous slide&quot;&gt;⟵ Prev&lt;/button&gt;
+      &lt;button id=&quot;nextBtn&quot; title=&quot;Next slide&quot;&gt;Next ⟶&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;deck&quot; id=&quot;deck&quot; aria-live=&quot;polite&quot;&gt;
+    &lt;div class=&quot;navbtn left&quot; id=&quot;sidePrev&quot; aria-label=&quot;Previous slide&quot;&gt;⟨&lt;/div&gt;
+    &lt;div class=&quot;navbtn right&quot; id=&quot;sideNext&quot; aria-label=&quot;Next slide&quot;&gt;⟩&lt;/div&gt;
+
+    &lt;div class=&quot;slides-viewport&quot; id=&quot;viewport&quot;&gt;
+      &lt;div class=&quot;slides-layer&quot; id=&quot;layer&quot;&gt;&lt;!-- slides injected --&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;deck-footer&quot;&gt;
+      &lt;div class=&quot;progress&quot;&gt;
+        &lt;div class=&quot;dots&quot; id=&quot;dots&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;counter&quot; id=&quot;counter&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+/* --------------- Data: properties + text ---------------- */
+const slides = [
+  { key:&#39;define&#39;, title:&quot;Definition&quot;, icon:&quot;📘&quot;, desc:&quot;How metals and non‑metals behave with electrons and bonding.&quot;,
+    metal:&quot;Metals lose electrons (oxidation) to form cations. &lt;span class=&#39;ex&#39;&gt;Example:&lt;/span&gt; Na → Na⁺ + e⁻&quot;,
+    nonmetal:&quot;Non‑metals gain or share electrons to form anions or covalent bonds. &lt;span class=&#39;ex&#39;&gt;Example:&lt;/span&gt; Cl + e⁻ → Cl⁻&quot;
+  },
+  { key:&#39;state&#39;, title:&quot;Physical State&quot;, icon:&quot;🌡️&quot;, desc:&quot;Natural form at room temperature (25 °C).&quot;,
+    metal:&quot;Usually solids (exception: Mercury is liquid).&quot;,
+    nonmetal:&quot;Usually gases or solids (exception: Bromine is liquid).&quot;
+  },
+  { key:&#39;hard&#39;, title:&quot;Hardness&quot;, icon:&quot;🪨&quot;, desc:&quot;Resistance to scratching, cutting, or deformation.&quot;,
+    metal:&quot;Generally hard (e.g., Fe, Cu). &lt;span class=&#39;exception&#39;&gt;Exception:&lt;/span&gt; Na, K are very soft.&quot;,
+    nonmetal:&quot;Usually soft and brittle. &lt;span class=&#39;exception&#39;&gt;Exception:&lt;/span&gt; Diamond (C) is extremely hard.&quot;
+  },
+  { key:&#39;malleable&#39;, title:&quot;Malleability&quot;, icon:&quot;🔨&quot;, desc:&quot;Ability to be hammered into sheets.&quot;,
+    metal:&quot;Malleable (gold can be beaten extremely thin). &lt;span class=&#39;exception&#39;&gt;Brittle metals:&lt;/span&gt; Zn, As.&quot;,
+    nonmetal:&quot;Not malleable; they shatter on hammering.&quot;
+  },
+  { key:&#39;ductile&#39;, title:&quot;Ductility&quot;, icon:&quot;🧵&quot;, desc:&quot;Ability to be drawn into wires.&quot;,
+    metal:&quot;Ductile (e.g., copper wires). &lt;span class=&#39;exception&#39;&gt;Exception:&lt;/span&gt; Hg, Zn are not ductile.&quot;,
+    nonmetal:&quot;Not ductile; they break when stretched.&quot;
+  },
+  { key:&#39;heat&#39;, title:&quot;Heat Conductivity&quot;, icon:&quot;🔥&quot;, desc:&quot;Ability to transfer heat.&quot;,
+    metal:&quot;Good conductors (Cu, Ag). &lt;span class=&#39;exception&#39;&gt;Poor:&lt;/span&gt; Pb, Hg.&quot;,
+    nonmetal:&quot;Poor conductors. &lt;span class=&#39;exception&#39;&gt;Exception:&lt;/span&gt; Diamond conducts heat well.&quot;
+  },
+  { key:&#39;elec&#39;, title:&quot;Electrical Conductivity&quot;, icon:&quot;⚡&quot;, desc:&quot;Ability to conduct electricity.&quot;,
+    metal:&quot;Good conductors. &lt;span class=&#39;exception&#39;&gt;Poor:&lt;/span&gt; Bi, W.&quot;,
+    nonmetal:&quot;Bad conductors. &lt;span class=&#39;exception&#39;&gt;Exception:&lt;/span&gt; Graphite conducts electricity.&quot;
+  },
+  { key:&#39;lustre&#39;, title:&quot;Appearance (Lustre)&quot;, icon:&quot;✨&quot;, desc:&quot;Surface shine or reflectivity.&quot;,
+    metal:&quot;Lustrous (shiny) when freshly cut or polished.&quot;,
+    nonmetal:&quot;Generally dull. &lt;span class=&#39;exception&#39;&gt;Exceptions:&lt;/span&gt; Iodine, Graphite are lustrous.&quot;
+  },
+  { key:&#39;density&#39;, title:&quot;Density&quot;, icon:&quot;⚖️&quot;, desc:&quot;Mass per unit volume (g/cm³).&quot;,
+    metal:&quot;Usually high density. &lt;span class=&#39;exception&#39;&gt;Low:&lt;/span&gt; Na, K (float on water).&quot;,
+    nonmetal:&quot;Usually low density. &lt;span class=&#39;exception&#39;&gt;High:&lt;/span&gt; Diamond is very dense.&quot;
+  },
+  { key:&#39;melting&#39;, title:&quot;Melting Point&quot;, icon:&quot;♨️&quot;, desc:&quot;Temperature where solid → liquid.&quot;,
+    metal:&quot;Usually high melting points. &lt;span class=&#39;exception&#39;&gt;Low:&lt;/span&gt; Na, K, Hg.&quot;,
+    nonmetal:&quot;Generally low. &lt;span class=&#39;exception&#39;&gt;High:&lt;/span&gt; Diamond has extremely high mp.&quot;
+  },
+  { key:&#39;boiling&#39;, title:&quot;Boiling Point&quot;, icon:&quot;💨&quot;, desc:&quot;Temperature where liquid → gas.&quot;,
+    metal:&quot;Usually high boiling points. &lt;span class=&#39;exception&#39;&gt;Low:&lt;/span&gt; Hg.&quot;,
+    nonmetal:&quot;Generally low. &lt;span class=&#39;exception&#39;&gt;High:&lt;/span&gt; Diamond &amp; Graphite sublime at very high T.&quot;
+  },
+  { key:&#39;rigid&#39;, title:&quot;Rigidity&quot;, icon:&quot;🏗️&quot;, desc:&quot;Resistance to change of shape.&quot;,
+    metal:&quot;Rigid and strong. &lt;span class=&#39;exception&#39;&gt;Soft:&lt;/span&gt; Na, K.&quot;,
+    nonmetal:&quot;Generally not rigid. &lt;span class=&#39;exception&#39;&gt;Rigid:&lt;/span&gt; Diamond.&quot;
+  },
+  { key:&#39;sonority&#39;, title:&quot;Sonority&quot;, icon:&quot;🔔&quot;, desc:&quot;Ability to produce a ringing sound when struck.&quot;,
+    metal:&quot;Sonorous (ringing).&quot;,
+    nonmetal:&quot;Non‑sonorous (dull thud).&quot;
+  },
+  { key:&#39;colour&#39;, title:&quot;Colour&quot;, icon:&quot;🎨&quot;, desc:&quot;Visible appearance.&quot;,
+    metal:&quot;Mostly silvery‑grey/white. &lt;span class=&#39;exception&#39;&gt;Colored:&lt;/span&gt; Gold (yellow), Copper (reddish).&quot;,
+    nonmetal:&quot;Varied colours: S (yellow), P (red/white), I (violet).&quot;
+  }
+];
+
+/* --------------- Build slides ---------------- */
+const layer = document.getElementById(&#39;layer&#39;);
+const dotsEl = document.getElementById(&#39;dots&#39;);
+const counterEl = document.getElementById(&#39;counter&#39;);
+const prevBtn = document.getElementById(&#39;prevBtn&#39;);
+const nextBtn = document.getElementById(&#39;nextBtn&#39;);
+const sidePrev = document.getElementById(&#39;sidePrev&#39;);
+const sideNext = document.getElementById(&#39;sideNext&#39;);
+const viewport = document.getElementById(&#39;viewport&#39;);
+const autoplay = document.getElementById(&#39;autoplay&#39;);
+const speed = document.getElementById(&#39;speed&#39;);
+const speedLabel = document.getElementById(&#39;speedLabel&#39;);
+
+let index = 0;
+let autoplayTimer = null;
+let slideEls = [];
+const simInstances = {}; // key: slideIndex =&gt; sim object
+
+function buildSlides(){
+  layer.innerHTML = &#39;&#39;;
+  dotsEl.innerHTML = &#39;&#39;;
+  slideEls = slides.map((s, i) =&gt; {
+    const sec = document.createElement(&#39;section&#39;);
+    sec.className = &#39;slide&#39;;
+    sec.setAttribute(&#39;role&#39;,&#39;group&#39;);
+    sec.setAttribute(&#39;aria-label&#39;, `${s.title} (${i+1} of ${slides.length})`);
+
+    const simId = `sim-${s.key}-${i}`;
+
+    sec.innerHTML = `
+      &lt;div class=&quot;ph&quot;&gt;
+        &lt;div class=&quot;icon&quot;&gt;${s.icon}&lt;/div&gt;
+        &lt;div&gt;
+          &lt;div class=&quot;t&quot;&gt;${s.title}&lt;/div&gt;
+          &lt;div class=&quot;d&quot;&gt;${s.desc}&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;slidegrid&quot;&gt;
+        &lt;div class=&quot;cards&quot;&gt;
+          &lt;div class=&quot;card metal&quot;&gt;
+            &lt;span class=&quot;pill&quot;&gt;Metals&lt;/span&gt;
+            &lt;div class=&quot;body&quot;&gt;${s.metal}&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;card nonmetal&quot;&gt;
+            &lt;span class=&quot;pill&quot;&gt;Non‑metals&lt;/span&gt;
+            &lt;div class=&quot;body&quot;&gt;${s.nonmetal}&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;simcard&quot; id=&quot;${simId}&quot;&gt;
+          &lt;div class=&quot;sim-head&quot;&gt;
+            &lt;div class=&quot;sim-title&quot;&gt;Simulation&lt;/div&gt;
+            &lt;div class=&quot;sim-controls&quot; id=&quot;${simId}-controls&quot;&gt;&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;sim-body&quot; id=&quot;${simId}-body&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    `;
+    layer.appendChild(sec);
+
+    // dot
+    const d = document.createElement(&#39;div&#39;);
+    d.className = &#39;dot&#39;;
+    d.title = s.title;
+    d.addEventListener(&#39;click&#39;, () =&gt; goTo(i));
+    dotsEl.appendChild(d);
+
+    // init sim
+    const container = sec.querySelector(`#${simId}`);
+    createSimulationForSlide(i, slides[i].key, container);
+
+    return sec;
+  });
+  updateUI();
+}
+
+function goTo(i){
+  const clamped = Math.max(0, Math.min(slides.length - 1, i));
+  if (clamped === index){
+    slideEls[index].classList.remove(&#39;active&#39;);
+    requestAnimationFrame(()=&gt; slideEls[index].classList.add(&#39;active&#39;));
+    return;
+  }
+  slideEls[index]?.classList.remove(&#39;active&#39;);
+  // deactivate old sim
+  simInstances[index]?.deactivate?.();
+  index = clamped;
+  slideEls[index]?.classList.add(&#39;active&#39;);
+  // activate new sim
+  simInstances[index]?.activate?.();
+  updateUI();
+}
+
+function next(){ goTo((index + 1) % slides.length); }
+function prev(){ goTo((index - 1 + slides.length) % slides.length); }
+
+function updateUI(){
+  [...dotsEl.children].forEach((dot, i) =&gt; dot.classList.toggle(&#39;active&#39;, i === index));
+  counterEl.textContent = `${index+1} / ${slides.length}`;
+}
+function setAutoplay(on){
+  if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+  if (on){
+    autoplayTimer = setInterval(()=&gt;{ if (!document.hidden) next(); }, +speed.value * 1000);
+  }
+}
+function updateSpeedLabel(){ speedLabel.textContent = `• ${speed.value}s`; }
+
+prevBtn.addEventListener(&#39;click&#39;, prev);
+nextBtn.addEventListener(&#39;click&#39;, next);
+sidePrev.addEventListener(&#39;click&#39;, prev);
+sideNext.addEventListener(&#39;click&#39;, next);
+autoplay.addEventListener(&#39;change&#39;, ()=&gt; setAutoplay(autoplay.checked));
+speed.addEventListener(&#39;input&#39;, ()=&gt;{ updateSpeedLabel(); setAutoplay(autoplay.checked); });
+
+let touchStartX = null;
+viewport.addEventListener(&#39;touchstart&#39;, (e)=&gt;{ touchStartX = e.touches[0].clientX; }, {passive:true});
+viewport.addEventListener(&#39;touchend&#39;, (e)=&gt;{
+  if (touchStartX == null) return;
+  const dx = (e.changedTouches[0].clientX - touchStartX);
+  const threshold = Math.min(120, viewport.clientWidth * 0.18);
+  if (dx &gt; threshold) prev(); else if (dx &lt; -threshold) next();
+  touchStartX = null;
+}, {passive:true});
+window.addEventListener(&#39;keydown&#39;, (e)=&gt;{
+  if (e.key === &#39;ArrowRight&#39;) { e.preventDefault(); next(); }
+  if (e.key === &#39;ArrowLeft&#39;)  { e.preventDefault(); prev(); }
+});
+
+/* --------------- Utilities ---------------- */
+const prefersReduced = window.matchMedia(&#39;(prefers-reduced-motion: reduce)&#39;).matches;
+const clamp = (v,min,max)=&gt; Math.max(min, Math.min(max, v));
+const lerp = (a,b,t)=&gt; a + (b-a)*t;
+function fitHiDPICanvas(cvs, w, h){
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  cvs.width = Math.round(w * dpr);
+  cvs.height = Math.round(h * dpr);
+  cvs.style.width = w + &#39;px&#39;;
+  cvs.style.height = h + &#39;px&#39;;
+  const ctx = cvs.getContext(&#39;2d&#39;);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return ctx;
+}
+function makeCanvas(container, height=260){
+  const cvs = document.createElement(&#39;canvas&#39;);
+  cvs.className = &#39;simcvs&#39;;
+  container.appendChild(cvs);
+  // size to container width
+  const resize = ()=&gt;{
+    const w = container.clientWidth || 600;
+    fitHiDPICanvas(cvs, w, height);
+  };
+  resize();
+  new ResizeObserver(resize).observe(container);
+  return cvs;
+}
+
+/* --------------- Simulation builders per slide ---------------- */
+function createSimulationForSlide(i, key, simcard){
+  const controls = simcard.querySelector(`#${simcard.id}-controls`);
+  const body = simcard.querySelector(`#${simcard.id}-body`);
+  let sim = null;
+
+  const builders = {
+    define: buildDefine,
+    state: buildState,
+    hard: buildHard,
+    malleable: buildMalleable,
+    ductile: buildDuctile,
+    heat: buildHeat,
+    elec: buildElec,
+    lustre: buildLustre,
+    density: buildDensity,
+    melting: buildMelting,
+    boiling: buildBoiling,
+    rigid: buildRigid,
+    sonority: buildSonority,
+    colour: buildColour
+  };
+  const builder = builders[key];
+  sim = builder({controls, body});
+  simInstances[i] = sim;
+}
+
+/* -- 0. Definition: electron transfer (Na -&gt; Cl) -- */
+function buildDefine({controls, body}){
+  const btn = document.createElement(&#39;button&#39;); btn.textContent = &#39;Transfer Electron&#39;;
+  controls.appendChild(btn);
+  const cvs = makeCanvas(body, 260);
+  const ctx = cvs.getContext(&#39;2d&#39;);
+
+  const state = {
+    t: 0, anim:false, done:false
+  };
+  btn.addEventListener(&#39;click&#39;, ()=&gt;{ if (!state.done){ state.anim = true; } });
+
+  function draw(){
+    const w=cvs.width/ (window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    ctx.clearRect(0,0,w,h);
+    const left = {x:w*0.28, y:h*0.55}, right={x:w*0.72, y:h*0.45};
+    // atoms
+    ctx.fillStyle = &#39;rgba(120,200,255,0.2)&#39;;
+    ctx.beginPath(); ctx.arc(left.x, left.y, 60, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = &#39;rgba(200,160,255,0.2)&#39;;
+    ctx.beginPath(); ctx.arc(right.x, right.y, 60, 0, Math.PI*2); ctx.fill();
+
+    // labels
+    ctx.fillStyle=&#39;rgba(200,230,255,0.9)&#39;; ctx.font=&#39;14px system-ui&#39;;
+    ctx.textAlign=&#39;center&#39;;
+    ctx.fillText(state.done?&#39;Na⁺ (metal)&#39;:&#39;Na (metal)&#39;, left.x, left.y-72);
+    ctx.fillStyle=&#39;rgba(220,200,255,0.9)&#39;;
+    ctx.fillText(state.done?&#39;Cl⁻ (non‑metal)&#39;:&#39;Cl (non‑metal)&#39;, right.x, right.y-72);
+
+    // electron path
+    const p0 = {x:left.x+40, y:left.y-10};
+    const p3 = {x:right.x-40, y:right.y+8};
+    const p1 = {x: lerp(p0.x, p3.x, .35), y: p0.y-60};
+    const p2 = {x: lerp(p0.x, p3.x, .65), y: p3.y-60};
+
+    // draw electron
+    let ex=p0.x, ey=p0.y;
+    if (state.done){
+      ex = p3.x; ey = p3.y;
+    }else if (state.anim){
+      const t = state.t;
+      const x = (1-t)**3*p0.x + 3*(1-t)**2*t*p1.x + 3*(1-t)*t**2*p2.x + t**3*p3.x;
+      const y = (1-t)**3*p0.y + 3*(1-t)**2*t*p1.y + 3*(1-t)*t**2*p2.y + t**3*p3.y;
+      ex=x; ey=y;
+      // trail
+      ctx.strokeStyle=&#39;rgba(180,255,200,0.25)&#39;; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.moveTo(p0.x,p0.y); ctx.bezierCurveTo(p1.x,p1.y,p2.x,p2.y,p3.x,p3.y); ctx.stroke(); ctx.setLineDash([]);
+    }else{
+      // idle orbit electron around Na
+      const t = performance.now()/1000;
+      ex = left.x + 40*Math.cos(t*1.6);
+      ey = left.y + 40*Math.sin(t*1.6);
+    }
+    // electron dot
+    ctx.fillStyle=&#39;rgba(180,255,200,0.95)&#39;;
+    ctx.beginPath(); ctx.arc(ex,ey,6,0,Math.PI*2); ctx.fill();
+
+    // arrow hint
+    ctx.strokeStyle=&#39;rgba(180,255,200,0.4)&#39;; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(left.x+65, left.y-20); ctx.lineTo(right.x-65, right.y-20); ctx.stroke();
+    ctx.fillStyle=&#39;rgba(180,255,200,0.6)&#39;; ctx.beginPath();
+    ctx.moveTo(right.x-65, right.y-20);
+    ctx.lineTo(right.x-75, right.y-26);
+    ctx.lineTo(right.x-75, right.y-14);
+    ctx.closePath(); ctx.fill();
+
+    // charge signs
+    if (state.done){
+      ctx.fillStyle=&#39;rgba(180,255,200,0.9)&#39;; ctx.font=&#39;24px system-ui&#39;;
+      ctx.fillText(&#39;+&#39;, left.x, left.y+8);
+      ctx.fillStyle=&#39;rgba(200,180,255,0.9)&#39;; ctx.fillText(&#39;−&#39;, right.x, right.y+8);
+    }
+
+    // caption
+    ctx.fillStyle=&#39;rgba(220,240,255,0.8)&#39;; ctx.font=&#39;12px system-ui&#39;; ctx.textAlign=&#39;left&#39;;
+    ctx.fillText(&#39;Click &quot;Transfer Electron&quot; to form Na⁺ and Cl⁻&#39;, 12, 20);
+  }
+  function update(dt){
+    if (state.anim &amp;&amp; !state.done){
+      state.t += dt*0.6;
+      if (state.t &gt;= 1){ state.t = 1; state.anim=false; state.done=true; }
+    }
+  }
+  return {
+    activate(){ /* noop */ },
+    deactivate(){ /* noop */ },
+    updateDraw(dt){ update(dt); draw(); }
+  };
+}
+
+/* -- 1. Physical State: particles for gas/liquid/solid (side-by-side) -- */
+function buildState({controls, body}){
+  const wrap = document.createElement(&#39;div&#39;);
+  wrap.style.display = &#39;grid&#39;; wrap.style.gridTemplateColumns = &#39;1fr 1fr&#39;; wrap.style.gap=&#39;8px&#39;;
+  body.appendChild(wrap);
+
+  // Controls
+  const leftSel = document.createElement(&#39;select&#39;);
+  [&#39;Fe (solid)&#39;,&#39;Hg (liquid)&#39;].forEach((opt,i)=&gt;{ const o=document.createElement(&#39;option&#39;); o.value = i===0?&#39;solid&#39;:&#39;liquid&#39;; o.textContent = opt; leftSel.appendChild(o); });
+  const rightSel = document.createElement(&#39;select&#39;);
+  [&#39;O₂ (gas)&#39;,&#39;Br₂ (liquid)&#39;,&#39;S (solid)&#39;].forEach((opt,i)=&gt;{ const o=document.createElement(&#39;option&#39;); o.value = [&#39;gas&#39;,&#39;liquid&#39;,&#39;solid&#39;][i]; o.textContent = opt; rightSel.appendChild(o); });
+  rightSel.value=&#39;gas&#39;;
+  const lbl1 = document.createElement(&#39;span&#39;); lbl1.className=&#39;mini&#39;; lbl1.textContent=&#39;Metal&#39;;
+  const lbl2 = document.createElement(&#39;span&#39;); lbl2.className=&#39;mini&#39;; lbl2.textContent=&#39;Non‑metal&#39;;
+  controls.appendChild(lbl1); controls.appendChild(leftSel); controls.appendChild(lbl2); controls.appendChild(rightSel);
+
+  // Two canvases
+  const leftCard = document.createElement(&#39;div&#39;); const rightCard = document.createElement(&#39;div&#39;);
+  wrap.appendChild(leftCard); wrap.appendChild(rightCard);
+  const cvL = makeCanvas(leftCard, 220), cvR = makeCanvas(rightCard, 220);
+  const ctxL = cvL.getContext(&#39;2d&#39;), ctxR = cvR.getContext(&#39;2d&#39;);
+
+  function makeParticles(n, w,h, speed){ return Array.from({length:n},()=&gt;({x:Math.random()*w, y:Math.random()*h, vx:(Math.random()*2-1)*speed, vy:(Math.random()*2-1)*speed})); }
+  const state = {
+    L: {mode: &#39;solid&#39;, parts: makeParticles(0, 1,1,0)},
+    R: {mode: &#39;gas&#39;, parts: makeParticles(40, cvR.width, cvR.height, 70)}
+  };
+  leftSel.addEventListener(&#39;change&#39;, ()=&gt;{ state.L.mode = leftSel.value; if (state.L.mode===&#39;gas&#39;) state.L.parts = makeParticles(40, cvL.width, cvL.height, 70); });
+  rightSel.addEventListener(&#39;change&#39;, ()=&gt;{ state.R.mode = rightSel.value; if (state.R.mode===&#39;gas&#39;) state.R.parts = makeParticles(40, cvR.width, cvR.height, 70); });
+
+  function drawPanel(ctx, w,h, env){
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=&#39;rgba(180,210,255,0.35)&#39;; ctx.strokeRect(10,10,w-20,h-20);
+    ctx.font=&#39;12px system-ui&#39;; ctx.fillStyle=&#39;rgba(220,240,255,0.8)&#39;;
+    ctx.fillText(env.mode.toUpperCase(), 16, 22);
+
+    const iw = w-40, ih=h-40, ox=20, oy=20;
+    if (env.mode===&#39;solid&#39;){
+      ctx.fillStyle=&#39;rgba(200,230,255,0.9)&#39;;
+      const sx = 10, sy = 10;
+      for (let y=0;y&lt;ih;y+=sy){
+        for (let x=0;x&lt;iw;x+=sx){
+          ctx.fillRect(ox+x, oy+y, 3, 3);
+        }
+      }
+    } else if (env.mode===&#39;liquid&#39;){
+      // blobs
+      ctx.fillStyle=&#39;rgba(160,200,255,0.25)&#39;;
+      for(let i=0;i&lt;8;i++){
+        const rx = ox + iw*0.1 + Math.random()*iw*0.8;
+        const ry = oy + ih*0.2 + Math.random()*ih*0.6;
+        const rw = 30 + Math.random()*50;
+        ctx.beginPath(); ctx.ellipse(rx, ry, rw, rw*0.6, 0, 0, Math.PI*2); ctx.fill();
+      }
+      // surface wave
+      ctx.strokeStyle=&#39;rgba(200,230,255,0.6)&#39;; ctx.lineWidth=2;
+      ctx.beginPath();
+      for(let x=0;x&lt;=iw;x+=4){
+        const y = ih*0.7 + 6*Math.sin((performance.now()/400) + x*0.08);
+        ctx.lineTo(ox+x, oy+y);
+      }
+      ctx.stroke();
+    } else {
+      // gas: bouncing particles
+      ctx.fillStyle=&#39;rgba(180,255,220,0.9)&#39;;
+      for (const p of env.parts){
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  function updateGas(env, w,h, dt){
+    if (env.mode!==&#39;gas&#39;) return;
+    const minx=20,maxx=w-20,miny=20,maxy=h-20;
+    for (const p of env.parts){
+      p.x += p.vx*dt; p.y += p.vy*dt;
+      if (p.x&lt;minx||p.x&gt;maxx) p.vx*=-1;
+      if (p.y&lt;miny||p.y&gt;maxy) p.vy*=-1;
+    }
+  }
+
+  return {
+    activate(){},
+    deactivate(){},
+    updateDraw(dt){
+      const dpr = window.devicePixelRatio||1;
+      const wL=cvL.width/dpr, hL=cvL.height/dpr, wR=cvR.width/dpr, hR=cvR.height/dpr;
+      updateGas(state.L, wL,hL, dt);
+      updateGas(state.R, wR,hR, dt);
+      drawPanel(ctxL, wL,hL, state.L);
+      drawPanel(ctxR, wR,hR, state.R);
+    }
+  };
+}
+
+/* -- 2. Hardness: scratch test (side-by-side) -- */
+function buildHard({controls, body}){
+  const row = document.createElement(&#39;div&#39;); row.className=&#39;sim-controls&#39;;
+  row.innerHTML = `
+    &lt;span class=&quot;mini&quot;&gt;Force&lt;/span&gt;
+    &lt;input id=&quot;hf&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;10&quot; step=&quot;0.1&quot; value=&quot;4&quot; /&gt;
+    &lt;span class=&quot;mini&quot;&gt;&lt;span id=&quot;hfVal&quot;&gt;4.0&lt;/span&gt; N&lt;/span&gt;
+    &lt;button id=&quot;hReset&quot;&gt;Reset&lt;/button&gt;
+  `;
+  controls.appendChild(row);
+  const hf = row.querySelector(&#39;#hf&#39;), hfVal=row.querySelector(&#39;#hfVal&#39;), hReset=row.querySelector(&#39;#hReset&#39;);
+
+  const grid = document.createElement(&#39;div&#39;);
+  grid.style.display=&#39;grid&#39;; grid.style.gridTemplateColumns=&#39;1fr 1fr&#39;; grid.style.gap=&#39;8px&#39;;
+  body.appendChild(grid);
+
+  function makePanel(label){
+    const wrap = document.createElement(&#39;div&#39;);
+    const cap = document.createElement(&#39;div&#39;); cap.className=&#39;mini&#39;; cap.textContent=label; cap.style.margin=&#39;4px 0&#39;;
+    const sub = document.createElement(&#39;div&#39;);
+    wrap.appendChild(cap); wrap.appendChild(sub);
+    const cvs = makeCanvas(sub, 200);
+    return {wrap, cvs};
+  }
+  const metal = makePanel(&#39;Metal&#39;); const non = makePanel(&#39;Non‑metal&#39;);
+  grid.appendChild(metal.wrap); grid.appendChild(non.wrap);
+
+  function mkSurface(name, cvs){
+    const ctx = cvs.getContext(&#39;2d&#39;);
+    const s = {name, ctx, cvs, w:0,h:0, brittle: (name===&#39;Non‑metal&#39;)?0.65:0.12, hardness:(name===&#39;Metal&#39;)?7.0:2.2, stylus:{x:40,y:40,down:false}, paths:[]};
+    return s;
+  }
+  const surfM = mkSurface(&#39;Metal&#39;, metal.cvs), surfN = mkSurface(&#39;Non‑metal&#39;, non.cvs);
+  let force = +hf.value;
+
+  function initSurface(s){
+    const dpr=window.devicePixelRatio||1, w=s.cvs.width/dpr, h=s.cvs.height/dpr; s.w=w; s.h=h;
+    const {ctx} = s; ctx.clearRect(0,0,w,h);
+    const g = ctx.createLinearGradient(0,0,0,h);
+    if (s.name===&#39;Metal&#39;){ g.addColorStop(0,&#39;#0c172a&#39;); g.addColorStop(1,&#39;#0a1422&#39;); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+      ctx.strokeStyle=&#39;rgba(200,240,255,0.06)&#39;; for(let y=10;y&lt;h;y+=6){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    } else { g.addColorStop(0,&#39;#0b1526&#39;); g.addColorStop(1,&#39;#0a1322&#39;); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+      for(let i=0;i&lt;300;i++){ ctx.fillStyle=`rgba(200,220,255,${Math.random()*0.08})`; ctx.fillRect(Math.random()*w, Math.random()*h,1,1); }
+    }
+    ctx.fillStyle=&#39;rgba(255,255,255,0.08)&#39;; ctx.font=&#39;12px system-ui&#39;; ctx.fillText(&#39;Drag to scratch&#39;, 10, h-10);
+  }
+  function drawSurface(s){
+    initSurface(s);
+    const ctx=s.ctx;
+    for (const p of s.paths){
+      ctx.lineCap=&#39;round&#39;; ctx.lineJoin=&#39;round&#39;; ctx.lineWidth=p.w;
+      if (s.name===&#39;Metal&#39;){ ctx.strokeStyle=&#39;rgba(170,240,255,0.55)&#39;; ctx.shadowBlur=6; ctx.shadowColor=&#39;rgba(140,230,255,0.6)&#39;; }
+      else { ctx.strokeStyle=&#39;rgba(40,60,100,0.85)&#39;; ctx.shadowBlur=0; }
+      ctx.beginPath(); ctx.moveTo(p.pts[0].x,p.pts[0].y);
+      for(let i=1;i&lt;p.pts.length;i++) ctx.lineTo(p.pts[i].x,p.pts[i].y);
+      ctx.stroke();
+      if (s.name!==&#39;Metal&#39;){ ctx.strokeStyle=&#39;rgba(200,200,230,0.25)&#39;; ctx.lineWidth=1;
+        p.chips.forEach(c=&gt;{ ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(c.x2,c.y2); ctx.stroke(); });
+      }
+      if (s.name===&#39;Metal&#39;){ ctx.lineWidth=Math.max(1, p.w*0.7); ctx.strokeStyle=&#39;rgba(120,220,255,0.5)&#39;; ctx.stroke(); }
+      ctx.shadowBlur=0;
+    }
+  }
+  function addEvents(s){
+    const cvs=s.cvs;
+    function pos(e){ const r=cvs.getBoundingClientRect(); const x=(e.clientX??e.touches?.[0].clientX)-r.left; const y=(e.clientY??e.touches?.[0].clientY)-r.top; const dpr=window.devicePixelRatio||1; return {x:x*dpr, y:y*dpr};}
+    function down(e){ s.stylus.down=true; const p=pos(e); startScratch(s,p.x/(window.devicePixelRatio||1),p.y/(window.devicePixelRatio||1)); e.preventDefault?.(); cvs.setPointerCapture?.(e.pointerId); }
+    function move(e){ const p=pos(e); if (s.stylus.down) extendScratch(s,p.x/(window.devicePixelRatio||1),p.y/(window.devicePixelRatio||1)); }
+    function up(){ s.stylus.down=false; }
+    cvs.addEventListener(&#39;pointerdown&#39;,down); cvs.addEventListener(&#39;pointermove&#39;,move); cvs.addEventListener(&#39;pointerup&#39;,up); cvs.addEventListener(&#39;pointerleave&#39;,up);
+    cvs.addEventListener(&#39;touchstart&#39;,down,{passive:false}); cvs.addEventListener(&#39;touchmove&#39;,move,{passive:false}); cvs.addEventListener(&#39;touchend&#39;,up,{passive:false});
+  }
+  function startScratch(s,x,y){ const width = 0.6 + 3.4*(force/s.hardness); s.paths.push({pts:[{x,y}], w:width, chips:[]}); drawSurface(s); }
+  function extendScratch(s,x,y){
+    const p=s.paths[s.paths.length-1]; if(!p) return;
+    const last=p.pts[p.pts.length-1]; const dx=x-last.x, dy=y-last.y; if(dx*dx+dy*dy&lt;4) return;
+    p.pts.push({x,y});
+    if (s.brittle&gt;0.5 &amp;&amp; force&gt;6 &amp;&amp; Math.random()&lt;0.25){
+      const nx=-dy, ny=dx, nlen=Math.hypot(nx,ny)||1, nxn=nx/nlen, nyn=ny/nlen;
+      const len=6+Math.random()*12; p.chips.push({x,y,x2:x+nxn*len*(Math.random()&lt;0.5?-1:1), y2:y+nyn*len*(Math.random()&lt;0.5?-1:1)});
+    }
+    drawSurface(s);
+  }
+
+  function reset(){ surfM.paths=[]; surfN.paths=[]; initSurface(surfM); initSurface(surfN); }
+  hf.addEventListener(&#39;input&#39;, ()=&gt;{ force=+hf.value; hfVal.textContent=force.toFixed(1); });
+  hReset.addEventListener(&#39;click&#39;, reset);
+  initSurface(surfM); initSurface(surfN); addEvents(surfM); addEvents(surfN);
+
+  return {
+    activate(){},
+    deactivate(){},
+    updateDraw(){ drawSurface(surfM); drawSurface(surfN); }
+  };
+}
+
+/* -- 3. Malleability: hammering sheet/brick -- */
+function buildMalleable({controls, body}){
+  const hitBtn = document.createElement(&#39;button&#39;); hitBtn.textContent=&#39;Hit&#39;;
+  const resetBtn = document.createElement(&#39;button&#39;); resetBtn.textContent=&#39;Reset&#39;;
+  controls.appendChild(hitBtn); controls.appendChild(resetBtn);
+
+  const cvs = makeCanvas(body, 240); const ctx = cvs.getContext(&#39;2d&#39;);
+  const dpr=()=&gt;window.devicePixelRatio||1;
+
+  const state = {
+    hitsM:0, hitsN:0, // number of hits applied
+  };
+
+  function draw(){
+    const w=cvs.width/dpr(), h=cvs.height/dpr();
+    ctx.clearRect(0,0,w,h);
+    // split
+    const mid = w/2;
+    ctx.strokeStyle=&#39;rgba(180,210,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20);
+    ctx.strokeRect(mid+10,10,mid-20,h-20);
+    ctx.font=&#39;12px system-ui&#39;; ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;;
+    ctx.fillText(&#39;Metal&#39;, 16, 22); ctx.fillText(&#39;Non‑metal&#39;, mid+16, 22);
+
+    // base anvil line
+    const baseY = h-40;
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.4)&#39;; ctx.beginPath(); ctx.moveTo(20,baseY); ctx.lineTo(mid-20,baseY); ctx.moveTo(mid+20,baseY); ctx.lineTo(w-20,baseY); ctx.stroke();
+
+    // metal sheet -&gt; spreads (volume approx constant)
+    const A0=140*20; // initial area proxy
+    const tM = Math.max(6, 20 - state.hitsM*2.2);
+    const wM = A0/tM;
+    const xM = 20 + (mid-40 - wM)/2;
+    ctx.fillStyle=&#39;rgba(160,240,200,0.85)&#39;;
+    ctx.fillRect(xM, baseY - tM, wM, tM);
+
+    // non-metal brick -&gt; cracks and breaks
+    const tN = Math.max(10, 20 - state.hitsN*0.8);
+    const wN = 120;
+    const xN = mid+20 + (mid-40 - wN)/2;
+    ctx.fillStyle=&#39;rgba(255,220,170,0.9)&#39;;
+    ctx.fillRect(xN, baseY - tN, wN, tN);
+    if (state.hitsN &gt;= 4){
+      ctx.strokeStyle=&#39;rgba(255,200,200,0.7)&#39;; ctx.lineWidth=1.5;
+      for (let i=0;i&lt;state.hitsN-3;i++){
+        const cx = xN + 10 + i*20; const cy = baseY - tN/2 + (Math.random()*10-5);
+        ctx.beginPath(); ctx.moveTo(cx, baseY - tN); ctx.lineTo(cx+8, baseY); ctx.stroke();
+      }
+      if (state.hitsN &gt;= 7){
+        // fracture line
+        ctx.strokeStyle=&#39;rgba(255,180,180,0.9)&#39;;
+        ctx.beginPath(); ctx.moveTo(xN+wN*0.55, baseY-tN); ctx.lineTo(xN+wN*0.45, baseY); ctx.stroke();
+      }
+    }
+
+    // hammer hint
+    ctx.fillStyle=&#39;rgba(220,240,255,0.8)&#39;; ctx.fillText(&#39;Press &quot;Hit&quot; to hammer&#39;, 16, h-12);
+  }
+  hitBtn.addEventListener(&#39;click&#39;, ()=&gt;{ state.hitsM++; state.hitsN++; draw(); });
+  resetBtn.addEventListener(&#39;click&#39;, ()=&gt;{ state.hitsM=0; state.hitsN=0; draw(); });
+
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* -- 4. Ductility: tensile test -- */
+function buildDuctile({controls, body}){
+  const pull = document.createElement(&#39;input&#39;); pull.type=&#39;range&#39;; pull.min=&#39;0&#39;; pull.max=&#39;1&#39;; pull.step=&#39;0.005&#39;; pull.value=&#39;0&#39;;
+  const pl = document.createElement(&#39;span&#39;); pl.className=&#39;mini&#39;; pl.innerHTML = &#39;Pull&#39;;
+  const pv = document.createElement(&#39;span&#39;); pv.className=&#39;mini&#39;; pv.innerHTML = &#39;&lt;span id=&quot;pvv&quot;&gt;0.00&lt;/span&gt;&#39;;
+  controls.appendChild(pl); controls.appendChild(pull); controls.appendChild(pv);
+  const pvv = pv.querySelector(&#39;#pvv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+
+  function draw(){
+    const t = +pull.value; pvv.textContent = t.toFixed(2);
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    ctx.clearRect(0,0,w,h);
+    const mid=w/2, top=20, bottom=h-40;
+    // posts
+    ctx.fillStyle=&#39;rgba(200,220,255,0.25)&#39;;
+    ctx.fillRect(20, top, 14, bottom-top);
+    ctx.fillRect(w-34, top, 14, bottom-top);
+    ctx.font=&#39;12px system-ui&#39;; ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.fillText(&#39;Metal&#39;, 26, 18); ctx.fillText(&#39;Non‑metal&#39;, w-102, 18);
+
+    // bars
+    const L0 = (w-120)/2;
+    // Metal elongates, necking after 0.5
+    const Lm = L0*(1 + 0.6*t);
+    let wm = 18*(1 - Math.max(0, t-0.5)*0.7);
+    wm = Math.max(6, wm);
+    ctx.fillStyle=&#39;rgba(160,240,200,0.9)&#39;;
+    ctx.fillRect(34, h/2 - wm/2, Lm, wm);
+
+    // Non-metal short brittle: breaks ~ t&gt;0.18
+    const Ln = L0*(1 + 0.15*t);
+    const wn = 16;
+    ctx.fillStyle=&#39;rgba(255,220,170,0.9)&#39;;
+    if (t &lt; 0.18){
+      ctx.fillRect(w-34-Ln, h/2 - wn/2, Ln, wn);
+    } else {
+      // break draw two halves
+      const frac = w-34-Ln*0.55;
+      ctx.fillRect(frac, h/2 - wn/2, Ln*0.55, wn);
+      ctx.fillRect(w-34 - Ln*0.4, h/2 - wn/2, Ln*0.4, wn);
+      ctx.strokeStyle=&#39;rgba(255,180,180,0.9)&#39;;
+      ctx.beginPath(); ctx.moveTo(frac, h/2 - wn/2); ctx.lineTo(w-34 - Ln*0.4, h/2 + wn/2); ctx.stroke();
+    }
+  }
+  pull.addEventListener(&#39;input&#39;, draw);
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* -- 5. Heat Conductivity: two rods diffusion -- */
+function buildHeat({controls, body}){
+  const hot = document.createElement(&#39;input&#39;); hot.type=&#39;range&#39;; hot.min=&#39;40&#39;; hot.max=&#39;200&#39;; hot.step=&#39;5&#39;; hot.value=&#39;120&#39;;
+  const hotLbl = document.createElement(&#39;span&#39;); hotLbl.className=&#39;mini&#39;; hotLbl.innerHTML = &#39;Hot end&#39;;
+  const val = document.createElement(&#39;span&#39;); val.className=&#39;mini&#39;; val.innerHTML = `&lt;span id=&quot;hv&quot;&gt;${hot.value}&lt;/span&gt; °C`;
+  const hv = val.querySelector(&#39;#hv&#39;);
+  const play = document.createElement(&#39;button&#39;); play.textContent=&#39;Play&#39;;
+  const reset = document.createElement(&#39;button&#39;); reset.textContent=&#39;Reset&#39;;
+  controls.appendChild(hotLbl); controls.appendChild(hot); controls.appendChild(val); controls.appendChild(play); controls.appendChild(reset);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+
+  const H = {
+    Nx: 80, amb:25, Thot:+hot.value, dt:0.15, alphaM:1.2, alphaN:0.25, t:0, play:false,
+    Tm:[], Tn:[]
+  };
+  function init(){ H.Tm=Array(H.Nx).fill(H.amb); H.Tn=Array(H.Nx).fill(H.amb); H.t=0; }
+  function step(){
+    const newM=H.Tm.slice(), newN=H.Tn.slice(); const N=H.Nx;
+    newM[0]=H.Thot; newN[0]=H.Thot; newM[N-1]=lerp(H.Tm[N-1],H.amb,0.02); newN[N-1]=lerp(H.Tn[N-1],H.amb,0.02);
+    for(let i=1;i&lt;N-1;i++){ newM[i]=H.Tm[i]+H.alphaM*H.dt*(H.Tm[i-1]-2*H.Tm[i]+H.Tm[i+1]); newN[i]=H.Tn[i]+H.alphaN*H.dt*(H.Tn[i-1]-2*H.Tn[i]+H.Tn[i+1]); }
+    H.Tm=newM; H.Tn=newN; H.t+=H.dt;
+  }
+  function tColor(T){ const t = clamp((T-25)/(200-25),0,1), h=lerp(210,10,t), s=lerp(70,90,t), l=lerp(40,55,t); return `hsl(${h}deg ${s}% ${l}%)`; }
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    const pad=24, rodW=w-pad*2, rodH=(h-pad*3)/2, dx=rodW/H.Nx;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (higher thermal conductivity)&#39;, pad, pad-6);
+    ctx.fillText(&#39;Non‑metal (lower thermal conductivity)&#39;, pad, pad*2+rodH-6);
+    for(let i=0;i&lt;H.Nx;i++){ ctx.fillStyle=tColor(H.Tm[i]); ctx.fillRect(pad+i*dx, pad, dx+1, rodH); }
+    for(let i=0;i&lt;H.Nx;i++){ ctx.fillStyle=tColor(H.Tn[i]); ctx.fillRect(pad+i*dx, pad*2+rodH, dx+1, rodH); }
+    ctx.fillStyle=&#39;rgba(255,200,120,0.8)&#39;; ctx.fillRect(pad-8, pad, 6, rodH); ctx.fillRect(pad-8, pad*2+rodH, 6, rodH);
+  }
+  hot.addEventListener(&#39;input&#39;, ()=&gt;{ H.Thot=+hot.value; hv.textContent=hot.value; });
+  play.addEventListener(&#39;click&#39;, ()=&gt;{ H.play=!H.play; play.textContent=H.play?&#39;Pause&#39;:&#39;Play&#39;; });
+  reset.addEventListener(&#39;click&#39;, ()=&gt;{ init(); draw(); });
+
+  init(); draw();
+  return {
+    activate(){},
+    deactivate(){},
+    updateDraw(){ if (H.play &amp;&amp; !prefersReduced) step(); draw(); }
+  };
+}
+
+/* -- 6. Electrical Conductivity: two circuits side-by-side -- */
+function buildElec({controls, body}){
+  const V = document.createElement(&#39;input&#39;); V.type=&#39;range&#39;; V.min=&#39;0&#39;; V.max=&#39;9&#39;; V.step=&#39;0.5&#39;; V.value=&#39;6&#39;;
+  const vl = document.createElement(&#39;span&#39;); vl.className=&#39;mini&#39;; vl.innerHTML=`Voltage &lt;span id=&quot;vv&quot;&gt;6.0&lt;/span&gt; V`;
+  controls.appendChild(V); controls.appendChild(vl);
+  const vv = vl.querySelector(&#39;#vv&#39;);
+
+  const cvs = makeCanvas(body, 240); const ctx = cvs.getContext(&#39;2d&#39;);
+  const Rm = { metal: 1, non: 5e6, graphite: 50 };
+
+  const state = { V:+V.value, sM:0, sN:0 };
+  V.addEventListener(&#39;input&#39;, ()=&gt;{ state.V=+V.value; vv.textContent=state.V.toFixed(1); });
+
+  function drawCircuit(x0, y0, w, h, label, Rmat){
+    const pad=16;
+    ctx.strokeStyle=&#39;rgba(180,210,255,0.9)&#39;; ctx.lineWidth=2.5; ctx.lineCap=&#39;round&#39;;
+    ctx.beginPath();
+    ctx.moveTo(x0+pad, y0+h-pad); ctx.lineTo(x0+pad, y0+pad); ctx.lineTo(x0+w/2-40, y0+pad);
+    ctx.moveTo(x0+w/2+40, y0+pad); ctx.lineTo(x0+w-pad, y0+pad); ctx.lineTo(x0+w-pad, y0+h-pad); ctx.lineTo(x0+pad, y0+h-pad);
+    ctx.stroke();
+
+    // battery
+    ctx.fillStyle=&#39;rgba(140,200,255,0.2)&#39;; ctx.fillRect(x0+pad-10, y0+pad+10, 20, 30); ctx.fillRect(x0+pad-10, y0+pad+50, 20, 40);
+    // material segment
+    ctx.strokeStyle=(label===&#39;Metal&#39;)?&#39;#8df7c5&#39;:&#39;#ff8f9e&#39;; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.moveTo(x0+w/2-40, y0+pad); ctx.lineTo(x0+w/2+40, y0+pad); ctx.stroke();
+    // bulb
+    const bx = x0+w-pad, by = y0+pad; const Rb=30, Ri=1, Rtot=Rb+Ri+Rmat;
+    const I = state.V/Rtot; const brightness=clamp(I/0.3,0,1);
+    const glow = ctx.createRadialGradient(bx, by, 4, bx, by, 60);
+    glow.addColorStop(0, `rgba(255,230,180,${0.3 + 0.5*brightness})`); glow.addColorStop(1,&#39;rgba(255,200,120,0)&#39;);
+    ctx.globalCompositeOperation=&#39;lighter&#39;; ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(bx,by,60,0,Math.PI*2); ctx.fill(); ctx.globalCompositeOperation=&#39;source-over&#39;;
+    ctx.fillStyle=`rgba(255,200,120,${0.65+0.35*brightness})`; ctx.beginPath(); ctx.arc(bx,by,20,0,Math.PI*2); ctx.fill(); ctx.strokeStyle=&#39;rgba(255,240,200,0.9)&#39;; ctx.stroke();
+
+    // label and current
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(`${label}  I=${I.toFixed(3)} A`, x0+pad, y0+h-8);
+
+    return I;
+  }
+  function drawElectrons(x0,y0,w,h, s, speed){
+    const L = 2*(w-32) + 2*(h-32); // loop perimeter approx
+    const N = 80;
+    for (let i=0;i&lt;N;i++){
+      const d = ((s + i*(L/N)) % L);
+      let x=x0+16, y=y0+h-16;
+      const seg1 = h-32, seg2 = w-32, seg3 = h-32, seg4 = w-32;
+      if (d &lt; seg1){ x=x0+16; y=y0+h-16 - d; }
+      else if (d &lt; seg1+seg2){ x=x0+16 + (d-seg1); y=y0+16; }
+      else if (d &lt; seg1+seg2+seg3){ x=x0+w-16; y=y0+16 + (d-seg1-seg2); }
+      else { x=x0+w-16 - (d-seg1-seg2-seg3); y=y0+h-16; }
+      ctx.fillStyle=&#39;rgba(120,240,255,0.9)&#39;; ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2); ctx.fill();
+    }
+    return (s + speed) % L;
+  }
+
+  return {
+    activate(){},
+    deactivate(){},
+    updateDraw(dt){
+      const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+      ctx.clearRect(0,0,w,h);
+      const half = (w-30)/2;
+      const IM = drawCircuit(10, 10, half, h-20, &#39;Metal&#39;, Rm.metal);
+      const IN = drawCircuit(20+half, 10, half, h-20, &#39;Non‑metal&#39;, Rm.non);
+      state.sM = drawElectrons(10,10,half,h-20, state.sM, (80+360*clamp(IM/0.3,0,1))*dt);
+      state.sN = drawElectrons(20+half,10,half,h-20, state.sN, (80+360*clamp(IN/0.3,0,1))*dt);
+    }
+  };
+}
+
+/* -- 7. Lustre: specular vs diffuse highlight (one canvas split) -- */
+function buildLustre({controls, body}){
+  const rough = document.createElement(&#39;input&#39;); rough.type=&#39;range&#39;; rough.min=&#39;0&#39;; rough.max=&#39;1&#39;; rough.step=&#39;0.01&#39;; rough.value=&#39;0.25&#39;;
+  const rl = document.createElement(&#39;span&#39;); rl.className=&#39;mini&#39;; rl.innerHTML=`Polish / Roughness &lt;span id=&quot;rv&quot;&gt;0.25&lt;/span&gt;`;
+  controls.appendChild(rough); controls.appendChild(rl); const rv = rl.querySelector(&#39;#rv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+  const light={x: cCenterX(), y: 80}; function cCenterX(){ return (cvs.width/(window.devicePixelRatio||1))*0.25; }
+
+  function pointer(e){
+    const r=cvs.getBoundingClientRect();
+    light.x=(e.clientX??e.touches?.[0].clientX)-r.left; light.y=(e.clientY??e.touches?.[0].clientY)-r.top;
+  }
+  cvs.addEventListener(&#39;pointermove&#39;, pointer); cvs.addEventListener(&#39;touchmove&#39;, pointer, {passive:true});
+  rough.addEventListener(&#39;input&#39;, ()=&gt; rv.textContent= (+rough.value).toFixed(2));
+
+  function radialHighlight(cx,cy,r,xmin,xmax,ymin,ymax,color){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    grad.addColorStop(0,color); grad.addColorStop(1,&#39;rgba(0,0,0,0)&#39;);
+    ctx.globalCompositeOperation=&#39;screen&#39;;
+    ctx.fillStyle=grad; ctx.fillRect(xmin,ymin,xmax-xmin,ymax-ymin);
+    ctx.globalCompositeOperation=&#39;source-over&#39;;
+  }
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    ctx.clearRect(0,0,w,h);
+    const mid=w/2;
+    // metal panel
+    const gm = ctx.createLinearGradient(0,0,0,h); gm.addColorStop(0,&#39;#0d1c2f&#39;); gm.addColorStop(1,&#39;#0a1322&#39;);
+    ctx.fillStyle=gm; ctx.fillRect(0,0,mid,h);
+    ctx.strokeStyle=&#39;rgba(200,240,255,0.05)&#39;; for(let y=12;y&lt;h;y+=6){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(mid,y); ctx.stroke(); }
+    // non-metal panel
+    const gn = ctx.createLinearGradient(0,0,0,h); gn.addColorStop(0,&#39;#0b1526&#39;); gn.addColorStop(1,&#39;#0a1322&#39;);
+    ctx.fillStyle=gn; ctx.fillRect(mid,0,mid,h);
+
+    // highlights
+    const rMetal = lerp(30, 140, clamp(+rough.value,0,1));
+    radialHighlight(light.x, light.y, rMetal, 0, mid, 0, h, &#39;rgba(180,255,255,1)&#39;);
+    const rNon=170;
+    radialHighlight(mid+(light.x%mid), light.y, rNon, mid, w, 0, h, &#39;rgba(240,240,255,0.35)&#39;);
+
+    ctx.fillStyle=&#39;rgba(220,255,245,0.8)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (specular, lustrous)&#39;, 12, 18);
+    ctx.fillStyle=&#39;rgba(255,240,210,0.8)&#39;; ctx.fillText(&#39;Non‑metal (diffuse, matte)&#39;, mid+12, 18);
+  }
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* -- 8. Density: float/sink with adjustable densities -- */
+function buildDensity({controls, body}){
+  const dm = document.createElement(&#39;input&#39;); dm.type=&#39;range&#39;; dm.min=&#39;0.3&#39;; dm.max=&#39;10&#39;; dm.step=&#39;0.1&#39;; dm.value=&#39;7.8&#39;;
+  const dn = document.createElement(&#39;input&#39;); dn.type=&#39;range&#39;; dn.min=&#39;0.3&#39;; dn.max=&#39;10&#39;; dn.step=&#39;0.1&#39;; dn.value=&#39;0.8&#39;;
+  const lm = document.createElement(&#39;span&#39;); lm.className=&#39;mini&#39;; lm.innerHTML=`Metal ρ=&lt;span id=&quot;dmv&quot;&gt;7.8&lt;/span&gt;`;
+  const ln = document.createElement(&#39;span&#39;); ln.className=&#39;mini&#39;; ln.innerHTML=`Non‑metal ρ=&lt;span id=&quot;dnv&quot;&gt;0.8&lt;/span&gt;`;
+  const drop = document.createElement(&#39;button&#39;); drop.textContent=&#39;Drop/Reset&#39;;
+  controls.append(lm, dm, ln, dn, drop);
+  const dmv=lm.querySelector(&#39;#dmv&#39;), dnv=ln.querySelector(&#39;#dnv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+  const state = { yM:30, yN:30, vM:0, vN:0, dropping:false };
+  function equilibriumY(rho, top, bottom, objH){
+    const water=1.0; // g/cm^3
+    // fraction submerged ~ rho/water; if &lt;1 -&gt; floats partially
+    const f = clamp(rho/water, 0, 1.2);
+    if (f&lt;1) return top + (bottom-top)*0.2; // float near surface
+    return bottom - objH - 4; // sink
+  }
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1);
+    ctx.clearRect(0,0,w,h);
+    const mid=w/2, pad=16, top=pad, bottom=h-pad, waterY=top+20;
+    // tanks
+    ctx.strokeStyle=&#39;rgba(180,210,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+    // water
+    ctx.fillStyle=&#39;rgba(120,180,255,0.15)&#39;; ctx.fillRect(12, waterY, mid-24, h-22-waterY);
+    ctx.fillRect(mid+12, waterY, mid-24, h-22-waterY);
+    // blocks
+    const bw=40,bh=30;
+    ctx.fillStyle=&#39;rgba(160,240,200,0.9)&#39;; ctx.fillRect(10+(mid-20-bw)/2, state.yM, bw, bh);
+    ctx.fillStyle=&#39;rgba(255,220,170,0.9)&#39;; ctx.fillRect(mid+10+(mid-20-bw)/2, state.yN, bw, bh);
+    // labels
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal&#39;, 16, 22); ctx.fillText(&#39;Non‑metal&#39;, mid+16, 22);
+  }
+  function step(dt){
+    if (!state.dropping) return;
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2;
+    const waterY=30+16, bottom=h-16, bh=30;
+    const yEqM = equilibriumY(+dm.value, waterY, bottom, bh);
+    const yEqN = equilibriumY(+dn.value, waterY, bottom, bh);
+    // simple spring-damper to target
+    const k=20, c=6;
+    const aM = k*(yEqM - state.yM) - c*state.vM;
+    const aN = k*(yEqN - state.yN) - c*state.vN;
+    state.vM += aM*dt; state.vN += aN*dt;
+    state.yM += state.vM*dt; state.yN += state.vN*dt;
+  }
+  drop.addEventListener(&#39;click&#39;, ()=&gt;{ state.yM=30; state.yN=30; state.vM=0; state.vN=0; state.dropping=true; });
+  dm.addEventListener(&#39;input&#39;, ()=&gt; dmv.textContent=(+dm.value).toFixed(1));
+  dn.addEventListener(&#39;input&#39;, ()=&gt; dnv.textContent=(+dn.value).toFixed(1));
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(dt){ step(dt); draw(); } };
+}
+
+/* -- 9. Melting point: heat and melt -- */
+function buildMelting({controls, body}){
+  const T = document.createElement(&#39;input&#39;); T.type=&#39;range&#39;; T.min=&#39;0&#39;; T.max=&#39;1600&#39;; T.step=&#39;10&#39;; T.value=&#39;25&#39;;
+  const tl = document.createElement(&#39;span&#39;); tl.className=&#39;mini&#39;; tl.innerHTML=`Temperature &lt;span id=&quot;tv&quot;&gt;25&lt;/span&gt; °C`;
+  controls.append(T, tl); const tv=tl.querySelector(&#39;#tv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+  const mpM = 1538, mpN = 115; // Fe vs S
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2, base=h-36;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (Fe)&#39;, 16, 18); ctx.fillText(&#39;Non‑metal (S)&#39;, mid+16, 18);
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+
+    // Heater bar
+    const temp=+T.value; tv.textContent=temp;
+    const glow = clamp(temp/1600,0,1);
+    // Metal
+    ctx.fillStyle = (temp&lt;mpM)?&#39;rgba(160,240,200,0.9)&#39;:&#39;rgba(255,180,120,0.9)&#39;;
+    if (temp&lt;mpM){
+      ctx.fillRect(20+(mid-40-60)/2, base-60, 60, 60);
+    } else {
+      ctx.beginPath(); ctx.ellipse(20+(mid-40)/2, base-12, 50, 12, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // Non-metal
+    ctx.fillStyle = (temp&lt;mpN)?&#39;rgba(255,220,170,0.9)&#39;:&#39;rgba(255,180,120,0.9)&#39;;
+    if (temp&lt;mpN){
+      ctx.fillRect(mid+20+(mid-40-60)/2, base-60, 60, 60);
+    } else {
+      ctx.beginPath(); ctx.ellipse(mid+20+(mid-40)/2, base-12, 50, 12, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // heat glow baseline
+    ctx.fillStyle=`rgba(255,200,120,${0.2+0.4*glow})`; ctx.fillRect(12, base, mid-24, 6); ctx.fillRect(mid+12, base, mid-24, 6);
+  }
+  T.addEventListener(&#39;input&#39;, draw);
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* --10. Boiling point: bubbles above threshold -- */
+function buildBoiling({controls, body}){
+  const T = document.createElement(&#39;input&#39;); T.type=&#39;range&#39;; T.min=&#39;0&#39;; T.max=&#39;3000&#39;; T.step=&#39;20&#39;; T.value=&#39;25&#39;;
+  const tl = document.createElement(&#39;span&#39;); tl.className=&#39;mini&#39;; tl.innerHTML=`Temperature &lt;span id=&quot;tv&quot;&gt;25&lt;/span&gt; °C`;
+  controls.append(T, tl); const tv=tl.querySelector(&#39;#tv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+  const bpM = 2562, bpN = 59; // Cu vs Br2
+  const bubblesM=[], bubblesN=[];
+  function spawn(bubs, x0,x1, baseY){
+    if (bubs.length&gt;80) bubs.shift();
+    bubs.push({x: lerp(x0,x1,Math.random()), y: baseY, r: 2+Math.random()*3, vy: -20 - Math.random()*30});
+  }
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2, base=h-28;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (Cu)&#39;, 16, 18); ctx.fillText(&#39;Non‑metal (Br₂)&#39;, mid+16, 18);
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+    const temp=+T.value; tv.textContent=temp;
+    // liquid pools
+    ctx.fillStyle=&#39;rgba(160,200,255,0.2)&#39;; ctx.fillRect(12, base-10, mid-24, 10); ctx.fillRect(mid+12, base-10, mid-24, 10);
+
+    // bubbles when T &gt; bp
+    if (temp&gt;bpM &amp;&amp; !prefersReduced &amp;&amp; Math.random()&lt;0.5) spawn(bubblesM, 12, 12+mid-24, base-12);
+    if (temp&gt;bpN &amp;&amp; !prefersReduced) spawn(bubblesN, mid+12, mid+12+mid-24, base-12);
+    // evolve
+    function drawBubs(arr){
+      ctx.strokeStyle=&#39;rgba(200,220,255,0.8)&#39;;
+      for(const b of arr){
+        b.y += b.vy * 0.016;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.stroke();
+      }
+      // remove gone
+      for(let i=arr.length-1;i&gt;=0;i--){ if(arr[i].y&lt;20) arr.splice(i,1); }
+    }
+    drawBubs(bubblesM); drawBubs(bubblesN);
+
+    // heat indicator
+    const glow = clamp(temp/3000,0,1);
+    ctx.fillStyle=`rgba(255,200,120,${0.2+0.4*glow})`; ctx.fillRect(12, base, mid-24, 6); ctx.fillRect(mid+12, base, mid-24, 6);
+  }
+  T.addEventListener(&#39;input&#39;, draw);
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* --11. Rigidity: beam deflection under load -- */
+function buildRigid({controls, body}){
+  const load = document.createElement(&#39;input&#39;); load.type=&#39;range&#39;; load.min=&#39;0&#39;; load.max=&#39;1&#39;; load.step=&#39;0.01&#39;; load.value=&#39;0.4&#39;;
+  const ll = document.createElement(&#39;span&#39;); ll.className=&#39;mini&#39;; ll.innerHTML=`Load &lt;span id=&quot;lv&quot;&gt;0.40&lt;/span&gt;`;
+  controls.append(load, ll); const lv=ll.querySelector(&#39;#lv&#39;);
+
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (stiffer)&#39;, 16, 18); ctx.fillText(&#39;Non‑metal (less rigid)&#39;, mid+16, 18);
+    const L= mid-60, x0=30, y0=h/2, x1=mid-30, y1=h/2;
+    const loadVal=+load.value; lv.textContent=loadVal.toFixed(2);
+    // deflection as simple bow: y = a*(x)(L-x)
+    function beam(x0, y0, w, label){
+      const a = (label===&#39;Metal&#39;) ? 0.0008 : 0.003; // compliance
+      ctx.strokeStyle=&#39;rgba(160,240,200,0.9)&#39;; if (label!==&#39;Metal&#39;) ctx.strokeStyle=&#39;rgba(255,220,170,0.9)&#39;;
+      ctx.lineWidth=6; ctx.beginPath();
+      for(let i=0;i&lt;=L;i+=4){
+        const x = x0 + i;
+        const def = a*loadVal*(i)*(L-i);
+        const y = y0 + def;
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      // supports
+      ctx.fillStyle=&#39;rgba(200,220,255,0.25)&#39;; ctx.fillRect(x0-6, y0+20, 12, 20); ctx.fillRect(x0+L-6, y0+20, 12, 20);
+    }
+    beam(30, h/2-20, L, &#39;Metal&#39;);
+    beam(mid+30, h/2-20, L, &#39;Non&#39;);
+  }
+  load.addEventListener(&#39;input&#39;, draw);
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* --12. Sonority: ring ripple animation -- */
+function buildSonority({controls, body}){
+  const strike = document.createElement(&#39;button&#39;); strike.textContent=&#39;Strike&#39;;
+  controls.appendChild(strike);
+  const cvs = makeCanvas(body, 220); const ctx = cvs.getContext(&#39;2d&#39;);
+  const ringsM=[], ringsN=[];
+  function addRing(arr, cx, cy, type){
+    arr.push({r:6, a:1, cx, cy, decay: (type===&#39;Metal&#39;)?0.985:0.92, spd:(type===&#39;Metal&#39;)?2.4:1.5});
+  }
+  strike.addEventListener(&#39;click&#39;, ()=&gt;{
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2;
+    addRing(ringsM, mid*0.5, h/2, &#39;Metal&#39;);
+    addRing(ringsN, mid*1.5, h/2, &#39;Non&#39;);
+  });
+
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal (ringing)&#39;, 16, 18); ctx.fillText(&#39;Non‑metal (dull)&#39;, mid+16, 18);
+
+    function drawSide(arr, cx0){
+      ctx.fillStyle=&#39;rgba(220,240,255,0.08)&#39;; ctx.beginPath(); ctx.arc(cx0, h/2, 28, 0, Math.PI*2); ctx.fill();
+      for (const r of arr){
+        r.r += r.spd; r.a *= r.decay;
+        ctx.strokeStyle=`rgba(180,240,255,${r.a})`; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(r.cx, r.cy, r.r, 0, Math.PI*2); ctx.stroke();
+      }
+      for(let i=arr.length-1;i&gt;=0;i--){ if (arr[i].a &lt; 0.02) arr.splice(i,1); }
+    }
+    drawSide(ringsM, mid*0.5);
+    drawSide(ringsN, mid*1.5);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.8)&#39;; ctx.font=&#39;12px system-ui&#39;; ctx.fillText(&#39;Click Strike to ring&#39;, 14, h-10);
+  }
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* --13. Colour: choose examples -- */
+function buildColour({controls, body}){
+  const mSel = document.createElement(&#39;select&#39;);
+  [
+    {n:&#39;Al (silver)&#39;, c:&#39;#c0c0c0&#39;},{n:&#39;Cu (copper)&#39;,c:&#39;#b87333&#39;},{n:&#39;Au (gold)&#39;,c:&#39;#d4af37&#39;}
+  ].forEach((o,i)=&gt;{ const el=document.createElement(&#39;option&#39;); el.value=o.c; el.textContent=o.n; mSel.appendChild(el); });
+  const nSel = document.createElement(&#39;select&#39;);
+  [
+    {n:&#39;S (yellow)&#39;, c:&#39;#f2d94e&#39;},{n:&#39;I₂ (violet)&#39;,c:&#39;#6f42c1&#39;},{n:&#39;C graphite (black)&#39;,c:&#39;#222&#39;},{n:&#39;P (white)&#39;,c:&#39;#f6f6f6&#39;}
+  ].forEach((o,i)=&gt;{ const el=document.createElement(&#39;option&#39;); el.value=o.c; el.textContent=o.n; nSel.appendChild(el); });
+  const lm=document.createElement(&#39;span&#39;); lm.className=&#39;mini&#39;; lm.textContent=&#39;Metal&#39;;
+  const ln=document.createElement(&#39;span&#39;); ln.className=&#39;mini&#39;; ln.textContent=&#39;Non‑metal&#39;;
+  controls.append(lm,mSel,ln,nSel);
+
+  const cvs = makeCanvas(body, 200); const ctx = cvs.getContext(&#39;2d&#39;);
+
+  function draw(){
+    const w=cvs.width/(window.devicePixelRatio||1), h=cvs.height/(window.devicePixelRatio||1), mid=w/2;
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=&#39;rgba(200,220,255,0.35)&#39;; ctx.strokeRect(10,10,mid-20,h-20); ctx.strokeRect(mid+10,10,mid-20,h-20);
+    ctx.fillStyle=&#39;rgba(220,240,255,0.85)&#39;; ctx.font=&#39;12px system-ui&#39;;
+    ctx.fillText(&#39;Metal&#39;, 16, 18); ctx.fillText(&#39;Non‑metal&#39;, mid+16, 18);
+
+    // swatches
+    ctx.fillStyle=mSel.value; ctx.fillRect(20, 40, mid-40, h-60);
+    ctx.fillStyle=nSel.value; ctx.fillRect(mid+20, 40, mid-40, h-60);
+
+    // subtle sheen on metal
+    const grad=ctx.createLinearGradient(20,40,20,h-20);
+    grad.addColorStop(0,&#39;rgba(255,255,255,0.18)&#39;); grad.addColorStop(0.5,&#39;rgba(255,255,255,0.0)&#39;); grad.addColorStop(1,&#39;rgba(255,255,255,0.12)&#39;);
+    ctx.globalCompositeOperation=&#39;screen&#39;; ctx.fillStyle=grad; ctx.fillRect(20,40,mid-40,h-60); ctx.globalCompositeOperation=&#39;source-over&#39;;
+  }
+  mSel.addEventListener(&#39;change&#39;, draw); nSel.addEventListener(&#39;change&#39;, draw);
+  draw();
+  return { activate(){}, deactivate(){}, updateDraw(){ draw(); } };
+}
+
+/* ---------------- Activate deck ---------------- */
+buildSlides();
+slideEls[0]?.classList.add(&#39;active&#39;);
+updateSpeedLabel();
+setAutoplay(false);
+
+/* ---------------- RAF: update only active sim ---------------- */
+let lastT = performance.now();
+function frame(tNow){
+  const dt = Math.min(0.05, (tNow - lastT)/1000); lastT = tNow;
+  simInstances[index]?.updateDraw?.(dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 549;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 63;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      const windowW = window.innerWidth;
+      const windowH = window.innerHeight;
+      baseScale = Math.min(windowW / STAGE_W, windowH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => { checkOrientation(); resizeStage(); });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { checkOrientation(); resizeStage(); }, 200);
+  });
+
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
