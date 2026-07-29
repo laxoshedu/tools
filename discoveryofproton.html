@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Discovery of Proton</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100vw; height: 100vh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1920px;
+    height: 1080px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    will-change: transform;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Discharge Tube Simulator - Discovery of Proton&lt;/title&gt;
+    &lt;style&gt;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 25px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+            padding: 30px;
+            max-width: 1600px;
+            width: 100%;
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            color: #555;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .scientist-info {
+            color: #888;
+            font-size: 1em;
+            font-style: italic;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+        }
+
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .settings-panel {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 20px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .settings-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 18px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        .settings-header:hover {
+            background: linear-gradient(135deg, #7e8ef5, #8a5bb8);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .settings-title {
+            color: white;
+            font-size: 1.4em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-arrow {
+            color: white;
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            padding: 0 25px;
+        }
+
+        .settings-content.open {
+            max-height: 1500px;
+            padding: 25px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #e0e7ff, #cfe2ff);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-title {
+            color: #667eea;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-size: 0.85em;
+        }
+
+        .legend-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 1);
+            border-color: #667eea;
+        }
+
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+            flex-shrink: 0;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            color: #666;
+            font-size: 0.75em;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .status-value {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .simulator-section {
+            background: #1a1a2e;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .magnetic-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 18px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .magnetic-toggle:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .magnetic-toggle label {
+            color: #333;
+            font-weight: 700;
+            font-size: 0.95em;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #dischargeCanvas {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            background: #0a0a15;
+            display: block;
+            cursor: crosshair;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 18px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .control-group:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            color: #333;
+            font-weight: 700;
+            font-size: 0.95em;
+        }
+
+        .control-value {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            font-size: 1.15em;
+        }
+
+        input[type=&quot;range&quot;] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            outline: none;
+            opacity: 0.85;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+
+        input[type=&quot;range&quot;]:hover {
+            opacity: 1;
+        }
+
+        input[type=&quot;range&quot;]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        input[type=&quot;range&quot;]::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.9);
+        }
+
+        input[type=&quot;range&quot;]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #333;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover {
+            border-color: #764ba2;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 55px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: &quot;&quot;;
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(27px);
+        }
+
+        button {
+            padding: 14px 22px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-primary:active, .btn-secondary:active {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .control-section {
+                order: 2;
+            }
+
+            .simulator-section {
+                order: 1;
+            }
+
+            .legend {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .status-bar {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            #dischargeCanvas {
+                height: 400px;
+            }
+
+            .legend {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .status-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .magnetic-toggle {
+                font-size: 0.85em;
+                padding: 10px 14px;
+            }
+        }
+
+        .pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;header&gt;
+            &lt;h1&gt;⚛️ Discharge Tube Simulator&lt;/h1&gt;
+            &lt;div class=&quot;subtitle&quot;&gt;Discovery of Proton - Canal Rays Experiment&lt;/div&gt;
+            &lt;div class=&quot;scientist-info&quot;&gt;Eugen Goldstein (1886) • Modified by J.J. Thomson&lt;/div&gt;
+        &lt;/header&gt;
+
+        &lt;div class=&quot;main-content&quot;&gt;
+            &lt;div class=&quot;control-section&quot;&gt;
+                &lt;!-- Action Buttons Outside --&gt;
+                &lt;div class=&quot;action-buttons&quot;&gt;
+                    &lt;button class=&quot;btn-primary&quot; id=&quot;startBtn&quot;&gt;▶ Start&lt;/button&gt;
+                    &lt;button class=&quot;btn-secondary&quot; id=&quot;resetBtn&quot;&gt;↻ Reset&lt;/button&gt;
+                &lt;/div&gt;
+
+                &lt;!-- Collapsible Settings Panel --&gt;
+                &lt;div class=&quot;settings-panel&quot;&gt;
+                    &lt;div class=&quot;settings-header&quot; id=&quot;settingsToggle&quot;&gt;
+                        &lt;div class=&quot;settings-title&quot;&gt;
+                            &lt;span&gt;⚙️&lt;/span&gt;
+                            &lt;span&gt;Controls&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;dropdown-arrow&quot; id=&quot;dropdownArrow&quot;&gt;▼&lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;settings-content&quot; id=&quot;settingsContent&quot;&gt;
+                        &lt;div class=&quot;control-group&quot;&gt;
+                            &lt;div class=&quot;control-label&quot;&gt;
+                                &lt;span&gt;⚡ Voltage&lt;/span&gt;
+                                &lt;span class=&quot;control-value&quot;&gt;&lt;span id=&quot;voltageValue&quot;&gt;5000&lt;/span&gt; V&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;input type=&quot;range&quot; id=&quot;voltageSlider&quot; min=&quot;0&quot; max=&quot;10000&quot; value=&quot;5000&quot; step=&quot;100&quot;&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;control-group&quot;&gt;
+                            &lt;div class=&quot;control-label&quot;&gt;
+                                &lt;span&gt;🌡️ Pressure&lt;/span&gt;
+                                &lt;span class=&quot;control-value&quot;&gt;&lt;span id=&quot;pressureValue&quot;&gt;0.01&lt;/span&gt; atm&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;input type=&quot;range&quot; id=&quot;pressureSlider&quot; min=&quot;0.001&quot; max=&quot;0.1&quot; value=&quot;0.01&quot; step=&quot;0.001&quot;&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;control-group&quot;&gt;
+                            &lt;div class=&quot;control-label&quot;&gt;
+                                &lt;span&gt;⚡ Animation Speed&lt;/span&gt;
+                                &lt;span class=&quot;control-value&quot;&gt;&lt;span id=&quot;speedValue&quot;&gt;1.0&lt;/span&gt;x&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;input type=&quot;range&quot; id=&quot;speedSlider&quot; min=&quot;0.2&quot; max=&quot;3.0&quot; value=&quot;1.0&quot; step=&quot;0.1&quot;&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;control-group&quot;&gt;
+                            &lt;div class=&quot;control-label&quot;&gt;
+                                &lt;span&gt;🧪 Gas Type&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;select id=&quot;gasType&quot;&gt;
+                                &lt;option value=&quot;hydrogen&quot;&gt;Hydrogen (H₂)&lt;/option&gt;
+                                &lt;option value=&quot;helium&quot;&gt;Helium (He)&lt;/option&gt;
+                                &lt;option value=&quot;neon&quot;&gt;Neon (Ne)&lt;/option&gt;
+                                &lt;option value=&quot;argon&quot;&gt;Argon (Ar)&lt;/option&gt;
+                                &lt;option value=&quot;oxygen&quot;&gt;Oxygen (O₂)&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+
+                        &lt;!-- Magnetic Field Settings --&gt;
+                        &lt;div class=&quot;control-group&quot; id=&quot;magneticSettings&quot; style=&quot;display: none;&quot;&gt;
+                            &lt;div class=&quot;control-label&quot;&gt;
+                                &lt;span&gt;🧲 Magnetic Field Strength&lt;/span&gt;
+                                &lt;span class=&quot;control-value&quot;&gt;&lt;span id=&quot;magneticStrengthValue&quot;&gt;50&lt;/span&gt;%&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;input type=&quot;range&quot; id=&quot;magneticStrengthSlider&quot; min=&quot;0&quot; max=&quot;100&quot; value=&quot;50&quot; step=&quot;5&quot;&gt;
+
+                            &lt;div class=&quot;control-label&quot; style=&quot;margin-top: 15px;&quot;&gt;
+                                &lt;span&gt;📏 Distance from Tube&lt;/span&gt;
+                                &lt;span class=&quot;control-value&quot;&gt;&lt;span id=&quot;magneticDistanceValue&quot;&gt;30&lt;/span&gt; px&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;input type=&quot;range&quot; id=&quot;magneticDistanceSlider&quot; min=&quot;10&quot; max=&quot;80&quot; value=&quot;30&quot; step=&quot;5&quot;&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;control-group&quot;&gt;
+                            &lt;div class=&quot;toggle-switch&quot;&gt;
+                                &lt;span&gt;⬅️ Cathode Rays (e⁻)&lt;/span&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; id=&quot;showCathodeRays&quot; checked&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+
+                            &lt;div class=&quot;toggle-switch&quot;&gt;
+                                &lt;span&gt;➡️ Canal Rays (H⁺)&lt;/span&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; id=&quot;showCanalRays&quot; checked&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+
+                            &lt;div class=&quot;toggle-switch&quot;&gt;
+                                &lt;span&gt;⚡ Electric Field&lt;/span&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; id=&quot;showElectricField&quot; checked&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+
+                            &lt;div class=&quot;toggle-switch&quot;&gt;
+                                &lt;span&gt;✨ Fluorescence&lt;/span&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; id=&quot;showFluorescence&quot; checked&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+
+                            &lt;div class=&quot;toggle-switch&quot;&gt;
+                                &lt;span&gt;🔧 Show Labels&lt;/span&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; id=&quot;showLabels&quot; checked&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- Legend &amp; Real-Time Data Panel --&gt;
+                &lt;div class=&quot;info-panel&quot;&gt;
+                    &lt;div class=&quot;info-title&quot;&gt;📊 Legend &amp; Data&lt;/div&gt;
+                    &lt;div class=&quot;legend&quot;&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #ff3366;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Cathode Rays:&lt;/strong&gt; Electrons (e⁻)&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #00ff88;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Canal Rays:&lt;/strong&gt; Protons (H⁺)&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #ffaa00;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Cathode:&lt;/strong&gt; Perforated (-)&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #ff6600;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Anode:&lt;/strong&gt; Positive (+)&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #ff1744;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Red Glow:&lt;/strong&gt; Fluorescent Screen&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;legend-item&quot;&gt;
+                            &lt;div class=&quot;legend-color&quot; style=&quot;background: #4caf50;&quot;&gt;&lt;/div&gt;
+                            &lt;span&gt;&lt;strong&gt;Battery:&lt;/strong&gt; High Voltage&lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;status-bar&quot;&gt;
+                        &lt;div class=&quot;status-item&quot;&gt;
+                            &lt;div class=&quot;status-label&quot;&gt;Cathode Rays&lt;/div&gt;
+                            &lt;div class=&quot;status-value&quot; id=&quot;cathodeCount&quot;&gt;0&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;status-item&quot;&gt;
+                            &lt;div class=&quot;status-label&quot;&gt;Canal Rays&lt;/div&gt;
+                            &lt;div class=&quot;status-value&quot; id=&quot;canalCount&quot;&gt;0&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;status-item&quot;&gt;
+                            &lt;div class=&quot;status-label&quot;&gt;Pressure&lt;/div&gt;
+                            &lt;div class=&quot;status-value&quot; id=&quot;pressureDisplay&quot;&gt;0.01&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;status-item&quot;&gt;
+                            &lt;div class=&quot;status-label&quot;&gt;Status&lt;/div&gt;
+                            &lt;div class=&quot;status-value&quot; id=&quot;statusText&quot;&gt;Ready&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;simulator-section&quot;&gt;
+                &lt;!-- Magnetic Field Toggle --&gt;
+                &lt;div class=&quot;magnetic-toggle&quot;&gt;
+                    &lt;label for=&quot;magneticFieldToggle&quot;&gt;🧲 Magnetic Field&lt;/label&gt;
+                    &lt;label class=&quot;switch&quot;&gt;
+                        &lt;input type=&quot;checkbox&quot; id=&quot;magneticFieldToggle&quot;&gt;
+                        &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                    &lt;/label&gt;
+                &lt;/div&gt;
+
+                &lt;canvas id=&quot;dischargeCanvas&quot;&gt;&lt;/canvas&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // Settings panel toggle
+        const settingsToggle = document.getElementById(&#39;settingsToggle&#39;);
+        const settingsContent = document.getElementById(&#39;settingsContent&#39;);
+        const dropdownArrow = document.getElementById(&#39;dropdownArrow&#39;);
+
+        settingsToggle.addEventListener(&#39;click&#39;, () =&gt; {
+            settingsContent.classList.toggle(&#39;open&#39;);
+            dropdownArrow.classList.toggle(&#39;open&#39;);
+        });
+
+        // Canvas setup
+        const canvas = document.getElementById(&#39;dischargeCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        resizeCanvas();
+        window.addEventListener(&#39;resize&#39;, resizeCanvas);
+
+        // Simulation variables
+        let isRunning = false;
+        let cathodeRays = [];
+        let canalRays = [];
+        let screenHits = [];
+        let animationId;
+
+        // Settings
+        let voltage = 5000;
+        let pressure = 0.01;
+        let particleSpeed = 1.0;
+        let gasType = &#39;hydrogen&#39;;
+        let showCathodeRays = true;
+        let showCanalRays = true;
+        let showElectricField = true;
+        let showFluorescence = true;
+        let showLabels = true;
+        let showMagneticField = false;
+        let magneticStrength = 50;
+        let magneticDistance = 30;
+
+        // Gas properties
+        const gasColors = {
+            hydrogen: { glow: &#39;#ff6b9d&#39;, cathode: &#39;#ff3366&#39;, canal: &#39;#00ff88&#39;, screen: &#39;#ff1744&#39; },
+            helium: { glow: &#39;#ffeb3b&#39;, cathode: &#39;#ff9800&#39;, canal: &#39;#00bcd4&#39;, screen: &#39;#ffd700&#39; },
+            neon: { glow: &#39;#ff5722&#39;, cathode: &#39;#f44336&#39;, canal: &#39;#4caf50&#39;, screen: &#39;#ff4500&#39; },
+            argon: { glow: &#39;#9c27b0&#39;, cathode: &#39;#e91e63&#39;, canal: &#39;#00e676&#39;, screen: &#39;#ba68c8&#39; },
+            oxygen: { glow: &#39;#2196f3&#39;, cathode: &#39;#3f51b5&#39;, canal: &#39;#8bc34a&#39;, screen: &#39;#42a5f5&#39; }
+        };
+
+        // Electrode positions
+        let anodeX, cathodeX, screenX, tubeLeft, tubeRight, tubeTop, tubeBottom;
+
+        function updatePositions() {
+            anodeX = canvas.width * 0.25;
+            cathodeX = canvas.width * 0.55;
+            screenX = canvas.width * 0.80;
+            
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            
+            tubeLeft = canvas.width * 0.15 + tubeRadius;
+            tubeRight = canvas.width * 0.85 + tubeRadius;
+            tubeTop = centerY - tubeRadius + 20;
+            tubeBottom = centerY + tubeRadius - 20;
+        }
+        updatePositions();
+
+        // Cathode hole positions
+        function getCathodeHoles() {
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            return [
+                centerY - tubeRadius * 0.4,
+                centerY,
+                centerY + tubeRadius * 0.4
+            ];
+        }
+
+        // Check if particle is passing through cathode hole
+        function isPassingThroughHole(y) {
+            const cathodeHoles = getCathodeHoles();
+            const holeRadius = 10;
+            
+            for (let holeY of cathodeHoles) {
+                if (Math.abs(y - holeY) &lt; holeRadius) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y, vx, vy, type, charge) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.type = type;
+                this.charge = charge;
+                this.life = 1.0;
+                this.size = Math.random() * 1.5 + 1.5;
+                this.trail = [];
+                this.glowIntensity = Math.random() * 0.5 + 0.5;
+            }
+
+            update() {
+                const fieldStrength = (voltage / 10000) * particleSpeed * 0.3;
+                
+                if (this.charge &lt; 0) {
+                    this.vx -= fieldStrength * 0.6;
+                } else {
+                    this.vx += fieldStrength * 0.4;
+                }
+
+                // Apply magnetic field deflection ONLY when magnetic field is enabled
+                if (showMagneticField &amp;&amp; this.x &gt; cathodeX &amp;&amp; this.x &lt; screenX) {
+                    const centerY = canvas.height / 2;
+                    const magneticForce = (magneticStrength / 100) * 0.15;
+                    
+                    if (this.charge &gt; 0) {
+                        // Positive particles (protons/canal rays) are attracted to negative pole (bottom, ----)
+                        this.vy += magneticForce;
+                    } else {
+                        // Negative particles (electrons) are attracted to positive pole (top, ++++)
+                        this.vy -= magneticForce;
+                    }
+                }
+
+                const randomness = (pressure * 30);
+                this.vx += (Math.random() - 0.5) * randomness;
+                this.vy += (Math.random() - 0.5) * randomness;
+
+                const maxSpeed = 4 * particleSpeed;
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed &gt; maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.trail.push({ x: this.x, y: this.y, life: this.life });
+                if (this.trail.length &gt; 15) this.trail.shift();
+
+                if (this.y &lt;= tubeTop || this.y &gt;= tubeBottom) {
+                    this.vy *= -0.7;
+                    this.y = Math.max(tubeTop, Math.min(tubeBottom, this.y));
+                }
+
+                this.life -= 0.003;
+                this.glowIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+
+                if (this.charge &lt; 0) {
+                    if (this.x &lt;= anodeX + 12) {
+                        return false;
+                    }
+                } else {
+                    if (this.x &gt;= cathodeX - 5 &amp;&amp; this.x &lt;= cathodeX + 15) {
+                        if (!isPassingThroughHole(this.y)) {
+                            return false;
+                        }
+                    }
+                    
+                    if (this.x &gt;= screenX - 5) {
+                        screenHits.push({
+                            x: screenX,
+                            y: this.y,
+                            intensity: 1.0,
+                            timestamp: Date.now()
+                        });
+                        return false;
+                    }
+                }
+
+                return this.life &gt; 0 &amp;&amp; this.x &gt; 0 &amp;&amp; this.x &lt; canvas.width;
+            }
+
+            draw() {
+                const colors = gasColors[gasType];
+                const color = this.charge &lt; 0 ? colors.cathode : colors.canal;
+                
+                ctx.globalAlpha = 0.4;
+                for (let i = 0; i &lt; this.trail.length - 1; i++) {
+                    const t = this.trail[i];
+                    const alpha = (i / this.trail.length) * t.life;
+                    ctx.strokeStyle = color;
+                    ctx.globalAlpha = alpha * 0.6;
+                    ctx.lineWidth = this.size * 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                    ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+                    ctx.stroke();
+                }
+
+                ctx.globalAlpha = this.life * this.glowIntensity;
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(0.5, color + &#39;80&#39;);
+                gradient.addColorStop(1, &#39;rgba(0, 0, 0, 0)&#39;);
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = &#39;#ffffff&#39;;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function generateParticles() {
+            if (!isRunning) return;
+
+            const centerY = canvas.height / 2;
+            const cathodeHoles = getCathodeHoles();
+
+            if (showCathodeRays &amp;&amp; voltage &gt; 1000 &amp;&amp; Math.random() &lt; 0.4 * (voltage / 10000)) {
+                const y = centerY + (Math.random() - 0.5) * (canvas.height * 0.3);
+                cathodeRays.push(new Particle(cathodeX - 15, y, -2.5 * particleSpeed, 0, &#39;electron&#39;, -1));
+            }
+
+            if (showCanalRays &amp;&amp; voltage &gt; 2000 &amp;&amp; Math.random() &lt; 0.2 * (voltage / 10000)) {
+                const randomHole = cathodeHoles[Math.floor(Math.random() * cathodeHoles.length)];
+                const startY = randomHole + (Math.random() - 0.5) * 10;
+                canalRays.push(new Particle(anodeX + 20, startY, 2 * particleSpeed, 0, &#39;proton&#39;, 1));
+            }
+        }
+
+        function drawMagneticField() {
+            if (!showMagneticField) return;
+
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const magnetX = (cathodeX + screenX) / 2;
+            const magnetWidth = 80;
+            const magnetHeight = 40;
+
+            // Top magnet (North - positive pole ++++, attracts electrons)
+            const topY = centerY - tubeRadius - magneticDistance;
+            ctx.fillStyle = &#39;#e53935&#39;;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = &#39;#e53935&#39;;
+            ctx.globalAlpha = 0.9;
+            ctx.fillRect(magnetX - magnetWidth / 2, topY - magnetHeight, magnetWidth, magnetHeight);
+            ctx.strokeStyle = &#39;#b71c1c&#39;;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(magnetX - magnetWidth / 2, topY - magnetHeight, magnetWidth, magnetHeight);
+            ctx.shadowBlur = 0;
+
+            // Top magnet poles label
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#fff&#39;;
+            ctx.font = &#39;bold 20px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.textBaseline = &#39;middle&#39;;
+            ctx.fillText(&#39;++++&#39;, magnetX, topY - magnetHeight / 2);
+
+            if (showLabels) {
+                ctx.fillStyle = &#39;#e53935&#39;;
+                ctx.font = &#39;bold 12px Arial&#39;;
+                ctx.fillText(&#39;N (Positive)&#39;, magnetX, topY - magnetHeight - 15);
+            }
+
+            // Bottom magnet (South - negative pole ----, attracts protons)
+            const bottomY = centerY + tubeRadius + magneticDistance;
+            ctx.fillStyle = &#39;#1e88e5&#39;;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = &#39;#1e88e5&#39;;
+            ctx.globalAlpha = 0.9;
+            ctx.fillRect(magnetX - magnetWidth / 2, bottomY, magnetWidth, magnetHeight);
+            ctx.strokeStyle = &#39;#0d47a1&#39;;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(magnetX - magnetWidth / 2, bottomY, magnetWidth, magnetHeight);
+            ctx.shadowBlur = 0;
+
+            // Bottom magnet poles label
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#fff&#39;;
+            ctx.font = &#39;bold 20px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.textBaseline = &#39;middle&#39;;
+            ctx.fillText(&#39;----&#39;, magnetX, bottomY + magnetHeight / 2);
+
+            if (showLabels) {
+                ctx.fillStyle = &#39;#1e88e5&#39;;
+                ctx.font = &#39;bold 12px Arial&#39;;
+                ctx.fillText(&#39;S (Negative)&#39;, magnetX, bottomY + magnetHeight + 15);
+            }
+
+            // Magnetic field lines
+            ctx.strokeStyle = `rgba(156, 39, 176, ${0.3 * (magneticStrength / 100)})`;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+
+            for (let i = 0; i &lt; 5; i++) {
+                const offsetX = (i - 2) * 15;
+                ctx.beginPath();
+                ctx.moveTo(magnetX + offsetX, topY);
+                ctx.lineTo(magnetX + offsetX, bottomY);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawTube() {
+            const centerY = canvas.height / 2;
+            const tubeX = canvas.width * 0.15;
+            const tubeWidth = canvas.width * 0.7;
+            const tubeHeight = canvas.height * 0.4;
+            const tubeRadius = tubeHeight / 2;
+            
+            ctx.strokeStyle = &#39;#555&#39;;
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = 0.4;
+            
+            ctx.beginPath();
+            ctx.arc(tubeX + tubeRadius, centerY, tubeRadius, Math.PI / 2, -Math.PI / 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(tubeX + tubeRadius, centerY - tubeRadius);
+            ctx.lineTo(tubeX + tubeWidth - tubeRadius, centerY - tubeRadius);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(tubeX + tubeRadius, centerY + tubeRadius);
+            ctx.lineTo(tubeX + tubeWidth - tubeRadius, centerY + tubeRadius);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(tubeX + tubeWidth - tubeRadius, centerY, tubeRadius, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawVacuumPump() {
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const pumpX = canvas.width / 2;
+            const pumpY = centerY - tubeRadius - 40;
+
+            ctx.strokeStyle = &#39;#64b5f6&#39;;
+            ctx.lineWidth = 6;
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(pumpX, centerY - tubeRadius);
+            ctx.lineTo(pumpX, pumpY + 20);
+            ctx.stroke();
+
+            ctx.fillStyle = &#39;#64b5f6&#39;;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(pumpX, pumpY, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = &#39;#fff&#39;;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.8;
+            for (let i = 0; i &lt; 4; i++) {
+                ctx.save();
+                ctx.translate(pumpX, pumpY);
+                ctx.rotate((i * Math.PI / 2) + (Date.now() * 0.003));
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(10, 0);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            if (showLabels) {
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = &#39;#64b5f6&#39;;
+                ctx.font = &#39;bold 13px Arial&#39;;
+                ctx.textAlign = &#39;center&#39;;
+                ctx.fillText(&#39;To Vacuum Pump&#39;, pumpX, pumpY - 25);
+            }
+        }
+
+        function drawBattery() {
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const batteryX = canvas.width * 0.4;
+            const batteryY = centerY + tubeRadius + 90;
+
+            const batteryWidth = 80;
+            const batteryHeight = 40;
+
+            const gradient = ctx.createLinearGradient(
+                batteryX - batteryWidth / 2, batteryY - batteryHeight / 2,
+                batteryX + batteryWidth / 2, batteryY + batteryHeight / 2
+            );
+            gradient.addColorStop(0, &#39;#66bb6a&#39;);
+            gradient.addColorStop(1, &#39;#43a047&#39;);
+
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 1.0;
+            ctx.fillRect(batteryX - batteryWidth / 2, batteryY - batteryHeight / 2, batteryWidth, batteryHeight);
+
+            ctx.strokeStyle = &#39;#2e7d32&#39;;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(batteryX - batteryWidth / 2, batteryY - batteryHeight / 2, batteryWidth, batteryHeight);
+
+            ctx.fillStyle = &#39;#d32f2f&#39;;
+            ctx.fillRect(batteryX + batteryWidth / 2, batteryY - 8, 12, 16);
+            ctx.strokeStyle = &#39;#b71c1c&#39;;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(batteryX + batteryWidth / 2, batteryY - 8, 12, 16);
+
+            ctx.fillStyle = &#39;#1976d2&#39;;
+            ctx.fillRect(batteryX - batteryWidth / 2 - 12, batteryY - 8, 12, 16);
+            ctx.strokeStyle = &#39;#0d47a1&#39;;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(batteryX - batteryWidth / 2 - 12, batteryY - 8, 12, 16);
+
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#fff&#39;;
+            ctx.font = &#39;bold 24px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.textBaseline = &#39;middle&#39;;
+            ctx.fillText(&#39;+&#39;, batteryX + 25, batteryY);
+            ctx.fillText(&#39;−&#39;, batteryX - 25, batteryY);
+
+            const wireThickness = 4;
+
+            ctx.strokeStyle = &#39;#f44336&#39;;
+            ctx.lineWidth = wireThickness;
+            ctx.globalAlpha = 0.9;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = &#39;#f44336&#39;;
+
+            ctx.beginPath();
+            ctx.moveTo(batteryX + batteryWidth / 2 + 12, batteryY);
+            const midX1 = batteryX + batteryWidth / 2 + 30;
+            const midY1 = batteryY - 20;
+            ctx.quadraticCurveTo(midX1, midY1, anodeX + 6, batteryY - 40);
+            ctx.lineTo(anodeX + 6, centerY + tubeRadius - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = &#39;#f44336&#39;;
+            ctx.beginPath();
+            ctx.arc(anodeX + 6, centerY + tubeRadius - 20, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = &#39;#2196f3&#39;;
+            ctx.lineWidth = wireThickness;
+            ctx.globalAlpha = 0.9;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = &#39;#2196f3&#39;;
+
+            ctx.beginPath();
+            ctx.moveTo(batteryX - batteryWidth / 2 - 12, batteryY);
+            const midX2 = batteryX - batteryWidth / 2 - 30;
+            const midY2 = batteryY - 25;
+            ctx.quadraticCurveTo(midX2, midY2, cathodeX + 6, batteryY - 45);
+            ctx.lineTo(cathodeX + 6, centerY + tubeRadius - 20);
+            ctx.stroke();
+
+            ctx.fillStyle = &#39;#2196f3&#39;;
+            ctx.beginPath();
+            ctx.arc(cathodeX + 6, centerY + tubeRadius - 20, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+            if (showLabels) {
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = &#39;#fff&#39;;
+                ctx.font = &#39;bold 14px Arial&#39;;
+                ctx.textAlign = &#39;center&#39;;
+                ctx.textBaseline = &#39;middle&#39;;
+                ctx.fillText(&#39;HV&#39;, batteryX, batteryY);
+
+                ctx.fillStyle = &#39;#2e7d32&#39;;
+                ctx.font = &#39;bold 13px Arial&#39;;
+                ctx.fillText(&#39;High Voltage&#39;, batteryX, batteryY + batteryHeight / 2 + 20);
+                
+                ctx.fillStyle = &#39;#555&#39;;
+                ctx.font = &#39;bold 12px Arial&#39;;
+                ctx.fillText(`${voltage} V`, batteryX, batteryY + batteryHeight / 2 + 35);
+            }
+        }
+
+        function drawElectrodes() {
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const electrodeHeight = tubeRadius * 1.8;
+
+            ctx.fillStyle = &#39;#ff6600&#39;;
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = &#39;#ff6600&#39;;
+            ctx.globalAlpha = 0.9;
+            ctx.fillRect(anodeX, centerY - electrodeHeight / 2, 12, electrodeHeight);
+            ctx.shadowBlur = 0;
+
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#ffffff&#39;;
+            ctx.font = &#39;bold 24px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&#39;+&#39;, anodeX + 6, centerY + 8);
+
+            if (showLabels) {
+                ctx.fillStyle = &#39;#ff6600&#39;;
+                ctx.font = &#39;bold 14px Arial&#39;;
+                ctx.fillText(&#39;Anode&#39;, anodeX + 6, centerY - electrodeHeight / 2 - 15);
+            }
+
+            const holeSize = 14;
+            const cathodeHoles = getCathodeHoles();
+            
+            ctx.fillStyle = &#39;#ffaa00&#39;;
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = &#39;#ffaa00&#39;;
+            ctx.globalAlpha = 0.9;
+
+            let prevY = centerY - electrodeHeight / 2;
+            for (let i = 0; i &lt; cathodeHoles.length; i++) {
+                const holeY = cathodeHoles[i];
+                const segmentHeight = holeY - holeSize / 2 - prevY;
+                if (segmentHeight &gt; 0) {
+                    ctx.fillRect(cathodeX, prevY, 12, segmentHeight);
+                }
+                prevY = holeY + holeSize / 2;
+            }
+            const finalHeight = (centerY + electrodeHeight / 2) - prevY;
+            if (finalHeight &gt; 0) {
+                ctx.fillRect(cathodeX, prevY, 12, finalHeight);
+            }
+
+            ctx.shadowBlur = 0;
+
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#0a0a15&#39;;
+            cathodeHoles.forEach(y =&gt; {
+                ctx.beginPath();
+                ctx.arc(cathodeX + 6, y, holeSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (voltage &gt; 2000) {
+                    ctx.fillStyle = gasColors[gasType].canal + &#39;40&#39;;
+                    ctx.beginPath();
+                    ctx.arc(cathodeX + 6, y, holeSize / 2 + 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = &#39;#0a0a15&#39;;
+                }
+            });
+
+            ctx.fillStyle = &#39;#ffffff&#39;;
+            ctx.font = &#39;bold 24px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&#39;−&#39;, cathodeX + 6, centerY - electrodeHeight / 2 - 5);
+
+            if (showLabels) {
+                ctx.fillStyle = &#39;#ffaa00&#39;;
+                ctx.font = &#39;bold 14px Arial&#39;;
+                ctx.fillText(&#39;Perforated&#39;, cathodeX + 6, centerY + electrodeHeight / 2 + 25);
+                ctx.fillText(&#39;Cathode&#39;, cathodeX + 6, centerY + electrodeHeight / 2 + 40);
+            }
+        }
+
+        function drawFluorescentScreen() {
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const screenHeight = tubeRadius * 1.6;
+
+            ctx.fillStyle = &#39;rgba(50, 50, 50, 0.6)&#39;;
+            ctx.globalAlpha = 0.8;
+            ctx.fillRect(screenX, centerY - screenHeight / 2, 6, screenHeight);
+
+            const currentTime = Date.now();
+            screenHits = screenHits.filter(hit =&gt; {
+                const age = currentTime - hit.timestamp;
+                return age &lt; 500;
+            });
+
+            if (showFluorescence &amp;&amp; screenHits.length &gt; 0) {
+                const colors = gasColors[gasType];
+                
+                screenHits.forEach(hit =&gt; {
+                    const age = currentTime - hit.timestamp;
+                    const intensity = Math.max(0, 1 - (age / 500));
+                    
+                    ctx.globalAlpha = intensity * 0.9;
+                    const gradient = ctx.createRadialGradient(screenX, hit.y, 0, screenX, hit.y, 30);
+                    gradient.addColorStop(0, colors.screen);
+                    gradient.addColorStop(0.5, colors.screen + &#39;80&#39;);
+                    gradient.addColorStop(1, &#39;rgba(0, 0, 0, 0)&#39;);
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(screenX, hit.y, 30 * intensity, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.globalAlpha = intensity;
+                    ctx.fillStyle = colors.screen;
+                    ctx.beginPath();
+                    ctx.arc(screenX, hit.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                if (screenHits.length &gt; 0) {
+                    const overallIntensity = Math.min(screenHits.length / 10, 0.6);
+                    ctx.globalAlpha = overallIntensity;
+                    const overallGradient = ctx.createRadialGradient(screenX, centerY, 0, screenX, centerY, screenHeight);
+                    overallGradient.addColorStop(0, colors.screen + &#39;60&#39;);
+                    overallGradient.addColorStop(1, &#39;rgba(0, 0, 0, 0)&#39;);
+                    ctx.fillStyle = overallGradient;
+                    ctx.fillRect(screenX - 25, centerY - screenHeight / 2, 30, screenHeight);
+                }
+            }
+
+            if (showLabels) {
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = &#39;#ff1744&#39;;
+                ctx.font = &#39;bold 12px Arial&#39;;
+                ctx.textAlign = &#39;center&#39;;
+                ctx.fillText(&#39;Fluorescent&#39;, screenX + 3, centerY - screenHeight / 2 - 15);
+                ctx.fillText(&#39;Screen&#39;, screenX + 3, centerY - screenHeight / 2 - 3);
+            }
+
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawElectricField() {
+            if (!showElectricField || voltage &lt; 1000) return;
+
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const fieldAlpha = Math.min(voltage / 10000, 0.4);
+
+            ctx.strokeStyle = `rgba(100, 150, 255, ${fieldAlpha})`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+
+            for (let i = 0; i &lt; 9; i++) {
+                const y = centerY - tubeRadius * 0.8 + (i * tubeRadius * 1.6 / 8);
+                ctx.beginPath();
+                ctx.moveTo(anodeX + 15, y);
+                ctx.lineTo(cathodeX - 5, y);
+                ctx.stroke();
+
+                const arrowX = anodeX + (cathodeX - anodeX) * 0.6;
+                ctx.fillStyle = `rgba(100, 150, 255, ${fieldAlpha * 1.5})`;
+                ctx.beginPath();
+                ctx.moveTo(arrowX, y);
+                ctx.lineTo(arrowX - 6, y - 3);
+                ctx.lineTo(arrowX - 6, y + 3);
+                ctx.fill();
+            }
+
+            ctx.setLineDash([]);
+        }
+
+        function drawGasGlow() {
+            if (!showFluorescence || voltage &lt; 1000) return;
+
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const tubeX = canvas.width * 0.15;
+            const tubeWidth = canvas.width * 0.7;
+            const colors = gasColors[gasType];
+            const intensity = Math.min(voltage / 10000, 0.6);
+
+            ctx.globalAlpha = intensity * 0.3;
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, centerY, 0,
+                canvas.width / 2, centerY, tubeRadius * 2
+            );
+            gradient.addColorStop(0, colors.glow + &#39;60&#39;);
+            gradient.addColorStop(1, &#39;rgba(0, 0, 0, 0)&#39;);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(tubeX, centerY - tubeRadius, tubeWidth, tubeRadius * 2);
+        }
+
+        function drawPressureIndicator() {
+            if (!showLabels) return;
+
+            const centerY = canvas.height / 2;
+            const tubeRadius = canvas.height * 0.2;
+            const indicatorX = canvas.width * 0.5;
+            const indicatorY = centerY + tubeRadius + 60;
+
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = &#39;#888&#39;;
+            ctx.font = &#39;bold 12px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&#39;Air at very low pressure&#39;, indicatorX, indicatorY);
+            ctx.fillText(`(${pressure.toFixed(3)} atm)`, indicatorX, indicatorY + 15);
+        }
+
+        function animate() {
+            ctx.fillStyle = &#39;#0a0a15&#39;;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawTube();
+            drawGasGlow();
+            drawElectricField();
+            drawVacuumPump();
+            drawMagneticField();
+            drawBattery();
+            drawElectrodes();
+            drawFluorescentScreen();
+            drawPressureIndicator();
+
+            generateParticles();
+
+            if (showCathodeRays) {
+                cathodeRays = cathodeRays.filter(p =&gt; {
+                    const alive = p.update();
+                    if (alive) p.draw();
+                    return alive;
+                });
+            } else {
+                cathodeRays = [];
+            }
+
+            if (showCanalRays) {
+                canalRays = canalRays.filter(p =&gt; {
+                    const alive = p.update();
+                    if (alive) p.draw();
+                    return alive;
+                });
+            } else {
+                canalRays = [];
+            }
+
+            document.getElementById(&#39;cathodeCount&#39;).textContent = cathodeRays.length;
+            document.getElementById(&#39;canalCount&#39;).textContent = canalRays.length;
+
+            if (isRunning) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        // Event listeners
+        document.getElementById(&#39;voltageSlider&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            voltage = parseInt(e.target.value);
+            document.getElementById(&#39;voltageValue&#39;).textContent = voltage;
+        });
+
+        document.getElementById(&#39;pressureSlider&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            pressure = parseFloat(e.target.value);
+            document.getElementById(&#39;pressureValue&#39;).textContent = pressure.toFixed(3);
+            document.getElementById(&#39;pressureDisplay&#39;).textContent = pressure.toFixed(3);
+        });
+
+        document.getElementById(&#39;speedSlider&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            particleSpeed = parseFloat(e.target.value);
+            document.getElementById(&#39;speedValue&#39;).textContent = particleSpeed.toFixed(1);
+        });
+
+        document.getElementById(&#39;gasType&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            gasType = e.target.value;
+        });
+
+        document.getElementById(&#39;magneticFieldToggle&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showMagneticField = e.target.checked;
+            document.getElementById(&#39;magneticSettings&#39;).style.display = showMagneticField ? &#39;block&#39; : &#39;none&#39;;
+        });
+
+        document.getElementById(&#39;magneticStrengthSlider&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            magneticStrength = parseInt(e.target.value);
+            document.getElementById(&#39;magneticStrengthValue&#39;).textContent = magneticStrength;
+        });
+
+        document.getElementById(&#39;magneticDistanceSlider&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            magneticDistance = parseInt(e.target.value);
+            document.getElementById(&#39;magneticDistanceValue&#39;).textContent = magneticDistance;
+        });
+
+        document.getElementById(&#39;showCathodeRays&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showCathodeRays = e.target.checked;
+        });
+
+        document.getElementById(&#39;showCanalRays&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showCanalRays = e.target.checked;
+        });
+
+        document.getElementById(&#39;showElectricField&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showElectricField = e.target.checked;
+        });
+
+        document.getElementById(&#39;showFluorescence&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showFluorescence = e.target.checked;
+        });
+
+        document.getElementById(&#39;showLabels&#39;).addEventListener(&#39;change&#39;, (e) =&gt; {
+            showLabels = e.target.checked;
+        });
+
+        document.getElementById(&#39;startBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            isRunning = !isRunning;
+            const btn = document.getElementById(&#39;startBtn&#39;);
+            const statusText = document.getElementById(&#39;statusText&#39;);
+            
+            if (isRunning) {
+                btn.innerHTML = &#39;⏸ Pause&#39;;
+                btn.classList.remove(&#39;btn-primary&#39;);
+                btn.classList.add(&#39;btn-secondary&#39;);
+                statusText.textContent = &#39;Running&#39;;
+                statusText.classList.add(&#39;pulse&#39;);
+                animate();
+            } else {
+                btn.innerHTML = &#39;▶ Start&#39;;
+                btn.classList.remove(&#39;btn-secondary&#39;);
+                btn.classList.add(&#39;btn-primary&#39;);
+                statusText.textContent = &#39;Paused&#39;;
+                statusText.classList.remove(&#39;pulse&#39;);
+            }
+        });
+
+        document.getElementById(&#39;resetBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            isRunning = false;
+            cathodeRays = [];
+            canalRays = [];
+            screenHits = [];
+            
+            const btn = document.getElementById(&#39;startBtn&#39;);
+            btn.innerHTML = &#39;▶ Start&#39;;
+            btn.classList.remove(&#39;btn-secondary&#39;);
+            btn.classList.add(&#39;btn-primary&#39;);
+            
+            document.getElementById(&#39;statusText&#39;).textContent = &#39;Ready&#39;;
+            document.getElementById(&#39;statusText&#39;).classList.remove(&#39;pulse&#39;);
+            document.getElementById(&#39;cathodeCount&#39;).textContent = &#39;0&#39;;
+            document.getElementById(&#39;canalCount&#39;).textContent = &#39;0&#39;;
+
+            ctx.fillStyle = &#39;#0a0a15&#39;;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawTube();
+            drawElectricField();
+            drawVacuumPump();
+            drawMagneticField();
+            drawBattery();
+            drawElectrodes();
+            drawFluorescentScreen();
+            drawPressureIndicator();
+        });
+
+        window.addEventListener(&#39;resize&#39;, () =&gt; {
+            resizeCanvas();
+            updatePositions();
+            if (!isRunning) {
+                ctx.fillStyle = &#39;#0a0a15&#39;;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                drawTube();
+                drawElectricField();
+                drawVacuumPump();
+                drawMagneticField();
+                drawBattery();
+                drawElectrodes();
+                drawFluorescentScreen();
+                drawPressureIndicator();
+            }
+        });
+
+        // Initial draw
+        ctx.fillStyle = &#39;#0a0a15&#39;;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawTube();
+        drawElectricField();
+        drawVacuumPump();
+        drawMagneticField();
+        drawBattery();
+        drawElectrodes();
+        drawFluorescentScreen();
+        drawPressureIndicator();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1920;
+  const STAGE_H = 1080;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 46.2;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      const windowW = window.innerWidth;
+      const windowH = window.innerHeight;
+      baseScale = Math.min(windowW / STAGE_W, windowH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => { checkOrientation(); resizeStage(); });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { checkOrientation(); resizeStage(); }, 200);
+  });
+
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
