@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>AB LAB</title>
+<title>T B AC LAB 1</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -42,7 +42,7 @@
   /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
   .nav-overlay-bar {
     position: fixed;
-    bottom: 12px; left: 12px;
+    top: 12px; right: 12px;
     z-index: 99990;
     display: flex; align-items: center; gap: 4px;
     background: rgba(10, 15, 26, 0.88);
@@ -88,7 +88,7 @@
   /* UNHIDE TRIGGER BUTTON */
   .nav-toggle-btn {
     position: fixed;
-    bottom: 12px; left: 12px;
+    top: 12px; right: 12px;
     z-index: 99989;
     width: 36px; height: 36px;
     border-radius: 50%;
@@ -334,6 +334,8 @@
   button:active{transform:translateY(1px)}
   .primary{border:none; background:linear-gradient(180deg,#65c9ff,#5aa9ff 60%, #4f9aff); color:#061225;
     box-shadow:0 8px 16px rgba(90,169,255,.28), inset 0 1px 0 rgba(255,255,255,.55)}
+  .secondary-btn{border:none; background:linear-gradient(180deg,#c58cff,#a25aff 60%, #8c3eff); color:#ffffff;
+    box-shadow:0 8px 16px rgba(162,90,255,.28), inset 0 1px 0 rgba(255,255,255,.55)}
   .danger{background:linear-gradient(180deg,#ff8fa1,#ff6b8b 60%, #ff5178); border:none; color:#1a0b13}
   .ghost{background:transparent}
   .chip{
@@ -402,8 +404,45 @@
     background:transparent; color:transparent; font-size:0; line-height:0;
   }
 
-  .rig{ position:relative; width:100%; height: 100%; max-height: 650px; aspect-ratio:16/9; margin-inline:auto; }
-  svg{width:100%; height:100%}
+  .rig{ position:relative; width:100%; height: 100%; max-height: 650px; aspect-ratio:16/9; margin-inline:auto; overflow:visible; }
+
+  /* MULTI-BEAKER CONTAINER &amp; INSTANCE STYLES */
+  #beakersContainer {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .beaker-wrapper {
+    position: absolute; width: 380px; height: 440px;
+    user-select: none; touch-action: none; cursor: grab;
+    border-radius: 18px; padding: 6px; pointer-events: auto;
+    transition: outline .15s ease, box-shadow .15s ease, background .15s ease;
+    z-index: 5; display: flex; flex-direction: column;
+  }
+  .beaker-wrapper:active { cursor: grabbing; }
+  .beaker-wrapper.active-beaker {
+    outline: 2px solid var(--primary);
+    box-shadow: 0 0 25px rgba(123, 209, 255, 0.45);
+    background: rgba(123, 209, 255, 0.06);
+  }
+  .beaker-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; background: rgba(10, 16, 28, 0.85);
+    border: 1px solid var(--stroke); border-radius: 12px;
+    margin-bottom: 2px; font-size: 0.82rem; font-weight: 800;
+    color: var(--text); backdrop-filter: blur(8px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .beaker-header .beaker-title { color: var(--primary); }
+  .beaker-header .beaker-badge {
+    font-size: 0.75rem; padding: 2px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1); border: 1px solid var(--stroke);
+  }
+  .beaker-delete-btn {
+    background: transparent; border: none; color: var(--danger);
+    font-size: 1.1rem; font-weight: bold; cursor: pointer; padding: 0 4px;
+    line-height: 1; border-radius: 4px; transition: background .15s ease;
+  }
+  .beaker-delete-btn:hover { background: rgba(255, 81, 120, 0.25); }
+  .beaker-svg { width: 100%; height: 390px; pointer-events: none; }
 
   /* pH ring indicator (top-left corner) */
   .ph-ring{
@@ -428,7 +467,7 @@
   .icon-btn[aria-pressed=&quot;true&quot;]{ outline:2px solid var(--primary) }
 
   /* Reaction glow */
-  #lab.react-glow { filter: drop-shadow(0 0 16px rgba(170, 210, 255, .35)); transition: filter .3s ease }
+  .react-glow { filter: drop-shadow(0 0 16px rgba(170, 210, 255, .35)); transition: filter .3s ease }
 
   /* Dropper */
   .dropper{
@@ -527,13 +566,24 @@
   .result-card .pair{display:flex; align-items:center; gap:8px}
   .result-card .sq{width:16px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,.6)}
 
-  /* History */
+  /* HISTORY TAB - SHOW EXACTLY 3 HISTORY ITEMS AND SCROLL INTERNALLY IF MORE */
   .history-card{
     margin-top:12px; border:1px solid var(--stroke);
     background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-    border-radius:14px; padding:12px; flex: 1; overflow:auto;
+    border-radius:14px; padding:12px; flex: 1; overflow:hidden; display:flex; flex-direction:column;
+    max-height: 180px;
   }
-  .history-item{ display:flex; align-items:center; gap:10px; padding:6px 2px; border-bottom:1px dashed var(--stroke-soft) }
+  #historyList {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 126px; /* Height constraint for exactly 3 history items */
+    overflow-y: auto; padding-right: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) rgba(255,255,255,0.05);
+  }
+  #historyList::-webkit-scrollbar { width: 5px; }
+  #historyList::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+  #historyList::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+  .history-item{ display:flex; align-items:center; gap:10px; padding:6px 4px; border-bottom:1px dashed var(--stroke-soft); flex-shrink: 0; }
   .history-item:last-child{ border-bottom:none }
   .pill-mini{ padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid var(--stroke); font-size:.72rem; color:var(--muted) }
 
@@ -619,7 +669,7 @@
   .nature.neutral{ background:rgba(255,255,255,.08); color:var(--muted) }
 
   /* Neutralisation side panels */
-  .neutral-panels{ display:none; position:absolute; inset:0; pointer-events:none; }
+  .neutral-panels{ display:none; position:absolute; inset:0; pointer-events:none; z-index:25; }
   .side-panel{
     position:absolute; top:50%; transform:translateY(-50%);
     width: 230px; pointer-events:auto;
@@ -665,7 +715,7 @@
     &lt;header class=&quot;topbar&quot;&gt;
       &lt;div class=&quot;grid&quot;&gt;
         &lt;div class=&quot;sel&quot;&gt;
-          &lt;label&gt;Test Solution / Substance&lt;/label&gt;
+          &lt;label&gt;Test Solution / Substance (Active Beaker)&lt;/label&gt;
           &lt;select id=&quot;subSelect&quot; class=&quot;pill&quot;&gt;
             &lt;option value=&quot;none_sub&quot; selected&gt;None — no substance selected&lt;/option&gt;
             &lt;optgroup label=&quot;🔴 Strong Acids — Chemical&quot;&gt;
@@ -795,9 +845,10 @@
     &lt;!-- ACTION BAR --&gt;
     &lt;div class=&quot;actions&quot;&gt;
       &lt;div class=&quot;row&quot;&gt;
-        &lt;button id=&quot;btnFill&quot; class=&quot;primary&quot;&gt;Fill Beaker&lt;/button&gt;
+        &lt;button id=&quot;btnAddBeaker&quot; class=&quot;secondary-btn&quot;&gt;+ Add Main Beaker&lt;/button&gt;
+        &lt;button id=&quot;btnFill&quot; class=&quot;primary&quot;&gt;Fill Active Beaker&lt;/button&gt;
         &lt;button id=&quot;btnAdd&quot; class=&quot;primary&quot;&gt;Add Indicator Drops&lt;/button&gt;
-        &lt;button id=&quot;btnReset&quot; class=&quot;danger&quot;&gt;Reset&lt;/button&gt;
+        &lt;button id=&quot;btnReset&quot; class=&quot;danger&quot;&gt;Reset Active Beaker&lt;/button&gt;
         &lt;button id=&quot;btnBubbles&quot;&gt;Toggle Bubbles&lt;/button&gt;
         &lt;button id=&quot;btnTheme&quot; class=&quot;ghost&quot; title=&quot;Theme&quot;&gt;🌓&lt;/button&gt;
         &lt;button id=&quot;btnHelp&quot; class=&quot;ghost&quot; title=&quot;Help / Shortcuts&quot;&gt;❓&lt;/button&gt;
@@ -832,7 +883,7 @@
               &lt;div class=&quot;badge&quot;&gt;Widescreen 1920×1080 Mode&lt;/div&gt;
             &lt;/div&gt;
             &lt;div class=&quot;mode-tabs&quot; id=&quot;modeTabs&quot;&gt;
-              &lt;button class=&quot;mode-btn active&quot; data-mode=&quot;single&quot;&gt;Single&lt;/button&gt;
+              &lt;button class=&quot;mode-btn active&quot; data-mode=&quot;single&quot;&gt;Single / Multi&lt;/button&gt;
               &lt;button class=&quot;mode-btn&quot; data-mode=&quot;compare&quot;&gt;Comparison&lt;/button&gt;
               &lt;button class=&quot;mode-btn&quot; data-mode=&quot;neutral&quot;&gt;Neutralisation&lt;/button&gt;
             &lt;/div&gt;
@@ -846,92 +897,10 @@
               &lt;div id=&quot;btnToggleRig&quot; class=&quot;icon-btn&quot; role=&quot;button&quot; aria-pressed=&quot;false&quot; title=&quot;Conductivity Rig&quot;&gt;💡&lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;!-- MAIN BIG RIG WITH REALISTIC BEAKER --&gt;
+            &lt;!-- MAIN BIG RIG WITH DYNAMIC MULTI-BEAKERS CANVAS --&gt;
             &lt;div class=&quot;rig&quot; id=&quot;rig&quot;&gt;
-              &lt;svg id=&quot;lab&quot; viewBox=&quot;0 0 1200 675&quot; preserveAspectRatio=&quot;xMidYMid meet&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
-                &lt;defs&gt;
-                  &lt;linearGradient id=&quot;glassGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;1&quot; y2=&quot;0&quot;&gt;
-                    &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(255,255,255,0.35)&quot;/&gt;
-                    &lt;stop offset=&quot;12%&quot; stop-color=&quot;rgba(255,255,255,0.08)&quot;/&gt;
-                    &lt;stop offset=&quot;88%&quot; stop-color=&quot;rgba(255,255,255,0.05)&quot;/&gt;
-                    &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(255,255,255,0.25)&quot;/&gt;
-                  &lt;/linearGradient&gt;
-
-                  &lt;linearGradient id=&quot;beakerBgGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
-                    &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(200,230,255,0.12)&quot;/&gt;
-                    &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(180,220,255,0.03)&quot;/&gt;
-                  &lt;/linearGradient&gt;
-
-                  &lt;filter id=&quot;beakerGlow&quot; x=&quot;-10%&quot; y=&quot;-10%&quot; width=&quot;120%&quot; height=&quot;120%&quot;&gt;
-                    &lt;feDropShadow dx=&quot;0&quot; dy=&quot;12&quot; stdDeviation=&quot;15&quot; flood-color=&quot;#000&quot; flood-opacity=&quot;0.55&quot;/&gt;
-                  &lt;/filter&gt;
-
-                  &lt;!-- Real Beaker Inner Contour Clip --&gt;
-                  &lt;clipPath id=&quot;beakerClip&quot;&gt;
-                    &lt;path d=&quot;M 420,190 L 780,190 L 780,552 Q 780,570 762,570 L 438,570 Q 420,570 420,552 Z&quot; /&gt;
-                  &lt;/clipPath&gt;
-                &lt;/defs&gt;
-
-                &lt;!-- REAL GRIFFIN FORM BEAKER --&gt;
-                &lt;g filter=&quot;url(#beakerGlow)&quot;&gt;
-                  &lt;!-- Glass Fill Background --&gt;
-                  &lt;path d=&quot;M 395,180 C 410,180 418,188 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,188 790,180 805,180 L 795,190 L 780,190 L 420,190 L 405,190 Z&quot; fill=&quot;url(#beakerBgGrad)&quot;/&gt;
-
-                  &lt;!-- Liquid inside clipped path --&gt;
-                  &lt;g clip-path=&quot;url(#beakerClip)&quot;&gt;
-                    &lt;rect id=&quot;liquidRect&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;#89caff&quot;/&gt;
-                    &lt;rect id=&quot;liquidShine&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;rgba(255,255,255,.15)&quot;/&gt;
-                    &lt;path id=&quot;wavePath&quot; d=&quot;&quot; fill=&quot;#89caff&quot; opacity=&quot;0.95&quot;&gt;&lt;/path&gt;
-                  &lt;/g&gt;
-
-                  &lt;!-- Beaker Glass Outer Walls &amp; Pouring Spout Rim --&gt;
-                  &lt;path d=&quot;M 395,180 C 408,181 418,186 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,186 792,181 805,180&quot; fill=&quot;none&quot; stroke=&quot;rgba(220,240,255,0.8)&quot; stroke-width=&quot;4.5&quot; stroke-linecap=&quot;round&quot;/&gt;
-
-                  &lt;!-- Top Rim Ellipse Lip --&gt;
-                  &lt;ellipse cx=&quot;600&quot; cy=&quot;190&quot; rx=&quot;180&quot; ry=&quot;7&quot; fill=&quot;none&quot; stroke=&quot;rgba(255,255,255,0.7)&quot; stroke-width=&quot;3&quot;/&gt;
-
-                  &lt;!-- Glass Surface Reflections Overlay --&gt;
-                  &lt;rect x=&quot;420&quot; y=&quot;190&quot; width=&quot;360&quot; height=&quot;382&quot; fill=&quot;url(#glassGrad)&quot; pointer-events=&quot;none&quot;/&gt;
-
-                  &lt;!-- Side Glass Highlights --&gt;
-                  &lt;line x1=&quot;426&quot; y1=&quot;200&quot; x2=&quot;426&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.35)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
-                  &lt;line x1=&quot;774&quot; y1=&quot;200&quot; x2=&quot;774&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.25)&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot;/&gt;
-                  &lt;path d=&quot;M 438,568 L 762,568&quot; stroke=&quot;rgba(255,255,255,0.45)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
-
-                  &lt;!-- Frosted White Marking Spot (Label Area) --&gt;
-                  &lt;rect x=&quot;445&quot; y=&quot;230&quot; width=&quot;65&quot; height=&quot;90&quot; rx=&quot;4&quot; fill=&quot;rgba(255,255,255,0.22)&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1&quot;/&gt;
-                  &lt;text x=&quot;477&quot; y=&quot;275&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.8)&quot; font-size=&quot;12&quot; font-weight=&quot;bold&quot; font-family=&quot;sans-serif&quot;&gt;500 mL&lt;/text&gt;
-                  &lt;text x=&quot;477&quot; y=&quot;295&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.6)&quot; font-size=&quot;10&quot; font-family=&quot;sans-serif&quot;&gt;BORO 3.3&lt;/text&gt;
-
-                  &lt;!-- Real Beaker Volume Graduation Lines &amp; Text --&gt;
-                  &lt;g fill=&quot;rgba(255,255,255,0.7)&quot; font-size=&quot;13&quot; font-weight=&quot;bold&quot; font-family=&quot;monospace&quot;&gt;
-                    &lt;!-- 500 mL line --&gt;
-                    &lt;line x1=&quot;738&quot; y1=&quot;250&quot; x2=&quot;770&quot; y2=&quot;250&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
-                    &lt;text x=&quot;730&quot; y=&quot;254&quot; text-anchor=&quot;end&quot;&gt;500&lt;/text&gt;
-                    &lt;line x1=&quot;755&quot; y1=&quot;281&quot; x2=&quot;770&quot; y2=&quot;281&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
-
-                    &lt;!-- 400 mL line --&gt;
-                    &lt;line x1=&quot;738&quot; y1=&quot;312&quot; x2=&quot;770&quot; y2=&quot;312&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
-                    &lt;text x=&quot;730&quot; y=&quot;316&quot; text-anchor=&quot;end&quot;&gt;400&lt;/text&gt;
-                    &lt;line x1=&quot;755&quot; y1=&quot;343&quot; x2=&quot;770&quot; y2=&quot;343&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
-
-                    &lt;!-- 300 mL line --&gt;
-                    &lt;line x1=&quot;738&quot; y1=&quot;375&quot; x2=&quot;770&quot; y2=&quot;375&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
-                    &lt;text x=&quot;730&quot; y=&quot;379&quot; text-anchor=&quot;end&quot;&gt;300&lt;/text&gt;
-                    &lt;line x1=&quot;755&quot; y1=&quot;406&quot; x2=&quot;770&quot; y2=&quot;406&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
-
-                    &lt;!-- 200 mL line --&gt;
-                    &lt;line x1=&quot;738&quot; y1=&quot;437&quot; x2=&quot;770&quot; y2=&quot;437&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
-                    &lt;text x=&quot;730&quot; y=&quot;441&quot; text-anchor=&quot;end&quot;&gt;200&lt;/text&gt;
-                    &lt;line x1=&quot;755&quot; y1=&quot;468&quot; x2=&quot;770&quot; y2=&quot;468&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
-
-                    &lt;!-- 100 mL line --&gt;
-                    &lt;line x1=&quot;738&quot; y1=&quot;500&quot; x2=&quot;770&quot; y2=&quot;500&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
-                    &lt;text x=&quot;730&quot; y=&quot;504&quot; text-anchor=&quot;end&quot;&gt;100&lt;/text&gt;
-                    &lt;line x1=&quot;755&quot; y1=&quot;531&quot; x2=&quot;770&quot; y2=&quot;531&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
-                  &lt;/g&gt;
-                &lt;/g&gt;
-              &lt;/svg&gt;
+              &lt;!-- BEAKERS CONTAINER (MULTIPLE MOVABLE MAIN BEAKERS) --&gt;
+              &lt;div id=&quot;beakersContainer&quot;&gt;&lt;/div&gt;
 
               &lt;!-- Dropper --&gt;
               &lt;svg class=&quot;dropper drop-shadow&quot; id=&quot;dropper&quot; viewBox=&quot;0 0 190 260&quot; aria-label=&quot;Indicator dropper&quot;&gt;
@@ -1127,7 +1096,7 @@
                 &lt;input id=&quot;acidML&quot; type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;10&quot; class=&quot;vslider&quot;&gt;
                 &lt;div class=&quot;row-sb&quot; style=&quot;margin-top:6px&quot;&gt;
                   &lt;button class=&quot;chip&quot; id=&quot;acidCollect&quot;&gt;Collect&lt;/button&gt;
-                  &lt;button class=&quot;primary&quot; id=&quot;acidAdd&quot;&gt;Add to Main&lt;/button&gt;
+                  &lt;button class=&quot;primary&quot; id=&quot;acidAdd&quot;&gt;Add to Active&lt;/button&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;tiny&quot; id=&quot;acidLoaded&quot;&gt;Loaded: 0 mL&lt;/div&gt;
               &lt;/div&gt;
@@ -1147,7 +1116,7 @@
                 &lt;input id=&quot;baseML&quot; type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;10&quot; class=&quot;vslider&quot;&gt;
                 &lt;div class=&quot;row-sb&quot; style=&quot;margin-top:6px&quot;&gt;
                   &lt;button class=&quot;chip&quot; id=&quot;baseCollect&quot;&gt;Collect&lt;/button&gt;
-                  &lt;button class=&quot;primary&quot; id=&quot;baseAdd&quot;&gt;Add to Main&lt;/button&gt;
+                  &lt;button class=&quot;primary&quot; id=&quot;baseAdd&quot;&gt;Add to Active&lt;/button&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;tiny&quot; id=&quot;baseLoaded&quot;&gt;Loaded: 0 mL&lt;/div&gt;
               &lt;/div&gt;
@@ -1187,8 +1156,8 @@
 
           &lt;!-- History --&gt;
           &lt;div id=&quot;historyCard&quot; class=&quot;history-card&quot; aria-label=&quot;History&quot;&gt;
-            &lt;div style=&quot;font-weight:800; margin-bottom:6px;&quot;&gt;History&lt;/div&gt;
-            &lt;div id=&quot;historyList&quot; style=&quot;display:grid; gap:6px&quot;&gt;&lt;/div&gt;
+            &lt;div style=&quot;font-weight:800; margin-bottom:6px;&quot;&gt;History (Scrolls after 3 tests)&lt;/div&gt;
+            &lt;div id=&quot;historyList&quot;&gt;&lt;/div&gt;
           &lt;/div&gt;
 
           &lt;!-- Sponsored Ad Card --&gt;
@@ -1222,10 +1191,10 @@
       &lt;button id=&quot;onDismiss&quot; class=&quot;chip&quot;&gt;Skip&lt;/button&gt;
     &lt;/div&gt;
     &lt;div class=&quot;on-row&quot;&gt;
-      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;1.&lt;/strong&gt; Pick a &lt;em&gt;Solution&lt;/em&gt; from the first dropdown.&lt;/div&gt;
-      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;2.&lt;/strong&gt; Choose an &lt;em&gt;Indicator&lt;/em&gt; (paper or solution).&lt;/div&gt;
-      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;3.&lt;/strong&gt; Click &lt;em&gt;Fill Beaker&lt;/em&gt; then test using strips or indicator drops.&lt;/div&gt;
-      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;Tip:&lt;/strong&gt; The true pH value will be revealed in the Results Card once you run a test!&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;1.&lt;/strong&gt; Select or &lt;em&gt;+ Add Main Beaker&lt;/em&gt; on canvas.&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;2.&lt;/strong&gt; Choose a &lt;em&gt;Solution&lt;/em&gt; and &lt;em&gt;Indicator&lt;/em&gt; for the active beaker.&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;3.&lt;/strong&gt; Click &lt;em&gt;Fill Active Beaker&lt;/em&gt; then test using strips or drops.&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;Tip:&lt;/strong&gt; Drag any beaker by its top bar to reposition it freely anywhere!&lt;/div&gt;
     &lt;/div&gt;
     &lt;div class=&quot;on-actions&quot;&gt;
       &lt;button id=&quot;onDemo&quot; class=&quot;primary&quot;&gt;Run Demo&lt;/button&gt;
@@ -1314,40 +1283,39 @@ const COND_SAMPLES={
   cond_urea:{name:&quot;Urea solution — CO(NH₂)₂&quot;,level:0,pH:7}
 };
 
-/* ====== STATE ====== */
-const state={ subKey:&quot;none_sub&quot;, indKey:&quot;none&quot;, pH:7, phRevealed:false, filled:false, bubbles:true,
+/* ====== GLOBAL APP STATE ====== */
+const state={
+  bubbles:true,
   reduceMotion:window.matchMedia(&#39;(prefers-reduced-motion: reduce)&#39;).matches,
-  surfaceSvgY:420,surfaceCssY:0, dropper:{hasLiquid:false,busy:false}, beakerLabelOverride:null, mode:&#39;single&#39; };
+  dropper:{hasLiquid:false,busy:false},
+  mode:&#39;single&#39;
+};
 const LIQUID_KEYS=[&quot;turmeric&quot;,&quot;hibiscus&quot;,&quot;red_cabbage&quot;];
 const condState={ sampleKey:&quot;none&quot;, on:false, intensity:0, conc:1, flickerTimer:null,
   wire:{posCur:{x:0,y:0},posTar:{x:0,y:0},negCur:{x:0,y:0},negTar:{x:0,y:0},plusCur:{x:0,y:0},plusTar:{x:0,y:0},minusCur:{x:0,y:0},minusTar:{x:0,y:0}}
 };
 const soundState={on:true, ctx:null};
 
-/* Neutralisation accumulators */
+/* Neutralisation state */
 const neutralState = {
   active:false,
   acidKey:&#39;hcl_industrial&#39;, baseKey:&#39;sodium_hydroxide&#39;,
-  mlA:10, mlB:10, loadedA:0, loadedB:0,
-  netMoles:0,
-  volL:0.2
+  mlA:10, mlB:10, loadedA:0, loadedB:0
 };
 
 /* ====== Elements ====== */
 const mainGrid=document.getElementById(&#39;mainGrid&#39;);
 const simPanel=document.getElementById(&#39;simPanel&#39;);
 const resPanel=document.getElementById(&#39;resPanel&#39;);
-const simContent=document.getElementById(&#39;simContent&#39;);
-const resContent=document.getElementById(&#39;resContent&#39;);
 const phRingTxt=document.getElementById(&#39;phRingTxt&#39;);
 
 const bench=document.querySelector(&#39;.bench&#39;);
-const rig=document.getElementById(&#39;rig&#39;), lab=document.getElementById(&#39;lab&#39;);
+const rig=document.getElementById(&#39;rig&#39;);
+const beakersContainer=document.getElementById(&#39;beakersContainer&#39;);
 const phRing=document.getElementById(&#39;phRing&#39;), labTools=document.getElementById(&#39;labTools&#39;);
-const liquidRect=document.getElementById(&#39;liquidRect&#39;), wavePath=document.getElementById(&#39;wavePath&#39;), liquidShine=document.getElementById(&#39;liquidShine&#39;);
 const subSelect=document.getElementById(&#39;subSelect&#39;), indSelect=document.getElementById(&#39;indSelect&#39;), condSelect=document.getElementById(&#39;condSelect&#39;), phChip=document.getElementById(&#39;phChip&#39;);
 const dropper=document.getElementById(&#39;dropper&#39;), pipFill=document.getElementById(&#39;pipFill&#39;), pipTip=document.getElementById(&#39;pipTip&#39;);
-const btnFill=document.getElementById(&#39;btnFill&#39;), btnAdd=document.getElementById(&#39;btnAdd&#39;), btnReset=document.getElementById(&#39;btnReset&#39;), btnBubbles=document.getElementById(&#39;btnBubbles&#39;);
+const btnAddBeaker=document.getElementById(&#39;btnAddBeaker&#39;), btnFill=document.getElementById(&#39;btnFill&#39;), btnAdd=document.getElementById(&#39;btnAdd&#39;), btnReset=document.getElementById(&#39;btnReset&#39;), btnBubbles=document.getElementById(&#39;btnBubbles&#39;);
 const btnTheme=document.getElementById(&#39;btnTheme&#39;), btnHelp=document.getElementById(&#39;btnHelp&#39;);
 const concSlider=document.getElementById(&#39;concSlider&#39;), concBadge=document.getElementById(&#39;concBadge&#39;);
 const btnPHScale=document.getElementById(&#39;btnPHScale&#39;), btnShowStation=document.getElementById(&#39;btnShowStation&#39;), btnToggleRig=document.getElementById(&#39;btnToggleRig&#39;);
@@ -1360,11 +1328,8 @@ const condRig=document.getElementById(&#39;condRig&#39;), wireRed=document.getEl
 const probePlus=document.getElementById(&#39;probePlus&#39;), probeMinus=document.getElementById(&#39;probeMinus&#39;);
 const presetChips=[...document.querySelectorAll(&#39;.chip[data-preset]&#39;)], demoRun=document.getElementById(&#39;demoRun&#39;), resetLayout=document.getElementById(&#39;resetLayout&#39;), soundToggle=document.getElementById(&#39;soundToggle&#39;);
 
-/* Mode tabs */
-const modeTabs=document.getElementById(&#39;modeTabs&#39;);
-
-/* Compare elements */
-const compareWrap=document.getElementById(&#39;compareWrap&#39;);
+/* Mode tabs &amp; compare elements */
+const modeTabs=document.getElementById(&#39;modeTabs&#39;), compareWrap=document.getElementById(&#39;compareWrap&#39;);
 
 /* Neutralisation elements */
 const neutralPanels=document.getElementById(&#39;neutralPanels&#39;);
@@ -1379,21 +1344,272 @@ const acidLoaded=document.getElementById(&#39;acidLoaded&#39;), baseLoaded=docum
 /* Onboarding */
 const onboard=document.getElementById(&#39;onboard&#39;), onStart=document.getElementById(&#39;onStart&#39;), onDismiss=document.getElementById(&#39;onDismiss&#39;), onDemo=document.getElementById(&#39;onDemo&#39;), onDont=document.getElementById(&#39;onDont&#39;);
 
-/* ====== Helpers ====== */
-function labelForSubKey(key){
-  const opt=[...subSelect.options].find(o=&gt;o.value===key);
-  return opt?opt.text:&#39;—&#39;;
+/* ====== MULTI-BEAKER ARCHITECTURE &amp; MANAGEMENT ====== */
+let beakerIdSeq = 1;
+let beakers = [];
+let activeBeaker = null;
+
+class BeakerInstance {
+  constructor(name, x = 410, y = 110) {
+    this.id = beakerIdSeq++;
+    this.name = name || `Main Beaker ${this.id}`;
+    this.x = x;
+    this.y = y;
+    this.subKey = &quot;none_sub&quot;;
+    this.indKey = &quot;none&quot;;
+    this.pH = 7.0;
+    this.phRevealed = false;
+    this.filled = false;
+    this.liquidColor = &quot;#89caff&quot;;
+    this.levelTarget = 0.02;
+    this.currentLevel = 0.02;
+    this.wavePhase = Math.random() * 100;
+    this.beakerLabelOverride = null;
+    this.netMoles = 0;
+    this.volL = 0.2;
+
+    this.wrapper = null;
+    this.liquidRect = null;
+    this.liquidShine = null;
+    this.wavePath = null;
+    this.badgeEl = null;
+
+    this.createDOM();
+    this.initDragging();
+  }
+
+  createDOM() {
+    const wrap = document.createElement(&#39;div&#39;);
+    wrap.className = &#39;beaker-wrapper&#39;;
+    wrap.style.left = `${this.x}px`;
+    wrap.style.top = `${this.y}px`;
+
+    const clipId = `beakerClip_${this.id}`;
+    const bgGradId = `beakerBgGrad_${this.id}`;
+    const glassGradId = `glassGrad_${this.id}`;
+    const glowFilterId = `beakerGlow_${this.id}`;
+
+    wrap.innerHTML = `
+      &lt;div class=&quot;beaker-header&quot;&gt;
+        &lt;span class=&quot;beaker-title&quot;&gt;${this.name}&lt;/span&gt;
+        &lt;span class=&quot;beaker-badge&quot;&gt;pH ?&lt;/span&gt;
+        &lt;button class=&quot;beaker-delete-btn&quot; title=&quot;Remove Beaker&quot;&gt;×&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;svg class=&quot;beaker-svg&quot; viewBox=&quot;380 170 440 430&quot; preserveAspectRatio=&quot;xMidYMid meet&quot;&gt;
+        &lt;defs&gt;
+          &lt;linearGradient id=&quot;${glassGradId}&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;1&quot; y2=&quot;0&quot;&gt;
+            &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(255,255,255,0.35)&quot;/&gt;
+            &lt;stop offset=&quot;12%&quot; stop-color=&quot;rgba(255,255,255,0.08)&quot;/&gt;
+            &lt;stop offset=&quot;88%&quot; stop-color=&quot;rgba(255,255,255,0.05)&quot;/&gt;
+            &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(255,255,255,0.25)&quot;/&gt;
+          &lt;/linearGradient&gt;
+          &lt;linearGradient id=&quot;${bgGradId}&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+            &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(200,230,255,0.12)&quot;/&gt;
+            &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(180,220,255,0.03)&quot;/&gt;
+          &lt;/linearGradient&gt;
+          &lt;filter id=&quot;${glowFilterId}&quot; x=&quot;-10%&quot; y=&quot;-10%&quot; width=&quot;120%&quot; height=&quot;120%&quot;&gt;
+            &lt;feDropShadow dx=&quot;0&quot; dy=&quot;12&quot; stdDeviation=&quot;15&quot; flood-color=&quot;#000&quot; flood-opacity=&quot;0.55&quot;/&gt;
+          &lt;/filter&gt;
+          &lt;clipPath id=&quot;${clipId}&quot;&gt;
+            &lt;path d=&quot;M 420,190 L 780,190 L 780,552 Q 780,570 762,570 L 438,570 Q 420,570 420,552 Z&quot; /&gt;
+          &lt;/clipPath&gt;
+        &lt;/defs&gt;
+        &lt;g filter=&quot;url(#${glowFilterId})&quot;&gt;
+          &lt;path d=&quot;M 395,180 C 410,180 418,188 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,188 790,180 805,180 L 795,190 L 780,190 L 420,190 L 405,190 Z&quot; fill=&quot;url(#${bgGradId})&quot;/&gt;
+          &lt;g clip-path=&quot;url(#${clipId})&quot;&gt;
+            &lt;rect class=&quot;b-liquidRect&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;${this.liquidColor}&quot;/&gt;
+            &lt;rect class=&quot;b-liquidShine&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;rgba(255,255,255,.15)&quot;/&gt;
+            &lt;path class=&quot;b-wavePath&quot; d=&quot;&quot; fill=&quot;${this.liquidColor}&quot; opacity=&quot;0.95&quot;&gt;&lt;/path&gt;
+          &lt;/g&gt;
+          &lt;path d=&quot;M 395,180 C 408,181 418,186 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,186 792,181 805,180&quot; fill=&quot;none&quot; stroke=&quot;rgba(220,240,255,0.8)&quot; stroke-width=&quot;4.5&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;ellipse cx=&quot;600&quot; cy=&quot;190&quot; rx=&quot;180&quot; ry=&quot;7&quot; fill=&quot;none&quot; stroke=&quot;rgba(255,255,255,0.7)&quot; stroke-width=&quot;3&quot;/&gt;
+          &lt;rect x=&quot;420&quot; y=&quot;190&quot; width=&quot;360&quot; height=&quot;382&quot; fill=&quot;url(#${glassGradId})&quot; pointer-events=&quot;none&quot;/&gt;
+          &lt;line x1=&quot;426&quot; y1=&quot;200&quot; x2=&quot;426&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.35)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;line x1=&quot;774&quot; y1=&quot;200&quot; x2=&quot;774&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.25)&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 438,568 L 762,568&quot; stroke=&quot;rgba(255,255,255,0.45)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;rect x=&quot;445&quot; y=&quot;230&quot; width=&quot;65&quot; height=&quot;90&quot; rx=&quot;4&quot; fill=&quot;rgba(255,255,255,0.22)&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1&quot;/&gt;
+          &lt;text class=&quot;b-labelText&quot; x=&quot;477&quot; y=&quot;275&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.8)&quot; font-size=&quot;12&quot; font-weight=&quot;bold&quot; font-family=&quot;sans-serif&quot;&gt;500 mL&lt;/text&gt;
+          &lt;text x=&quot;477&quot; y=&quot;295&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.6)&quot; font-size=&quot;10&quot; font-family=&quot;sans-serif&quot;&gt;BORO 3.3&lt;/text&gt;
+          &lt;g fill=&quot;rgba(255,255,255,0.7)&quot; font-size=&quot;13&quot; font-weight=&quot;bold&quot; font-family=&quot;monospace&quot;&gt;
+            &lt;line x1=&quot;738&quot; y1=&quot;250&quot; x2=&quot;770&quot; y2=&quot;250&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;text x=&quot;730&quot; y=&quot;254&quot; text-anchor=&quot;end&quot;&gt;500&lt;/text&gt;
+            &lt;line x1=&quot;755&quot; y1=&quot;281&quot; x2=&quot;770&quot; y2=&quot;281&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;line x1=&quot;738&quot; y1=&quot;312&quot; x2=&quot;770&quot; y2=&quot;312&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;text x=&quot;730&quot; y=&quot;316&quot; text-anchor=&quot;end&quot;&gt;400&lt;/text&gt;
+            &lt;line x1=&quot;755&quot; y1=&quot;343&quot; x2=&quot;770&quot; y2=&quot;343&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;line x1=&quot;738&quot; y1=&quot;375&quot; x2=&quot;770&quot; y2=&quot;375&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;text x=&quot;730&quot; y=&quot;379&quot; text-anchor=&quot;end&quot;&gt;300&lt;/text&gt;
+            &lt;line x1=&quot;755&quot; y1=&quot;406&quot; x2=&quot;770&quot; y2=&quot;406&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;line x1=&quot;738&quot; y1=&quot;437&quot; x2=&quot;770&quot; y2=&quot;437&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;text x=&quot;730&quot; y=&quot;441&quot; text-anchor=&quot;end&quot;&gt;200&lt;/text&gt;
+            &lt;line x1=&quot;755&quot; y1=&quot;468&quot; x2=&quot;770&quot; y2=&quot;468&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;line x1=&quot;738&quot; y1=&quot;500&quot; x2=&quot;770&quot; y2=&quot;500&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;text x=&quot;730&quot; y=&quot;504&quot; text-anchor=&quot;end&quot;&gt;100&lt;/text&gt;
+            &lt;line x1=&quot;755&quot; y1=&quot;531&quot; x2=&quot;770&quot; y2=&quot;531&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+          &lt;/g&gt;
+        &lt;/g&gt;
+      &lt;/svg&gt;
+    `;
+
+    beakersContainer.appendChild(wrap);
+    this.wrapper = wrap;
+    this.liquidRect = wrap.querySelector(&#39;.b-liquidRect&#39;);
+    this.liquidShine = wrap.querySelector(&#39;.b-liquidShine&#39;);
+    this.wavePath = wrap.querySelector(&#39;.b-wavePath&#39;);
+    this.badgeEl = wrap.querySelector(&#39;.beaker-badge&#39;);
+
+    const deleteBtn = wrap.querySelector(&#39;.beaker-delete-btn&#39;);
+    deleteBtn.addEventListener(&#39;click&#39;, (e) =&gt; {
+      e.stopPropagation();
+      removeBeaker(this);
+    });
+  }
+
+  initDragging() {
+    let dragging = false, dx = 0, dy = 0;
+    this.wrapper.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+      if (e.target.classList.contains(&#39;beaker-delete-btn&#39;)) return;
+      setActiveBeaker(this);
+      dragging = true;
+      const r = rig.getBoundingClientRect();
+      dx = (e.clientX - r.left) / currentScale - this.x;
+      dy = (e.clientY - r.top) / currentScale - this.y;
+      this.wrapper.setPointerCapture(e.pointerId || 1);
+    });
+
+    window.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+      if (!dragging) return;
+      const r = rig.getBoundingClientRect();
+      const maxW = r.width / currentScale;
+      const maxH = r.height / currentScale;
+      let nx = (e.clientX - r.left) / currentScale - dx;
+      let ny = (e.clientY - r.top) / currentScale - dy;
+
+      nx = Math.max(-60, Math.min(maxW - 320, nx));
+      ny = Math.max(-10, Math.min(maxH - 350, ny));
+
+      this.x = nx;
+      this.y = ny;
+      this.wrapper.style.left = `${nx}px`;
+      this.wrapper.style.top = `${ny}px`;
+    });
+
+    window.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
+      if (!dragging) return;
+      dragging = false;
+      try { this.wrapper.releasePointerCapture(e.pointerId || 1); } catch (_) {}
+    });
+  }
+
+  setPH(pH, reveal = false) {
+    this.pH = Math.max(0, Math.min(14, pH));
+    if (reveal) this.phRevealed = true;
+    this.badgeEl.textContent = this.phRevealed ? `pH ${this.pH.toFixed(1)}` : `pH ?`;
+    if (this === activeBeaker) syncActiveBeakerToUI();
+  }
+
+  getSurfaceCssY() {
+    const topMargin = 190, bottomEdge = 570;
+    const hMax = bottomEdge - topMargin;
+    const height = hMax * this.currentLevel;
+    const ySvg = bottomEdge - height;
+    const scaleY = 390 / 420;
+    return 34 + (ySvg - 170) * scaleY;
+  }
+
+  getBoundsInRig() {
+    const scaleX = 380 / 440;
+    const scaleY = 390 / 420;
+    const surfaceY = this.getSurfaceCssY();
+    const bottomY = 34 + (570 - 170) * scaleY;
+
+    return {
+      left: this.x + (420 - 380) * scaleX,
+      right: this.x + (780 - 380) * scaleX,
+      surface: this.y + surfaceY,
+      bottom: this.y + bottomY
+    };
+  }
+
+  updateWave() {
+    this.currentLevel += (this.levelTarget - this.currentLevel) * 0.12;
+    const topMargin = 190, bottomEdge = 570;
+    const hMax = bottomEdge - topMargin;
+    const height = hMax * this.currentLevel;
+    const y = bottomEdge - height;
+    const left = 420, right = 780, width = right - left;
+
+    this.liquidRect.setAttribute(&#39;x&#39;, left);
+    this.liquidRect.setAttribute(&#39;y&#39;, y);
+    this.liquidRect.setAttribute(&#39;width&#39;, width);
+    this.liquidRect.setAttribute(&#39;height&#39;, height);
+
+    this.liquidShine.setAttribute(&#39;x&#39;, left);
+    this.liquidShine.setAttribute(&#39;y&#39;, y);
+    this.liquidShine.setAttribute(&#39;width&#39;, width);
+    this.liquidShine.setAttribute(&#39;height&#39;, height * .98);
+
+    const amp = state.reduceMotion ? 0 : (6 + 6 * this.currentLevel);
+    const len = 120, waveY = y + 8, baseY = bottomEdge;
+    let d = `M ${left} ${baseY} L ${left} ${waveY} `;
+    for (let x = 0; x &lt;= width; x++) {
+      d += `L ${left + x} ${waveY + Math.sin((x + this.wavePhase) / len) * amp} `;
+    }
+    d += `L ${right} ${baseY} Z`;
+    this.wavePath.setAttribute(&#39;d&#39;, d);
+    this.wavePath.setAttribute(&#39;fill&#39;, this.liquidColor);
+    this.liquidRect.setAttribute(&#39;fill&#39;, this.liquidColor);
+    if (!state.reduceMotion) this.wavePhase += 2;
+  }
 }
 
-function setPH(pH, reveal = false){
-  state.pH = Math.max(0, Math.min(14, pH));
-  if (reveal) state.phRevealed = true;
+function addBeaker(name, x, y) {
+  const b = new BeakerInstance(name, x, y);
+  beakers.push(b);
+  setActiveBeaker(b);
+  updateDeleteButtons();
+  beep(520, 0.06);
+  return b;
+}
 
-  const c = INDICATORS.universal.color(state.pH);
-  if (state.phRevealed) {
-    phChip.textContent = `pH ${state.pH.toFixed(1)}`;
+function removeBeaker(b) {
+  if (beakers.length &lt;= 1) return;
+  const idx = beakers.indexOf(b);
+  if (idx !== -1) {
+    b.wrapper.remove();
+    beakers.splice(idx, 1);
+    if (activeBeaker === b) {
+      setActiveBeaker(beakers[Math.max(0, idx - 1)]);
+    }
+    updateDeleteButtons();
+    beep(320, 0.05);
+  }
+}
+
+function updateDeleteButtons() {
+  beakers.forEach(b =&gt; {
+    const btn = b.wrapper.querySelector(&#39;.beaker-delete-btn&#39;);
+    if (btn) btn.style.display = beakers.length &gt; 1 ? &#39;inline-block&#39; : &#39;none&#39;;
+  });
+}
+
+function setActiveBeaker(b) {
+  if (!b) return;
+  activeBeaker = b;
+  beakers.forEach(bk =&gt; bk.wrapper.classList.toggle(&#39;active-beaker&#39;, bk === b));
+  syncActiveBeakerToUI();
+}
+
+function syncActiveBeakerToUI() {
+  if (!activeBeaker) return;
+  subSelect.value = activeBeaker.subKey;
+  indSelect.value = activeBeaker.indKey;
+
+  const c = INDICATORS.universal.color(activeBeaker.pH);
+  if (activeBeaker.phRevealed) {
+    phChip.textContent = `pH ${activeBeaker.pH.toFixed(1)}`;
     phChip.style.boxShadow = `0 0 20px ${c}66, inset 0 0 14px ${c}33`;
-    phRingTxt.textContent = state.pH.toFixed(1);
+    phRingTxt.textContent = activeBeaker.pH.toFixed(1);
     document.documentElement.style.setProperty(&#39;--ring&#39;, c);
   } else {
     phChip.textContent = `pH ?`;
@@ -1404,6 +1620,30 @@ function setPH(pH, reveal = false){
   updatePHScale();
 }
 
+function getBeakerAtPoint(rigX, rigY) {
+  for (let i = beakers.length - 1; i &gt;= 0; i--) {
+    const b = beakers[i];
+    const bounds = b.getBoundsInRig();
+    if (rigX &gt;= bounds.left &amp;&amp; rigX &lt;= bounds.right &amp;&amp; rigY &gt;= bounds.surface - 20 &amp;&amp; rigY &lt;= bounds.bottom) {
+      return b;
+    }
+  }
+  return null;
+}
+
+/* Global Wave Loop */
+function animateBeakerWaves() {
+  beakers.forEach(b =&gt; b.updateWave());
+  requestAnimationFrame(animateBeakerWaves);
+}
+requestAnimationFrame(animateBeakerWaves);
+
+/* ====== Helpers ====== */
+function labelForSubKey(key){
+  const opt=[...subSelect.options].find(o=&gt;o.value===key);
+  return opt?opt.text:&#39;—&#39;;
+}
+
 function selectedLabel(){ return subSelect.options[subSelect.selectedIndex]?.text || &quot;—&quot; }
 function hexToRgb(hex){ hex=hex.replace(&#39;#&#39;,&#39;&#39;); return {r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16)} }
 function rgbToHex({r,g,b}){ const h=n=&gt;n.toString(16).padStart(2,&#39;0&#39;); return `#${h(r)}${h(g)}${h(b)}` }
@@ -1412,55 +1652,43 @@ function colorName(hex){
   return map[hex?.toLowerCase?.() ?? &quot;&quot;] || &quot;colour&quot;
 }
 
-/* REAL BEAKER GEOMETRY BOUNDS */
-const BEAKER={ cx:600, cy:380, r:180, left:420, right:780, top:190, bottom:570 };
-function svgScale(){ const rect=rig.getBoundingClientRect(); return {sx:(rect.width/currentScale)/1200, sy:(rect.height/currentScale)/675} }
-
-/* Liquid &amp; Wave */
-let levelTarget=0.02, wavePhase=0;
-function setLevel(pct){ levelTarget=Math.max(0,Math.min(1,pct)) }
-function drawWave(){
-  const topMargin=BEAKER.top+10, bottomEdge=BEAKER.bottom-10;
-  const hMax=bottomEdge-topMargin, height=hMax*levelTarget, y=bottomEdge-height;
-  const width=BEAKER.right-BEAKER.left, left=BEAKER.left, right=BEAKER.right;
-  liquidRect.setAttribute(&#39;x&#39;,left); liquidRect.setAttribute(&#39;y&#39;,y); liquidRect.setAttribute(&#39;width&#39;,width); liquidRect.setAttribute(&#39;height&#39;,height);
-  liquidShine.setAttribute(&#39;x&#39;,left); liquidShine.setAttribute(&#39;y&#39;,y); liquidShine.setAttribute(&#39;width&#39;,width); liquidShine.setAttribute(&#39;height&#39;,height*.98);
-  const amp=state.reduceMotion?0:(6+6*levelTarget), len=120, waveY=y+8, baseY=bottomEdge;
-  let d=`M ${left} ${baseY} L ${left} ${waveY} `;
-  for(let x=0;x&lt;=width;x++){ d+=`L ${left+x} ${waveY+Math.sin((x+wavePhase)/len)*amp} ` }
-  d+=`L ${right} ${baseY} Z`;
-  wavePath.setAttribute(&#39;d&#39;,d);
-  wavePath.setAttribute(&#39;fill&#39;,liquidRect.getAttribute(&#39;fill&#39;));
-  if(!state.reduceMotion) wavePhase+=2;
-  state.surfaceSvgY=waveY; const {sy}=svgScale(); state.surfaceCssY=waveY*sy;
-  requestAnimationFrame(drawWave);
-}
-requestAnimationFrame(drawWave);
-
 /* Bubbles */
 let bubbleTimer=null;
 function spawnBubble(){
-  if(!state.bubbles||!state.filled) return;
+  if(!state.bubbles || beakers.length === 0) return;
+  const filledBeakers = beakers.filter(b =&gt; b.filled);
+  if (filledBeakers.length === 0) return;
+  const b = filledBeakers[Math.floor(Math.random() * filledBeakers.length)];
+
   const c=document.createElementNS(&quot;http://www.w3.org/2000/svg&quot;,&quot;circle&quot;);
-  const x=BEAKER.left+20+Math.random()*(BEAKER.right-BEAKER.left-40);
-  c.setAttribute(&#39;cx&#39;,x); c.setAttribute(&#39;cy&#39;,BEAKER.bottom-20); c.setAttribute(&#39;r&#39;,0);
-  c.setAttribute(&#39;fill&#39;,&#39;rgba(255,255,255,.85)&#39;); c.setAttribute(&#39;opacity&#39;,&#39;0&#39;);
-  c.setAttribute(&#39;clip-path&#39;,&#39;url(#beakerClip)&#39;); lab.appendChild(c);
-  const rise=80+Math.random()*280, t0=performance.now(), dur=3000+Math.random()*2500;
+  const bounds = b.getBoundsInRig();
+  const x = bounds.left + 20 + Math.random() * (bounds.right - bounds.left - 40);
+  const yStart = bounds.bottom - 20;
+
+  c.setAttribute(&#39;cx&#39;, x); c.setAttribute(&#39;cy&#39;, yStart); c.setAttribute(&#39;r&#39;, 0);
+  c.setAttribute(&#39;fill&#39;, &#39;rgba(255,255,255,.85)&#39;); c.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  b.wrapper.querySelector(&#39;svg&#39;).appendChild(c);
+
+  const rise = 80 + Math.random() * 260, t0 = performance.now(), dur = 2800 + Math.random() * 2000;
   (function step(t){
-    const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2;
-    c.setAttribute(&#39;cy&#39;,BEAKER.bottom-20-rise*ease);
-    c.setAttribute(&#39;r&#39;,2+6*ease);
-    c.setAttribute(&#39;opacity&#39;,(p&lt;.2)?p*3:(1-p));
-    if(p&lt;1) requestAnimationFrame(step); else c.remove()
-  })(performance.now())
+    const p = Math.min(1, (t - t0) / dur), ease = .5 - Math.cos(p * Math.PI) / 2;
+    c.setAttribute(&#39;cy&#39;, yStart - rise * ease);
+    c.setAttribute(&#39;r&#39;, 2 + 6 * ease);
+    c.setAttribute(&#39;opacity&#39;, (p &lt; .2) ? p * 3 : (1 - p));
+    if (p &lt; 1) requestAnimationFrame(step); else c.remove();
+  })(performance.now());
 }
-function startBubbles(){ if(!bubbleTimer) bubbleTimer=setInterval(spawnBubble,450) }
+function startBubbles(){ if(!bubbleTimer) bubbleTimer=setInterval(spawnBubble, 400) }
 function stopBubbles(){ if(bubbleTimer){ clearInterval(bubbleTimer); bubbleTimer=null } }
 
 /* Indicators &amp; Strips */
-function indicatorColor(){ return INDICATORS[state.indKey].color(state.pH) }
-function indicatorBaseColor(){ if(LIQUID_KEYS.includes(state.indKey)&amp;&amp;typeof INDICATORS[state.indKey].base===&#39;function&#39;) return INDICATORS[state.indKey].base(); if(LIQUID_KEYS.includes(state.indKey)) return INDICATORS[state.indKey].color(7); return &quot;#89caff&quot; }
+function indicatorColor(b){ return INDICATORS[b.indKey]?.color(b.pH) || &quot;#89caff&quot; }
+function indicatorBaseColor(b){
+  const k = b ? b.indKey : state.indKey;
+  if(LIQUID_KEYS.includes(k) &amp;&amp; typeof INDICATORS[k].base === &#39;function&#39;) return INDICATORS[k].base();
+  if(LIQUID_KEYS.includes(k)) return INDICATORS[k].color(7);
+  return &quot;#89caff&quot;;
+}
 
 /* Strips logic */
 let strips=[];
@@ -1492,7 +1720,6 @@ function getPoint(e){
 function makeDraggableStrip(el){
   let dragging=false,dx=0,dy=0;
   el.addEventListener(&#39;pointerdown&#39;,e=&gt;{
-    if(!state.filled){ return }
     dragging=true; const p=getPoint(e); dx=p.x-el._x; dy=p.y-el._y; el.setPointerCapture(e.pointerId||1)
   });
   window.addEventListener(&#39;pointermove&#39;,e=&gt;{
@@ -1510,23 +1737,35 @@ function makeDraggableStrip(el){
   })
 }
 function handleDip(el){
-  const {sx,sy}=svgScale(); const left=BEAKER.left*sx, right=BEAKER.right*sx, bottom=BEAKER.bottom*sy, surface=state.surfaceCssY;
-  const centerX=el._x+el.clientWidth/2, topY=el._y, bottomY=el._y+el.clientHeight;
-  const inX=centerX&gt;=left &amp;&amp; centerX&lt;=right;
-  const verticalOverlap=Math.max(0,Math.min(bottomY,bottom)-Math.max(topY,surface));
-  const fraction=inX?Math.max(0,Math.min(1,verticalOverlap/el.clientHeight)):0;
-  if(fraction&gt;0){ el.classList.add(&#39;wet&#39;); lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),300) } else el.classList.remove(&#39;wet&#39;);
+  const tipX = el._x + el.clientWidth / 2;
+  const tipY = el._y + el.clientHeight - 8;
+  const b = getBeakerAtPoint(tipX, tipY);
+
+  if (!b || !b.filled) {
+    el.classList.remove(&#39;wet&#39;);
+    return;
+  }
+
+  setActiveBeaker(b);
+  const bounds = b.getBoundsInRig();
+  const fraction = Math.max(0, Math.min(1, (tipY - bounds.surface) / (bounds.bottom - bounds.surface)));
+
+  if(fraction &gt; 0){
+    el.classList.add(&#39;wet&#39;);
+    b.wrapper.classList.add(&#39;react-glow&#39;);
+    setTimeout(()=&gt;b.wrapper.classList.remove(&#39;react-glow&#39;),300);
+  } else el.classList.remove(&#39;wet&#39;);
 
   const kind=el.getAttribute(&#39;data-kind&#39;);
   if(kind===&#39;universal&#39;){
-    const pad=el.querySelector(&#39;.pad&#39;); const col=INDICATORS.universal.color(state.pH);
-    if(fraction&gt;0){ pad.style.background=col; if(!el._logged){ updateResult(&quot;Universal Indicator (paper)&quot;,&quot;#ffd36e&quot;,col); el._logged=true } }
+    const pad=el.querySelector(&#39;.pad&#39;); const col=INDICATORS.universal.color(b.pH);
+    if(fraction&gt;0){ pad.style.background=col; if(!el._logged){ updateResultForBeaker(b, &quot;Universal Indicator (paper)&quot;, &quot;#ffd36e&quot;, col); el._logged=true } }
     return;
   }
   if(kind===&#39;litmus-red&#39;||kind===&#39;litmus-blue&#39;){
     const paper=el.querySelector(&#39;.paper&#39;);
     const base=(kind===&#39;litmus-red&#39;)?&#39;#ff4a6e&#39;:&#39;#4a7aff&#39;;
-    const changeTo=(kind===&#39;litmus-red&#39;)?(state.pH&gt;7?&#39;#4a7aff&#39;:base):(state.pH&lt;7?&#39;#ff4a6e&#39;:base);
+    const changeTo=(kind===&#39;litmus-red&#39;)?(b.pH&gt;7?&#39;#4a7aff&#39;:base):(b.pH&lt;7?&#39;#ff4a6e&#39;:base);
     if(fraction&lt;=0||changeTo===base) paper.style.background=base;
     else{
       const cutoff=Math.max(0,Math.min(100,100*(1-fraction)));
@@ -1534,33 +1773,35 @@ function handleDip(el){
     }
     if(!el._logged &amp;&amp; fraction&gt;0){
       const name=(kind===&#39;litmus-red&#39;)?&#39;Litmus — Red paper&#39;:&#39;Litmus — Blue paper&#39;;
-      updateResult(name,base,changeTo); el._logged=true
+      updateResultForBeaker(b, name, base, changeTo); el._logged=true
     }
   }
 }
 
 /* Results &amp; History */
-function updateResult(indName,fromColor,toColor){
-  setPH(state.pH, true); // REVEAL pH UPON TEST COMPLETION
+function updateResultForBeaker(b, indName, fromColor, toColor){
+  b.setPH(b.pH, true);
   resultCard.style.display=&#39;block&#39;;
-  const nature= (state.pH&lt;7?&#39;Acidic&#39;:state.pH&gt;7?&#39;Basic (Alkaline)&#39;:&#39;Neutral&#39;);
-  resNature.textContent=nature;
-  resNature.style.background= nature.startsWith(&#39;Acidic&#39;)?&#39;rgba(255,100,120,.15)&#39;:nature.startsWith(&#39;Basic&#39;)?&#39;rgba(100,255,170,.15)&#39;:&#39;rgba(255,255,255,.08)&#39;;
-  const subLabel = state.beakerLabelOverride || (state.subKey===&#39;none_sub&#39; ? &#39;None&#39; : selectedLabel());
-  resIndicator.textContent=`Indicator: ${indName}`;
-  resSubstance.textContent=`Substance: ${subLabel}`;
-  resPH.textContent=`pH: ${state.pH.toFixed(1)}`;
-  fromSq.style.background=fromColor; toSq.style.background=toColor;
-  fromTxt.textContent=`from ${colorName(fromColor)}`; toTxt.textContent=`to ${colorName(toColor)}`;
-  pushHistory({indicator:indName, substance:subLabel, pH:state.pH.toFixed(1), from:fromColor, to:toColor});
+  const nature = (b.pH &lt; 7 ? &#39;Acidic&#39; : b.pH &gt; 7 ? &#39;Basic (Alkaline)&#39; : &#39;Neutral&#39;);
+  resNature.textContent = nature;
+  resNature.style.background = nature.startsWith(&#39;Acidic&#39;)?&#39;rgba(255,100,120,.15)&#39;:nature.startsWith(&#39;Basic&#39;)?&#39;rgba(100,255,170,.15)&#39;:&#39;rgba(255,255,255,.08)&#39;;
+  const subLabel = b.beakerLabelOverride || (b.subKey===&#39;none_sub&#39; ? &#39;None&#39; : labelForSubKey(b.subKey));
+  resIndicator.textContent = `Indicator: ${indName}`;
+  resSubstance.textContent = `Substance: ${subLabel} (${b.name})`;
+  resPH.textContent = `pH: ${b.pH.toFixed(1)}`;
+  fromSq.style.background = fromColor; toSq.style.background = toColor;
+  fromTxt.textContent = `from ${colorName(fromColor)}`; toTxt.textContent = `to ${colorName(toColor)}`;
+  pushHistory({indicator:indName, substance:`${b.name}: ${subLabel.split(&#39;—&#39;)[0].trim()}`, pH:b.pH.toFixed(1), from:fromColor, to:toColor});
 }
+
 function pushHistory(item){
   const row=document.createElement(&#39;div&#39;); row.className=&#39;history-item&#39;;
   row.innerHTML=`&lt;div class=&quot;sq&quot; style=&quot;width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.5);background:${item.to}&quot;&gt;&lt;/div&gt;
   &lt;div class=&quot;pill-mini&quot;&gt;${item.indicator}&lt;/div&gt;
-  &lt;div class=&quot;pill-mini&quot; title=&quot;${item.substance}&quot;&gt;${item.substance.split(&#39;—&#39;)[0].trim()}&lt;/div&gt;
+  &lt;div class=&quot;pill-mini&quot; title=&quot;${item.substance}&quot;&gt;${item.substance}&lt;/div&gt;
   &lt;div class=&quot;pill-mini&quot;&gt;pH ${item.pH}&lt;/div&gt;`;
   historyList.prepend(row);
+  // Internal scroll automatically handles overflow!
 }
 
 /* pH SCALE */
@@ -1569,12 +1810,13 @@ function showPHScale(){ ensureTicks(); phScale.style.display=&#39;block&#39;; bt
 function hidePHScale(){ phScale.style.display=&#39;none&#39;; btnPHScale.setAttribute(&#39;aria-pressed&#39;,&#39;false&#39;) }
 function togglePHScale(){ (phScale.style.display===&#39;none&#39;||!phScale.style.display)?showPHScale():hidePHScale() }
 function updatePHScale(){
-  if (state.phRevealed) {
-    const frac=state.pH/14;
+  if (!activeBeaker) return;
+  if (activeBeaker.phRevealed) {
+    const frac=activeBeaker.pH/14;
     phMarker.style.left=`${frac*100}%`;
     phMarker.style.display=&#39;block&#39;;
-    phTag.textContent=state.pH.toFixed(1);
-    phScaleValue.textContent=`pH ${state.pH.toFixed(1)}`;
+    phTag.textContent=activeBeaker.pH.toFixed(1);
+    phScaleValue.textContent=`pH ${activeBeaker.pH.toFixed(1)}`;
   } else {
     phMarker.style.display=&#39;none&#39;;
     phScaleValue.textContent=`pH ?`;
@@ -1582,10 +1824,11 @@ function updatePHScale(){
 }
 
 /* Indicator Station + Dropper */
-function isLiquidIndicator(){ return LIQUID_KEYS.includes(state.indKey) }
+function isLiquidIndicator(){ return activeBeaker &amp;&amp; LIQUID_KEYS.includes(activeBeaker.indKey) }
 function showIndicatorStation(){
-  indMiniTitle.textContent=INDICATORS[state.indKey].name;
-  miniLiquid.style.background=indicatorBaseColor();
+  if(!activeBeaker) return;
+  indMiniTitle.textContent=INDICATORS[activeBeaker.indKey].name;
+  miniLiquid.style.background=indicatorBaseColor(activeBeaker);
   indicatorStation.style.display=&#39;block&#39;;
   const rRig=rig.getBoundingClientRect(), rStation=indicatorStation.getBoundingClientRect();
   dropper.style.left=((rStation.left-rRig.left)/currentScale-60)+&#39;px&#39;;
@@ -1604,11 +1847,15 @@ function overStation(tip){
   const top=(s.top-r.top)/currentScale-pad, bottom=(s.bottom-r.top)/currentScale+pad;
   return tip.x&gt;=left &amp;&amp; tip.x&lt;=right &amp;&amp; tip.y&gt;=top &amp;&amp; tip.y&lt;=bottom
 }
-function overMainBeaker(tip){
-  const {sx,sy}=svgScale(); const left=BEAKER.left*sx, right=BEAKER.right*sx, bottom=BEAKER.bottom*sy, surface=state.surfaceCssY+12;
-  return tip.x&gt;=left &amp;&amp; tip.x&lt;=right &amp;&amp; tip.y&gt;=surface &amp;&amp; tip.y&lt;=bottom
+
+function collectIndicator(){
+  if(!isLiquidIndicator()||state.dropper.busy) return;
+  state.dropper.busy=true;
+  const base=indicatorBaseColor(activeBeaker);
+  pipFill.setAttribute(&#39;fill&#39;,base); pipFill.setAttribute(&#39;y&#39;,150); pipFill.setAttribute(&#39;height&#39;,50);
+  state.dropper.hasLiquid=true; setTimeout(()=&gt;state.dropper.busy=false,200)
 }
-function collectIndicator(){ if(!isLiquidIndicator()||state.dropper.busy) return; state.dropper.busy=true; const base=indicatorBaseColor(); pipFill.setAttribute(&#39;fill&#39;,base); pipFill.setAttribute(&#39;y&#39;,150); pipFill.setAttribute(&#39;height&#39;,50); state.dropper.hasLiquid=true; setTimeout(()=&gt;state.dropper.busy=false,200) }
+
 function spawnRigDrop(x,y,color,targetY){
   const d=document.createElement(&#39;div&#39;); d.style.position=&#39;absolute&#39;;
   d.style.left=(x-6)+&#39;px&#39;; d.style.top=(y-6)+&#39;px&#39;; d.style.width=&#39;10px&#39;; d.style.height=&#39;10px&#39;;
@@ -1623,7 +1870,20 @@ function spawnRigDrop(x,y,color,targetY){
     if(p&lt;1) requestAnimationFrame(step); else d.remove()
   })(performance.now())
 }
-function mixBeakerColorTo(hexEnd, duration=1000){ const hexStart=liquidRect.getAttribute(&#39;fill&#39;); const sRGB=hexToRgb(hexStart), eRGB=hexToRgb(hexEnd); const t0=performance.now(); (function step(t){ const p=Math.min(1,(t-t0)/duration), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(sRGB.r+(eRGB.r-sRGB.r)*ease),g:Math.round(sRGB.g+(eRGB.g-sRGB.g)*ease),b:Math.round(sRGB.b+(eRGB.b-sRGB.b)*ease)}; const hx=rgbToHex(mix); liquidRect.setAttribute(&#39;fill&#39;,hx); wavePath.setAttribute(&#39;fill&#39;,hx); if(p&lt;1) requestAnimationFrame(step) })(performance.now()); return hexStart }
+
+function mixBeakerColorTo(b, hexEnd, duration=1000){
+  const hexStart=b.liquidColor;
+  const sRGB=hexToRgb(hexStart), eRGB=hexToRgb(hexEnd);
+  const t0=performance.now();
+  (function step(t){
+    const p=Math.min(1,(t-t0)/duration), ease=.5-Math.cos(p*Math.PI)/2;
+    const mix={r:Math.round(sRGB.r+(eRGB.r-sRGB.r)*ease),g:Math.round(sRGB.g+(eRGB.g-sRGB.g)*ease),b:Math.round(sRGB.b+(eRGB.b-sRGB.b)*ease)};
+    b.liquidColor=rgbToHex(mix);
+    if(p&lt;1) requestAnimationFrame(step)
+  })(performance.now());
+  return hexStart;
+}
+
 function beep(freq=620,dur=0.07){
   if(!soundState.on) return;
   try{
@@ -1636,17 +1896,26 @@ function beep(freq=620,dur=0.07){
     o.connect(g).connect(soundState.ctx.destination); o.start(t); o.stop(t+dur+0.02);
   }catch(e){}
 }
+
 function dispenseIndicator(){
-  if(!state.dropper.hasLiquid||state.dropper.busy||!state.filled){ return }
+  if(!state.dropper.hasLiquid||state.dropper.busy) return;
+  const tip = dropperTip();
+  const targetBeaker = getBeakerAtPoint(tip.x, tip.y) || activeBeaker;
+  if(!targetBeaker || !targetBeaker.filled) return;
+
+  setActiveBeaker(targetBeaker);
   state.dropper.busy=true;
-  const endHex=INDICATORS[state.indKey].color(state.pH);
-  const tip=dropperTip(), targetY=state.surfaceCssY+14;
+  const endHex=INDICATORS[targetBeaker.indKey].color(targetBeaker.pH);
+  const targetY=targetBeaker.y + targetBeaker.getSurfaceCssY() + 14;
+
   for(let i=0;i&lt;10;i++){ setTimeout(()=&gt;spawnRigDrop(tip.x,tip.y,endHex,targetY),i*90) }
-  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
-  const startHex=mixBeakerColorTo(endHex,1100);
+  targetBeaker.wrapper.classList.add(&#39;react-glow&#39;);
+  setTimeout(()=&gt;targetBeaker.wrapper.classList.remove(&#39;react-glow&#39;),800);
+
+  const startHex=mixBeakerColorTo(targetBeaker, endHex, 1100);
   beep();
-  setTimeout(()=&gt;{ pipFill.setAttribute(&#39;height&#39;,0); pipFill.setAttribute(&#39;y&#39;,210); state.dropper.hasLiquid=false; state.dropper.busy=false },90*10+300);
-  updateResult(INDICATORS[state.indKey].name,startHex,endHex)
+  setTimeout(()=&gt;{ pipFill.setAttribute(&#39;height&#39;,0); pipFill.setAttribute(&#39;y&#39;,210); state.dropper.hasLiquid=false; state.dropper.busy=false }, 90*10+300);
+  updateResultForBeaker(targetBeaker, INDICATORS[targetBeaker.indKey].name, startHex, endHex);
 }
 
 /* Drag dropper */
@@ -1673,7 +1942,7 @@ function dispenseIndicator(){
     if(!dragging) return; dragging=false; dropper.releasePointerCapture(e.pointerId||1);
     const tip=dropperTip();
     if(overStation(tip)&amp;&amp;!state.dropper.hasLiquid) collectIndicator();
-    else if(overMainBeaker(tip)&amp;&amp;state.dropper.hasLiquid) dispenseIndicator();
+    else if(getBeakerAtPoint(tip.x, tip.y) &amp;&amp; state.dropper.hasLiquid) dispenseIndicator();
     highlightStation(false)
   })
 })();
@@ -1700,16 +1969,18 @@ function dispenseIndicator(){
 })();
 
 function pourFromStation(){
-  if(!state.filled || state.indKey===&#39;none&#39;) return;
-  const endHex=INDICATORS[state.indKey].color(state.pH);
+  if(!activeBeaker || !activeBeaker.filled || activeBeaker.indKey===&#39;none&#39;) return;
+  const endHex=INDICATORS[activeBeaker.indKey].color(activeBeaker.pH);
   const sRect=miniBeaker.getBoundingClientRect(), rRect=rig.getBoundingClientRect();
   const sx=(sRect.left+sRect.width/2 - rRect.left)/currentScale;
   const sy=(sRect.bottom - rRect.top)/currentScale - 6;
-  const targetY=state.surfaceCssY+14;
+  const targetY=activeBeaker.y + activeBeaker.getSurfaceCssY() + 14;
+
   for(let i=0;i&lt;14;i++){ const jitterX=(Math.random()-0.5)*22; setTimeout(()=&gt;spawnRigDrop(sx+jitterX,sy,endHex,targetY),i*70) }
-  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
-  const startHex=mixBeakerColorTo(endHex,900); beep();
-  updateResult(INDICATORS[state.indKey].name,startHex,endHex)
+  activeBeaker.wrapper.classList.add(&#39;react-glow&#39;);
+  setTimeout(()=&gt;activeBeaker.wrapper.classList.remove(&#39;react-glow&#39;),800);
+  const startHex=mixBeakerColorTo(activeBeaker, endHex, 900); beep();
+  updateResultForBeaker(activeBeaker, INDICATORS[activeBeaker.indKey].name, startHex, endHex);
 }
 
 /* Conductivity popup &amp; logic */
@@ -1728,37 +1999,48 @@ function getProbeTipPoint(probe){
   const tip=probe.querySelector(&#39;.tip&#39;).getBoundingClientRect(), rRig=getRigRect();
   return {x:(tip.left+tip.width/2 - rRig.left)/currentScale, y:(tip.bottom - rRig.top)/currentScale}
 }
-function beakerBoundsViewport(){
-  const r=rig.getBoundingClientRect(), {sx,sy}=svgScale();
-  const left=r.left+BEAKER.left*sx*currentScale, right=r.left+BEAKER.right*sx*currentScale;
-  const surface=r.top+state.surfaceCssY*currentScale, bottom=r.top+BEAKER.bottom*sy*currentScale;
-  return {left,right,surface,bottom}
-}
-function probeTipTouchesLiquid(probe){
-  if(!state.filled || levelTarget&lt;=0.01) return false;
+
+function getProbeRigPoint(probe) {
   const tip = probe.querySelector(&#39;.tip&#39;).getBoundingClientRect();
-  const b = beakerBoundsViewport();
-  const overlapX = tip.right &gt;= b.left &amp;&amp; tip.left &lt;= b.right;
-  const overlapY = tip.bottom &gt;= b.surface &amp;&amp; tip.top &lt;= b.bottom;
-  return overlapX &amp;&amp; overlapY;
+  const r = rig.getBoundingClientRect();
+  return {
+    x: (tip.left + tip.width / 2 - r.left) / currentScale,
+    y: (tip.bottom - r.top) / currentScale
+  };
 }
-function probeInSolution(probe){
-  const inside = probeTipTouchesLiquid(probe);
-  probe.classList.toggle(&#39;wet&#39;,inside);
-  return inside;
+
+function probeInBeaker(probe) {
+  const pt = getProbeRigPoint(probe);
+  const b = getBeakerAtPoint(pt.x, pt.y);
+  probe.classList.toggle(&#39;wet&#39;, !!b &amp;&amp; b.filled);
+  return b;
 }
+
 function conductivityFromPH(pH){ if(pH&lt;=2||pH&gt;=12) return 1; if(pH&lt;=5||pH&gt;=9) return .35; return 0 }
-function activeConductivity(){ const k=condState.sampleKey; if(k===&#39;none&#39;) return 0; if(k===&#39;beaker&#39;) return conductivityFromPH(state.pH); const s=COND_SAMPLES[k]; return s?.level ?? 0 }
+function activeConductivity(){
+  const k=condState.sampleKey;
+  if(k===&#39;none&#39;) return 0;
+  if(k===&#39;beaker&#39;) return activeBeaker ? conductivityFromPH(activeBeaker.pH) : 0;
+  const s=COND_SAMPLES[k];
+  return s?.level ?? 0
+}
 function setBulbIntensity(x){ x=Math.max(0,Math.min(1,x)); condState.intensity=x; bulbGlow.setAttribute(&#39;opacity&#39;,(0.10+0.90*x).toFixed(2)); filament.setAttribute(&#39;opacity&#39;,(0.12+0.86*x).toFixed(2)); star.setAttribute(&#39;opacity&#39;,x&gt;0.85?0.22:0) }
 function startFlicker(){ stopFlicker(); condState.flickerTimer=setInterval(()=&gt;{ if(!condState.on) return; const base=condState.intensity, jitter=(Math.random()-0.5)*(base&gt;0.7?0.05:0.12); setBulbIntensity(Math.max(0,Math.min(1,base+jitter))) },100) }
 function stopFlicker(){ if(condState.flickerTimer){ clearInterval(condState.flickerTimer); condState.flickerTimer=null } }
+
 function updateConductivity(){
-  const inPlus=probeInSolution(probePlus), inMinus=probeInSolution(probeMinus);
-  if(condState.on &amp;&amp; inPlus &amp;&amp; inMinus){
-    const lvl=activeConductivity()*condState.conc;
+  const bPlus = probeInBeaker(probePlus);
+  const bMinus = probeInBeaker(probeMinus);
+
+  if(condState.on &amp;&amp; bPlus &amp;&amp; bMinus &amp;&amp; bPlus === bMinus &amp;&amp; bPlus.filled){
+    const lvl = conductivityFromPH(bPlus.pH) * condState.conc;
+    setBulbIntensity(lvl); startFlicker();
+  } else if (condState.on &amp;&amp; condState.sampleKey !== &#39;beaker&#39; &amp;&amp; condState.sampleKey !== &#39;none&#39;) {
+    const lvl = activeConductivity() * condState.conc;
     setBulbIntensity(lvl); startFlicker();
   } else { setBulbIntensity(0); stopFlicker() }
 }
+
 function updateWireTargets(){ condState.wire.posTar=rigPoint(nodePos); condState.wire.negTar=rigPoint(nodeNeg); condState.wire.plusTar=getProbeTipPoint(probePlus); condState.wire.minusTar=getProbeTipPoint(probeMinus) }
 function lerp(a,b,t){ return a+(b-a)*t }
 function animateWires(){
@@ -1814,42 +2096,59 @@ function initProbeDrag(probe){
 initProbeDrag(probePlus); initProbeDrag(probeMinus);
 
 /* Actions */
-function fillBeaker(){
-  if(state.subKey===&#39;none_sub&#39;) return;
-  if(state.filled) return;
-  const sol=SUBS[state.subKey];
-  setPH(sol?.pH ?? 7, false); // Keep pH hidden initially
-  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
-  setLevel(.54); state.filled=true; startBubbles(); state.beakerLabelOverride=null; beep(420,0.05);
+function fillActiveBeaker(){
+  if(!activeBeaker || activeBeaker.subKey===&#39;none_sub&#39;) return;
+  const sol=SUBS[activeBeaker.subKey];
+  activeBeaker.setPH(sol?.pH ?? 7, false);
+  activeBeaker.liquidColor = &quot;#89caff&quot;;
+  activeBeaker.levelTarget = 0.54;
+  activeBeaker.filled = true;
+  activeBeaker.beakerLabelOverride = null;
+  startBubbles();
+  beep(420,0.05);
 }
-function addIndicator(){
-  if(state.mode!==&#39;single&#39;) return;
-  if(!state.filled) return;
-  if(state.indKey===&#39;none&#39;) return;
-  if(LIQUID_KEYS.includes(state.indKey)){ collectIndicator(); setTimeout(()=&gt;{ if(state.dropper.hasLiquid) dispenseIndicator(); else pourFromStation() },450); return }
-  const ind=INDICATORS[state.indKey], finalHex=indicatorColor();
-  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),600);
-  const startColor=hexToRgb(liquidRect.getAttribute(&#39;fill&#39;)), endColor=hexToRgb(finalHex), t0=performance.now(), dur=900;
-  (function step(t){ const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(startColor.r+(endColor.r-startColor.r)*ease), g:Math.round(startColor.g+(endColor.g-startColor.g)*ease), b:Math.round(startColor.b+(endColor.b-startColor.b)*ease)}; const hex=rgbToHex(mix); liquidRect.setAttribute(&#39;fill&#39;,hex); wavePath.setAttribute(&#39;fill&#39;,hex); if(p&lt;1) requestAnimationFrame(step) })(performance.now());
+
+function addIndicatorToActive(){
+  if(state.mode!==&#39;single&#39; || !activeBeaker) return;
+  if(!activeBeaker.filled || activeBeaker.indKey===&#39;none&#39;) return;
+  if(LIQUID_KEYS.includes(activeBeaker.indKey)){ collectIndicator(); setTimeout(()=&gt;{ if(state.dropper.hasLiquid) dispenseIndicator(); else pourFromStation() },450); return }
+
+  const ind=INDICATORS[activeBeaker.indKey], finalHex=indicatorColor(activeBeaker);
+  activeBeaker.wrapper.classList.add(&#39;react-glow&#39;);
+  setTimeout(()=&gt;activeBeaker.wrapper.classList.remove(&#39;react-glow&#39;),600);
+
+  const startHex = mixBeakerColorTo(activeBeaker, finalHex, 900);
   beep();
-  updateResult(`${ind.name}`,rgbToHex(startColor),finalHex)
+  updateResultForBeaker(activeBeaker, ind.name, startHex, finalHex);
 }
-btnFill.addEventListener(&#39;click&#39;,fillBeaker);
-btnAdd.addEventListener(&#39;click&#39;,addIndicator);
+
+btnAddBeaker.addEventListener(&#39;click&#39;, () =&gt; {
+  const newX = 100 + (beakers.length * 65) % 650;
+  const newY = 80 + (beakers.length * 35) % 200;
+  addBeaker(`Main Beaker ${beakerIdSeq}`, newX, newY);
+});
+
+btnFill.addEventListener(&#39;click&#39;, fillActiveBeaker);
+btnAdd.addEventListener(&#39;click&#39;, addIndicatorToActive);
+
 btnReset.addEventListener(&#39;click&#39;,()=&gt;{
-  setMode(&#39;single&#39;);
-  state.filled=false; setLevel(0.02);
-  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
-  subSelect.value=&#39;none_sub&#39;; indSelect.value=&#39;none&#39;; condSelect.value=&#39;none&#39;;
-  state.subKey=&#39;none_sub&#39;; state.indKey=&#39;none&#39;; condState.sampleKey=&#39;none&#39;;
-  state.beakerLabelOverride=null; setPH(7, false); destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;);
-  stopBubbles(); resultCard.style.display=&#39;none&#39;;
-  condState.on=false; condSwitch.classList.remove(&#39;on&#39;); stopFlicker(); setBulbIntensity(0); toggleCondRig(false);
-  probePlus.style.left=&#39;340px&#39;; probePlus.style.top=&#39;120px&#39;; probeMinus.style.left=&#39;400px&#39;; probeMinus.style.top=&#39;120px&#39;;
-  concSlider.value=100; condState.conc=1; concBadge.textContent=&#39;100%&#39;; styleRange(concSlider);
-  neutralState.netMoles=0; neutralState.volL=0.2; neutralState.loadedA=0; neutralState.loadedB=0;
-  acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;;
-  beep(360,0.05);
+  if (!activeBeaker) return;
+  activeBeaker.filled = false;
+  activeBeaker.levelTarget = 0.02;
+  activeBeaker.liquidColor = &quot;#89caff&quot;;
+  activeBeaker.subKey = &#39;none_sub&#39;;
+  activeBeaker.indKey = &#39;none&#39;;
+  activeBeaker.beakerLabelOverride = null;
+  activeBeaker.setPH(7, false);
+
+  if (activeBeaker === activeBeaker) {
+    subSelect.value = &#39;none_sub&#39;;
+    indSelect.value = &#39;none&#39;;
+    destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;);
+  }
+
+  resultCard.style.display = &#39;none&#39;;
+  beep(360, 0.05);
 });
 
 /* Slider fill */
@@ -1867,7 +2166,7 @@ presetChips.forEach(ch=&gt;{
   ch.addEventListener(&#39;click&#39;,()=&gt;{
     const key=ch.dataset.preset;
     subSelect.value=key; subSelect.dispatchEvent(new Event(&#39;change&#39;));
-    if(!state.filled) fillBeaker();
+    if(activeBeaker &amp;&amp; !activeBeaker.filled) fillActiveBeaker();
   })
 });
 demoRun.addEventListener(&#39;click&#39;, runDemo);
@@ -1885,7 +2184,7 @@ soundToggle.addEventListener(&#39;click&#39;, ()=&gt;{
 /* Lab tool buttons */
 btnPHScale.addEventListener(&#39;click&#39;, togglePHScale);
 btnShowStation.addEventListener(&#39;click&#39;, ()=&gt;{
-  if(state.mode!==&#39;single&#39;) return;
+  if(state.mode!==&#39;single&#39; || !activeBeaker) return;
   if(indSelect.value===&#39;none&#39;){ indSelect.value=&#39;turmeric&#39;; indSelect.dispatchEvent(new Event(&#39;change&#39;)) }
   if(indicatorStation.style.display===&#39;none&#39;||!indicatorStation.style.display) showIndicatorStation(); else hideIndicatorStation();
 });
@@ -1893,32 +2192,35 @@ btnToggleRig.addEventListener(&#39;click&#39;, ()=&gt; toggleCondRig(!(condRig.s
 
 /* Select changes */
 subSelect.addEventListener(&#39;change&#39;,()=&gt;{
-  state.subKey=subSelect.value; state.beakerLabelOverride=null;
-  if(state.subKey===&#39;none_sub&#39;){ if(state.filled){ setLevel(0.02); state.filled=false } return }
-  setPH(SUBS[state.subKey]?.pH ?? 7, false)
+  if (!activeBeaker) return;
+  activeBeaker.subKey = subSelect.value;
+  activeBeaker.beakerLabelOverride = null;
+  if(activeBeaker.subKey===&#39;none_sub&#39;){ if(activeBeaker.filled){ activeBeaker.levelTarget = 0.02; activeBeaker.filled=false } return }
+  activeBeaker.setPH(SUBS[activeBeaker.subKey]?.pH ?? 7, false);
 });
+
 indSelect.addEventListener(&#39;change&#39;,()=&gt;{
-  state.indKey=indSelect.value;
-  if(state.indKey===&#39;none&#39;){ destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;); return }
-  if(state.indKey===&#39;litmus&#39;) createLitmusStrips();
-  else if(state.indKey===&#39;universal&#39;) createUniversalStrip();
+  if (!activeBeaker) return;
+  activeBeaker.indKey = indSelect.value;
+  if(activeBeaker.indKey===&#39;none&#39;){ destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;); return }
+  if(activeBeaker.indKey===&#39;litmus&#39;) createLitmusStrips();
+  else if(activeBeaker.indKey===&#39;universal&#39;) createUniversalStrip();
   else { destroyStrips(); hidePHScale(); showIndicatorStation() }
 });
+
 condSelect.addEventListener(&#39;change&#39;,()=&gt;{
   condState.sampleKey=condSelect.value; toggleCondRig();
   const s=COND_SAMPLES[condState.sampleKey];
   if(condState.sampleKey!==&#39;none&#39;){ condState.on=true; condSwitch.classList.add(&#39;on&#39;); condSwitch.setAttribute(&#39;aria-pressed&#39;,&#39;true&#39;); }
-  if(condState.sampleKey!==&#39;none&#39; &amp;&amp; condState.sampleKey!==&#39;beaker&#39; &amp;&amp; s){ fillBeakerFromCondSample(s); state.beakerLabelOverride = s.name; }
-  if(s &amp;&amp; s.pH!=null) setPH(s.pH, false);
+  if(condState.sampleKey!==&#39;none&#39; &amp;&amp; condState.sampleKey!==&#39;beaker&#39; &amp;&amp; s &amp;&amp; activeBeaker){
+    activeBeaker.setPH(s?.pH ?? 7, false);
+    activeBeaker.liquidColor = &quot;#89caff&quot;;
+    activeBeaker.levelTarget = 0.54;
+    activeBeaker.filled = true;
+    activeBeaker.beakerLabelOverride = s.name;
+  }
   updateConductivity();
 });
-function fillBeakerFromCondSample(s){
-  setPH(s?.pH ?? 7, false);
-  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
-  setLevel(.54);
-  if(!state.filled) startBubbles();
-  state.filled=true;
-}
 
 /* Wires init */
 function ensureWireInit(){
@@ -2010,9 +2312,9 @@ async function runDemo(){
     await sleep(400);
     indSelect.value=&#39;universal&#39;; indSelect.dispatchEvent(new Event(&#39;change&#39;));
     await sleep(400);
-    fillBeaker();
+    fillActiveBeaker();
     await sleep(500);
-    addIndicator();
+    addIndicatorToActive();
     await sleep(400);
     showPHScale();
   }catch(e){}
@@ -2022,8 +2324,8 @@ function sleep(ms){ return new Promise(r=&gt;setTimeout(r,ms)) }
 /* Shortcuts */
 window.addEventListener(&#39;keydown&#39;, (e)=&gt;{
   const k=e.key.toLowerCase();
-  if(k===&#39;f&#39;) fillBeaker();
-  if(k===&#39;i&#39;) addIndicator();
+  if(k===&#39;f&#39;) fillActiveBeaker();
+  if(k===&#39;i&#39;) addIndicatorToActive();
   if(k===&#39;r&#39;) btnReset.click();
   if(k===&#39;b&#39;) btnBubbles.click();
   if(k===&#39;p&#39;) togglePHScale();
@@ -2040,7 +2342,7 @@ function setMode(mode){
     labTools.style.display=&#39;flex&#39;;
     compareWrap.style.display=&#39;none&#39;;
     neutralPanels.style.display=&#39;none&#39;;
-    if(state.filled &amp;&amp; state.bubbles) startBubbles();
+    if(state.bubbles) startBubbles();
   }
   if(mode===&#39;compare&#39;){
     rig.style.display=&#39;none&#39;;
@@ -2118,7 +2420,7 @@ function ensureMiniSims(){
       if(indKey===&#39;none&#39;) return;
       const col = (INDICATORS[indKey]||INDICATORS.universal).color(curPH);
       liq.setAttribute(&#39;fill&#39;, col);
-      updatePH(true); // Reveal pH when tested
+      updatePH(true);
     });
   });
   miniInited=true;
@@ -2159,21 +2461,16 @@ function initNeutralisationOnce(){
 
     neutralInited=true;
   }
-  if(!state.filled || state.mode!==&#39;neutral&#39;){
-    state.beakerLabelOverride=&#39;Neutral water&#39;;
-    setPH(7, false);
-    liquidRect.setAttribute(&#39;fill&#39;, &quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;, &quot;#89caff&quot;);
-    setLevel(.54); state.filled=true;
-  }
-  if(!neutralState.active){
-    neutralState.active=true;
-    neutralState.netMoles=0;
-    neutralState.volL=0.2;
-    neutralState.loadedA=0; neutralState.loadedB=0;
-    acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;;
+  if(activeBeaker &amp;&amp; (!activeBeaker.filled || state.mode===&#39;neutral&#39;)){
+    activeBeaker.beakerLabelOverride=&#39;Neutral water&#39;;
+    activeBeaker.setPH(7, false);
+    activeBeaker.liquidColor = &quot;#89caff&quot;;
+    activeBeaker.levelTarget = 0.54;
+    activeBeaker.filled = true;
   }
 }
 function addToMain(kind){
+  if (!activeBeaker) return;
   const isAcid = (kind===&#39;acid&#39;);
   const loaded = isAcid ? neutralState.loadedA : neutralState.loadedB;
   if(loaded&lt;=0) return;
@@ -2196,48 +2493,41 @@ function addToMain(kind){
   const rigRect = rig.getBoundingClientRect();
   const sx = (startRect.left + startRect.width/2 - rigRect.left) / currentScale;
   const sy = (startRect.bottom - rigRect.top) / currentScale - 8;
-  const targetY = state.surfaceCssY + 14;
+  const targetY = activeBeaker.y + activeBeaker.getSurfaceCssY() + 14;
   const dropColor = INDICATORS.universal.color(pH);
+
   for(let i=0;i&lt;12;i++){
     const jitterX=(Math.random()-0.5)*24;
     setTimeout(()=&gt;spawnRigDrop(sx+jitterX,sy,dropColor,targetY),i*60);
   }
-  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
+  activeBeaker.wrapper.classList.add(&#39;react-glow&#39;);
+  setTimeout(()=&gt;activeBeaker.wrapper.classList.remove(&#39;react-glow&#39;),800);
 
-  const prevHex=liquidRect.getAttribute(&#39;fill&#39;);
-  neutralState.netMoles += delta;
-  neutralState.volL += volL;
+  const prevHex = activeBeaker.liquidColor;
+  activeBeaker.netMoles += delta;
+  activeBeaker.volL += volL;
 
   let finalPH=7;
-  if(neutralState.netMoles&gt;1e-15){
-    const H = neutralState.netMoles/neutralState.volL;
+  if(activeBeaker.netMoles &gt; 1e-15){
+    const H = activeBeaker.netMoles / activeBeaker.volL;
     finalPH = -Math.log10(Math.max(1e-14,H));
-  }else if(neutralState.netMoles&lt;-1e-15){
-    const OH = (-neutralState.netMoles)/neutralState.volL;
+  }else if(activeBeaker.netMoles &lt; -1e-15){
+    const OH = (-activeBeaker.netMoles) / activeBeaker.volL;
     const pOH = -Math.log10(Math.max(1e-14,OH));
     finalPH = 14 - pOH;
   }else{
     finalPH=7;
   }
   finalPH = Math.max(0, Math.min(14, finalPH));
-  setPH(finalPH, true); // REVEAL pH UPON NEUTRALISATION ADDITION
+  activeBeaker.setPH(finalPH, true);
 
   const newHex = INDICATORS.universal.color(finalPH);
-  mixBeakerColorTo(newHex, 900);
+  mixBeakerColorTo(activeBeaker, newHex, 900);
   beep();
 
   const addLabel = `${isAcid?&#39;Acid&#39;:&#39;Base&#39;}: ${labelForSubKey(key).split(&#39;—&#39;)[0].trim()} — ${loaded} mL`;
-  state.beakerLabelOverride = `Neutralisation Mix — ${addLabel}`;
-  resultCard.style.display=&#39;block&#39;;
-  resIndicator.textContent = &#39;Indicator: Neutralisation (mix)&#39;;
-  resSubstance.textContent = `Substance: ${addLabel}`;
-  resPH.textContent = `pH: ${finalPH.toFixed(2)}`;
-  const nature= (finalPH&lt;7?&#39;Acidic&#39;:finalPH&gt;7?&#39;Basic (Alkaline)&#39;:&#39;Neutral&#39;);
-  resNature.textContent=nature;
-  resNature.style.background= nature.startsWith(&#39;Acidic&#39;)?&#39;rgba(255,100,120,.15)&#39;:nature.startsWith(&#39;Basic&#39;)?&#39;rgba(100,255,170,.15)&#39;:&#39;rgba(255,255,255,.08)&#39;;
-  fromSq.style.background=prevHex; toSq.style.background=newHex;
-  fromTxt.textContent=`from ${colorName(prevHex)}`; toTxt.textContent=`to ${colorName(newHex)}`;
-  pushHistory({indicator:&#39;Neutralisation&#39;, substance:addLabel, pH:finalPH.toFixed(2), from:prevHex, to:newHex});
+  activeBeaker.beakerLabelOverride = `Neutralisation Mix — ${addLabel}`;
+  updateResultForBeaker(activeBeaker, &#39;Neutralisation (mix)&#39;, prevHex, newHex);
 
   if(isAcid){ neutralState.loadedA=0; acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; }
   else { neutralState.loadedB=0; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;; }
@@ -2245,10 +2535,14 @@ function addToMain(kind){
 
 /* ====== Init ====== */
 function init(){
-  ensureTicks(); setPH(7, false); styleRange(concSlider);
+  ensureTicks(); styleRange(concSlider);
   ensureWireInit(); animateWires(); toggleCondRig(false);
   initResizablePanels();
   checkOrientation();
+
+  // Create initial Main Beaker 1
+  addBeaker(&quot;Main Beaker 1&quot;, 410, 110);
+
   setMode(&#39;single&#39;);
   showOnboard();
 }
@@ -2266,8 +2560,8 @@ condSwitch.addEventListener(&#39;click&#39;,()=&gt;{ condState.on=!condState.on;
 <script>
   const STAGE_W = 1920;
   const STAGE_H = 1080;
-  const IS_CUSTOM_SCALE = true;
-  const CUSTOM_SCALE_VAL = 40;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
   const REQUIRE_LANDSCAPE = true;
   const AUTO_FULLSCREEN = true;
 
