@@ -1,10 +1,209 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>ACIDS, BASES AND SALTS TESTING LAB — Aurora</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>AB LAB</title>
 <style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1920px;
+    height: 1080px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    bottom: 12px; left: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    bottom: 12px; left: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; data-theme=&quot;dark&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no&quot; /&gt;
+&lt;title&gt;ACIDS, BASES AND SALTS TESTING LAB — Aurora&lt;/title&gt;
+&lt;style&gt;
   :root{
     --bg:#0b1120;
     --surface:rgba(255,255,255,.06);
@@ -20,7 +219,7 @@
     --danger:#ff8a8a;
     --ring:#7bd1ff;
   }
-  [data-theme="light"]{
+  [data-theme=&quot;light&quot;]{
     --bg:#fbfdff;
     --surface:rgba(10,20,40,.06);
     --surface-2:rgba(10,20,40,.04);
@@ -40,11 +239,11 @@
   html,body{
     width:100vw; height:100vh; margin:0; padding:0; overflow:hidden;
     background:#070b14; color:var(--text);
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, &quot;Helvetica Neue&quot;, Arial;
     user-select: none; -webkit-user-select: none;
   }
 
-  /* VIEWPORT WRAPPER & 1920x1080 STAGE CANVAS */
+  /* VIEWPORT WRAPPER &amp; 1920x1080 STAGE CANVAS */
   #viewportContainer{
     position: fixed; inset: 0; width: 100vw; height: 100vh;
     overflow: hidden; background: #070b14;
@@ -226,7 +425,7 @@
     border:1px solid var(--stroke); background:rgba(255,255,255,.08); cursor:pointer; user-select:none; font-size: 1.1rem;
   }
   .icon-btn:hover{ box-shadow:0 6px 16px rgba(0,0,0,.25) }
-  .icon-btn[aria-pressed="true"]{ outline:2px solid var(--primary) }
+  .icon-btn[aria-pressed=&quot;true&quot;]{ outline:2px solid var(--primary) }
 
   /* Reaction glow */
   #lab.react-glow { filter: drop-shadow(0 0 16px rgba(170, 210, 255, .35)); transition: filter .3s ease }
@@ -304,7 +503,7 @@
   /* Electrodes */
   .probe{
     position:absolute; width: 20px; height: 140px;
-    border-radius:9px; background:linear-gradient(180deg,#a2b4c8,#6c7c8f); border:1px solid rgba(255,255,255,.5);
+    border-radius:99px; background:linear-gradient(180deg,#a2b4c8,#6c7c8f); border:1px solid rgba(255,255,255,.5);
     box-shadow:0 8px 16px rgba(0,0,0,.35), inset 0 2px 6px rgba(0,0,0,.25);
     pointer-events:auto; cursor:grab; user-select:none; touch-action:none;
   }
@@ -317,7 +516,7 @@
   /* Results panel */
   .results.panel{ display:flex; flex-direction:column; min-width:280px; }
   .results h2{ margin:0 0 12px; padding-left:24px; position:relative; font-size: 1.3rem; }
-  .results h2::before{ content:"📌"; position:absolute; left:0; top:-2px; font-size:1.1rem; }
+  .results h2::before{ content:&quot;📌&quot;; position:absolute; left:0; top:-2px; font-size:1.1rem; }
   .result-card{
     border:1px solid var(--stroke);
     background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
@@ -438,534 +637,612 @@
   .tiny{ font-size:.72rem; color:var(--muted) }
   .ml-badge{ padding:2px 8px; border-radius:999px; border:1px solid var(--stroke); font-size:.72rem; color:var(--muted); background:rgba(255,255,255,.06) }
   .vslider{ width:100% }
-</style>
-</head>
-<body>
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
 
-<!-- ROTATE SCREEN PROMPT (PORTRAIT MODE) -->
-<div class="rotate-overlay" id="rotateOverlay">
-  <div class="rotate-card">
-    <div class="rotate-icon">📱🔄</div>
-    <h2 style="margin:0 0 8px 0;">Rotate Your Phone</h2>
-    <p style="margin:0; color:var(--muted); font-size:.9rem; line-height:1.4;">
-      Please rotate your phone to <strong>Landscape Mode</strong> to unlock the complete Widescreen 1920×1080 Widescreen Lab Experience.
-    </p>
-    <button id="btnEnterLandscape" class="primary" style="margin-top:18px; width:100%; padding:12px;">
-      Enter Fullscreen Widescreen Lab
-    </button>
-  </div>
-</div>
+&lt;!-- ROTATE SCREEN PROMPT (PORTRAIT MODE) --&gt;
+&lt;div class=&quot;rotate-overlay&quot; id=&quot;rotateOverlay&quot;&gt;
+  &lt;div class=&quot;rotate-card&quot;&gt;
+    &lt;div class=&quot;rotate-icon&quot;&gt;📱🔄&lt;/div&gt;
+    &lt;h2 style=&quot;margin:0 0 8px 0;&quot;&gt;Rotate Your Phone&lt;/h2&gt;
+    &lt;p style=&quot;margin:0; color:var(--muted); font-size:.9rem; line-height:1.4;&quot;&gt;
+      Please rotate your phone to &lt;strong&gt;Landscape Mode&lt;/strong&gt; to unlock the complete Widescreen 1920×1080 Widescreen Lab Experience.
+    &lt;/p&gt;
+    &lt;button id=&quot;btnEnterLandscape&quot; class=&quot;primary&quot; style=&quot;margin-top:18px; width:100%; padding:12px;&quot;&gt;
+      Enter Widescreen Lab
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
 
-<!-- MAIN VIEWPORT CONTAINER -->
-<div id="viewportContainer">
-  <!-- FIXED 1920x1080 STAGE CANVAS -->
-  <div id="appStage">
-    <div class="orbs"><div class="a"></div><div class="b"></div><div class="c"></div></div>
+&lt;!-- MAIN VIEWPORT CONTAINER --&gt;
+&lt;div id=&quot;viewportContainer&quot;&gt;
+  &lt;!-- FIXED 1920x1080 STAGE CANVAS --&gt;
+  &lt;div id=&quot;appStage&quot;&gt;
+    &lt;div class=&quot;orbs&quot;&gt;&lt;div class=&quot;a&quot;&gt;&lt;/div&gt;&lt;div class=&quot;b&quot;&gt;&lt;/div&gt;&lt;div class=&quot;c&quot;&gt;&lt;/div&gt;&lt;/div&gt;
 
-    <!-- TOPBAR -->
-    <header class="topbar">
-      <div class="grid">
-        <div class="sel">
-          <label>Test Solution / Substance</label>
-          <select id="subSelect" class="pill">
-            <option value="none_sub" selected>None — no substance selected</option>
-            <optgroup label="🔴 Strong Acids — Chemical">
-              <option value="h2so4_strong">Sulfuric acid — H₂SO₄</option>
-              <option value="hcl_industrial">Hydrochloric acid — HCl</option>
-              <option value="hno3">Nitric acid — HNO₃</option>
-              <option value="hclo4">Perchloric acid — HClO₄</option>
-              <option value="hi_strong">Hydroiodic acid — HI</option>
-              <option value="hbr_strong">Hydrobromic acid — HBr</option>
-              <option value="hclo3">Chloric acid — HClO₃</option>
-              <option value="h2seo4">Selenic acid — H₂SeO₄</option>
-              <option value="battery_acid">Battery acid (H₂SO₄)</option>
-            </optgroup>
-            <optgroup label="🟠 Weak / Natural Acids">
-              <option value="gastric_acid">Gastric acid — HCl</option>
-              <option value="lemon_juice">Lemon juice — citric acid</option>
-              <option value="orange_juice">Orange juice — citric acid</option>
-              <option value="vinegar">Vinegar (table) — acetic acid</option>
-              <option value="apple_cider_vinegar">Apple cider vinegar</option>
-              <option value="cola_soda">Cola soda — carbonic/phosphoric</option>
-              <option value="tomato_juice">Tomato juice</option>
-              <option value="black_coffee">Black coffee</option>
-              <option value="tea">Tea (plain)</option>
-              <option value="yogurt">Yogurt/curd — lactic acid</option>
-              <option value="grape_juice">Grape juice — tartaric acid</option>
-              <option value="carbonic">Carbonic acid (soda water) — H₂CO₃</option>
-              <option value="rainwater">Rainwater (clean)</option>
-              <option value="acidic_rainwater">Acidic rainwater</option>
-              <option value="acetic_vinegar">Acetic acid — CH₃COOH</option>
-              <option value="formic">Formic acid — HCOOH</option>
-              <option value="citric">Citric acid — C₆H₈O₇</option>
-              <option value="tartaric">Tartaric acid — C₄H₆O₆</option>
-              <option value="ascorbic">Ascorbic acid — C₆H₈O₆</option>
-              <option value="oxalic">Oxalic acid — C₂H₂O₄</option>
-              <option value="lactic">Lactic acid — C₃H₆O₃</option>
-              <option value="malic">Malic acid — C₄H₆O₅</option>
-              <option value="phosphoric">Phosphoric acid — H₃PO₄</option>
-              <option value="boric">Boric acid — H₃BO₃</option>
-              <option value="benzoic">Benzoic acid — C₆H₅COOH</option>
-              <option value="phenol">Phenol — C₆H₅OH</option>
-              <option value="hydrofluoric_weak">Hydrofluoric acid — HF</option>
-              <option value="hydrocyanic">Hydrocyanic acid — HCN</option>
-              <option value="alum_solution">Alum solution — KAl(SO₄)₂</option>
-            </optgroup>
-            <optgroup label="⚖️ Neutral / Non‑electrolytes">
-              <option value="pure_water">Pure water</option>
-              <option value="distilled_water">Distilled water</option>
-              <option value="fresh_saliva">Fresh saliva</option>
-              <option value="fresh_milk">Fresh milk</option>
-              <option value="coconut_water">Coconut water</option>
-              <option value="starch_solution">Starch solution</option>
-              <option value="glucose_solution">Glucose solution</option>
-              <option value="sucrose_solution">Sugar (sucrose) solution</option>
-              <option value="urea_solution">Urea solution</option>
-              <option value="nacl">Sodium chloride solution — NaCl</option>
-              <option value="kcl">Potassium chloride solution — KCl</option>
-              <option value="epsom_salt_solution">Epsom salt (MgSO₄) solution</option>
-            </optgroup>
-            <optgroup label="🔵 Bases / Alkaline">
-              <option value="seawater">Seawater</option>
-              <option value="baking_soda_solution">Baking soda — NaHCO₃</option>
-              <option value="sodium_bicarbonate_natural">Sodium bicarbonate — NaHCO₃</option>
-              <option value="calcium_carbonate_natural">Calcium carbonate — CaCO₃</option>
-              <option value="potash_wood_ash_natural">Wood ash (K₂CO₃)</option>
-              <option value="borax_natural">Borax — Na₂B₄O₇·10H₂O</option>
-              <option value="soap_solution">Soap solution</option>
-              <option value="detergent_solution">Detergent solution</option>
-              <option value="bleach_naocl">Bleach (NaOCl)</option>
-              <option value="ammonia_natural">Ammonia — NH₃(aq)</option>
-              <option value="ammonium_hydroxide">Ammonium hydroxide — NH₄OH</option>
-              <option value="magnesium_hydroxide">Magnesium hydroxide — Mg(OH)₂</option>
-              <option value="aluminium_hydroxide">Aluminium hydroxide — Al(OH)₃</option>
-              <option value="zinc_hydroxide">Zinc hydroxide — Zn(OH)₂</option>
-              <option value="copper_ii_hydroxide">Copper(II) hydroxide — Cu(OH)₂</option>
-              <option value="iron_ii_hydroxide">Iron(II) hydroxide — Fe(OH)₂</option>
-              <option value="magnesium_carbonate">Magnesium carbonate — MgCO₃</option>
-              <option value="sodium_carbonate">Sodium carbonate — Na₂CO₃</option>
-              <option value="potassium_carbonate">Potassium carbonate — K₂CO₃</option>
-              <option value="sodium_borate">Sodium borate — Na₂B₄O₇·10H₂O</option>
-              <option value="calcium_hydroxide">Calcium hydroxide — Ca(OH)₂</option>
-              <option value="quicklime_limewater">Quicklime → Ca(OH)₂</option>
-              <option value="sodium_hydroxide">Sodium hydroxide — NaOH</option>
-              <option value="potassium_hydroxide">Potassium hydroxide — KOH</option>
-            </optgroup>
-          </select>
-        </div>
+    &lt;!-- TOPBAR --&gt;
+    &lt;header class=&quot;topbar&quot;&gt;
+      &lt;div class=&quot;grid&quot;&gt;
+        &lt;div class=&quot;sel&quot;&gt;
+          &lt;label&gt;Test Solution / Substance&lt;/label&gt;
+          &lt;select id=&quot;subSelect&quot; class=&quot;pill&quot;&gt;
+            &lt;option value=&quot;none_sub&quot; selected&gt;None — no substance selected&lt;/option&gt;
+            &lt;optgroup label=&quot;🔴 Strong Acids — Chemical&quot;&gt;
+              &lt;option value=&quot;h2so4_strong&quot;&gt;Sulfuric acid — H₂SO₄&lt;/option&gt;
+              &lt;option value=&quot;hcl_industrial&quot;&gt;Hydrochloric acid — HCl&lt;/option&gt;
+              &lt;option value=&quot;hno3&quot;&gt;Nitric acid — HNO₃&lt;/option&gt;
+              &lt;option value=&quot;hclo4&quot;&gt;Perchloric acid — HClO₄&lt;/option&gt;
+              &lt;option value=&quot;hi_strong&quot;&gt;Hydroiodic acid — HI&lt;/option&gt;
+              &lt;option value=&quot;hbr_strong&quot;&gt;Hydrobromic acid — HBr&lt;/option&gt;
+              &lt;option value=&quot;hclo3&quot;&gt;Chloric acid — HClO₃&lt;/option&gt;
+              &lt;option value=&quot;h2seo4&quot;&gt;Selenic acid — H₂SeO₄&lt;/option&gt;
+              &lt;option value=&quot;battery_acid&quot;&gt;Battery acid (H₂SO₄)&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;🟠 Weak / Natural Acids&quot;&gt;
+              &lt;option value=&quot;gastric_acid&quot;&gt;Gastric acid — HCl&lt;/option&gt;
+              &lt;option value=&quot;lemon_juice&quot;&gt;Lemon juice — citric acid&lt;/option&gt;
+              &lt;option value=&quot;orange_juice&quot;&gt;Orange juice — citric acid&lt;/option&gt;
+              &lt;option value=&quot;vinegar&quot;&gt;Vinegar (table) — acetic acid&lt;/option&gt;
+              &lt;option value=&quot;apple_cider_vinegar&quot;&gt;Apple cider vinegar&lt;/option&gt;
+              &lt;option value=&quot;cola_soda&quot;&gt;Cola soda — carbonic/phosphoric&lt;/option&gt;
+              &lt;option value=&quot;tomato_juice&quot;&gt;Tomato juice&lt;/option&gt;
+              &lt;option value=&quot;black_coffee&quot;&gt;Black coffee&lt;/option&gt;
+              &lt;option value=&quot;tea&quot;&gt;Tea (plain)&lt;/option&gt;
+              &lt;option value=&quot;yogurt&quot;&gt;Yogurt/curd — lactic acid&lt;/option&gt;
+              &lt;option value=&quot;grape_juice&quot;&gt;Grape juice — tartaric acid&lt;/option&gt;
+              &lt;option value=&quot;carbonic&quot;&gt;Carbonic acid (soda water) — H₂CO₃&lt;/option&gt;
+              &lt;option value=&quot;rainwater&quot;&gt;Rainwater (clean)&lt;/option&gt;
+              &lt;option value=&quot;acidic_rainwater&quot;&gt;Acidic rainwater&lt;/option&gt;
+              &lt;option value=&quot;acetic_vinegar&quot;&gt;Acetic acid — CH₃COOH&lt;/option&gt;
+              &lt;option value=&quot;formic&quot;&gt;Formic acid — HCOOH&lt;/option&gt;
+              &lt;option value=&quot;citric&quot;&gt;Citric acid — C₆H₈O₇&lt;/option&gt;
+              &lt;option value=&quot;tartaric&quot;&gt;Tartaric acid — C₄H₆O₆&lt;/option&gt;
+              &lt;option value=&quot;ascorbic&quot;&gt;Ascorbic acid — C₆H₈O₆&lt;/option&gt;
+              &lt;option value=&quot;oxalic&quot;&gt;Oxalic acid — C₂H₂O₄&lt;/option&gt;
+              &lt;option value=&quot;lactic&quot;&gt;Lactic acid — C₃H₆O₃&lt;/option&gt;
+              &lt;option value=&quot;malic&quot;&gt;Malic acid — C₄H₆O₅&lt;/option&gt;
+              &lt;option value=&quot;phosphoric&quot;&gt;Phosphoric acid — H₃PO₄&lt;/option&gt;
+              &lt;option value=&quot;boric&quot;&gt;Boric acid — H₃BO₃&lt;/option&gt;
+              &lt;option value=&quot;benzoic&quot;&gt;Benzoic acid — C₆H₅COOH&lt;/option&gt;
+              &lt;option value=&quot;phenol&quot;&gt;Phenol — C₆H₅OH&lt;/option&gt;
+              &lt;option value=&quot;hydrofluoric_weak&quot;&gt;Hydrofluoric acid — HF&lt;/option&gt;
+              &lt;option value=&quot;hydrocyanic&quot;&gt;Hydrocyanic acid — HCN&lt;/option&gt;
+              &lt;option value=&quot;alum_solution&quot;&gt;Alum solution — KAl(SO₄)₂&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;⚖️ Neutral / Non‑electrolytes&quot;&gt;
+              &lt;option value=&quot;pure_water&quot;&gt;Pure water&lt;/option&gt;
+              &lt;option value=&quot;distilled_water&quot;&gt;Distilled water&lt;/option&gt;
+              &lt;option value=&quot;fresh_saliva&quot;&gt;Fresh saliva&lt;/option&gt;
+              &lt;option value=&quot;fresh_milk&quot;&gt;Fresh milk&lt;/option&gt;
+              &lt;option value=&quot;coconut_water&quot;&gt;Coconut water&lt;/option&gt;
+              &lt;option value=&quot;starch_solution&quot;&gt;Starch solution&lt;/option&gt;
+              &lt;option value=&quot;glucose_solution&quot;&gt;Glucose solution&lt;/option&gt;
+              &lt;option value=&quot;sucrose_solution&quot;&gt;Sugar (sucrose) solution&lt;/option&gt;
+              &lt;option value=&quot;urea_solution&quot;&gt;Urea solution&lt;/option&gt;
+              &lt;option value=&quot;nacl&quot;&gt;Sodium chloride solution — NaCl&lt;/option&gt;
+              &lt;option value=&quot;kcl&quot;&gt;Potassium chloride solution — KCl&lt;/option&gt;
+              &lt;option value=&quot;epsom_salt_solution&quot;&gt;Epsom salt (MgSO₄) solution&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;🔵 Bases / Alkaline&quot;&gt;
+              &lt;option value=&quot;seawater&quot;&gt;Seawater&lt;/option&gt;
+              &lt;option value=&quot;baking_soda_solution&quot;&gt;Baking soda — NaHCO₃&lt;/option&gt;
+              &lt;option value=&quot;sodium_bicarbonate_natural&quot;&gt;Sodium bicarbonate — NaHCO₃&lt;/option&gt;
+              &lt;option value=&quot;calcium_carbonate_natural&quot;&gt;Calcium carbonate — CaCO₃&lt;/option&gt;
+              &lt;option value=&quot;potash_wood_ash_natural&quot;&gt;Wood ash (K₂CO₃)&lt;/option&gt;
+              &lt;option value=&quot;borax_natural&quot;&gt;Borax — Na₂B₄O₇·10H₂O&lt;/option&gt;
+              &lt;option value=&quot;soap_solution&quot;&gt;Soap solution&lt;/option&gt;
+              &lt;option value=&quot;detergent_solution&quot;&gt;Detergent solution&lt;/option&gt;
+              &lt;option value=&quot;bleach_naocl&quot;&gt;Bleach (NaOCl)&lt;/option&gt;
+              &lt;option value=&quot;ammonia_natural&quot;&gt;Ammonia — NH₃(aq)&lt;/option&gt;
+              &lt;option value=&quot;ammonium_hydroxide&quot;&gt;Ammonium hydroxide — NH₄OH&lt;/option&gt;
+              &lt;option value=&quot;magnesium_hydroxide&quot;&gt;Magnesium hydroxide — Mg(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;aluminium_hydroxide&quot;&gt;Aluminium hydroxide — Al(OH)₃&lt;/option&gt;
+              &lt;option value=&quot;zinc_hydroxide&quot;&gt;Zinc hydroxide — Zn(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;copper_ii_hydroxide&quot;&gt;Copper(II) hydroxide — Cu(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;iron_ii_hydroxide&quot;&gt;Iron(II) hydroxide — Fe(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;magnesium_carbonate&quot;&gt;Magnesium carbonate — MgCO₃&lt;/option&gt;
+              &lt;option value=&quot;sodium_carbonate&quot;&gt;Sodium carbonate — Na₂CO₃&lt;/option&gt;
+              &lt;option value=&quot;potassium_carbonate&quot;&gt;Potassium carbonate — K₂CO₃&lt;/option&gt;
+              &lt;option value=&quot;sodium_borate&quot;&gt;Sodium borate — Na₂B₄O₇·10H₂O&lt;/option&gt;
+              &lt;option value=&quot;calcium_hydroxide&quot;&gt;Calcium hydroxide — Ca(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;quicklime_limewater&quot;&gt;Quicklime → Ca(OH)₂&lt;/option&gt;
+              &lt;option value=&quot;sodium_hydroxide&quot;&gt;Sodium hydroxide — NaOH&lt;/option&gt;
+              &lt;option value=&quot;potassium_hydroxide&quot;&gt;Potassium hydroxide — KOH&lt;/option&gt;
+            &lt;/optgroup&gt;
+          &lt;/select&gt;
+        &lt;/div&gt;
 
-        <div class="sel">
-          <label>Indicator</label>
-          <select id="indSelect" class="pill">
-            <option value="none" selected>None — no indicator</option>
-            <option value="litmus">Litmus (paper)</option>
-            <option value="turmeric">Turmeric (solution)</option>
-            <option value="hibiscus">China Rose (Hibiscus, solution)</option>
-            <option value="red_cabbage">Red Cabbage (solution)</option>
-            <option value="universal">Universal Indicator (paper)</option>
-          </select>
-        </div>
+        &lt;div class=&quot;sel&quot;&gt;
+          &lt;label&gt;Indicator&lt;/label&gt;
+          &lt;select id=&quot;indSelect&quot; class=&quot;pill&quot;&gt;
+            &lt;option value=&quot;none&quot; selected&gt;None — no indicator&lt;/option&gt;
+            &lt;option value=&quot;litmus&quot;&gt;Litmus (paper)&lt;/option&gt;
+            &lt;option value=&quot;turmeric&quot;&gt;Turmeric (solution)&lt;/option&gt;
+            &lt;option value=&quot;hibiscus&quot;&gt;China Rose (Hibiscus, solution)&lt;/option&gt;
+            &lt;option value=&quot;red_cabbage&quot;&gt;Red Cabbage (solution)&lt;/option&gt;
+            &lt;option value=&quot;universal&quot;&gt;Universal Indicator (paper)&lt;/option&gt;
+          &lt;/select&gt;
+        &lt;/div&gt;
 
-        <div class="sel">
-          <label>Conductivity Sample (popup rig)</label>
-          <select id="condSelect" class="pill">
-            <option value="none" selected>None — hide rig</option>
-            <option value="beaker">Use current beaker solution</option>
-            <optgroup label="Strong Electrolytes — Strong Acids">
-              <option value="cond_hcl">Hydrochloric acid — HCl</option>
-              <option value="cond_h2so4">Sulfuric acid — H₂SO₄</option>
-            </optgroup>
-            <optgroup label="Strong Electrolytes — Strong Bases">
-              <option value="cond_naoh">Sodium hydroxide — NaOH</option>
-              <option value="cond_koh">Potassium hydroxide — KOH</option>
-            </optgroup>
-            <optgroup label="Weak Electrolytes — Weak Acids/Bases">
-              <option value="cond_acetic">Acetic acid — CH₃COOH</option>
-              <option value="cond_nh4oh">Ammonium hydroxide — NH₄OH</option>
-            </optgroup>
-            <optgroup label="Non‑electrolytes / Neutral">
-              <option value="cond_distilled">Distilled water — H₂O</option>
-              <option value="cond_glucose">Glucose solution — C₆H₁₂O₆(aq)</option>
-              <option value="cond_urea">Urea solution — CO(NH₂)₂(aq)</option>
-            </optgroup>
-          </select>
-        </div>
-      </div>
-    </header>
+        &lt;div class=&quot;sel&quot;&gt;
+          &lt;label&gt;Conductivity Sample (popup rig)&lt;/label&gt;
+          &lt;select id=&quot;condSelect&quot; class=&quot;pill&quot;&gt;
+            &lt;option value=&quot;none&quot; selected&gt;None — hide rig&lt;/option&gt;
+            &lt;option value=&quot;beaker&quot;&gt;Use current beaker solution&lt;/option&gt;
+            &lt;optgroup label=&quot;Strong Electrolytes — Strong Acids&quot;&gt;
+              &lt;option value=&quot;cond_hcl&quot;&gt;Hydrochloric acid — HCl&lt;/option&gt;
+              &lt;option value=&quot;cond_h2so4&quot;&gt;Sulfuric acid — H₂SO₄&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;Strong Electrolytes — Strong Bases&quot;&gt;
+              &lt;option value=&quot;cond_naoh&quot;&gt;Sodium hydroxide — NaOH&lt;/option&gt;
+              &lt;option value=&quot;cond_koh&quot;&gt;Potassium hydroxide — KOH&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;Weak Electrolytes — Weak Acids/Bases&quot;&gt;
+              &lt;option value=&quot;cond_acetic&quot;&gt;Acetic acid — CH₃COOH&lt;/option&gt;
+              &lt;option value=&quot;cond_nh4oh&quot;&gt;Ammonium hydroxide — NH₄OH&lt;/option&gt;
+            &lt;/optgroup&gt;
+            &lt;optgroup label=&quot;Non‑electrolytes / Neutral&quot;&gt;
+              &lt;option value=&quot;cond_distilled&quot;&gt;Distilled water — H₂O&lt;/option&gt;
+              &lt;option value=&quot;cond_glucose&quot;&gt;Glucose solution — C₆H₁₂O₆(aq)&lt;/option&gt;
+              &lt;option value=&quot;cond_urea&quot;&gt;Urea solution — CO(NH₂)₂(aq)&lt;/option&gt;
+            &lt;/optgroup&gt;
+          &lt;/select&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/header&gt;
 
-    <!-- ACTION BAR -->
-    <div class="actions">
-      <div class="row">
-        <button id="btnFill" class="primary">Fill Beaker</button>
-        <button id="btnAdd" class="primary">Add Indicator Drops</button>
-        <button id="btnReset" class="danger">Reset</button>
-        <button id="btnBubbles">Toggle Bubbles</button>
-        <button id="btnTheme" class="ghost" title="Theme">🌓</button>
-        <button id="btnHelp" class="ghost" title="Help / Shortcuts">❓</button>
-        <span class="muted" style="margin-left:auto; font-weight:800">ACIDS, BASES AND SALTS TESTING LAB</span>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <label class="muted" for="concSlider">Conductivity Conc. (%)</label>
-        <input id="concSlider" type="range" min="0" max="100" value="100">
-        <div class="badge" id="concBadge">100%</div>
-        <div class="row" style="margin-left:auto; gap:6px">
-          <span class="muted" style="font-size:.82rem">Quick Presets:</span>
-          <div class="chip" data-preset="pure_water"><span class="dot" style="background:#48ff00"></span>Water</div>
-          <div class="chip" data-preset="vinegar"><span class="dot" style="background:#ff5a00"></span>Vinegar</div>
-          <div class="chip" data-preset="sodium_hydroxide"><span class="dot" style="background:#6b00ff"></span>NaOH</div>
-          <div class="chip" data-preset="hcl_industrial"><span class="dot" style="background:#ff002f"></span>HCl</div>
-          <div class="chip" id="demoRun">▶ Demo</div>
-          <div class="chip" id="resetLayout">↺ Layout</div>
-          <div class="chip" id="soundToggle">🔊 Sound</div>
-        </div>
-      </div>
-    </div>
+    &lt;!-- ACTION BAR --&gt;
+    &lt;div class=&quot;actions&quot;&gt;
+      &lt;div class=&quot;row&quot;&gt;
+        &lt;button id=&quot;btnFill&quot; class=&quot;primary&quot;&gt;Fill Beaker&lt;/button&gt;
+        &lt;button id=&quot;btnAdd&quot; class=&quot;primary&quot;&gt;Add Indicator Drops&lt;/button&gt;
+        &lt;button id=&quot;btnReset&quot; class=&quot;danger&quot;&gt;Reset&lt;/button&gt;
+        &lt;button id=&quot;btnBubbles&quot;&gt;Toggle Bubbles&lt;/button&gt;
+        &lt;button id=&quot;btnTheme&quot; class=&quot;ghost&quot; title=&quot;Theme&quot;&gt;🌓&lt;/button&gt;
+        &lt;button id=&quot;btnHelp&quot; class=&quot;ghost&quot; title=&quot;Help / Shortcuts&quot;&gt;❓&lt;/button&gt;
+        &lt;span class=&quot;muted&quot; style=&quot;margin-left:auto; font-weight:800&quot;&gt;ACIDS, BASES AND SALTS TESTING LAB&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;row&quot; style=&quot;margin-top:6px&quot;&gt;
+        &lt;label class=&quot;muted&quot; for=&quot;concSlider&quot;&gt;Conductivity Conc. (%)&lt;/label&gt;
+        &lt;input id=&quot;concSlider&quot; type=&quot;range&quot; min=&quot;0&quot; max=&quot;100&quot; value=&quot;100&quot;&gt;
+        &lt;div class=&quot;badge&quot; id=&quot;concBadge&quot;&gt;100%&lt;/div&gt;
+        &lt;div class=&quot;row&quot; style=&quot;margin-left:auto; gap:6px&quot;&gt;
+          &lt;span class=&quot;muted&quot; style=&quot;font-size:.82rem&quot;&gt;Quick Presets:&lt;/span&gt;
+          &lt;div class=&quot;chip&quot; data-preset=&quot;pure_water&quot;&gt;&lt;span class=&quot;dot&quot; style=&quot;background:#48ff00&quot;&gt;&lt;/span&gt;Water&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; data-preset=&quot;vinegar&quot;&gt;&lt;span class=&quot;dot&quot; style=&quot;background:#ff5a00&quot;&gt;&lt;/span&gt;Vinegar&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; data-preset=&quot;sodium_hydroxide&quot;&gt;&lt;span class=&quot;dot&quot; style=&quot;background:#6b00ff&quot;&gt;&lt;/span&gt;NaOH&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; data-preset=&quot;hcl_industrial&quot;&gt;&lt;span class=&quot;dot&quot; style=&quot;background:#ff002f&quot;&gt;&lt;/span&gt;HCl&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; id=&quot;demoRun&quot;&gt;▶ Demo&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; id=&quot;resetLayout&quot;&gt;↺ Layout&lt;/div&gt;
+          &lt;div class=&quot;chip&quot; id=&quot;soundToggle&quot;&gt;🔊 Sound&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
 
-    <!-- MAIN -->
-    <div class="main" id="mainGrid">
-      <!-- SIMULATOR PANEL -->
-      <section class="panel center" id="simPanel">
-        <div class="panel-content" id="simContent">
-          <div class="toolbar">
-            <div class="title">ACIDS, BASES AND SALTS TESTING LAB</div>
-            <div class="badges">
-              <div class="badge" id="phChip">pH ?</div>
-              <div class="badge">Widescreen 1920×1080 Mode</div>
-            </div>
-            <div class="mode-tabs" id="modeTabs">
-              <button class="mode-btn active" data-mode="single">Single</button>
-              <button class="mode-btn" data-mode="compare">Comparison</button>
-              <button class="mode-btn" data-mode="neutral">Neutralisation</button>
-            </div>
-          </div>
-          <div class="bench">
-            <!-- HUD: pH ring + floating tools -->
-            <div class="ph-ring" aria-live="polite" id="phRing"><div class="ring"></div><div style="font-weight:800">pH</div><div id="phRingTxt" style="font-weight:900">?</div></div>
-            <div class="lab-tools" id="labTools">
-              <div id="btnPHScale" class="icon-btn" role="button" aria-pressed="false" title="Toggle pH Scale">📏</div>
-              <div id="btnShowStation" class="icon-btn" role="button" aria-pressed="false" title="Indicator Beaker">🧪</div>
-              <div id="btnToggleRig" class="icon-btn" role="button" aria-pressed="false" title="Conductivity Rig">💡</div>
-            </div>
+    &lt;!-- MAIN --&gt;
+    &lt;div class=&quot;main&quot; id=&quot;mainGrid&quot;&gt;
+      &lt;!-- SIMULATOR PANEL --&gt;
+      &lt;section class=&quot;panel center&quot; id=&quot;simPanel&quot;&gt;
+        &lt;div class=&quot;panel-content&quot; id=&quot;simContent&quot;&gt;
+          &lt;div class=&quot;toolbar&quot;&gt;
+            &lt;div class=&quot;title&quot;&gt;ACIDS, BASES AND SALTS TESTING LAB&lt;/div&gt;
+            &lt;div class=&quot;badges&quot;&gt;
+              &lt;div class=&quot;badge&quot; id=&quot;phChip&quot;&gt;pH ?&lt;/div&gt;
+              &lt;div class=&quot;badge&quot;&gt;Widescreen 1920×1080 Mode&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;mode-tabs&quot; id=&quot;modeTabs&quot;&gt;
+              &lt;button class=&quot;mode-btn active&quot; data-mode=&quot;single&quot;&gt;Single&lt;/button&gt;
+              &lt;button class=&quot;mode-btn&quot; data-mode=&quot;compare&quot;&gt;Comparison&lt;/button&gt;
+              &lt;button class=&quot;mode-btn&quot; data-mode=&quot;neutral&quot;&gt;Neutralisation&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;bench&quot;&gt;
+            &lt;!-- HUD: pH ring + floating tools --&gt;
+            &lt;div class=&quot;ph-ring&quot; aria-live=&quot;polite&quot; id=&quot;phRing&quot;&gt;&lt;div class=&quot;ring&quot;&gt;&lt;/div&gt;&lt;div style=&quot;font-weight:800&quot;&gt;pH&lt;/div&gt;&lt;div id=&quot;phRingTxt&quot; style=&quot;font-weight:900&quot;&gt;?&lt;/div&gt;&lt;/div&gt;
+            &lt;div class=&quot;lab-tools&quot; id=&quot;labTools&quot;&gt;
+              &lt;div id=&quot;btnPHScale&quot; class=&quot;icon-btn&quot; role=&quot;button&quot; aria-pressed=&quot;false&quot; title=&quot;Toggle pH Scale&quot;&gt;📏&lt;/div&gt;
+              &lt;div id=&quot;btnShowStation&quot; class=&quot;icon-btn&quot; role=&quot;button&quot; aria-pressed=&quot;false&quot; title=&quot;Indicator Beaker&quot;&gt;🧪&lt;/div&gt;
+              &lt;div id=&quot;btnToggleRig&quot; class=&quot;icon-btn&quot; role=&quot;button&quot; aria-pressed=&quot;false&quot; title=&quot;Conductivity Rig&quot;&gt;💡&lt;/div&gt;
+            &lt;/div&gt;
 
-            <!-- MAIN BIG RIG -->
-            <div class="rig" id="rig">
-              <svg id="lab" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="glassGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="rgba(200,230,255,0.38)"/>
-                    <stop offset="1" stop-color="rgba(180,220,255,0.10)"/>
-                  </linearGradient>
-                  <clipPath id="roundBeakerClip"><circle cx="600" cy="360" r="200"></circle></clipPath>
-                </defs>
-                <circle cx="600" cy="360" r="210" fill="url(#glassGrad)" stroke="rgba(18,18,18,.95)" stroke-width="5"/>
-                <g clip-path="url(#roundBeakerClip)">
-                  <rect id="liquidRect" x="400" y="420" width="400" height="0" fill="#89caff"/>
-                  <rect id="liquidShine" x="400" y="420" width="400" height="0" fill="rgba(255,255,255,.15)"/>
-                  <path id="wavePath" d="" fill="#89caff" opacity="0.95"></path>
-                </g>
-              </svg>
+            &lt;!-- MAIN BIG RIG WITH REALISTIC BEAKER --&gt;
+            &lt;div class=&quot;rig&quot; id=&quot;rig&quot;&gt;
+              &lt;svg id=&quot;lab&quot; viewBox=&quot;0 0 1200 675&quot; preserveAspectRatio=&quot;xMidYMid meet&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;
+                &lt;defs&gt;
+                  &lt;linearGradient id=&quot;glassGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;1&quot; y2=&quot;0&quot;&gt;
+                    &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(255,255,255,0.35)&quot;/&gt;
+                    &lt;stop offset=&quot;12%&quot; stop-color=&quot;rgba(255,255,255,0.08)&quot;/&gt;
+                    &lt;stop offset=&quot;88%&quot; stop-color=&quot;rgba(255,255,255,0.05)&quot;/&gt;
+                    &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(255,255,255,0.25)&quot;/&gt;
+                  &lt;/linearGradient&gt;
 
-              <!-- Dropper -->
-              <svg class="dropper drop-shadow" id="dropper" viewBox="0 0 190 260" aria-label="Indicator dropper">
-                <defs><clipPath id="pipetteClip"><path d="M85,80 L105,80 C110,80 114,84 114,90 L114,195 C114,210 105,226 95,240 C85,226 76,210 76,195 L76,90 C76,84 80,80 85,80 Z"/></clipPath></defs>
-                <rect x="55" y="22" rx="14" ry="14" width="80" height="44" fill="#9ee1e4" stroke="#101418" stroke-width="4"/>
-                <rect x="86" y="60" width="18" height="24" rx="6" fill="#d9dee6" stroke="#101418" stroke-width="4"/>
-                <path d="M82,80 L108,80 C116,80 120,86 120,92 L120,198 C120,216 108,234 95,250 C82,234 70,216 70,198 L70,92 C70,86 74,80 82,80 Z" fill="#eaf2ff" stroke="#101418" stroke-width="4"/>
-                <g clip-path="url(#pipetteClip)"><rect id="pipFill" x="72" y="210" width="46" height="0" fill="#89caff"/></g>
-                <circle id="pipTip" cx="95" cy="246" r="3" fill="#101418"/>
-              </svg>
+                  &lt;linearGradient id=&quot;beakerBgGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+                    &lt;stop offset=&quot;0%&quot; stop-color=&quot;rgba(200,230,255,0.12)&quot;/&gt;
+                    &lt;stop offset=&quot;100%&quot; stop-color=&quot;rgba(180,220,255,0.03)&quot;/&gt;
+                  &lt;/linearGradient&gt;
 
-              <!-- Strips tray -->
-              <div class="drag-tray" id="dragTray"></div>
+                  &lt;filter id=&quot;beakerGlow&quot; x=&quot;-10%&quot; y=&quot;-10%&quot; width=&quot;120%&quot; height=&quot;120%&quot;&gt;
+                    &lt;feDropShadow dx=&quot;0&quot; dy=&quot;12&quot; stdDeviation=&quot;15&quot; flood-color=&quot;#000&quot; flood-opacity=&quot;0.55&quot;/&gt;
+                  &lt;/filter&gt;
 
-              <!-- Indicator mini-beaker -->
-              <div class="indicator-station" id="indicatorStation">
-                <div class="mini-title" id="indMiniTitle">Indicator</div>
-                <div class="mini-beaker" id="miniBeaker" title="Click to pour indicator">
-                  <div class="mini-inner-shine"></div>
-                  <div class="mini-liquid" id="miniLiquid"></div>
-                </div>
-                <div class="hint">Drag or click to pour</div>
-              </div>
+                  &lt;!-- Real Beaker Inner Contour Clip --&gt;
+                  &lt;clipPath id=&quot;beakerClip&quot;&gt;
+                    &lt;path d=&quot;M 420,190 L 780,190 L 780,552 Q 780,570 762,570 L 438,570 Q 420,570 420,552 Z&quot; /&gt;
+                  &lt;/clipPath&gt;
+                &lt;/defs&gt;
 
-              <!-- Conductivity POPUP rig -->
-              <div class="cond-rig" id="condRig" aria-hidden="true">
-                <svg class="cond-wires" id="condWires">
-                  <defs><filter id="wireGlowCond"><feGaussianBlur stdDeviation="2" /></filter></defs>
-                  <path id="wireRed" d="M0 0 C 0 0, 0 0, 0 0" />
-                  <path id="wireBlack" d="M0 0 C 0 0, 0 0, 0 0" />
-                </svg>
+                &lt;!-- REAL GRIFFIN FORM BEAKER --&gt;
+                &lt;g filter=&quot;url(#beakerGlow)&quot;&gt;
+                  &lt;!-- Glass Fill Background --&gt;
+                  &lt;path d=&quot;M 395,180 C 410,180 418,188 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,188 790,180 805,180 L 795,190 L 780,190 L 420,190 L 405,190 Z&quot; fill=&quot;url(#beakerBgGrad)&quot;/&gt;
 
-                <div class="cond-plate" id="condPlate">
-                  <div class="handle" title="Drag plate"></div>
-                  <div class="title">Conductivity Rig</div>
+                  &lt;!-- Liquid inside clipped path --&gt;
+                  &lt;g clip-path=&quot;url(#beakerClip)&quot;&gt;
+                    &lt;rect id=&quot;liquidRect&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;#89caff&quot;/&gt;
+                    &lt;rect id=&quot;liquidShine&quot; x=&quot;400&quot; y=&quot;420&quot; width=&quot;400&quot; height=&quot;0&quot; fill=&quot;rgba(255,255,255,.15)&quot;/&gt;
+                    &lt;path id=&quot;wavePath&quot; d=&quot;&quot; fill=&quot;#89caff&quot; opacity=&quot;0.95&quot;&gt;&lt;/path&gt;
+                  &lt;/g&gt;
 
-                  <svg class="battery-svg" viewBox="0 0 140 130">
-                    <defs><linearGradient id="batBodyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3a55"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs>
-                    <rect x="10" y="26" width="120" height="84" rx="10" fill="url(#batBodyGrad)" stroke="rgba(255,255,255,.45)"/>
-                    <rect x="18" y="34" width="44" height="68" rx="8" fill="#152238" stroke="rgba(255,255,255,.35)"/>
-                    <rect x="78" y="34" width="44" height="68" rx="8" fill="#152238" stroke="rgba(255,255,255,.35)"/>
-                    <rect x="26" y="28" width="20" height="8" rx="2" fill="#cbd5e1" stroke="rgba(255,255,255,.6)"/>
-                    <rect x="86" y="28" width="20" height="8" rx="2" fill="#cbd5e1" stroke="rgba(255,255,255,.6)"/>
-                    <text x="30" y="20" fill="#ff7b7b" font-size="10" font-weight="700">+</text>
-                    <text x="108" y="20" fill="#cfe6ff" font-size="10" font-weight="700">−</text>
-                    <text x="70" y="54" text-anchor="middle" fill="#cfe6ff" font-size="10">Battery 3V</text>
-                  </svg>
+                  &lt;!-- Beaker Glass Outer Walls &amp; Pouring Spout Rim --&gt;
+                  &lt;path d=&quot;M 395,180 C 408,181 418,186 420,190 L 420,552 Q 420,576 440,576 L 760,576 Q 780,576 780,552 L 780,190 C 782,186 792,181 805,180&quot; fill=&quot;none&quot; stroke=&quot;rgba(220,240,255,0.8)&quot; stroke-width=&quot;4.5&quot; stroke-linecap=&quot;round&quot;/&gt;
 
-                  <div class="socket pos" title="Positive (+)"></div>
-                  <div class="socket neg" title="Negative (−)"></div>
-                  <div class="node pos" id="nodePos" title="Positive (+)"></div>
-                  <div class="node neg" id="nodeNeg" title="Negative (−)"></div>
+                  &lt;!-- Top Rim Ellipse Lip --&gt;
+                  &lt;ellipse cx=&quot;600&quot; cy=&quot;190&quot; rx=&quot;180&quot; ry=&quot;7&quot; fill=&quot;none&quot; stroke=&quot;rgba(255,255,255,0.7)&quot; stroke-width=&quot;3&quot;/&gt;
 
-                  <div class="lamp" id="lamp">
-                    <svg viewBox="0 0 140 140">
-                      <defs>
-                        <radialGradient id="bulbGlowGrad" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stop-color="#fffbe6" stop-opacity="1"/>
-                          <stop offset="60%" stop-color="#ffd54f" stop-opacity="0.95"/>
-                          <stop offset="100%" stop-color="#ff9100" stop-opacity="0"/>
-                        </radialGradient>
-                      </defs>
-                      <circle class="outerGlow" id="bulbGlow" cx="70" cy="70" r="52" fill="url(#bulbGlowGrad)" opacity="0"/>
-                      <circle cx="70" cy="70" r="36" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.88)" stroke-width="2.2"/>
-                      <g id="star" opacity="0.0">
-                        <rect x="69" y="46" width="2" height="48" fill="#ffd54f"/>
-                        <rect x="46" y="69" width="48" height="2" fill="#ffd54f"/>
-                        <rect x="58" y="58" width="24" height="24" transform="rotate(45 70 70)" fill="none" stroke="#ffe08a" stroke-width="1.4"/>
-                      </g>
-                      <path id="filament" d="M50,82 C62,58 78,58 90,82" stroke="#ffc107" stroke-width="3.2" fill="none" opacity="0.2" />
-                    </svg>
-                  </div>
+                  &lt;!-- Glass Surface Reflections Overlay --&gt;
+                  &lt;rect x=&quot;420&quot; y=&quot;190&quot; width=&quot;360&quot; height=&quot;382&quot; fill=&quot;url(#glassGrad)&quot; pointer-events=&quot;none&quot;/&gt;
 
-                  <div class="switch" id="condSwitch" role="button" aria-pressed="false" title="Power switch">
-                    <div class="knob"></div><div class="label">OFF/ON</div><div class="sw-led"></div>
-                  </div>
-                </div>
+                  &lt;!-- Side Glass Highlights --&gt;
+                  &lt;line x1=&quot;426&quot; y1=&quot;200&quot; x2=&quot;426&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.35)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
+                  &lt;line x1=&quot;774&quot; y1=&quot;200&quot; x2=&quot;774&quot; y2=&quot;550&quot; stroke=&quot;rgba(255,255,255,0.25)&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot;/&gt;
+                  &lt;path d=&quot;M 438,568 L 762,568&quot; stroke=&quot;rgba(255,255,255,0.45)&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot;/&gt;
 
-                <div class="probe plus" id="probePlus" style="left: 340px; top: 120px"><div class="tag">Electrode +</div><div class="tip"></div></div>
-                <div class="probe minus" id="probeMinus" style="left: 400px; top: 120px"><div class="tag">Electrode −</div><div class="tip"></div></div>
-              </div>
+                  &lt;!-- Frosted White Marking Spot (Label Area) --&gt;
+                  &lt;rect x=&quot;445&quot; y=&quot;230&quot; width=&quot;65&quot; height=&quot;90&quot; rx=&quot;4&quot; fill=&quot;rgba(255,255,255,0.22)&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1&quot;/&gt;
+                  &lt;text x=&quot;477&quot; y=&quot;275&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.8)&quot; font-size=&quot;12&quot; font-weight=&quot;bold&quot; font-family=&quot;sans-serif&quot;&gt;500 mL&lt;/text&gt;
+                  &lt;text x=&quot;477&quot; y=&quot;295&quot; text-anchor=&quot;middle&quot; fill=&quot;rgba(255,255,255,0.6)&quot; font-size=&quot;10&quot; font-family=&quot;sans-serif&quot;&gt;BORO 3.3&lt;/text&gt;
 
-              <!-- pH scale -->
-              <div class="ph-scale" id="phScale">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                  <div class="muted">pH Scale (Universal Indicator)</div>
-                  <div class="badge" style="padding:4px 8px" id="phScaleValue">pH ?</div>
-                </div>
-                <div class="bar" id="phBar"><div class="ph-marker" id="phMarker"><div class="ph-tag" id="phTag">?</div></div></div>
-                <div class="labels"><span>0</span><span>2</span><span>4</span><span>6</span><span>7</span><span>8</span><span>10</span><span>12</span><span>14</span></div>
-              </div>
-            </div>
+                  &lt;!-- Real Beaker Volume Graduation Lines &amp; Text --&gt;
+                  &lt;g fill=&quot;rgba(255,255,255,0.7)&quot; font-size=&quot;13&quot; font-weight=&quot;bold&quot; font-family=&quot;monospace&quot;&gt;
+                    &lt;!-- 500 mL line --&gt;
+                    &lt;line x1=&quot;738&quot; y1=&quot;250&quot; x2=&quot;770&quot; y2=&quot;250&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+                    &lt;text x=&quot;730&quot; y=&quot;254&quot; text-anchor=&quot;end&quot;&gt;500&lt;/text&gt;
+                    &lt;line x1=&quot;755&quot; y1=&quot;281&quot; x2=&quot;770&quot; y2=&quot;281&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
 
-            <!-- Comparison mode container -->
-            <div class="compare-wrap" id="compareWrap">
-              <!-- Mini Simulator A -->
-              <div class="mini-sim" id="miniA">
-                <div class="mini-head">
-                  <div class="mini-chip">Simulator A</div>
-                  <div class="mini-chip" id="miniAPHTag">pH ?</div>
-                  <div class="nature neutral" id="miniANature">Neutral</div>
-                </div>
-                <div class="mini-controls">
-                  <select class="pill miniSub"></select>
-                  <select class="pill miniInd">
-                    <option value="none">None</option>
-                    <option value="litmus">Litmus</option>
-                    <option value="turmeric">Turmeric</option>
-                    <option value="hibiscus">China Rose</option>
-                    <option value="red_cabbage">Red Cabbage</option>
-                    <option value="universal" selected>Universal</option>
-                  </select>
-                  <button class="chip miniFill">Fill</button>
-                  <button class="chip miniAdd">Add Indicator</button>
-                </div>
-                <div class="mini-lab">
-                  <svg class="mini-svg" viewBox="0 0 420 260">
-                    <defs>
-                      <clipPath id="clipA"><circle cx="210" cy="130" r="90"/></clipPath>
-                      <linearGradient id="glassA" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stop-color="rgba(200,230,255,0.38)"/>
-                        <stop offset="1" stop-color="rgba(180,220,255,0.10)"/>
-                      </linearGradient>
-                    </defs>
-                    <circle cx="210" cy="130" r="96" fill="url(#glassA)" stroke="rgba(18,18,18,.9)" stroke-width="4"/>
-                    <g clip-path="url(#clipA)">
-                      <rect class="miniLiquid" x="120" y="160" width="180" height="0" fill="#89caff"/>
-                    </g>
-                  </svg>
-                </div>
-              </div>
-              <!-- Mini Simulator B -->
-              <div class="mini-sim" id="miniB">
-                <div class="mini-head">
-                  <div class="mini-chip">Simulator B</div>
-                  <div class="mini-chip" id="miniBPHTag">pH ?</div>
-                  <div class="nature neutral" id="miniBNature">Neutral</div>
-                </div>
-                <div class="mini-controls">
-                  <select class="pill miniSub"></select>
-                  <select class="pill miniInd">
-                    <option value="none">None</option>
-                    <option value="litmus">Litmus</option>
-                    <option value="turmeric">Turmeric</option>
-                    <option value="hibiscus">China Rose</option>
-                    <option value="red_cabbage">Red Cabbage</option>
-                    <option value="universal" selected>Universal</option>
-                  </select>
-                  <button class="chip miniFill">Fill</button>
-                  <button class="chip miniAdd">Add Indicator</button>
-                </div>
-                <div class="mini-lab">
-                  <svg class="mini-svg" viewBox="0 0 420 260">
-                    <defs>
-                      <clipPath id="clipB"><circle cx="210" cy="130" r="90"/></clipPath>
-                      <linearGradient id="glassB" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stop-color="rgba(200,230,255,0.38)"/>
-                        <stop offset="1" stop-color="rgba(180,220,255,0.10)"/>
-                      </linearGradient>
-                    </defs>
-                    <circle cx="210" cy="130" r="96" fill="url(#glassB)" stroke="rgba(18,18,18,.9)" stroke-width="4"/>
-                    <g clip-path="url(#clipB)">
-                      <rect class="miniLiquid" x="120" y="160" width="180" height="0" fill="#89caff"/>
-                    </g>
-                  </svg>
-                </div>
-              </div>
-            </div>
+                    &lt;!-- 400 mL line --&gt;
+                    &lt;line x1=&quot;738&quot; y1=&quot;312&quot; x2=&quot;770&quot; y2=&quot;312&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+                    &lt;text x=&quot;730&quot; y=&quot;316&quot; text-anchor=&quot;end&quot;&gt;400&lt;/text&gt;
+                    &lt;line x1=&quot;755&quot; y1=&quot;343&quot; x2=&quot;770&quot; y2=&quot;343&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
 
-            <!-- Neutralisation side panels -->
-            <div class="neutral-panels" id="neutralPanels">
-              <div class="side-panel left" id="acidPanel">
-                <div class="side-title">Acid Beaker</div>
-                <div class="sel">
-                  <select class="pill" id="acidSelect"></select>
-                </div>
-                <div class="mini-beaker-slim">
-                  <div class="mini-liquid-slim" id="acidLiquidSlim"></div>
-                </div>
-                <div class="row-sb">
-                  <span class="tiny">Amount (mL)</span>
-                  <span class="ml-badge" id="acidMLBadge">10 mL</span>
-                </div>
-                <input id="acidML" type="range" min="1" max="100" value="10" class="vslider">
-                <div class="row-sb" style="margin-top:6px">
-                  <button class="chip" id="acidCollect">Collect</button>
-                  <button class="primary" id="acidAdd">Add to Main</button>
-                </div>
-                <div class="tiny" id="acidLoaded">Loaded: 0 mL</div>
-              </div>
+                    &lt;!-- 300 mL line --&gt;
+                    &lt;line x1=&quot;738&quot; y1=&quot;375&quot; x2=&quot;770&quot; y2=&quot;375&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+                    &lt;text x=&quot;730&quot; y=&quot;379&quot; text-anchor=&quot;end&quot;&gt;300&lt;/text&gt;
+                    &lt;line x1=&quot;755&quot; y1=&quot;406&quot; x2=&quot;770&quot; y2=&quot;406&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
 
-              <div class="side-panel right" id="basePanel">
-                <div class="side-title">Base Beaker</div>
-                <div class="sel">
-                  <select class="pill" id="baseSelect"></select>
-                </div>
-                <div class="mini-beaker-slim">
-                  <div class="mini-liquid-slim" id="baseLiquidSlim"></div>
-                </div>
-                <div class="row-sb">
-                  <span class="tiny">Amount (mL)</span>
-                  <span class="ml-badge" id="baseMLBadge">10 mL</span>
-                </div>
-                <input id="baseML" type="range" min="1" max="100" value="10" class="vslider">
-                <div class="row-sb" style="margin-top:6px">
-                  <button class="chip" id="baseCollect">Collect</button>
-                  <button class="primary" id="baseAdd">Add to Main</button>
-                </div>
-                <div class="tiny" id="baseLoaded">Loaded: 0 mL</div>
-              </div>
-            </div>
+                    &lt;!-- 200 mL line --&gt;
+                    &lt;line x1=&quot;738&quot; y1=&quot;437&quot; x2=&quot;770&quot; y2=&quot;437&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+                    &lt;text x=&quot;730&quot; y=&quot;441&quot; text-anchor=&quot;end&quot;&gt;200&lt;/text&gt;
+                    &lt;line x1=&quot;755&quot; y1=&quot;468&quot; x2=&quot;770&quot; y2=&quot;468&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
 
-            <div class="copyright-bar">©</div>
-          </div>
-        </div>
-        <!-- 4 corners -->
-        <div class="resize-handle handle-nw" data-dir="nw" title="Resize"></div>
-        <div class="resize-handle handle-ne" data-dir="ne" title="Resize"></div>
-        <div class="resize-handle handle-sw" data-dir="sw" title="Resize"></div>
-        <div class="resize-handle handle-se" data-dir="se" title="Resize"></div>
-      </section>
+                    &lt;!-- 100 mL line --&gt;
+                    &lt;line x1=&quot;738&quot; y1=&quot;500&quot; x2=&quot;770&quot; y2=&quot;500&quot; stroke=&quot;rgba(255,255,255,0.65)&quot; stroke-width=&quot;2.5&quot;/&gt;
+                    &lt;text x=&quot;730&quot; y=&quot;504&quot; text-anchor=&quot;end&quot;&gt;100&lt;/text&gt;
+                    &lt;line x1=&quot;755&quot; y1=&quot;531&quot; x2=&quot;770&quot; y2=&quot;531&quot; stroke=&quot;rgba(255,255,255,0.4)&quot; stroke-width=&quot;1.5&quot;/&gt;
+                  &lt;/g&gt;
+                &lt;/g&gt;
+              &lt;/svg&gt;
 
-      <!-- RESULTS PANEL -->
-      <aside class="panel results" id="resPanel">
-        <div class="panel-content" id="resContent">
-          <h2>Results</h2>
-          <div id="resultCard" class="result-card" aria-live="polite">
-            <div class="row" style="justify-content:space-between; align-items:center;">
-              <div style="font-weight:700">Test Result</div>
-              <div class="chip" id="resNature">—</div>
-            </div>
-            <div class="row" style="margin-top:8px">
-              <div class="chip" id="resIndicator">Indicator: —</div>
-              <div class="chip" id="resSubstance">Substance: —</div>
-              <div class="chip" id="resPH">pH: —</div>
-            </div>
-            <div style="margin-top:8px; font-size:.8rem; color:var(--muted)">Colour change</div>
-            <div class="row" style="margin-top:6px">
-              <div class="pair"><div class="sq" id="fromSq"></div><span id="fromTxt" class="muted">from —</span></div>
-              <div class="muted">→</div>
-              <div class="pair"><div class="sq" id="toSq"></div><span id="toTxt" class="muted">to —</span></div>
-            </div>
-          </div>
+              &lt;!-- Dropper --&gt;
+              &lt;svg class=&quot;dropper drop-shadow&quot; id=&quot;dropper&quot; viewBox=&quot;0 0 190 260&quot; aria-label=&quot;Indicator dropper&quot;&gt;
+                &lt;defs&gt;&lt;clipPath id=&quot;pipetteClip&quot;&gt;&lt;path d=&quot;M85,80 L105,80 C110,80 114,84 114,90 L114,195 C114,210 105,226 95,240 C85,226 76,210 76,195 L76,90 C76,84 80,80 85,80 Z&quot;/&gt;&lt;/clipPath&gt;&lt;/defs&gt;
+                &lt;rect x=&quot;55&quot; y=&quot;22&quot; rx=&quot;14&quot; ry=&quot;14&quot; width=&quot;80&quot; height=&quot;44&quot; fill=&quot;#9ee1e4&quot; stroke=&quot;#101418&quot; stroke-width=&quot;4&quot;/&gt;
+                &lt;rect x=&quot;86&quot; y=&quot;60&quot; width=&quot;18&quot; height=&quot;24&quot; rx=&quot;6&quot; fill=&quot;#d9dee6&quot; stroke=&quot;#101418&quot; stroke-width=&quot;4&quot;/&gt;
+                &lt;path d=&quot;M82,80 L108,80 C116,80 120,86 120,92 L120,198 C120,216 108,234 95,250 C82,234 70,216 70,198 L70,92 C70,86 74,80 82,80 Z&quot; fill=&quot;#eaf2ff&quot; stroke=&quot;#101418&quot; stroke-width=&quot;4&quot;/&gt;
+                &lt;g clip-path=&quot;url(#pipetteClip)&quot;&gt;&lt;rect id=&quot;pipFill&quot; x=&quot;72&quot; y=&quot;210&quot; width=&quot;46&quot; height=&quot;0&quot; fill=&quot;#89caff&quot;/&gt;&lt;/g&gt;
+                &lt;circle id=&quot;pipTip&quot; cx=&quot;95&quot; cy=&quot;246&quot; r=&quot;3&quot; fill=&quot;#101418&quot;/&gt;
+              &lt;/svg&gt;
 
-          <!-- History -->
-          <div id="historyCard" class="history-card" aria-label="History">
-            <div style="font-weight:800; margin-bottom:6px;">History</div>
-            <div id="historyList" style="display:grid; gap:6px"></div>
-          </div>
+              &lt;!-- Strips tray --&gt;
+              &lt;div class=&quot;drag-tray&quot; id=&quot;dragTray&quot;&gt;&lt;/div&gt;
 
-          <!-- Sponsored Ad Card -->
-          <div id="adCard" class="ad-card" aria-label="Sponsored">
-            <div class="ad-title">Sponsored</div>
-            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8563528764533552" crossorigin="anonymous"></script>
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-8563528764533552"
-                 data-ad-slot="7742342697"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-          </div>
-        </div>
-        <!-- 4 corners -->
-        <div class="resize-handle handle-nw" data-dir="nw" title="Resize"></div>
-        <div class="resize-handle handle-ne" data-dir="ne" title="Resize"></div>
-        <div class="resize-handle handle-sw" data-dir="sw" title="Resize"></div>
-        <div class="resize-handle handle-se" data-dir="se" title="Resize"></div>
-      </aside>
-    </div>
-  </div>
-</div>
+              &lt;!-- Indicator mini-beaker --&gt;
+              &lt;div class=&quot;indicator-station&quot; id=&quot;indicatorStation&quot;&gt;
+                &lt;div class=&quot;mini-title&quot; id=&quot;indMiniTitle&quot;&gt;Indicator&lt;/div&gt;
+                &lt;div class=&quot;mini-beaker&quot; id=&quot;miniBeaker&quot; title=&quot;Click to pour indicator&quot;&gt;
+                  &lt;div class=&quot;mini-inner-shine&quot;&gt;&lt;/div&gt;
+                  &lt;div class=&quot;mini-liquid&quot; id=&quot;miniLiquid&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;hint&quot;&gt;Drag or click to pour&lt;/div&gt;
+              &lt;/div&gt;
 
-<!-- Onboarding -->
-<div class="onboard" id="onboard">
-  <div class="on-card">
-    <div style="display:flex; align-items:center; justify-content:space-between;">
-      <div style="font-weight:900; font-size:1.2rem">Welcome to Aurora Lab</div>
-      <button id="onDismiss" class="chip">Skip</button>
-    </div>
-    <div class="on-row">
-      <div class="step"><strong>1.</strong> Pick a <em>Solution</em> from the first dropdown.</div>
-      <div class="step"><strong>2.</strong> Choose an <em>Indicator</em> (paper or solution).</div>
-      <div class="step"><strong>3.</strong> Click <em>Fill Beaker</em> then test using strips or indicator drops.</div>
-      <div class="step"><strong>Tip:</strong> The true pH value will be revealed in the Results Card once you run a test!</div>
-    </div>
-    <div class="on-actions">
-      <button id="onDemo" class="primary">Run Demo</button>
-      <button id="onStart" class="chip">Start</button>
-      <label class="chip" style="gap:6px; cursor:pointer">
-        <input id="onDont" type="checkbox" style="accent-color:var(--primary)"> Don’t show again
-      </label>
-    </div>
-  </div>
-</div>
+              &lt;!-- Conductivity POPUP rig --&gt;
+              &lt;div class=&quot;cond-rig&quot; id=&quot;condRig&quot; aria-hidden=&quot;true&quot;&gt;
+                &lt;svg class=&quot;cond-wires&quot; id=&quot;condWires&quot;&gt;
+                  &lt;defs&gt;&lt;filter id=&quot;wireGlowCond&quot;&gt;&lt;feGaussianBlur stdDeviation=&quot;2&quot; /&gt;&lt;/filter&gt;&lt;/defs&gt;
+                  &lt;path id=&quot;wireRed&quot; d=&quot;M0 0 C 0 0, 0 0, 0 0&quot; /&gt;
+                  &lt;path id=&quot;wireBlack&quot; d=&quot;M0 0 C 0 0, 0 0, 0 0&quot; /&gt;
+                &lt;/svg&gt;
 
-<script>
-/* ====== AUTO-SCALE 1920x1080 CANVAS & INTERACTION FULLSCREEN LOGIC ====== */
+                &lt;div class=&quot;cond-plate&quot; id=&quot;condPlate&quot;&gt;
+                  &lt;div class=&quot;handle&quot; title=&quot;Drag plate&quot;&gt;&lt;/div&gt;
+                  &lt;div class=&quot;title&quot;&gt;Conductivity Rig&lt;/div&gt;
+
+                  &lt;svg class=&quot;battery-svg&quot; viewBox=&quot;0 0 140 130&quot;&gt;
+                    &lt;defs&gt;&lt;linearGradient id=&quot;batBodyGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;&lt;stop offset=&quot;0&quot; stop-color=&quot;#2a3a55&quot;/&gt;&lt;stop offset=&quot;1&quot; stop-color=&quot;#0f172a&quot;/&gt;&lt;/linearGradient&gt;&lt;/defs&gt;
+                    &lt;rect x=&quot;10&quot; y=&quot;26&quot; width=&quot;120&quot; height=&quot;84&quot; rx=&quot;10&quot; fill=&quot;url(#batBodyGrad)&quot; stroke=&quot;rgba(255,255,255,.45)&quot;/&gt;
+                    &lt;rect x=&quot;18&quot; y=&quot;34&quot; width=&quot;44&quot; height=&quot;68&quot; rx=&quot;8&quot; fill=&quot;#152238&quot; stroke=&quot;rgba(255,255,255,.35)&quot;/&gt;
+                    &lt;rect x=&quot;78&quot; y=&quot;34&quot; width=&quot;44&quot; height=&quot;68&quot; rx=&quot;8&quot; fill=&quot;#152238&quot; stroke=&quot;rgba(255,255,255,.35)&quot;/&gt;
+                    &lt;rect x=&quot;26&quot; y=&quot;28&quot; width=&quot;20&quot; height=&quot;8&quot; rx=&quot;2&quot; fill=&quot;#cbd5e1&quot; stroke=&quot;rgba(255,255,255,.6)&quot;/&gt;
+                    &lt;rect x=&quot;86&quot; y=&quot;28&quot; width=&quot;20&quot; height=&quot;8&quot; rx=&quot;2&quot; fill=&quot;#cbd5e1&quot; stroke=&quot;rgba(255,255,255,.6)&quot;/&gt;
+                    &lt;text x=&quot;30&quot; y=&quot;20&quot; fill=&quot;#ff7b7b&quot; font-size=&quot;10&quot; font-weight=&quot;700&quot;&gt;+&lt;/text&gt;
+                    &lt;text x=&quot;108&quot; y=&quot;20&quot; fill=&quot;#cfe6ff&quot; font-size=&quot;10&quot; font-weight=&quot;700&quot;&gt;−&lt;/text&gt;
+                    &lt;text x=&quot;70&quot; y=&quot;54&quot; text-anchor=&quot;middle&quot; fill=&quot;#cfe6ff&quot; font-size=&quot;10&quot;&gt;Battery 3V&lt;/text&gt;
+                  &lt;/svg&gt;
+
+                  &lt;div class=&quot;socket pos&quot; title=&quot;Positive (+)&quot;&gt;&lt;/div&gt;
+                  &lt;div class=&quot;socket neg&quot; title=&quot;Negative (−)&quot;&gt;&lt;/div&gt;
+                  &lt;div class=&quot;node pos&quot; id=&quot;nodePos&quot; title=&quot;Positive (+)&quot;&gt;&lt;/div&gt;
+                  &lt;div class=&quot;node neg&quot; id=&quot;nodeNeg&quot; title=&quot;Negative (−)&quot;&gt;&lt;/div&gt;
+
+                  &lt;div class=&quot;lamp&quot; id=&quot;lamp&quot;&gt;
+                    &lt;svg viewBox=&quot;0 0 140 140&quot;&gt;
+                      &lt;defs&gt;
+                        &lt;radialGradient id=&quot;bulbGlowGrad&quot; cx=&quot;50%&quot; cy=&quot;50%&quot; r=&quot;50%&quot;&gt;
+                          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#fffbe6&quot; stop-opacity=&quot;1&quot;/&gt;
+                          &lt;stop offset=&quot;60%&quot; stop-color=&quot;#ffd54f&quot; stop-opacity=&quot;0.95&quot;/&gt;
+                          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#ff9100&quot; stop-opacity=&quot;0&quot;/&gt;
+                        &lt;/radialGradient&gt;
+                      &lt;/defs&gt;
+                      &lt;circle class=&quot;outerGlow&quot; id=&quot;bulbGlow&quot; cx=&quot;70&quot; cy=&quot;70&quot; r=&quot;52&quot; fill=&quot;url(#bulbGlowGrad)&quot; opacity=&quot;0&quot;/&gt;
+                      &lt;circle cx=&quot;70&quot; cy=&quot;70&quot; r=&quot;36&quot; fill=&quot;rgba(255,255,255,.12)&quot; stroke=&quot;rgba(255,255,255,.88)&quot; stroke-width=&quot;2.2&quot;/&gt;
+                      &lt;g id=&quot;star&quot; opacity=&quot;0.0&quot;&gt;
+                        &lt;rect x=&quot;69&quot; y=&quot;46&quot; width=&quot;2&quot; height=&quot;48&quot; fill=&quot;#ffd54f&quot;/&gt;
+                        &lt;rect x=&quot;46&quot; y=&quot;69&quot; width=&quot;48&quot; height=&quot;2&quot; fill=&quot;#ffd54f&quot;/&gt;
+                        &lt;rect x=&quot;58&quot; y=&quot;58&quot; width=&quot;24&quot; height=&quot;24&quot; transform=&quot;rotate(45 70 70)&quot; fill=&quot;none&quot; stroke=&quot;#ffe08a&quot; stroke-width=&quot;1.4&quot;/&gt;
+                      &lt;/g&gt;
+                      &lt;path id=&quot;filament&quot; d=&quot;M50,82 C62,58 78,58 90,82&quot; stroke=&quot;#ffc107&quot; stroke-width=&quot;3.2&quot; fill=&quot;none&quot; opacity=&quot;0.2&quot; /&gt;
+                    &lt;/svg&gt;
+                  &lt;/div&gt;
+
+                  &lt;div class=&quot;switch&quot; id=&quot;condSwitch&quot; role=&quot;button&quot; aria-pressed=&quot;false&quot; title=&quot;Power switch&quot;&gt;
+                    &lt;div class=&quot;knob&quot;&gt;&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;OFF/ON&lt;/div&gt;&lt;div class=&quot;sw-led&quot;&gt;&lt;/div&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;probe plus&quot; id=&quot;probePlus&quot; style=&quot;left: 340px; top: 120px&quot;&gt;&lt;div class=&quot;tag&quot;&gt;Electrode +&lt;/div&gt;&lt;div class=&quot;tip&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+                &lt;div class=&quot;probe minus&quot; id=&quot;probeMinus&quot; style=&quot;left: 400px; top: 120px&quot;&gt;&lt;div class=&quot;tag&quot;&gt;Electrode −&lt;/div&gt;&lt;div class=&quot;tip&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+              &lt;/div&gt;
+
+              &lt;!-- pH scale --&gt;
+              &lt;div class=&quot;ph-scale&quot; id=&quot;phScale&quot;&gt;
+                &lt;div style=&quot;display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;&quot;&gt;
+                  &lt;div class=&quot;muted&quot;&gt;pH Scale (Universal Indicator)&lt;/div&gt;
+                  &lt;div class=&quot;badge&quot; style=&quot;padding:4px 8px&quot; id=&quot;phScaleValue&quot;&gt;pH ?&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;bar&quot; id=&quot;phBar&quot;&gt;&lt;div class=&quot;ph-marker&quot; id=&quot;phMarker&quot;&gt;&lt;div class=&quot;ph-tag&quot; id=&quot;phTag&quot;&gt;?&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+                &lt;div class=&quot;labels&quot;&gt;&lt;span&gt;0&lt;/span&gt;&lt;span&gt;2&lt;/span&gt;&lt;span&gt;4&lt;/span&gt;&lt;span&gt;6&lt;/span&gt;&lt;span&gt;7&lt;/span&gt;&lt;span&gt;8&lt;/span&gt;&lt;span&gt;10&lt;/span&gt;&lt;span&gt;12&lt;/span&gt;&lt;span&gt;14&lt;/span&gt;&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Comparison mode container --&gt;
+            &lt;div class=&quot;compare-wrap&quot; id=&quot;compareWrap&quot;&gt;
+              &lt;!-- Mini Simulator A --&gt;
+              &lt;div class=&quot;mini-sim&quot; id=&quot;miniA&quot;&gt;
+                &lt;div class=&quot;mini-head&quot;&gt;
+                  &lt;div class=&quot;mini-chip&quot;&gt;Simulator A&lt;/div&gt;
+                  &lt;div class=&quot;mini-chip&quot; id=&quot;miniAPHTag&quot;&gt;pH ?&lt;/div&gt;
+                  &lt;div class=&quot;nature neutral&quot; id=&quot;miniANature&quot;&gt;Neutral&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-controls&quot;&gt;
+                  &lt;select class=&quot;pill miniSub&quot;&gt;&lt;/select&gt;
+                  &lt;select class=&quot;pill miniInd&quot;&gt;
+                    &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
+                    &lt;option value=&quot;litmus&quot;&gt;Litmus&lt;/option&gt;
+                    &lt;option value=&quot;turmeric&quot;&gt;Turmeric&lt;/option&gt;
+                    &lt;option value=&quot;hibiscus&quot;&gt;China Rose&lt;/option&gt;
+                    &lt;option value=&quot;red_cabbage&quot;&gt;Red Cabbage&lt;/option&gt;
+                    &lt;option value=&quot;universal&quot; selected&gt;Universal&lt;/option&gt;
+                  &lt;/select&gt;
+                  &lt;button class=&quot;chip miniFill&quot;&gt;Fill&lt;/button&gt;
+                  &lt;button class=&quot;chip miniAdd&quot;&gt;Add Indicator&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-lab&quot;&gt;
+                  &lt;svg class=&quot;mini-svg&quot; viewBox=&quot;0 0 420 260&quot;&gt;
+                    &lt;defs&gt;
+                      &lt;clipPath id=&quot;clipA&quot;&gt;&lt;path d=&quot;M 130,60 L 290,60 L 290,210 Q 290,225 275,225 L 145,225 Q 130,225 130,210 Z&quot;/&gt;&lt;/clipPath&gt;
+                      &lt;linearGradient id=&quot;glassA&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+                        &lt;stop offset=&quot;0&quot; stop-color=&quot;rgba(200,230,255,0.25)&quot;/&gt;
+                        &lt;stop offset=&quot;1&quot; stop-color=&quot;rgba(180,220,255,0.05)&quot;/&gt;
+                      &lt;/linearGradient&gt;
+                    &lt;/defs&gt;
+                    &lt;path d=&quot;M 115,50 L 130,60 L 130,210 Q 130,225 145,225 L 275,225 Q 290,225 290,210 L 290,60 L 305,50&quot; fill=&quot;url(#glassA)&quot; stroke=&quot;rgba(255,255,255,.7)&quot; stroke-width=&quot;3&quot;/&gt;
+                    &lt;ellipse cx=&quot;210&quot; cy=&quot;60&quot; rx=&quot;80&quot; ry=&quot;5&quot; fill=&quot;none&quot; stroke=&quot;rgba(255,255,255,.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;g clip-path=&quot;url(#clipA)&quot;&gt;
+                      &lt;rect class=&quot;miniLiquid&quot; x=&quot;120&quot; y=&quot;160&quot; width=&quot;180&quot; height=&quot;0&quot; fill=&quot;#89caff&quot;/&gt;
+                    &lt;/g&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;90&quot; x2=&quot;285&quot; y2=&quot;90&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;130&quot; x2=&quot;285&quot; y2=&quot;130&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;170&quot; x2=&quot;285&quot; y2=&quot;170&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                  &lt;/svg&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+
+              &lt;!-- Mini Simulator B --&gt;
+              &lt;div class=&quot;mini-sim&quot; id=&quot;miniB&quot;&gt;
+                &lt;div class=&quot;mini-head&quot;&gt;
+                  &lt;div class=&quot;mini-chip&quot;&gt;Simulator B&lt;/div&gt;
+                  &lt;div class=&quot;mini-chip&quot; id=&quot;miniBPHTag&quot;&gt;pH ?&lt;/div&gt;
+                  &lt;div class=&quot;nature neutral&quot; id=&quot;miniBNature&quot;&gt;Neutral&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-controls&quot;&gt;
+                  &lt;select class=&quot;pill miniSub&quot;&gt;&lt;/select&gt;
+                  &lt;select class=&quot;pill miniInd&quot;&gt;
+                    &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
+                    &lt;option value=&quot;litmus&quot;&gt;Litmus&lt;/option&gt;
+                    &lt;option value=&quot;turmeric&quot;&gt;Turmeric&lt;/option&gt;
+                    &lt;option value=&quot;hibiscus&quot;&gt;China Rose&lt;/option&gt;
+                    &lt;option value=&quot;red_cabbage&quot;&gt;Red Cabbage&lt;/option&gt;
+                    &lt;option value=&quot;universal&quot; selected&gt;Universal&lt;/option&gt;
+                  &lt;/select&gt;
+                  &lt;button class=&quot;chip miniFill&quot;&gt;Fill&lt;/button&gt;
+                  &lt;button class=&quot;chip miniAdd&quot;&gt;Add Indicator&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-lab&quot;&gt;
+                  &lt;svg class=&quot;mini-svg&quot; viewBox=&quot;0 0 420 260&quot;&gt;
+                    &lt;defs&gt;
+                      &lt;clipPath id=&quot;clipB&quot;&gt;&lt;path d=&quot;M 130,60 L 290,60 L 290,210 Q 290,225 275,225 L 145,225 Q 130,225 130,210 Z&quot;/&gt;&lt;/clipPath&gt;
+                      &lt;linearGradient id=&quot;glassB&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+                        &lt;stop offset=&quot;0&quot; stop-color=&quot;rgba(200,230,255,0.25)&quot;/&gt;
+                        &lt;stop offset=&quot;1&quot; stop-color=&quot;rgba(180,220,255,0.05)&quot;/&gt;
+                      &lt;/linearGradient&gt;
+                    &lt;/defs&gt;
+                    &lt;path d=&quot;M 115,50 L 130,60 L 130,210 Q 130,225 145,225 L 275,225 Q 290,225 290,210 L 290,60 L 305,50&quot; fill=&quot;url(#glassB)&quot; stroke=&quot;rgba(255,255,255,.7)&quot; stroke-width=&quot;3&quot;/&gt;
+                    &lt;ellipse cx=&quot;210&quot; cy=&quot;60&quot; rx=&quot;80&quot; ry=&quot;5&quot; fill=&quot;none&quot; stroke=&quot;rgba(255,255,255,.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;g clip-path=&quot;url(#clipB)&quot;&gt;
+                      &lt;rect class=&quot;miniLiquid&quot; x=&quot;120&quot; y=&quot;160&quot; width=&quot;180&quot; height=&quot;0&quot; fill=&quot;#89caff&quot;/&gt;
+                    &lt;/g&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;90&quot; x2=&quot;285&quot; y2=&quot;90&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;130&quot; x2=&quot;285&quot; y2=&quot;130&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                    &lt;line x1=&quot;265&quot; y1=&quot;170&quot; x2=&quot;285&quot; y2=&quot;170&quot; stroke=&quot;rgba(255,255,255,0.5)&quot; stroke-width=&quot;2&quot;/&gt;
+                  &lt;/svg&gt;
+                &lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Neutralisation side panels --&gt;
+            &lt;div class=&quot;neutral-panels&quot; id=&quot;neutralPanels&quot;&gt;
+              &lt;div class=&quot;side-panel left&quot; id=&quot;acidPanel&quot;&gt;
+                &lt;div class=&quot;side-title&quot;&gt;Acid Beaker&lt;/div&gt;
+                &lt;div class=&quot;sel&quot;&gt;
+                  &lt;select class=&quot;pill&quot; id=&quot;acidSelect&quot;&gt;&lt;/select&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-beaker-slim&quot;&gt;
+                  &lt;div class=&quot;mini-liquid-slim&quot; id=&quot;acidLiquidSlim&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;row-sb&quot;&gt;
+                  &lt;span class=&quot;tiny&quot;&gt;Amount (mL)&lt;/span&gt;
+                  &lt;span class=&quot;ml-badge&quot; id=&quot;acidMLBadge&quot;&gt;10 mL&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;input id=&quot;acidML&quot; type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;10&quot; class=&quot;vslider&quot;&gt;
+                &lt;div class=&quot;row-sb&quot; style=&quot;margin-top:6px&quot;&gt;
+                  &lt;button class=&quot;chip&quot; id=&quot;acidCollect&quot;&gt;Collect&lt;/button&gt;
+                  &lt;button class=&quot;primary&quot; id=&quot;acidAdd&quot;&gt;Add to Main&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;tiny&quot; id=&quot;acidLoaded&quot;&gt;Loaded: 0 mL&lt;/div&gt;
+              &lt;/div&gt;
+
+              &lt;div class=&quot;side-panel right&quot; id=&quot;basePanel&quot;&gt;
+                &lt;div class=&quot;side-title&quot;&gt;Base Beaker&lt;/div&gt;
+                &lt;div class=&quot;sel&quot;&gt;
+                  &lt;select class=&quot;pill&quot; id=&quot;baseSelect&quot;&gt;&lt;/select&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mini-beaker-slim&quot;&gt;
+                  &lt;div class=&quot;mini-liquid-slim&quot; id=&quot;baseLiquidSlim&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;row-sb&quot;&gt;
+                  &lt;span class=&quot;tiny&quot;&gt;Amount (mL)&lt;/span&gt;
+                  &lt;span class=&quot;ml-badge&quot; id=&quot;baseMLBadge&quot;&gt;10 mL&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;input id=&quot;baseML&quot; type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;10&quot; class=&quot;vslider&quot;&gt;
+                &lt;div class=&quot;row-sb&quot; style=&quot;margin-top:6px&quot;&gt;
+                  &lt;button class=&quot;chip&quot; id=&quot;baseCollect&quot;&gt;Collect&lt;/button&gt;
+                  &lt;button class=&quot;primary&quot; id=&quot;baseAdd&quot;&gt;Add to Main&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;tiny&quot; id=&quot;baseLoaded&quot;&gt;Loaded: 0 mL&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;copyright-bar&quot;&gt;©&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;!-- 4 corners --&gt;
+        &lt;div class=&quot;resize-handle handle-nw&quot; data-dir=&quot;nw&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-ne&quot; data-dir=&quot;ne&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-sw&quot; data-dir=&quot;sw&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-se&quot; data-dir=&quot;se&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;!-- RESULTS PANEL --&gt;
+      &lt;aside class=&quot;panel results&quot; id=&quot;resPanel&quot;&gt;
+        &lt;div class=&quot;panel-content&quot; id=&quot;resContent&quot;&gt;
+          &lt;h2&gt;Results&lt;/h2&gt;
+          &lt;div id=&quot;resultCard&quot; class=&quot;result-card&quot; aria-live=&quot;polite&quot;&gt;
+            &lt;div class=&quot;row&quot; style=&quot;justify-content:space-between; align-items:center;&quot;&gt;
+              &lt;div style=&quot;font-weight:700&quot;&gt;Test Result&lt;/div&gt;
+              &lt;div class=&quot;chip&quot; id=&quot;resNature&quot;&gt;—&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;row&quot; style=&quot;margin-top:8px&quot;&gt;
+              &lt;div class=&quot;chip&quot; id=&quot;resIndicator&quot;&gt;Indicator: —&lt;/div&gt;
+              &lt;div class=&quot;chip&quot; id=&quot;resSubstance&quot;&gt;Substance: —&lt;/div&gt;
+              &lt;div class=&quot;chip&quot; id=&quot;resPH&quot;&gt;pH: —&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div style=&quot;margin-top:8px; font-size:.8rem; color:var(--muted)&quot;&gt;Colour change&lt;/div&gt;
+            &lt;div class=&quot;row&quot; style=&quot;margin-top:6px&quot;&gt;
+              &lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;sq&quot; id=&quot;fromSq&quot;&gt;&lt;/div&gt;&lt;span id=&quot;fromTxt&quot; class=&quot;muted&quot;&gt;from —&lt;/span&gt;&lt;/div&gt;
+              &lt;div class=&quot;muted&quot;&gt;→&lt;/div&gt;
+              &lt;div class=&quot;pair&quot;&gt;&lt;div class=&quot;sq&quot; id=&quot;toSq&quot;&gt;&lt;/div&gt;&lt;span id=&quot;toTxt&quot; class=&quot;muted&quot;&gt;to —&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;!-- History --&gt;
+          &lt;div id=&quot;historyCard&quot; class=&quot;history-card&quot; aria-label=&quot;History&quot;&gt;
+            &lt;div style=&quot;font-weight:800; margin-bottom:6px;&quot;&gt;History&lt;/div&gt;
+            &lt;div id=&quot;historyList&quot; style=&quot;display:grid; gap:6px&quot;&gt;&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;!-- Sponsored Ad Card --&gt;
+          &lt;div id=&quot;adCard&quot; class=&quot;ad-card&quot; aria-label=&quot;Sponsored&quot;&gt;
+            &lt;div class=&quot;ad-title&quot;&gt;Sponsored&lt;/div&gt;
+            &lt;script async src=&quot;https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8563528764533552&quot; crossorigin=&quot;anonymous&quot;&gt;&lt;/script&gt;
+            &lt;ins class=&quot;adsbygoogle&quot;
+                 style=&quot;display:block&quot;
+                 data-ad-client=&quot;ca-pub-8563528764533552&quot;
+                 data-ad-slot=&quot;7742342697&quot;
+                 data-ad-format=&quot;auto&quot;
+                 data-full-width-responsive=&quot;true&quot;&gt;&lt;/ins&gt;
+            &lt;script&gt;(adsbygoogle = window.adsbygoogle || []).push({});&lt;/script&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;!-- 4 corners --&gt;
+        &lt;div class=&quot;resize-handle handle-nw&quot; data-dir=&quot;nw&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-ne&quot; data-dir=&quot;ne&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-sw&quot; data-dir=&quot;sw&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;resize-handle handle-se&quot; data-dir=&quot;se&quot; title=&quot;Resize&quot;&gt;&lt;/div&gt;
+      &lt;/aside&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- Onboarding --&gt;
+&lt;div class=&quot;onboard&quot; id=&quot;onboard&quot;&gt;
+  &lt;div class=&quot;on-card&quot;&gt;
+    &lt;div style=&quot;display:flex; align-items:center; justify-content:space-between;&quot;&gt;
+      &lt;div style=&quot;font-weight:900; font-size:1.2rem&quot;&gt;Welcome to Aurora Lab&lt;/div&gt;
+      &lt;button id=&quot;onDismiss&quot; class=&quot;chip&quot;&gt;Skip&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;on-row&quot;&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;1.&lt;/strong&gt; Pick a &lt;em&gt;Solution&lt;/em&gt; from the first dropdown.&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;2.&lt;/strong&gt; Choose an &lt;em&gt;Indicator&lt;/em&gt; (paper or solution).&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;3.&lt;/strong&gt; Click &lt;em&gt;Fill Beaker&lt;/em&gt; then test using strips or indicator drops.&lt;/div&gt;
+      &lt;div class=&quot;step&quot;&gt;&lt;strong&gt;Tip:&lt;/strong&gt; The true pH value will be revealed in the Results Card once you run a test!&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;on-actions&quot;&gt;
+      &lt;button id=&quot;onDemo&quot; class=&quot;primary&quot;&gt;Run Demo&lt;/button&gt;
+      &lt;button id=&quot;onStart&quot; class=&quot;chip&quot;&gt;Start&lt;/button&gt;
+      &lt;label class=&quot;chip&quot; style=&quot;gap:6px; cursor:pointer&quot;&gt;
+        &lt;input id=&quot;onDont&quot; type=&quot;checkbox&quot; style=&quot;accent-color:var(--primary)&quot;&gt; Don’t show again
+      &lt;/label&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+/* ====== AUTO-SCALE 1920x1080 CANVAS ====== */
 let currentScale = 1;
 
 function resizeStage() {
-  const stage = document.getElementById('appStage');
+  const stage = document.getElementById(&#39;appStage&#39;);
   if (!stage) return;
   const stageW = 1920;
   const stageH = 1080;
@@ -977,43 +1254,26 @@ function resizeStage() {
 }
 
 function checkOrientation() {
-  const rotateOverlay = document.getElementById('rotateOverlay');
-  const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+  const rotateOverlay = document.getElementById(&#39;rotateOverlay&#39;);
+  const isPortrait = window.innerHeight &gt; window.innerWidth &amp;&amp; window.innerWidth &lt; 1024;
   if (isPortrait) {
-    rotateOverlay.style.display = 'flex';
+    rotateOverlay.style.display = &#39;flex&#39;;
   } else {
-    rotateOverlay.style.display = 'none';
+    rotateOverlay.style.display = &#39;none&#39;;
   }
   resizeStage();
 }
 
-function requestFullscreenIfPossible() {
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    const docEl = document.documentElement;
-    const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-    if (req) {
-      req.call(docEl).catch(() => {});
-    }
-  }
-}
-
-// AUTOMATIC FULLSCREEN ON ANY INTERACTION ON MOBILE / TOUCH / CLICK
-function triggerFullscreenOnInteraction() {
-  requestFullscreenIfPossible();
-}
-window.addEventListener('pointerdown', triggerFullscreenOnInteraction, { capture: true });
-
-document.getElementById('btnEnterLandscape').addEventListener('click', () => {
-  requestFullscreenIfPossible();
-  document.getElementById('rotateOverlay').style.display = 'none';
+document.getElementById(&#39;btnEnterLandscape&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+  document.getElementById(&#39;rotateOverlay&#39;).style.display = &#39;none&#39;;
 });
 
-window.addEventListener('resize', () => {
+window.addEventListener(&#39;resize&#39;, () =&gt; {
   checkOrientation();
   resizeStage();
 });
-window.addEventListener('orientationchange', () => {
-  setTimeout(() => {
+window.addEventListener(&#39;orientationchange&#39;, () =&gt; {
+  setTimeout(() =&gt; {
     checkOrientation();
     resizeStage();
   }, 200);
@@ -1035,31 +1295,31 @@ const SUBS={
   calcium_hydroxide:{pH:12.5}, quicklime_limewater:{pH:12.5}, sodium_hydroxide:{pH:13.5}, potassium_hydroxide:{pH:13.5}
 };
 const INDICATORS={
-  litmus:{name:"Litmus (paper)",theory:"Blue→Red in acids; Red→Blue in bases.",color(pH){return pH<4.5?"#ff4a6e":pH>9?"#4a7aff":"#9b7aff"}},
-  turmeric:{name:"Turmeric (solution)",theory:"Yellow in acidic/neutral, reddish-brown in bases.",color(pH){return pH>8.2?"#a3472a":"#ffd24d"},base(){return"#ffd24d"}},
-  hibiscus:{name:"China Rose (Hibiscus)",theory:"Red in acids, pink near neutral, green in bases.",color(pH){return pH<6.5?"#ff3b6e":pH>7.5?"#36cc6b":"#ff86a6"},base(){return"#ff86a6"}},
-  red_cabbage:{name:"Red Cabbage",theory:"Red→purple→green/yellow from acids to bases.",color(pH){if(pH<3)return"#ff4c7e";if(pH<5.5)return"#b34cff";if(pH<7.5)return"#6c6cff";if(pH<9.5)return"#2ac57e";return"#d4db3c"},base(){return"#6c6cff"}},
-  universal:{name:"Universal Indicator (paper)",theory:"Full pH 0–14 spectrum.",color(pH){if(pH<=1)return"#ff002f";if(pH<=3)return"#ff5a00";if(pH<=6)return"#ffd36e";if(pH<=7.3)return"#48ff00";if(pH<=9.5)return"#00ffd5";if(pH<=12)return"#0066ff";return"#6b00ff"}}
+  litmus:{name:&quot;Litmus (paper)&quot;,theory:&quot;Blue→Red in acids; Red→Blue in bases.&quot;,color(pH){return pH&lt;4.5?&quot;#ff4a6e&quot;:pH&gt;9?&quot;#4a7aff&quot;:&quot;#9b7aff&quot;}},
+  turmeric:{name:&quot;Turmeric (solution)&quot;,theory:&quot;Yellow in acidic/neutral, reddish-brown in bases.&quot;,color(pH){return pH&gt;8.2?&quot;#a3472a&quot;:&quot;#ffd24d&quot;},base(){return&quot;#ffd24d&quot;}},
+  hibiscus:{name:&quot;China Rose (Hibiscus)&quot;,theory:&quot;Red in acids, pink near neutral, green in bases.&quot;,color(pH){return pH&lt;6.5?&quot;#ff3b6e&quot;:pH&gt;7.5?&quot;#36cc6b&quot;:&quot;#ff86a6&quot;},base(){return&quot;#ff86a6&quot;}},
+  red_cabbage:{name:&quot;Red Cabbage&quot;,theory:&quot;Red→purple→green/yellow from acids to bases.&quot;,color(pH){if(pH&lt;3)return&quot;#ff4c7e&quot;;if(pH&lt;5.5)return&quot;#b34cff&quot;;if(pH&lt;7.5)return&quot;#6c6cff&quot;;if(pH&lt;9.5)return&quot;#2ac57e&quot;;return&quot;#d4db3c&quot;},base(){return&quot;#6c6cff&quot;}},
+  universal:{name:&quot;Universal Indicator (paper)&quot;,theory:&quot;Full pH 0–14 spectrum.&quot;,color(pH){if(pH&lt;=1)return&quot;#ff002f&quot;;if(pH&lt;=3)return&quot;#ff5a00&quot;;if(pH&lt;=6)return&quot;#ffd36e&quot;;if(pH&lt;=7.3)return&quot;#48ff00&quot;;if(pH&lt;=9.5)return&quot;#00ffd5&quot;;if(pH&lt;=12)return&quot;#0066ff&quot;;return&quot;#6b00ff&quot;}}
 };
 const COND_SAMPLES={
-  beaker:{name:"Use current beaker solution",level:null,pH:null},
-  cond_hcl:{name:"Hydrochloric acid — HCl",level:1,pH:1},
-  cond_h2so4:{name:"Sulfuric acid — H₂SO₄",level:1,pH:.8},
-  cond_naoh:{name:"Sodium hydroxide — NaOH",level:1,pH:13.5},
-  cond_koh:{name:"Potassium hydroxide — KOH",level:1,pH:13.5},
-  cond_acetic:{name:"Acetic acid — CH₃COOH",level:.35,pH:2.8},
-  cond_nh4oh:{name:"Ammonium hydroxide — NH₄OH",level:.35,pH:10.5},
-  cond_distilled:{name:"Distilled water — H₂O",level:0,pH:7},
-  cond_glucose:{name:"Glucose solution — C₆H₁₂O₆",level:0,pH:7},
-  cond_urea:{name:"Urea solution — CO(NH₂)₂",level:0,pH:7}
+  beaker:{name:&quot;Use current beaker solution&quot;,level:null,pH:null},
+  cond_hcl:{name:&quot;Hydrochloric acid — HCl&quot;,level:1,pH:1},
+  cond_h2so4:{name:&quot;Sulfuric acid — H₂SO₄&quot;,level:1,pH:.8},
+  cond_naoh:{name:&quot;Sodium hydroxide — NaOH&quot;,level:1,pH:13.5},
+  cond_koh:{name:&quot;Potassium hydroxide — KOH&quot;,level:1,pH:13.5},
+  cond_acetic:{name:&quot;Acetic acid — CH₃COOH&quot;,level:.35,pH:2.8},
+  cond_nh4oh:{name:&quot;Ammonium hydroxide — NH₄OH&quot;,level:.35,pH:10.5},
+  cond_distilled:{name:&quot;Distilled water — H₂O&quot;,level:0,pH:7},
+  cond_glucose:{name:&quot;Glucose solution — C₆H₁₂O₆&quot;,level:0,pH:7},
+  cond_urea:{name:&quot;Urea solution — CO(NH₂)₂&quot;,level:0,pH:7}
 };
 
 /* ====== STATE ====== */
-const state={ subKey:"none_sub", indKey:"none", pH:7, phRevealed:false, filled:false, bubbles:true,
-  reduceMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  surfaceSvgY:420,surfaceCssY:0, dropper:{hasLiquid:false,busy:false}, beakerLabelOverride:null, mode:'single' };
-const LIQUID_KEYS=["turmeric","hibiscus","red_cabbage"];
-const condState={ sampleKey:"none", on:false, intensity:0, conc:1, flickerTimer:null,
+const state={ subKey:&quot;none_sub&quot;, indKey:&quot;none&quot;, pH:7, phRevealed:false, filled:false, bubbles:true,
+  reduceMotion:window.matchMedia(&#39;(prefers-reduced-motion: reduce)&#39;).matches,
+  surfaceSvgY:420,surfaceCssY:0, dropper:{hasLiquid:false,busy:false}, beakerLabelOverride:null, mode:&#39;single&#39; };
+const LIQUID_KEYS=[&quot;turmeric&quot;,&quot;hibiscus&quot;,&quot;red_cabbage&quot;];
+const condState={ sampleKey:&quot;none&quot;, on:false, intensity:0, conc:1, flickerTimer:null,
   wire:{posCur:{x:0,y:0},posTar:{x:0,y:0},negCur:{x:0,y:0},negTar:{x:0,y:0},plusCur:{x:0,y:0},plusTar:{x:0,y:0},minusCur:{x:0,y:0},minusTar:{x:0,y:0}}
 };
 const soundState={on:true, ctx:null};
@@ -1067,62 +1327,62 @@ const soundState={on:true, ctx:null};
 /* Neutralisation accumulators */
 const neutralState = {
   active:false,
-  acidKey:'hcl_industrial', baseKey:'sodium_hydroxide',
+  acidKey:&#39;hcl_industrial&#39;, baseKey:&#39;sodium_hydroxide&#39;,
   mlA:10, mlB:10, loadedA:0, loadedB:0,
   netMoles:0,
   volL:0.2
 };
 
 /* ====== Elements ====== */
-const mainGrid=document.getElementById('mainGrid');
-const simPanel=document.getElementById('simPanel');
-const resPanel=document.getElementById('resPanel');
-const simContent=document.getElementById('simContent');
-const resContent=document.getElementById('resContent');
-const phRingTxt=document.getElementById('phRingTxt');
+const mainGrid=document.getElementById(&#39;mainGrid&#39;);
+const simPanel=document.getElementById(&#39;simPanel&#39;);
+const resPanel=document.getElementById(&#39;resPanel&#39;);
+const simContent=document.getElementById(&#39;simContent&#39;);
+const resContent=document.getElementById(&#39;resContent&#39;);
+const phRingTxt=document.getElementById(&#39;phRingTxt&#39;);
 
-const bench=document.querySelector('.bench');
-const rig=document.getElementById('rig'), lab=document.getElementById('lab');
-const phRing=document.getElementById('phRing'), labTools=document.getElementById('labTools');
-const liquidRect=document.getElementById('liquidRect'), wavePath=document.getElementById('wavePath'), liquidShine=document.getElementById('liquidShine');
-const subSelect=document.getElementById('subSelect'), indSelect=document.getElementById('indSelect'), condSelect=document.getElementById('condSelect'), phChip=document.getElementById('phChip');
-const dropper=document.getElementById('dropper'), pipFill=document.getElementById('pipFill'), pipTip=document.getElementById('pipTip');
-const btnFill=document.getElementById('btnFill'), btnAdd=document.getElementById('btnAdd'), btnReset=document.getElementById('btnReset'), btnBubbles=document.getElementById('btnBubbles');
-const btnTheme=document.getElementById('btnTheme'), btnHelp=document.getElementById('btnHelp');
-const concSlider=document.getElementById('concSlider'), concBadge=document.getElementById('concBadge');
-const btnPHScale=document.getElementById('btnPHScale'), btnShowStation=document.getElementById('btnShowStation'), btnToggleRig=document.getElementById('btnToggleRig');
-const dragTray=document.getElementById('dragTray');
-const phScale=document.getElementById('phScale'), phBar=document.getElementById('phBar'), phMarker=document.getElementById('phMarker'), phTag=document.getElementById('phTag'), phScaleValue=document.getElementById('phScaleValue');
-const resultCard=document.getElementById('resultCard'), resNature=document.getElementById('resNature'), resIndicator=document.getElementById('resIndicator'), resSubstance=document.getElementById('resSubstance'), resPH=document.getElementById('resPH'), fromSq=document.getElementById('fromSq'), toSq=document.getElementById('toSq'), fromTxt=document.getElementById('fromTxt'), toTxt=document.getElementById('toTxt');
-const historyList=document.getElementById('historyList');
-const indicatorStation=document.getElementById('indicatorStation'), miniLiquid=document.getElementById('miniLiquid'), indMiniTitle=document.getElementById('indMiniTitle'), miniBeaker=document.getElementById('miniBeaker');
-const condRig=document.getElementById('condRig'), wireRed=document.getElementById('wireRed'), wireBlack=document.getElementById('wireBlack'), condPlate=document.getElementById('condPlate'), nodePos=document.getElementById('nodePos'), nodeNeg=document.getElementById('nodeNeg'), condSwitch=document.getElementById('condSwitch'), bulbGlow=document.getElementById('bulbGlow'), filament=document.getElementById('filament'), star=document.getElementById('star');
-const probePlus=document.getElementById('probePlus'), probeMinus=document.getElementById('probeMinus');
-const presetChips=[...document.querySelectorAll('.chip[data-preset]')], demoRun=document.getElementById('demoRun'), resetLayout=document.getElementById('resetLayout'), soundToggle=document.getElementById('soundToggle');
+const bench=document.querySelector(&#39;.bench&#39;);
+const rig=document.getElementById(&#39;rig&#39;), lab=document.getElementById(&#39;lab&#39;);
+const phRing=document.getElementById(&#39;phRing&#39;), labTools=document.getElementById(&#39;labTools&#39;);
+const liquidRect=document.getElementById(&#39;liquidRect&#39;), wavePath=document.getElementById(&#39;wavePath&#39;), liquidShine=document.getElementById(&#39;liquidShine&#39;);
+const subSelect=document.getElementById(&#39;subSelect&#39;), indSelect=document.getElementById(&#39;indSelect&#39;), condSelect=document.getElementById(&#39;condSelect&#39;), phChip=document.getElementById(&#39;phChip&#39;);
+const dropper=document.getElementById(&#39;dropper&#39;), pipFill=document.getElementById(&#39;pipFill&#39;), pipTip=document.getElementById(&#39;pipTip&#39;);
+const btnFill=document.getElementById(&#39;btnFill&#39;), btnAdd=document.getElementById(&#39;btnAdd&#39;), btnReset=document.getElementById(&#39;btnReset&#39;), btnBubbles=document.getElementById(&#39;btnBubbles&#39;);
+const btnTheme=document.getElementById(&#39;btnTheme&#39;), btnHelp=document.getElementById(&#39;btnHelp&#39;);
+const concSlider=document.getElementById(&#39;concSlider&#39;), concBadge=document.getElementById(&#39;concBadge&#39;);
+const btnPHScale=document.getElementById(&#39;btnPHScale&#39;), btnShowStation=document.getElementById(&#39;btnShowStation&#39;), btnToggleRig=document.getElementById(&#39;btnToggleRig&#39;);
+const dragTray=document.getElementById(&#39;dragTray&#39;);
+const phScale=document.getElementById(&#39;phScale&#39;), phBar=document.getElementById(&#39;phBar&#39;), phMarker=document.getElementById(&#39;phMarker&#39;), phTag=document.getElementById(&#39;phTag&#39;), phScaleValue=document.getElementById(&#39;phScaleValue&#39;);
+const resultCard=document.getElementById(&#39;resultCard&#39;), resNature=document.getElementById(&#39;resNature&#39;), resIndicator=document.getElementById(&#39;resIndicator&#39;), resSubstance=document.getElementById(&#39;resSubstance&#39;), resPH=document.getElementById(&#39;resPH&#39;), fromSq=document.getElementById(&#39;fromSq&#39;), toSq=document.getElementById(&#39;toSq&#39;), fromTxt=document.getElementById(&#39;fromTxt&#39;), toTxt=document.getElementById(&#39;toTxt&#39;);
+const historyList=document.getElementById(&#39;historyList&#39;);
+const indicatorStation=document.getElementById(&#39;indicatorStation&#39;), miniLiquid=document.getElementById(&#39;miniLiquid&#39;), indMiniTitle=document.getElementById(&#39;indMiniTitle&#39;), miniBeaker=document.getElementById(&#39;miniBeaker&#39;);
+const condRig=document.getElementById(&#39;condRig&#39;), wireRed=document.getElementById(&#39;wireRed&#39;), wireBlack=document.getElementById(&#39;wireBlack&#39;), condPlate=document.getElementById(&#39;condPlate&#39;), nodePos=document.getElementById(&#39;nodePos&#39;), nodeNeg=document.getElementById(&#39;nodeNeg&#39;), condSwitch=document.getElementById(&#39;condSwitch&#39;), bulbGlow=document.getElementById(&#39;bulbGlow&#39;), filament=document.getElementById(&#39;filament&#39;), star=document.getElementById(&#39;star&#39;);
+const probePlus=document.getElementById(&#39;probePlus&#39;), probeMinus=document.getElementById(&#39;probeMinus&#39;);
+const presetChips=[...document.querySelectorAll(&#39;.chip[data-preset]&#39;)], demoRun=document.getElementById(&#39;demoRun&#39;), resetLayout=document.getElementById(&#39;resetLayout&#39;), soundToggle=document.getElementById(&#39;soundToggle&#39;);
 
 /* Mode tabs */
-const modeTabs=document.getElementById('modeTabs');
+const modeTabs=document.getElementById(&#39;modeTabs&#39;);
 
 /* Compare elements */
-const compareWrap=document.getElementById('compareWrap');
+const compareWrap=document.getElementById(&#39;compareWrap&#39;);
 
 /* Neutralisation elements */
-const neutralPanels=document.getElementById('neutralPanels');
-const acidSelect=document.getElementById('acidSelect'), baseSelect=document.getElementById('baseSelect');
-const acidLiquidSlim=document.getElementById('acidLiquidSlim'), baseLiquidSlim=document.getElementById('baseLiquidSlim');
-const acidML=document.getElementById('acidML'), baseML=document.getElementById('baseML');
-const acidMLBadge=document.getElementById('acidMLBadge'), baseMLBadge=document.getElementById('baseMLBadge');
-const acidCollect=document.getElementById('acidCollect'), baseCollect=document.getElementById('baseCollect');
-const acidAdd=document.getElementById('acidAdd'), baseAdd=document.getElementById('baseAdd');
-const acidLoaded=document.getElementById('acidLoaded'), baseLoaded=document.getElementById('baseLoaded');
+const neutralPanels=document.getElementById(&#39;neutralPanels&#39;);
+const acidSelect=document.getElementById(&#39;acidSelect&#39;), baseSelect=document.getElementById(&#39;baseSelect&#39;);
+const acidLiquidSlim=document.getElementById(&#39;acidLiquidSlim&#39;), baseLiquidSlim=document.getElementById(&#39;baseLiquidSlim&#39;);
+const acidML=document.getElementById(&#39;acidML&#39;), baseML=document.getElementById(&#39;baseML&#39;);
+const acidMLBadge=document.getElementById(&#39;acidMLBadge&#39;), baseMLBadge=document.getElementById(&#39;baseMLBadge&#39;);
+const acidCollect=document.getElementById(&#39;acidCollect&#39;), baseCollect=document.getElementById(&#39;baseCollect&#39;);
+const acidAdd=document.getElementById(&#39;acidAdd&#39;), baseAdd=document.getElementById(&#39;baseAdd&#39;);
+const acidLoaded=document.getElementById(&#39;acidLoaded&#39;), baseLoaded=document.getElementById(&#39;baseLoaded&#39;);
 
 /* Onboarding */
-const onboard=document.getElementById('onboard'), onStart=document.getElementById('onStart'), onDismiss=document.getElementById('onDismiss'), onDemo=document.getElementById('onDemo'), onDont=document.getElementById('onDont');
+const onboard=document.getElementById(&#39;onboard&#39;), onStart=document.getElementById(&#39;onStart&#39;), onDismiss=document.getElementById(&#39;onDismiss&#39;), onDemo=document.getElementById(&#39;onDemo&#39;), onDont=document.getElementById(&#39;onDont&#39;);
 
 /* ====== Helpers ====== */
 function labelForSubKey(key){
-  const opt=[...subSelect.options].find(o=>o.value===key);
-  return opt?opt.text:'—';
+  const opt=[...subSelect.options].find(o=&gt;o.value===key);
+  return opt?opt.text:&#39;—&#39;;
 }
 
 function setPH(pH, reveal = false){
@@ -1134,43 +1394,43 @@ function setPH(pH, reveal = false){
     phChip.textContent = `pH ${state.pH.toFixed(1)}`;
     phChip.style.boxShadow = `0 0 20px ${c}66, inset 0 0 14px ${c}33`;
     phRingTxt.textContent = state.pH.toFixed(1);
-    document.documentElement.style.setProperty('--ring', c);
+    document.documentElement.style.setProperty(&#39;--ring&#39;, c);
   } else {
     phChip.textContent = `pH ?`;
     phChip.style.boxShadow = `none`;
     phRingTxt.textContent = `?`;
-    document.documentElement.style.setProperty('--ring', '#7bd1ff');
+    document.documentElement.style.setProperty(&#39;--ring&#39;, &#39;#7bd1ff&#39;);
   }
   updatePHScale();
 }
 
-function selectedLabel(){ return subSelect.options[subSelect.selectedIndex]?.text || "—" }
-function hexToRgb(hex){ hex=hex.replace('#',''); return {r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16)} }
-function rgbToHex({r,g,b}){ const h=n=>n.toString(16).padStart(2,'0'); return `#${h(r)}${h(g)}${h(b)}` }
+function selectedLabel(){ return subSelect.options[subSelect.selectedIndex]?.text || &quot;—&quot; }
+function hexToRgb(hex){ hex=hex.replace(&#39;#&#39;,&#39;&#39;); return {r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16)} }
+function rgbToHex({r,g,b}){ const h=n=&gt;n.toString(16).padStart(2,&#39;0&#39;); return `#${h(r)}${h(g)}${h(b)}` }
 function colorName(hex){
-  const map={"#ff002f":"red","#ff4a6e":"red","#ff5a00":"orange","#ffd36e":"yellow","#ffd24d":"yellow","#9b7aff":"purple","#b34cff":"magenta","#6c6cff":"violet/blue","#4a7aff":"blue","#00a1ff":"blue","#2ac57e":"green","#36cc6b":"green","#d4db3c":"yellow-green","#a3472a":"reddish-brown","#ff86a6":"light pink","#48ff00":"green","#0066ff":"blue","#6b00ff":"violet","#00ffd5":"cyan","#89caff":"light blue"};
-  return map[hex?.toLowerCase?.() ?? ""] || "colour"
+  const map={&quot;#ff002f&quot;:&quot;red&quot;,&quot;#ff4a6e&quot;:&quot;red&quot;,&quot;#ff5a00&quot;:&quot;orange&quot;,&quot;#ffd36e&quot;:&quot;yellow&quot;,&quot;#ffd24d&quot;:&quot;yellow&quot;,&quot;#9b7aff&quot;:&quot;purple&quot;,&quot;#b34cff&quot;:&quot;magenta&quot;,&quot;#6c6cff&quot;:&quot;violet/blue&quot;,&quot;#4a7aff&quot;:&quot;blue&quot;,&quot;#00a1ff&quot;:&quot;blue&quot;,&quot;#2ac57e&quot;:&quot;green&quot;,&quot;#36cc6b&quot;:&quot;green&quot;,&quot;#d4db3c&quot;:&quot;yellow-green&quot;,&quot;#a3472a&quot;:&quot;reddish-brown&quot;,&quot;#ff86a6&quot;:&quot;light pink&quot;,&quot;#48ff00&quot;:&quot;green&quot;,&quot;#0066ff&quot;:&quot;blue&quot;,&quot;#6b00ff&quot;:&quot;violet&quot;,&quot;#00ffd5&quot;:&quot;cyan&quot;,&quot;#89caff&quot;:&quot;light blue&quot;};
+  return map[hex?.toLowerCase?.() ?? &quot;&quot;] || &quot;colour&quot;
 }
 
-/* Beaker geometry */
-const BEAKER={ cx:600, cy:360, r:200, left:400, right:800, top:160, bottom:560 };
+/* REAL BEAKER GEOMETRY BOUNDS */
+const BEAKER={ cx:600, cy:380, r:180, left:420, right:780, top:190, bottom:570 };
 function svgScale(){ const rect=rig.getBoundingClientRect(); return {sx:(rect.width/currentScale)/1200, sy:(rect.height/currentScale)/675} }
 
-/* Liquid & Wave */
+/* Liquid &amp; Wave */
 let levelTarget=0.02, wavePhase=0;
 function setLevel(pct){ levelTarget=Math.max(0,Math.min(1,pct)) }
 function drawWave(){
   const topMargin=BEAKER.top+10, bottomEdge=BEAKER.bottom-10;
   const hMax=bottomEdge-topMargin, height=hMax*levelTarget, y=bottomEdge-height;
   const width=BEAKER.right-BEAKER.left, left=BEAKER.left, right=BEAKER.right;
-  liquidRect.setAttribute('x',left); liquidRect.setAttribute('y',y); liquidRect.setAttribute('width',width); liquidRect.setAttribute('height',height);
-  liquidShine.setAttribute('x',left); liquidShine.setAttribute('y',y); liquidShine.setAttribute('width',width); liquidShine.setAttribute('height',height*.98);
+  liquidRect.setAttribute(&#39;x&#39;,left); liquidRect.setAttribute(&#39;y&#39;,y); liquidRect.setAttribute(&#39;width&#39;,width); liquidRect.setAttribute(&#39;height&#39;,height);
+  liquidShine.setAttribute(&#39;x&#39;,left); liquidShine.setAttribute(&#39;y&#39;,y); liquidShine.setAttribute(&#39;width&#39;,width); liquidShine.setAttribute(&#39;height&#39;,height*.98);
   const amp=state.reduceMotion?0:(6+6*levelTarget), len=120, waveY=y+8, baseY=bottomEdge;
   let d=`M ${left} ${baseY} L ${left} ${waveY} `;
-  for(let x=0;x<=width;x++){ d+=`L ${left+x} ${waveY+Math.sin((x+wavePhase)/len)*amp} ` }
+  for(let x=0;x&lt;=width;x++){ d+=`L ${left+x} ${waveY+Math.sin((x+wavePhase)/len)*amp} ` }
   d+=`L ${right} ${baseY} Z`;
-  wavePath.setAttribute('d',d);
-  wavePath.setAttribute('fill',liquidRect.getAttribute('fill'));
+  wavePath.setAttribute(&#39;d&#39;,d);
+  wavePath.setAttribute(&#39;fill&#39;,liquidRect.getAttribute(&#39;fill&#39;));
   if(!state.reduceMotion) wavePhase+=2;
   state.surfaceSvgY=waveY; const {sy}=svgScale(); state.surfaceCssY=waveY*sy;
   requestAnimationFrame(drawWave);
@@ -1181,45 +1441,45 @@ requestAnimationFrame(drawWave);
 let bubbleTimer=null;
 function spawnBubble(){
   if(!state.bubbles||!state.filled) return;
-  const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  const c=document.createElementNS(&quot;http://www.w3.org/2000/svg&quot;,&quot;circle&quot;);
   const x=BEAKER.left+20+Math.random()*(BEAKER.right-BEAKER.left-40);
-  c.setAttribute('cx',x); c.setAttribute('cy',BEAKER.bottom-20); c.setAttribute('r',0);
-  c.setAttribute('fill','rgba(255,255,255,.85)'); c.setAttribute('opacity','0');
-  c.setAttribute('clip-path','url(#roundBeakerClip)'); lab.appendChild(c);
-  const rise=80+Math.random()*220, t0=performance.now(), dur=3000+Math.random()*2500;
+  c.setAttribute(&#39;cx&#39;,x); c.setAttribute(&#39;cy&#39;,BEAKER.bottom-20); c.setAttribute(&#39;r&#39;,0);
+  c.setAttribute(&#39;fill&#39;,&#39;rgba(255,255,255,.85)&#39;); c.setAttribute(&#39;opacity&#39;,&#39;0&#39;);
+  c.setAttribute(&#39;clip-path&#39;,&#39;url(#beakerClip)&#39;); lab.appendChild(c);
+  const rise=80+Math.random()*280, t0=performance.now(), dur=3000+Math.random()*2500;
   (function step(t){
     const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2;
-    c.setAttribute('cy',BEAKER.bottom-20-rise*ease);
-    c.setAttribute('r',2+6*ease);
-    c.setAttribute('opacity',(p<.2)?p*3:(1-p));
-    if(p<1) requestAnimationFrame(step); else c.remove()
+    c.setAttribute(&#39;cy&#39;,BEAKER.bottom-20-rise*ease);
+    c.setAttribute(&#39;r&#39;,2+6*ease);
+    c.setAttribute(&#39;opacity&#39;,(p&lt;.2)?p*3:(1-p));
+    if(p&lt;1) requestAnimationFrame(step); else c.remove()
   })(performance.now())
 }
 function startBubbles(){ if(!bubbleTimer) bubbleTimer=setInterval(spawnBubble,450) }
 function stopBubbles(){ if(bubbleTimer){ clearInterval(bubbleTimer); bubbleTimer=null } }
 
-/* Indicators & Strips */
+/* Indicators &amp; Strips */
 function indicatorColor(){ return INDICATORS[state.indKey].color(state.pH) }
-function indicatorBaseColor(){ if(LIQUID_KEYS.includes(state.indKey)&&typeof INDICATORS[state.indKey].base==='function') return INDICATORS[state.indKey].base(); if(LIQUID_KEYS.includes(state.indKey)) return INDICATORS[state.indKey].color(7); return "#89caff" }
+function indicatorBaseColor(){ if(LIQUID_KEYS.includes(state.indKey)&amp;&amp;typeof INDICATORS[state.indKey].base===&#39;function&#39;) return INDICATORS[state.indKey].base(); if(LIQUID_KEYS.includes(state.indKey)) return INDICATORS[state.indKey].color(7); return &quot;#89caff&quot; }
 
 /* Strips logic */
 let strips=[];
-function destroyStrips(){ strips.forEach(s=>s.remove()); strips=[] }
+function destroyStrips(){ strips.forEach(s=&gt;s.remove()); strips=[] }
 function createLitmusStrips(){
-  destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove('show');
-  const red=document.createElement('div'); red.className='drag-strip'; red.setAttribute('data-kind','litmus-red'); red.innerHTML=`<div class="tag">Red Litmus</div><div class="paper litmus-red"></div><div class="label">Drag to dip</div>`;
-  const blue=document.createElement('div'); blue.className='drag-strip'; blue.setAttribute('data-kind','litmus-blue'); blue.innerHTML=`<div class="tag">Blue Litmus</div><div class="paper litmus-blue"></div><div class="label">Drag to dip</div>`;
+  destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;);
+  const red=document.createElement(&#39;div&#39;); red.className=&#39;drag-strip&#39;; red.setAttribute(&#39;data-kind&#39;,&#39;litmus-red&#39;); red.innerHTML=`&lt;div class=&quot;tag&quot;&gt;Red Litmus&lt;/div&gt;&lt;div class=&quot;paper litmus-red&quot;&gt;&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Drag to dip&lt;/div&gt;`;
+  const blue=document.createElement(&#39;div&#39;); blue.className=&#39;drag-strip&#39;; blue.setAttribute(&#39;data-kind&#39;,&#39;litmus-blue&#39;); blue.innerHTML=`&lt;div class=&quot;tag&quot;&gt;Blue Litmus&lt;/div&gt;&lt;div class=&quot;paper litmus-blue&quot;&gt;&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Drag to dip&lt;/div&gt;`;
   dragTray.appendChild(red); dragTray.appendChild(blue); positionStrip(red,55,10); positionStrip(blue,68,10);
   red._logged=false; blue._logged=false; strips.push(red,blue); makeDraggableStrip(red); makeDraggableStrip(blue)
 }
 function createUniversalStrip(){
-  destroyStrips(); showPHScale(); hideIndicatorStation(); dropper.classList.remove('show');
-  const uni=document.createElement('div'); uni.className='drag-strip'; uni.setAttribute('data-kind','universal');
-  uni.innerHTML=`<div class="tag">Universal</div><div class="paper"><div class="pad"></div></div><div class="label">Drag to dip</div>`;
+  destroyStrips(); showPHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;);
+  const uni=document.createElement(&#39;div&#39;); uni.className=&#39;drag-strip&#39;; uni.setAttribute(&#39;data-kind&#39;,&#39;universal&#39;);
+  uni.innerHTML=`&lt;div class=&quot;tag&quot;&gt;Universal&lt;/div&gt;&lt;div class=&quot;paper&quot;&gt;&lt;div class=&quot;pad&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;label&quot;&gt;Drag to dip&lt;/div&gt;`;
   dragTray.appendChild(uni); positionStrip(uni,65,10); uni._logged=false; strips.push(uni); makeDraggableStrip(uni)
 }
 function positionStrip(el,percentX,topPx){ const rect=rig.getBoundingClientRect(); const x=((rect.width/currentScale)*(percentX/100))-(el.clientWidth||24)/2; setElPos(el,Math.max(0,x),topPx) }
-function setElPos(el,x,y){ el.style.left=x+'px'; el.style.top=y+'px'; el._x=x; el._y=y }
+function setElPos(el,x,y){ el.style.left=x+&#39;px&#39;; el.style.top=y+&#39;px&#39;; el._x=x; el._y=y }
 function getPoint(e){
   const r=rig.getBoundingClientRect();
   const clientX = e.touches?.[0]?.clientX ?? e.clientX;
@@ -1231,11 +1491,11 @@ function getPoint(e){
 }
 function makeDraggableStrip(el){
   let dragging=false,dx=0,dy=0;
-  el.addEventListener('pointerdown',e=>{
+  el.addEventListener(&#39;pointerdown&#39;,e=&gt;{
     if(!state.filled){ return }
     dragging=true; const p=getPoint(e); dx=p.x-el._x; dy=p.y-el._y; el.setPointerCapture(e.pointerId||1)
   });
-  window.addEventListener('pointermove',e=>{
+  window.addEventListener(&#39;pointermove&#39;,e=&gt;{
     if(!dragging) return;
     const p=getPoint(e);
     const rigRect=rig.getBoundingClientRect();
@@ -1245,48 +1505,48 @@ function makeDraggableStrip(el){
     const ny=Math.max(-2,Math.min(maxH-el.clientHeight+2,p.y-dy));
     setElPos(el,nx,ny); handleDip(el)
   });
-  window.addEventListener('pointerup',e=>{
+  window.addEventListener(&#39;pointerup&#39;,e=&gt;{
     if(!dragging) return; dragging=false; el.releasePointerCapture(e.pointerId||1)
   })
 }
 function handleDip(el){
   const {sx,sy}=svgScale(); const left=BEAKER.left*sx, right=BEAKER.right*sx, bottom=BEAKER.bottom*sy, surface=state.surfaceCssY;
   const centerX=el._x+el.clientWidth/2, topY=el._y, bottomY=el._y+el.clientHeight;
-  const inX=centerX>=left && centerX<=right;
+  const inX=centerX&gt;=left &amp;&amp; centerX&lt;=right;
   const verticalOverlap=Math.max(0,Math.min(bottomY,bottom)-Math.max(topY,surface));
   const fraction=inX?Math.max(0,Math.min(1,verticalOverlap/el.clientHeight)):0;
-  if(fraction>0){ el.classList.add('wet'); lab.classList.add('react-glow'); setTimeout(()=>lab.classList.remove('react-glow'),300) } else el.classList.remove('wet');
+  if(fraction&gt;0){ el.classList.add(&#39;wet&#39;); lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),300) } else el.classList.remove(&#39;wet&#39;);
 
-  const kind=el.getAttribute('data-kind');
-  if(kind==='universal'){
-    const pad=el.querySelector('.pad'); const col=INDICATORS.universal.color(state.pH);
-    if(fraction>0){ pad.style.background=col; if(!el._logged){ updateResult("Universal Indicator (paper)","#ffd36e",col); el._logged=true } }
+  const kind=el.getAttribute(&#39;data-kind&#39;);
+  if(kind===&#39;universal&#39;){
+    const pad=el.querySelector(&#39;.pad&#39;); const col=INDICATORS.universal.color(state.pH);
+    if(fraction&gt;0){ pad.style.background=col; if(!el._logged){ updateResult(&quot;Universal Indicator (paper)&quot;,&quot;#ffd36e&quot;,col); el._logged=true } }
     return;
   }
-  if(kind==='litmus-red'||kind==='litmus-blue'){
-    const paper=el.querySelector('.paper');
-    const base=(kind==='litmus-red')?'#ff4a6e':'#4a7aff';
-    const changeTo=(kind==='litmus-red')?(state.pH>7?'#4a7aff':base):(state.pH<7?'#ff4a6e':base);
-    if(fraction<=0||changeTo===base) paper.style.background=base;
+  if(kind===&#39;litmus-red&#39;||kind===&#39;litmus-blue&#39;){
+    const paper=el.querySelector(&#39;.paper&#39;);
+    const base=(kind===&#39;litmus-red&#39;)?&#39;#ff4a6e&#39;:&#39;#4a7aff&#39;;
+    const changeTo=(kind===&#39;litmus-red&#39;)?(state.pH&gt;7?&#39;#4a7aff&#39;:base):(state.pH&lt;7?&#39;#ff4a6e&#39;:base);
+    if(fraction&lt;=0||changeTo===base) paper.style.background=base;
     else{
       const cutoff=Math.max(0,Math.min(100,100*(1-fraction)));
       paper.style.background=`linear-gradient(to bottom, ${base} 0% ${cutoff-1}%, ${changeTo} ${cutoff}%, ${changeTo} 100%)`
     }
-    if(!el._logged && fraction>0){
-      const name=(kind==='litmus-red')?'Litmus — Red paper':'Litmus — Blue paper';
+    if(!el._logged &amp;&amp; fraction&gt;0){
+      const name=(kind===&#39;litmus-red&#39;)?&#39;Litmus — Red paper&#39;:&#39;Litmus — Blue paper&#39;;
       updateResult(name,base,changeTo); el._logged=true
     }
   }
 }
 
-/* Results & History */
+/* Results &amp; History */
 function updateResult(indName,fromColor,toColor){
   setPH(state.pH, true); // REVEAL pH UPON TEST COMPLETION
-  resultCard.style.display='block';
-  const nature= (state.pH<7?'Acidic':state.pH>7?'Basic (Alkaline)':'Neutral');
+  resultCard.style.display=&#39;block&#39;;
+  const nature= (state.pH&lt;7?&#39;Acidic&#39;:state.pH&gt;7?&#39;Basic (Alkaline)&#39;:&#39;Neutral&#39;);
   resNature.textContent=nature;
-  resNature.style.background= nature.startsWith('Acidic')?'rgba(255,100,120,.15)':nature.startsWith('Basic')?'rgba(100,255,170,.15)':'rgba(255,255,255,.08)';
-  const subLabel = state.beakerLabelOverride || (state.subKey==='none_sub' ? 'None' : selectedLabel());
+  resNature.style.background= nature.startsWith(&#39;Acidic&#39;)?&#39;rgba(255,100,120,.15)&#39;:nature.startsWith(&#39;Basic&#39;)?&#39;rgba(100,255,170,.15)&#39;:&#39;rgba(255,255,255,.08)&#39;;
+  const subLabel = state.beakerLabelOverride || (state.subKey===&#39;none_sub&#39; ? &#39;None&#39; : selectedLabel());
   resIndicator.textContent=`Indicator: ${indName}`;
   resSubstance.textContent=`Substance: ${subLabel}`;
   resPH.textContent=`pH: ${state.pH.toFixed(1)}`;
@@ -1295,28 +1555,28 @@ function updateResult(indName,fromColor,toColor){
   pushHistory({indicator:indName, substance:subLabel, pH:state.pH.toFixed(1), from:fromColor, to:toColor});
 }
 function pushHistory(item){
-  const row=document.createElement('div'); row.className='history-item';
-  row.innerHTML=`<div class="sq" style="width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.5);background:${item.to}"></div>
-  <div class="pill-mini">${item.indicator}</div>
-  <div class="pill-mini" title="${item.substance}">${item.substance.split('—')[0].trim()}</div>
-  <div class="pill-mini">pH ${item.pH}</div>`;
+  const row=document.createElement(&#39;div&#39;); row.className=&#39;history-item&#39;;
+  row.innerHTML=`&lt;div class=&quot;sq&quot; style=&quot;width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.5);background:${item.to}&quot;&gt;&lt;/div&gt;
+  &lt;div class=&quot;pill-mini&quot;&gt;${item.indicator}&lt;/div&gt;
+  &lt;div class=&quot;pill-mini&quot; title=&quot;${item.substance}&quot;&gt;${item.substance.split(&#39;—&#39;)[0].trim()}&lt;/div&gt;
+  &lt;div class=&quot;pill-mini&quot;&gt;pH ${item.pH}&lt;/div&gt;`;
   historyList.prepend(row);
 }
 
 /* pH SCALE */
-function ensureTicks(){ if(phBar.dataset.ticked) return; for(let i=0;i<=14;i++){ const t=document.createElement('div'); t.className='tick'; t.style.left=`calc(${(i/14)*100}% - .5px)`; t.style.height=(i%2===0?'8px':'6px'); phBar.appendChild(t) } phBar.dataset.ticked='1' }
-function showPHScale(){ ensureTicks(); phScale.style.display='block'; btnPHScale.setAttribute('aria-pressed','true'); updatePHScale() }
-function hidePHScale(){ phScale.style.display='none'; btnPHScale.setAttribute('aria-pressed','false') }
-function togglePHScale(){ (phScale.style.display==='none'||!phScale.style.display)?showPHScale():hidePHScale() }
+function ensureTicks(){ if(phBar.dataset.ticked) return; for(let i=0;i&lt;=14;i++){ const t=document.createElement(&#39;div&#39;); t.className=&#39;tick&#39;; t.style.left=`calc(${(i/14)*100}% - .5px)`; t.style.height=(i%2===0?&#39;8px&#39;:&#39;6px&#39;); phBar.appendChild(t) } phBar.dataset.ticked=&#39;1&#39; }
+function showPHScale(){ ensureTicks(); phScale.style.display=&#39;block&#39;; btnPHScale.setAttribute(&#39;aria-pressed&#39;,&#39;true&#39;); updatePHScale() }
+function hidePHScale(){ phScale.style.display=&#39;none&#39;; btnPHScale.setAttribute(&#39;aria-pressed&#39;,&#39;false&#39;) }
+function togglePHScale(){ (phScale.style.display===&#39;none&#39;||!phScale.style.display)?showPHScale():hidePHScale() }
 function updatePHScale(){
   if (state.phRevealed) {
     const frac=state.pH/14;
     phMarker.style.left=`${frac*100}%`;
-    phMarker.style.display='block';
+    phMarker.style.display=&#39;block&#39;;
     phTag.textContent=state.pH.toFixed(1);
     phScaleValue.textContent=`pH ${state.pH.toFixed(1)}`;
   } else {
-    phMarker.style.display='none';
+    phMarker.style.display=&#39;none&#39;;
     phScaleValue.textContent=`pH ?`;
   }
 }
@@ -1326,14 +1586,14 @@ function isLiquidIndicator(){ return LIQUID_KEYS.includes(state.indKey) }
 function showIndicatorStation(){
   indMiniTitle.textContent=INDICATORS[state.indKey].name;
   miniLiquid.style.background=indicatorBaseColor();
-  indicatorStation.style.display='block';
+  indicatorStation.style.display=&#39;block&#39;;
   const rRig=rig.getBoundingClientRect(), rStation=indicatorStation.getBoundingClientRect();
-  dropper.style.left=((rStation.left-rRig.left)/currentScale-60)+'px';
-  dropper.style.top=((rStation.top-rRig.top)/currentScale-70)+'px';
-  dropper.classList.add('show'); btnShowStation.setAttribute('aria-pressed','true');
+  dropper.style.left=((rStation.left-rRig.left)/currentScale-60)+&#39;px&#39;;
+  dropper.style.top=((rStation.top-rRig.top)/currentScale-70)+&#39;px&#39;;
+  dropper.classList.add(&#39;show&#39;); btnShowStation.setAttribute(&#39;aria-pressed&#39;,&#39;true&#39;);
 }
-function hideIndicatorStation(){ indicatorStation.style.display='none'; dropper.classList.remove('show'); btnShowStation.setAttribute('aria-pressed','false') }
-function highlightStation(on){ indicatorStation.classList.toggle('highlight',!!on) }
+function hideIndicatorStation(){ indicatorStation.style.display=&#39;none&#39;; dropper.classList.remove(&#39;show&#39;); btnShowStation.setAttribute(&#39;aria-pressed&#39;,&#39;false&#39;) }
+function highlightStation(on){ indicatorStation.classList.toggle(&#39;highlight&#39;,!!on) }
 function dropperTip(){
   const t=pipTip.getBoundingClientRect(), r=rig.getBoundingClientRect();
   return {x:(t.left+t.width/2 - r.left)/currentScale, y:(t.top+t.height/2 - r.top)/currentScale}
@@ -1342,28 +1602,28 @@ function overStation(tip){
   const s=miniBeaker.getBoundingClientRect(), r=rig.getBoundingClientRect(); const pad=12;
   const left=(s.left-r.left)/currentScale-pad, right=(s.right-r.left)/currentScale+pad;
   const top=(s.top-r.top)/currentScale-pad, bottom=(s.bottom-r.top)/currentScale+pad;
-  return tip.x>=left && tip.x<=right && tip.y>=top && tip.y<=bottom
+  return tip.x&gt;=left &amp;&amp; tip.x&lt;=right &amp;&amp; tip.y&gt;=top &amp;&amp; tip.y&lt;=bottom
 }
 function overMainBeaker(tip){
   const {sx,sy}=svgScale(); const left=BEAKER.left*sx, right=BEAKER.right*sx, bottom=BEAKER.bottom*sy, surface=state.surfaceCssY+12;
-  return tip.x>=left && tip.x<=right && tip.y>=surface && tip.y<=bottom
+  return tip.x&gt;=left &amp;&amp; tip.x&lt;=right &amp;&amp; tip.y&gt;=surface &amp;&amp; tip.y&lt;=bottom
 }
-function collectIndicator(){ if(!isLiquidIndicator()||state.dropper.busy) return; state.dropper.busy=true; const base=indicatorBaseColor(); pipFill.setAttribute('fill',base); pipFill.setAttribute('y',150); pipFill.setAttribute('height',50); state.dropper.hasLiquid=true; setTimeout(()=>state.dropper.busy=false,200) }
+function collectIndicator(){ if(!isLiquidIndicator()||state.dropper.busy) return; state.dropper.busy=true; const base=indicatorBaseColor(); pipFill.setAttribute(&#39;fill&#39;,base); pipFill.setAttribute(&#39;y&#39;,150); pipFill.setAttribute(&#39;height&#39;,50); state.dropper.hasLiquid=true; setTimeout(()=&gt;state.dropper.busy=false,200) }
 function spawnRigDrop(x,y,color,targetY){
-  const d=document.createElement('div'); d.style.position='absolute';
-  d.style.left=(x-6)+'px'; d.style.top=(y-6)+'px'; d.style.width='10px'; d.style.height='10px';
-  d.style.borderRadius='50%'; d.style.background=color; d.style.boxShadow='0 8px 12px rgba(0,0,0,.35)';
-  d.style.opacity='0'; rig.appendChild(d);
+  const d=document.createElement(&#39;div&#39;); d.style.position=&#39;absolute&#39;;
+  d.style.left=(x-6)+&#39;px&#39;; d.style.top=(y-6)+&#39;px&#39;; d.style.width=&#39;10px&#39;; d.style.height=&#39;10px&#39;;
+  d.style.borderRadius=&#39;50%&#39;; d.style.background=color; d.style.boxShadow=&#39;0 8px 12px rgba(0,0,0,.35)&#39;;
+  d.style.opacity=&#39;0&#39;; rig.appendChild(d);
   const t0=performance.now(), dur=650+Math.random()*150;
   (function step(t){
     const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2;
     const cy=y+(targetY-y)*ease;
     d.style.transform=`translateY(${cy-y}px) scale(${.9+.25*ease})`;
-    d.style.opacity=p<.2?p*4:(1-p*.6);
-    if(p<1) requestAnimationFrame(step); else d.remove()
+    d.style.opacity=p&lt;.2?p*4:(1-p*.6);
+    if(p&lt;1) requestAnimationFrame(step); else d.remove()
   })(performance.now())
 }
-function mixBeakerColorTo(hexEnd, duration=1000){ const hexStart=liquidRect.getAttribute('fill'); const sRGB=hexToRgb(hexStart), eRGB=hexToRgb(hexEnd); const t0=performance.now(); (function step(t){ const p=Math.min(1,(t-t0)/duration), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(sRGB.r+(eRGB.r-sRGB.r)*ease),g:Math.round(sRGB.g+(eRGB.g-sRGB.g)*ease),b:Math.round(sRGB.b+(eRGB.b-sRGB.b)*ease)}; const hx=rgbToHex(mix); liquidRect.setAttribute('fill',hx); wavePath.setAttribute('fill',hx); if(p<1) requestAnimationFrame(step) })(performance.now()); return hexStart }
+function mixBeakerColorTo(hexEnd, duration=1000){ const hexStart=liquidRect.getAttribute(&#39;fill&#39;); const sRGB=hexToRgb(hexStart), eRGB=hexToRgb(hexEnd); const t0=performance.now(); (function step(t){ const p=Math.min(1,(t-t0)/duration), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(sRGB.r+(eRGB.r-sRGB.r)*ease),g:Math.round(sRGB.g+(eRGB.g-sRGB.g)*ease),b:Math.round(sRGB.b+(eRGB.b-sRGB.b)*ease)}; const hx=rgbToHex(mix); liquidRect.setAttribute(&#39;fill&#39;,hx); wavePath.setAttribute(&#39;fill&#39;,hx); if(p&lt;1) requestAnimationFrame(step) })(performance.now()); return hexStart }
 function beep(freq=620,dur=0.07){
   if(!soundState.on) return;
   try{
@@ -1371,7 +1631,7 @@ function beep(freq=620,dur=0.07){
     const t= soundState.ctx.currentTime;
     const o = soundState.ctx.createOscillator();
     const g = soundState.ctx.createGain();
-    o.frequency.value=freq; o.type='sine'; g.gain.setValueAtTime(0.0001,t);
+    o.frequency.value=freq; o.type=&#39;sine&#39;; g.gain.setValueAtTime(0.0001,t);
     g.gain.exponentialRampToValueAtTime(0.05,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     o.connect(g).connect(soundState.ctx.destination); o.start(t); o.stop(t+dur+0.02);
   }catch(e){}
@@ -1381,39 +1641,39 @@ function dispenseIndicator(){
   state.dropper.busy=true;
   const endHex=INDICATORS[state.indKey].color(state.pH);
   const tip=dropperTip(), targetY=state.surfaceCssY+14;
-  for(let i=0;i<10;i++){ setTimeout(()=>spawnRigDrop(tip.x,tip.y,endHex,targetY),i*90) }
-  lab.classList.add('react-glow'); setTimeout(()=>lab.classList.remove('react-glow'),800);
+  for(let i=0;i&lt;10;i++){ setTimeout(()=&gt;spawnRigDrop(tip.x,tip.y,endHex,targetY),i*90) }
+  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
   const startHex=mixBeakerColorTo(endHex,1100);
   beep();
-  setTimeout(()=>{ pipFill.setAttribute('height',0); pipFill.setAttribute('y',210); state.dropper.hasLiquid=false; state.dropper.busy=false },90*10+300);
+  setTimeout(()=&gt;{ pipFill.setAttribute(&#39;height&#39;,0); pipFill.setAttribute(&#39;y&#39;,210); state.dropper.hasLiquid=false; state.dropper.busy=false },90*10+300);
   updateResult(INDICATORS[state.indKey].name,startHex,endHex)
 }
 
 /* Drag dropper */
 (function initDropperDrag(){
   let dragging=false,dx=0,dy=0;
-  dropper.addEventListener('pointerdown',e=>{
-    if(state.mode!=='single' || !isLiquidIndicator()) return;
+  dropper.addEventListener(&#39;pointerdown&#39;,e=&gt;{
+    if(state.mode!==&#39;single&#39; || !isLiquidIndicator()) return;
     dragging=true; const r=rig.getBoundingClientRect();
-    dx=(e.clientX-r.left)/currentScale-parseFloat(dropper.style.left||'10');
-    dy=(e.clientY-r.top)/currentScale-parseFloat(dropper.style.top||'10');
+    dx=(e.clientX-r.left)/currentScale-parseFloat(dropper.style.left||&#39;10&#39;);
+    dy=(e.clientY-r.top)/currentScale-parseFloat(dropper.style.top||&#39;10&#39;);
     dropper.setPointerCapture(e.pointerId||1)
   });
-  window.addEventListener('pointermove',e=>{
+  window.addEventListener(&#39;pointermove&#39;,e=&gt;{
     if(!dragging) return;
     const r=rig.getBoundingClientRect();
     const maxW = r.width / currentScale;
     const maxH = r.height / currentScale;
     const nx=Math.max(-4,Math.min(maxW-dropper.clientWidth+4, (e.clientX-r.left)/currentScale-dx));
     const ny=Math.max(-4,Math.min(maxH-dropper.clientHeight+4, (e.clientY-r.top)/currentScale-dy));
-    dropper.style.left=nx+'px'; dropper.style.top=ny+'px';
+    dropper.style.left=nx+&#39;px&#39;; dropper.style.top=ny+&#39;px&#39;;
     const tip=dropperTip(); highlightStation(overStation(tip))
   });
-  window.addEventListener('pointerup',e=>{
+  window.addEventListener(&#39;pointerup&#39;,e=&gt;{
     if(!dragging) return; dragging=false; dropper.releasePointerCapture(e.pointerId||1);
     const tip=dropperTip();
-    if(overStation(tip)&&!state.dropper.hasLiquid) collectIndicator();
-    else if(overMainBeaker(tip)&&state.dropper.hasLiquid) dispenseIndicator();
+    if(overStation(tip)&amp;&amp;!state.dropper.hasLiquid) collectIndicator();
+    else if(overMainBeaker(tip)&amp;&amp;state.dropper.hasLiquid) dispenseIndicator();
     highlightStation(false)
   })
 })();
@@ -1421,43 +1681,43 @@ function dispenseIndicator(){
 /* Station drag + click */
 (function initIndicatorStation(){
   let dragging=false, dx=0, dy=0;
-  indicatorStation.addEventListener('pointerdown',e=>{
-    if(state.mode!=='single' || e.target === miniBeaker) return;
+  indicatorStation.addEventListener(&#39;pointerdown&#39;,e=&gt;{
+    if(state.mode!==&#39;single&#39; || e.target === miniBeaker) return;
     dragging=true; const r=indicatorStation.getBoundingClientRect();
     dx=(e.clientX-r.left)/currentScale; dy=(e.clientY-r.top)/currentScale;
     indicatorStation.setPointerCapture(e.pointerId||1)
   });
-  window.addEventListener('pointermove',e=>{
+  window.addEventListener(&#39;pointermove&#39;,e=&gt;{
     if(!dragging) return; const rigR=rig.getBoundingClientRect();
     let nx=(e.clientX-rigR.left)/currentScale-dx, ny=(e.clientY-rigR.top)/currentScale-dy;
     const w=indicatorStation.offsetWidth, h=indicatorStation.offsetHeight;
     const maxW = rigR.width / currentScale, maxH = rigR.height / currentScale;
     nx=Math.max(0,Math.min(maxW-w,nx)); ny=Math.max(0,Math.min(maxH-h,ny));
-    indicatorStation.style.left=nx+'px'; indicatorStation.style.top=ny+'px'
+    indicatorStation.style.left=nx+&#39;px&#39;; indicatorStation.style.top=ny+&#39;px&#39;
   });
-  window.addEventListener('pointerup',e=>{ if(!dragging) return; dragging=false; indicatorStation.releasePointerCapture(e.pointerId||1) });
-  miniBeaker.addEventListener('click', ()=>{ if(state.mode==='single' && isLiquidIndicator()) pourFromStation() })
+  window.addEventListener(&#39;pointerup&#39;,e=&gt;{ if(!dragging) return; dragging=false; indicatorStation.releasePointerCapture(e.pointerId||1) });
+  miniBeaker.addEventListener(&#39;click&#39;, ()=&gt;{ if(state.mode===&#39;single&#39; &amp;&amp; isLiquidIndicator()) pourFromStation() })
 })();
 
 function pourFromStation(){
-  if(!state.filled || state.indKey==='none') return;
+  if(!state.filled || state.indKey===&#39;none&#39;) return;
   const endHex=INDICATORS[state.indKey].color(state.pH);
   const sRect=miniBeaker.getBoundingClientRect(), rRect=rig.getBoundingClientRect();
   const sx=(sRect.left+sRect.width/2 - rRect.left)/currentScale;
   const sy=(sRect.bottom - rRect.top)/currentScale - 6;
   const targetY=state.surfaceCssY+14;
-  for(let i=0;i<14;i++){ const jitterX=(Math.random()-0.5)*22; setTimeout(()=>spawnRigDrop(sx+jitterX,sy,endHex,targetY),i*70) }
-  lab.classList.add('react-glow'); setTimeout(()=>lab.classList.remove('react-glow'),800);
+  for(let i=0;i&lt;14;i++){ const jitterX=(Math.random()-0.5)*22; setTimeout(()=&gt;spawnRigDrop(sx+jitterX,sy,endHex,targetY),i*70) }
+  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
   const startHex=mixBeakerColorTo(endHex,900); beep();
   updateResult(INDICATORS[state.indKey].name,startHex,endHex)
 }
 
-/* Conductivity popup & logic */
+/* Conductivity popup &amp; logic */
 function toggleCondRig(force){
-  const show = (typeof force==='boolean') ? force : condState.sampleKey!=='none';
-  condRig.style.display=show?'block':'none';
-  btnToggleRig.setAttribute('aria-pressed', show ? 'true' : 'false');
-  if(!show){ condState.on=false; condSwitch.classList.remove('on'); setBulbIntensity(0); stopFlicker() } else ensureWireInit()
+  const show = (typeof force===&#39;boolean&#39;) ? force : condState.sampleKey!==&#39;none&#39;;
+  condRig.style.display=show?&#39;block&#39;:&#39;none&#39;;
+  btnToggleRig.setAttribute(&#39;aria-pressed&#39;, show ? &#39;true&#39; : &#39;false&#39;);
+  if(!show){ condState.on=false; condSwitch.classList.remove(&#39;on&#39;); setBulbIntensity(0); stopFlicker() } else ensureWireInit()
 }
 function getRigRect(){ return condRig.getBoundingClientRect() }
 function rigPoint(el){
@@ -1465,7 +1725,7 @@ function rigPoint(el){
   return {x:(rEl.left+rEl.width/2 - rRig.left)/currentScale, y:(rEl.top+rEl.height/2 - rRig.top)/currentScale}
 }
 function getProbeTipPoint(probe){
-  const tip=probe.querySelector('.tip').getBoundingClientRect(), rRig=getRigRect();
+  const tip=probe.querySelector(&#39;.tip&#39;).getBoundingClientRect(), rRig=getRigRect();
   return {x:(tip.left+tip.width/2 - rRig.left)/currentScale, y:(tip.bottom - rRig.top)/currentScale}
 }
 function beakerBoundsViewport(){
@@ -1475,26 +1735,26 @@ function beakerBoundsViewport(){
   return {left,right,surface,bottom}
 }
 function probeTipTouchesLiquid(probe){
-  if(!state.filled || levelTarget<=0.01) return false;
-  const tip = probe.querySelector('.tip').getBoundingClientRect();
+  if(!state.filled || levelTarget&lt;=0.01) return false;
+  const tip = probe.querySelector(&#39;.tip&#39;).getBoundingClientRect();
   const b = beakerBoundsViewport();
-  const overlapX = tip.right >= b.left && tip.left <= b.right;
-  const overlapY = tip.bottom >= b.surface && tip.top <= b.bottom;
-  return overlapX && overlapY;
+  const overlapX = tip.right &gt;= b.left &amp;&amp; tip.left &lt;= b.right;
+  const overlapY = tip.bottom &gt;= b.surface &amp;&amp; tip.top &lt;= b.bottom;
+  return overlapX &amp;&amp; overlapY;
 }
 function probeInSolution(probe){
   const inside = probeTipTouchesLiquid(probe);
-  probe.classList.toggle('wet',inside);
+  probe.classList.toggle(&#39;wet&#39;,inside);
   return inside;
 }
-function conductivityFromPH(pH){ if(pH<=2||pH>=12) return 1; if(pH<=5||pH>=9) return .35; return 0 }
-function activeConductivity(){ const k=condState.sampleKey; if(k==='none') return 0; if(k==='beaker') return conductivityFromPH(state.pH); const s=COND_SAMPLES[k]; return s?.level ?? 0 }
-function setBulbIntensity(x){ x=Math.max(0,Math.min(1,x)); condState.intensity=x; bulbGlow.setAttribute('opacity',(0.10+0.90*x).toFixed(2)); filament.setAttribute('opacity',(0.12+0.86*x).toFixed(2)); star.setAttribute('opacity',x>0.85?0.22:0) }
-function startFlicker(){ stopFlicker(); condState.flickerTimer=setInterval(()=>{ if(!condState.on) return; const base=condState.intensity, jitter=(Math.random()-0.5)*(base>0.7?0.05:0.12); setBulbIntensity(Math.max(0,Math.min(1,base+jitter))) },100) }
+function conductivityFromPH(pH){ if(pH&lt;=2||pH&gt;=12) return 1; if(pH&lt;=5||pH&gt;=9) return .35; return 0 }
+function activeConductivity(){ const k=condState.sampleKey; if(k===&#39;none&#39;) return 0; if(k===&#39;beaker&#39;) return conductivityFromPH(state.pH); const s=COND_SAMPLES[k]; return s?.level ?? 0 }
+function setBulbIntensity(x){ x=Math.max(0,Math.min(1,x)); condState.intensity=x; bulbGlow.setAttribute(&#39;opacity&#39;,(0.10+0.90*x).toFixed(2)); filament.setAttribute(&#39;opacity&#39;,(0.12+0.86*x).toFixed(2)); star.setAttribute(&#39;opacity&#39;,x&gt;0.85?0.22:0) }
+function startFlicker(){ stopFlicker(); condState.flickerTimer=setInterval(()=&gt;{ if(!condState.on) return; const base=condState.intensity, jitter=(Math.random()-0.5)*(base&gt;0.7?0.05:0.12); setBulbIntensity(Math.max(0,Math.min(1,base+jitter))) },100) }
 function stopFlicker(){ if(condState.flickerTimer){ clearInterval(condState.flickerTimer); condState.flickerTimer=null } }
 function updateConductivity(){
   const inPlus=probeInSolution(probePlus), inMinus=probeInSolution(probeMinus);
-  if(condState.on && inPlus && inMinus){
+  if(condState.on &amp;&amp; inPlus &amp;&amp; inMinus){
     const lvl=activeConductivity()*condState.conc;
     setBulbIntensity(lvl); startFlicker();
   } else { setBulbIntensity(0); stopFlicker() }
@@ -1502,99 +1762,99 @@ function updateConductivity(){
 function updateWireTargets(){ condState.wire.posTar=rigPoint(nodePos); condState.wire.negTar=rigPoint(nodeNeg); condState.wire.plusTar=getProbeTipPoint(probePlus); condState.wire.minusTar=getProbeTipPoint(probeMinus) }
 function lerp(a,b,t){ return a+(b-a)*t }
 function animateWires(){
-  if(condRig.style.display!=='none'){
+  if(condRig.style.display!==&#39;none&#39;){
     updateWireTargets();
     const w=condState.wire, s=.22;
     w.posCur.x=lerp(w.posCur.x,w.posTar.x,s); w.posCur.y=lerp(w.posCur.y,w.posTar.y,s);
     w.negCur.x=lerp(w.negCur.x,w.negTar.x,s); w.negCur.y=lerp(w.negCur.y,w.negTar.y,s);
     w.plusCur.x=lerp(w.plusCur.x,w.plusTar.x,s); w.plusCur.y=lerp(w.plusCur.y,w.plusTar.y,s);
     w.minusCur.x=lerp(w.minusCur.x,w.minusTar.x,s); w.minusCur.y=lerp(w.minusCur.y,w.minusTar.y,s);
-    function pathC(a,b){ const dx=b.x-a.x, dy=b.y-a.y; const c1={x:a.x+dx*.35,y:a.y+(dy<0?dy*.1:dy*.05)}, c2={x:a.x+dx*.70,y:a.y+(dy>0?dy*.95:dy*.8)}; return `M ${a.x},${a.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}` }
-    wireRed.setAttribute('d',pathC(w.posCur,w.plusCur)); wireBlack.setAttribute('d',pathC(w.negCur,w.minusCur))
+    function pathC(a,b){ const dx=b.x-a.x, dy=b.y-a.y; const c1={x:a.x+dx*.35,y:a.y+(dy&lt;0?dy*.1:dy*.05)}, c2={x:a.x+dx*.70,y:a.y+(dy&gt;0?dy*.95:dy*.8)}; return `M ${a.x},${a.y} C ${c1.x},${c1.y} ${c2.x},${c2.y} ${b.x},${b.y}` }
+    wireRed.setAttribute(&#39;d&#39;,pathC(w.posCur,w.plusCur)); wireBlack.setAttribute(&#39;d&#39;,pathC(w.negCur,w.minusCur))
   }
   requestAnimationFrame(animateWires)
 }
 
 /* Plate and probes drag */
 (function initCondPlateDrag(){
-  let dragging=false,dx=0,dy=0; const handle=condPlate.querySelector('.handle');
-  handle.addEventListener('pointerdown',e=>{
+  let dragging=false,dx=0,dy=0; const handle=condPlate.querySelector(&#39;.handle&#39;);
+  handle.addEventListener(&#39;pointerdown&#39;,e=&gt;{
     dragging=true; const r=condPlate.getBoundingClientRect();
     dx=(e.clientX-r.left)/currentScale; dy=(e.clientY-r.top)/currentScale;
     condPlate.setPointerCapture(e.pointerId||1)
   });
-  window.addEventListener('pointermove',e=>{
+  window.addEventListener(&#39;pointermove&#39;,e=&gt;{
     if(!dragging) return;
-    const stageR = document.getElementById('appStage').getBoundingClientRect();
+    const stageR = document.getElementById(&#39;appStage&#39;).getBoundingClientRect();
     let nx=(e.clientX-stageR.left)/currentScale - dx;
     let ny=(e.clientY-stageR.top)/currentScale - dy;
     nx=Math.max(0,Math.min(1920-condPlate.offsetWidth,nx));
     ny=Math.max(0,Math.min(1080-condPlate.offsetHeight,ny));
-    condPlate.style.left=nx+'px'; condPlate.style.top=ny+'px'
+    condPlate.style.left=nx+&#39;px&#39;; condPlate.style.top=ny+&#39;px&#39;
   });
-  window.addEventListener('pointerup',e=>{ if(!dragging) return; dragging=false; condPlate.releasePointerCapture(e.pointerId||1) })
+  window.addEventListener(&#39;pointerup&#39;,e=&gt;{ if(!dragging) return; dragging=false; condPlate.releasePointerCapture(e.pointerId||1) })
 })();
 
 function initProbeDrag(probe){
   let dragging=false,dx=0,dy=0;
-  probe.addEventListener('pointerdown',e=>{
+  probe.addEventListener(&#39;pointerdown&#39;,e=&gt;{
     dragging=true; const r=probe.getBoundingClientRect();
     dx=(e.clientX-r.left)/currentScale; dy=(e.clientY-r.top)/currentScale;
     probe.setPointerCapture(e.pointerId||1)
   });
-  window.addEventListener('pointermove',e=>{
+  window.addEventListener(&#39;pointermove&#39;,e=&gt;{
     if(!dragging) return;
-    const stageR = document.getElementById('appStage').getBoundingClientRect();
+    const stageR = document.getElementById(&#39;appStage&#39;).getBoundingClientRect();
     let nx=(e.clientX-stageR.left)/currentScale - dx;
     let ny=(e.clientY-stageR.top)/currentScale - dy;
-    probe.style.left=nx+'px'; probe.style.top=ny+'px'; updateConductivity()
+    probe.style.left=nx+&#39;px&#39;; probe.style.top=ny+&#39;px&#39;; updateConductivity()
   });
-  window.addEventListener('pointerup',e=>{ if(!dragging) return; dragging=false; probe.releasePointerCapture(e.pointerId||1); updateConductivity() })
+  window.addEventListener(&#39;pointerup&#39;,e=&gt;{ if(!dragging) return; dragging=false; probe.releasePointerCapture(e.pointerId||1); updateConductivity() })
 }
 initProbeDrag(probePlus); initProbeDrag(probeMinus);
 
 /* Actions */
 function fillBeaker(){
-  if(state.subKey==='none_sub') return;
+  if(state.subKey===&#39;none_sub&#39;) return;
   if(state.filled) return;
   const sol=SUBS[state.subKey];
   setPH(sol?.pH ?? 7, false); // Keep pH hidden initially
-  liquidRect.setAttribute('fill',"#89caff"); wavePath.setAttribute('fill',"#89caff");
+  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
   setLevel(.54); state.filled=true; startBubbles(); state.beakerLabelOverride=null; beep(420,0.05);
 }
 function addIndicator(){
-  if(state.mode!=='single') return;
+  if(state.mode!==&#39;single&#39;) return;
   if(!state.filled) return;
-  if(state.indKey==='none') return;
-  if(LIQUID_KEYS.includes(state.indKey)){ collectIndicator(); setTimeout(()=>{ if(state.dropper.hasLiquid) dispenseIndicator(); else pourFromStation() },450); return }
+  if(state.indKey===&#39;none&#39;) return;
+  if(LIQUID_KEYS.includes(state.indKey)){ collectIndicator(); setTimeout(()=&gt;{ if(state.dropper.hasLiquid) dispenseIndicator(); else pourFromStation() },450); return }
   const ind=INDICATORS[state.indKey], finalHex=indicatorColor();
-  lab.classList.add('react-glow'); setTimeout(()=>lab.classList.remove('react-glow'),600);
-  const startColor=hexToRgb(liquidRect.getAttribute('fill')), endColor=hexToRgb(finalHex), t0=performance.now(), dur=900;
-  (function step(t){ const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(startColor.r+(endColor.r-startColor.r)*ease), g:Math.round(startColor.g+(endColor.g-startColor.g)*ease), b:Math.round(startColor.b+(endColor.b-startColor.b)*ease)}; const hex=rgbToHex(mix); liquidRect.setAttribute('fill',hex); wavePath.setAttribute('fill',hex); if(p<1) requestAnimationFrame(step) })(performance.now());
+  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),600);
+  const startColor=hexToRgb(liquidRect.getAttribute(&#39;fill&#39;)), endColor=hexToRgb(finalHex), t0=performance.now(), dur=900;
+  (function step(t){ const p=Math.min(1,(t-t0)/dur), ease=.5-Math.cos(p*Math.PI)/2; const mix={r:Math.round(startColor.r+(endColor.r-startColor.r)*ease), g:Math.round(startColor.g+(endColor.g-startColor.g)*ease), b:Math.round(startColor.b+(endColor.b-startColor.b)*ease)}; const hex=rgbToHex(mix); liquidRect.setAttribute(&#39;fill&#39;,hex); wavePath.setAttribute(&#39;fill&#39;,hex); if(p&lt;1) requestAnimationFrame(step) })(performance.now());
   beep();
   updateResult(`${ind.name}`,rgbToHex(startColor),finalHex)
 }
-btnFill.addEventListener('click',fillBeaker);
-btnAdd.addEventListener('click',addIndicator);
-btnReset.addEventListener('click',()=>{
-  setMode('single');
+btnFill.addEventListener(&#39;click&#39;,fillBeaker);
+btnAdd.addEventListener(&#39;click&#39;,addIndicator);
+btnReset.addEventListener(&#39;click&#39;,()=&gt;{
+  setMode(&#39;single&#39;);
   state.filled=false; setLevel(0.02);
-  liquidRect.setAttribute('fill',"#89caff"); wavePath.setAttribute('fill',"#89caff");
-  subSelect.value='none_sub'; indSelect.value='none'; condSelect.value='none';
-  state.subKey='none_sub'; state.indKey='none'; condState.sampleKey='none';
-  state.beakerLabelOverride=null; setPH(7, false); destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove('show');
-  stopBubbles(); resultCard.style.display='none';
-  condState.on=false; condSwitch.classList.remove('on'); stopFlicker(); setBulbIntensity(0); toggleCondRig(false);
-  probePlus.style.left='340px'; probePlus.style.top='120px'; probeMinus.style.left='400px'; probeMinus.style.top='120px';
-  concSlider.value=100; condState.conc=1; concBadge.textContent='100%'; styleRange(concSlider);
+  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
+  subSelect.value=&#39;none_sub&#39;; indSelect.value=&#39;none&#39;; condSelect.value=&#39;none&#39;;
+  state.subKey=&#39;none_sub&#39;; state.indKey=&#39;none&#39;; condState.sampleKey=&#39;none&#39;;
+  state.beakerLabelOverride=null; setPH(7, false); destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;);
+  stopBubbles(); resultCard.style.display=&#39;none&#39;;
+  condState.on=false; condSwitch.classList.remove(&#39;on&#39;); stopFlicker(); setBulbIntensity(0); toggleCondRig(false);
+  probePlus.style.left=&#39;340px&#39;; probePlus.style.top=&#39;120px&#39;; probeMinus.style.left=&#39;400px&#39;; probeMinus.style.top=&#39;120px&#39;;
+  concSlider.value=100; condState.conc=1; concBadge.textContent=&#39;100%&#39;; styleRange(concSlider);
   neutralState.netMoles=0; neutralState.volL=0.2; neutralState.loadedA=0; neutralState.loadedB=0;
-  acidLoaded.textContent='Loaded: 0 mL'; baseLoaded.textContent='Loaded: 0 mL';
+  acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;;
   beep(360,0.05);
 });
 
 /* Slider fill */
-function styleRange(el){ const v = (Number(el.value)-el.min)/(el.max-el.min); const pct = Math.round(v*100); el.style.setProperty('--fill', pct + '%') }
-concSlider.addEventListener('input', () => {
+function styleRange(el){ const v = (Number(el.value)-el.min)/(el.max-el.min); const pct = Math.round(v*100); el.style.setProperty(&#39;--fill&#39;, pct + &#39;%&#39;) }
+concSlider.addEventListener(&#39;input&#39;, () =&gt; {
   const v = Number(concSlider.value);
   condState.conc = Math.max(0, Math.min(1, v / 100));
   concBadge.textContent = `${v}%`;
@@ -1603,58 +1863,58 @@ concSlider.addEventListener('input', () => {
 styleRange(concSlider);
 
 /* Quick presets */
-presetChips.forEach(ch=>{
-  ch.addEventListener('click',()=>{
+presetChips.forEach(ch=&gt;{
+  ch.addEventListener(&#39;click&#39;,()=&gt;{
     const key=ch.dataset.preset;
-    subSelect.value=key; subSelect.dispatchEvent(new Event('change'));
+    subSelect.value=key; subSelect.dispatchEvent(new Event(&#39;change&#39;));
     if(!state.filled) fillBeaker();
   })
 });
-demoRun.addEventListener('click', runDemo);
+demoRun.addEventListener(&#39;click&#39;, runDemo);
 
-/* Theme & help */
-btnTheme.addEventListener('click', ()=>{
+/* Theme &amp; help */
+btnTheme.addEventListener(&#39;click&#39;, ()=&gt;{
   const html=document.documentElement;
-  html.dataset.theme = html.dataset.theme === 'light' ? 'dark':'light';
+  html.dataset.theme = html.dataset.theme === &#39;light&#39; ? &#39;dark&#39;:&#39;light&#39;;
 });
-btnHelp.addEventListener('click', ()=> showOnboard(true));
-soundToggle.addEventListener('click', ()=>{
-  soundState.on=!soundState.on; soundToggle.textContent = soundState.on ? '🔊 Sound' : '🔈 Muted';
+btnHelp.addEventListener(&#39;click&#39;, ()=&gt; showOnboard(true));
+soundToggle.addEventListener(&#39;click&#39;, ()=&gt;{
+  soundState.on=!soundState.on; soundToggle.textContent = soundState.on ? &#39;🔊 Sound&#39; : &#39;🔈 Muted&#39;;
 });
 
 /* Lab tool buttons */
-btnPHScale.addEventListener('click', togglePHScale);
-btnShowStation.addEventListener('click', ()=>{
-  if(state.mode!=='single') return;
-  if(indSelect.value==='none'){ indSelect.value='turmeric'; indSelect.dispatchEvent(new Event('change')) }
-  if(indicatorStation.style.display==='none'||!indicatorStation.style.display) showIndicatorStation(); else hideIndicatorStation();
+btnPHScale.addEventListener(&#39;click&#39;, togglePHScale);
+btnShowStation.addEventListener(&#39;click&#39;, ()=&gt;{
+  if(state.mode!==&#39;single&#39;) return;
+  if(indSelect.value===&#39;none&#39;){ indSelect.value=&#39;turmeric&#39;; indSelect.dispatchEvent(new Event(&#39;change&#39;)) }
+  if(indicatorStation.style.display===&#39;none&#39;||!indicatorStation.style.display) showIndicatorStation(); else hideIndicatorStation();
 });
-btnToggleRig.addEventListener('click', ()=> toggleCondRig(!(condRig.style.display==='block')));
+btnToggleRig.addEventListener(&#39;click&#39;, ()=&gt; toggleCondRig(!(condRig.style.display===&#39;block&#39;)));
 
 /* Select changes */
-subSelect.addEventListener('change',()=>{
+subSelect.addEventListener(&#39;change&#39;,()=&gt;{
   state.subKey=subSelect.value; state.beakerLabelOverride=null;
-  if(state.subKey==='none_sub'){ if(state.filled){ setLevel(0.02); state.filled=false } return }
+  if(state.subKey===&#39;none_sub&#39;){ if(state.filled){ setLevel(0.02); state.filled=false } return }
   setPH(SUBS[state.subKey]?.pH ?? 7, false)
 });
-indSelect.addEventListener('change',()=>{
+indSelect.addEventListener(&#39;change&#39;,()=&gt;{
   state.indKey=indSelect.value;
-  if(state.indKey==='none'){ destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove('show'); return }
-  if(state.indKey==='litmus') createLitmusStrips();
-  else if(state.indKey==='universal') createUniversalStrip();
+  if(state.indKey===&#39;none&#39;){ destroyStrips(); hidePHScale(); hideIndicatorStation(); dropper.classList.remove(&#39;show&#39;); return }
+  if(state.indKey===&#39;litmus&#39;) createLitmusStrips();
+  else if(state.indKey===&#39;universal&#39;) createUniversalStrip();
   else { destroyStrips(); hidePHScale(); showIndicatorStation() }
 });
-condSelect.addEventListener('change',()=>{
+condSelect.addEventListener(&#39;change&#39;,()=&gt;{
   condState.sampleKey=condSelect.value; toggleCondRig();
   const s=COND_SAMPLES[condState.sampleKey];
-  if(condState.sampleKey!=='none'){ condState.on=true; condSwitch.classList.add('on'); condSwitch.setAttribute('aria-pressed','true'); }
-  if(condState.sampleKey!=='none' && condState.sampleKey!=='beaker' && s){ fillBeakerFromCondSample(s); state.beakerLabelOverride = s.name; }
-  if(s && s.pH!=null) setPH(s.pH, false);
+  if(condState.sampleKey!==&#39;none&#39;){ condState.on=true; condSwitch.classList.add(&#39;on&#39;); condSwitch.setAttribute(&#39;aria-pressed&#39;,&#39;true&#39;); }
+  if(condState.sampleKey!==&#39;none&#39; &amp;&amp; condState.sampleKey!==&#39;beaker&#39; &amp;&amp; s){ fillBeakerFromCondSample(s); state.beakerLabelOverride = s.name; }
+  if(s &amp;&amp; s.pH!=null) setPH(s.pH, false);
   updateConductivity();
 });
 function fillBeakerFromCondSample(s){
   setPH(s?.pH ?? 7, false);
-  liquidRect.setAttribute('fill',"#89caff"); wavePath.setAttribute('fill',"#89caff");
+  liquidRect.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;,&quot;#89caff&quot;);
   setLevel(.54);
   if(!state.filled) startBubbles();
   state.filled=true;
@@ -1674,8 +1934,8 @@ function initResizablePanels(){
   function onPointerDown(e){
     const handle = e.currentTarget;
     const dir = handle.dataset.dir;
-    const panel = handle.closest('.panel');
-    const isSim = panel.id === 'simPanel'; const isRes = panel.id === 'resPanel';
+    const panel = handle.closest(&#39;.panel&#39;);
+    const isSim = panel.id === &#39;simPanel&#39;; const isRes = panel.id === &#39;resPanel&#39;;
 
     const mainRect = mainGrid.getBoundingClientRect();
     const leftRect = simPanel.getBoundingClientRect();
@@ -1698,57 +1958,57 @@ function initResizablePanels(){
       const minLeft=500, minRight=280;
 
       if(isSim){
-        if(dir.includes('e')) newLeftW = Math.max(minLeft, Math.min(containerW-gap-minRight, startLeftW + dx));
-        if(dir.includes('w')) newLeftW = Math.max(minLeft, Math.min(containerW-gap-minRight, startLeftW - dx));
+        if(dir.includes(&#39;e&#39;)) newLeftW = Math.max(minLeft, Math.min(containerW-gap-minRight, startLeftW + dx));
+        if(dir.includes(&#39;w&#39;)) newLeftW = Math.max(minLeft, Math.min(containerW-gap-minRight, startLeftW - dx));
         newRightW = containerW - gap - newLeftW;
       }
       if(isRes){
-        if(dir.includes('e')) newRightW = Math.max(minRight, Math.min(containerW-gap-minLeft, startRightW + dx));
-        if(dir.includes('w')) newRightW = Math.max(minRight, Math.min(containerW-gap-minLeft, startRightW - dx));
+        if(dir.includes(&#39;e&#39;)) newRightW = Math.max(minRight, Math.min(containerW-gap-minLeft, startRightW + dx));
+        if(dir.includes(&#39;w&#39;)) newRightW = Math.max(minRight, Math.min(containerW-gap-minLeft, startRightW - dx));
         newLeftW = containerW - gap - newRightW;
       }
-      mainGrid.style.setProperty('--gridCols', `${Math.round(newLeftW)}px ${Math.round(newRightW)}px`);
+      mainGrid.style.setProperty(&#39;--gridCols&#39;, `${Math.round(newLeftW)}px ${Math.round(newRightW)}px`);
 
       const minH = 300, maxH = 800;
       let newH = startPanelH;
-      if(dir.includes('s')) newH = Math.max(minH, Math.min(maxH, startPanelH + dy));
-      if(dir.includes('n')) newH = Math.max(minH, Math.min(maxH, startPanelH - dy));
-      panel.style.height = Math.round(newH) + 'px';
+      if(dir.includes(&#39;s&#39;)) newH = Math.max(minH, Math.min(maxH, startPanelH + dy));
+      if(dir.includes(&#39;n&#39;)) newH = Math.max(minH, Math.min(maxH, startPanelH - dy));
+      panel.style.height = Math.round(newH) + &#39;px&#39;;
     }
     function up(ev){
       try{ handle.releasePointerCapture(ev.pointerId||1) }catch(_){}
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      window.removeEventListener(&#39;pointermove&#39;, move);
+      window.removeEventListener(&#39;pointerup&#39;, up);
     }
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    window.addEventListener(&#39;pointermove&#39;, move);
+    window.addEventListener(&#39;pointerup&#39;, up);
   }
-  document.querySelectorAll('#simPanel .resize-handle, #resPanel .resize-handle').forEach(h=>h.addEventListener('pointerdown', onPointerDown));
+  document.querySelectorAll(&#39;#simPanel .resize-handle, #resPanel .resize-handle&#39;).forEach(h=&gt;h.addEventListener(&#39;pointerdown&#39;, onPointerDown));
 }
-resetLayout.addEventListener('click', ()=>{
-  mainGrid.style.removeProperty('--gridCols'); simPanel.style.removeProperty('height'); resPanel.style.removeProperty('height');
+resetLayout.addEventListener(&#39;click&#39;, ()=&gt;{
+  mainGrid.style.removeProperty(&#39;--gridCols&#39;); simPanel.style.removeProperty(&#39;height&#39;); resPanel.style.removeProperty(&#39;height&#39;);
 });
 
-/* Onboarding & Demo */
+/* Onboarding &amp; Demo */
 function showOnboard(force=false){
-  const seen=localStorage.getItem('aurora_onboard')==='1';
-  if(seen && !force) return;
-  onboard.style.display='flex';
+  const seen=localStorage.getItem(&#39;aurora_onboard&#39;)===&#39;1&#39;;
+  if(seen &amp;&amp; !force) return;
+  onboard.style.display=&#39;flex&#39;;
 }
 function hideOnboard(){
-  onboard.style.display='none';
-  if(onDont.checked) localStorage.setItem('aurora_onboard','1');
+  onboard.style.display=&#39;none&#39;;
+  if(onDont.checked) localStorage.setItem(&#39;aurora_onboard&#39;,&#39;1&#39;);
 }
-onStart.addEventListener('click', hideOnboard);
-onDismiss.addEventListener('click', hideOnboard);
-onDemo.addEventListener('click', ()=>{ hideOnboard(); runDemo() });
+onStart.addEventListener(&#39;click&#39;, hideOnboard);
+onDismiss.addEventListener(&#39;click&#39;, hideOnboard);
+onDemo.addEventListener(&#39;click&#39;, ()=&gt;{ hideOnboard(); runDemo() });
 
 async function runDemo(){
   try{
-    setMode('single');
-    subSelect.value='vinegar'; subSelect.dispatchEvent(new Event('change'));
+    setMode(&#39;single&#39;);
+    subSelect.value=&#39;vinegar&#39;; subSelect.dispatchEvent(new Event(&#39;change&#39;));
     await sleep(400);
-    indSelect.value='universal'; indSelect.dispatchEvent(new Event('change'));
+    indSelect.value=&#39;universal&#39;; indSelect.dispatchEvent(new Event(&#39;change&#39;));
     await sleep(400);
     fillBeaker();
     await sleep(500);
@@ -1757,55 +2017,55 @@ async function runDemo(){
     showPHScale();
   }catch(e){}
 }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)) }
+function sleep(ms){ return new Promise(r=&gt;setTimeout(r,ms)) }
 
 /* Shortcuts */
-window.addEventListener('keydown', (e)=>{
+window.addEventListener(&#39;keydown&#39;, (e)=&gt;{
   const k=e.key.toLowerCase();
-  if(k==='f') fillBeaker();
-  if(k==='i') addIndicator();
-  if(k==='r') btnReset.click();
-  if(k==='b') btnBubbles.click();
-  if(k==='p') togglePHScale();
-  if(k==='c') toggleCondRig(!(condRig.style.display==='block'));
+  if(k===&#39;f&#39;) fillBeaker();
+  if(k===&#39;i&#39;) addIndicator();
+  if(k===&#39;r&#39;) btnReset.click();
+  if(k===&#39;b&#39;) btnBubbles.click();
+  if(k===&#39;p&#39;) togglePHScale();
+  if(k===&#39;c&#39;) toggleCondRig(!(condRig.style.display===&#39;block&#39;));
 });
 
 /* ====== Modes ====== */
 function setMode(mode){
   state.mode = mode;
-  [...modeTabs.querySelectorAll('.mode-btn')].forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
-  if(mode==='single'){
-    rig.style.display='block';
-    phRing.style.display='flex';
-    labTools.style.display='flex';
-    compareWrap.style.display='none';
-    neutralPanels.style.display='none';
-    if(state.filled && state.bubbles) startBubbles();
+  [...modeTabs.querySelectorAll(&#39;.mode-btn&#39;)].forEach(b=&gt;b.classList.toggle(&#39;active&#39;, b.dataset.mode===mode));
+  if(mode===&#39;single&#39;){
+    rig.style.display=&#39;block&#39;;
+    phRing.style.display=&#39;flex&#39;;
+    labTools.style.display=&#39;flex&#39;;
+    compareWrap.style.display=&#39;none&#39;;
+    neutralPanels.style.display=&#39;none&#39;;
+    if(state.filled &amp;&amp; state.bubbles) startBubbles();
   }
-  if(mode==='compare'){
-    rig.style.display='none';
-    phRing.style.display='none';
-    labTools.style.display='none';
+  if(mode===&#39;compare&#39;){
+    rig.style.display=&#39;none&#39;;
+    phRing.style.display=&#39;none&#39;;
+    labTools.style.display=&#39;none&#39;;
     hideIndicatorStation(); destroyStrips(); stopBubbles();
     toggleCondRig(false);
-    compareWrap.style.display='grid';
-    neutralPanels.style.display='none';
+    compareWrap.style.display=&#39;grid&#39;;
+    neutralPanels.style.display=&#39;none&#39;;
     ensureMiniSims();
   }
-  if(mode==='neutral'){
-    compareWrap.style.display='none';
-    rig.style.display='block';
-    phRing.style.display='flex';
-    labTools.style.display='flex';
+  if(mode===&#39;neutral&#39;){
+    compareWrap.style.display=&#39;none&#39;;
+    rig.style.display=&#39;block&#39;;
+    phRing.style.display=&#39;flex&#39;;
+    labTools.style.display=&#39;flex&#39;;
     hideIndicatorStation(); destroyStrips();
     toggleCondRig(false);
-    neutralPanels.style.display='block';
+    neutralPanels.style.display=&#39;block&#39;;
     initNeutralisationOnce();
     if(state.bubbles) startBubbles();
   }
 }
-modeTabs.addEventListener('click', (e)=>{
-  const b=e.target.closest('.mode-btn'); if(!b) return;
+modeTabs.addEventListener(&#39;click&#39;, (e)=&gt;{
+  const b=e.target.closest(&#39;.mode-btn&#39;); if(!b) return;
   setMode(b.dataset.mode);
 });
 
@@ -1814,26 +2074,26 @@ let miniInited=false;
 function fillSelectWithSubstances(sel){
   sel.innerHTML = subSelect.innerHTML;
 }
-function natureFromPH(pH){ return pH<7?'acid':pH>7?'base':'neutral' }
+function natureFromPH(pH){ return pH&lt;7?&#39;acid&#39;:pH&gt;7?&#39;base&#39;:&#39;neutral&#39; }
 function setNatureBadge(el, pH){
   const nat=natureFromPH(pH);
-  el.classList.remove('acid','base','neutral');
+  el.classList.remove(&#39;acid&#39;,&#39;base&#39;,&#39;neutral&#39;);
   el.classList.add(nat);
-  el.textContent = nat==='acid'?'Acidic':nat==='base'?'Basic (Alkaline)':'Neutral';
+  el.textContent = nat===&#39;acid&#39;?&#39;Acidic&#39;:nat===&#39;base&#39;?&#39;Basic (Alkaline)&#39;:&#39;Neutral&#39;;
 }
 function ensureMiniSims(){
   if(miniInited) return;
-  ['miniA','miniB'].forEach(id=>{
+  [&#39;miniA&#39;,&#39;miniB&#39;].forEach(id=&gt;{
     const root=document.getElementById(id);
-    const subSel=root.querySelector('.miniSub'); fillSelectWithSubstances(subSel);
-    const indSel=root.querySelector('.miniInd');
-    const btnFill=root.querySelector('.miniFill'), btnAdd=root.querySelector('.miniAdd');
-    const liq=root.querySelector('.miniLiquid');
-    const pHChip = document.getElementById(id==='miniA'?'miniAPHTag':'miniBPHTag');
-    const natBadge = document.getElementById(id==='miniA'?'miniANature':'miniBNature');
+    const subSel=root.querySelector(&#39;.miniSub&#39;); fillSelectWithSubstances(subSel);
+    const indSel=root.querySelector(&#39;.miniInd&#39;);
+    const btnFill=root.querySelector(&#39;.miniFill&#39;), btnAdd=root.querySelector(&#39;.miniAdd&#39;);
+    const liq=root.querySelector(&#39;.miniLiquid&#39;);
+    const pHChip = document.getElementById(id===&#39;miniA&#39;?&#39;miniAPHTag&#39;:&#39;miniBPHTag&#39;);
+    const natBadge = document.getElementById(id===&#39;miniA&#39;?&#39;miniANature&#39;:&#39;miniBNature&#39;);
     let curPH=7, filled=false;
 
-    subSel.value = (id==='miniA') ? 'hcl_industrial' : 'sodium_hydroxide';
+    subSel.value = (id===&#39;miniA&#39;) ? &#39;hcl_industrial&#39; : &#39;sodium_hydroxide&#39;;
     updatePH(false);
 
     function updatePH(reveal = false){
@@ -1846,18 +2106,18 @@ function ensureMiniSims(){
         natBadge.textContent = `—`;
       }
     }
-    subSel.addEventListener('change', () => updatePH(false));
+    subSel.addEventListener(&#39;change&#39;, () =&gt; updatePH(false));
 
-    btnFill.addEventListener('click', ()=>{
-      liq.setAttribute('y', 160-60); liq.setAttribute('height', 60);
-      liq.setAttribute('fill', '#89caff'); filled=true; beep(420,0.05);
+    btnFill.addEventListener(&#39;click&#39;, ()=&gt;{
+      liq.setAttribute(&#39;y&#39;, 160-60); liq.setAttribute(&#39;height&#39;, 60);
+      liq.setAttribute(&#39;fill&#39;, &#39;#89caff&#39;); filled=true; beep(420,0.05);
     });
-    btnAdd.addEventListener('click', ()=>{
+    btnAdd.addEventListener(&#39;click&#39;, ()=&gt;{
       if(!filled) return;
       const indKey=indSel.value;
-      if(indKey==='none') return;
+      if(indKey===&#39;none&#39;) return;
       const col = (INDICATORS[indKey]||INDICATORS.universal).color(curPH);
-      liq.setAttribute('fill', col);
+      liq.setAttribute(&#39;fill&#39;, col);
       updatePH(true); // Reveal pH when tested
     });
   });
@@ -1885,24 +2145,24 @@ function initNeutralisationOnce(){
     baseMLBadge.textContent = `${baseML.value} mL`;
     updateNeutralSlimColors();
 
-    acidSelect.addEventListener('change', ()=>{ neutralState.acidKey=acidSelect.value; updateNeutralSlimColors() });
-    baseSelect.addEventListener('change', ()=>{ neutralState.baseKey=baseSelect.value; updateNeutralSlimColors() });
+    acidSelect.addEventListener(&#39;change&#39;, ()=&gt;{ neutralState.acidKey=acidSelect.value; updateNeutralSlimColors() });
+    baseSelect.addEventListener(&#39;change&#39;, ()=&gt;{ neutralState.baseKey=baseSelect.value; updateNeutralSlimColors() });
 
-    acidML.addEventListener('input', ()=>{ styleRange(acidML); neutralState.mlA=Number(acidML.value); acidMLBadge.textContent=`${acidML.value} mL` });
-    baseML.addEventListener('input', ()=>{ styleRange(baseML); neutralState.mlB=Number(baseML.value); baseMLBadge.textContent=`${baseML.value} mL` });
+    acidML.addEventListener(&#39;input&#39;, ()=&gt;{ styleRange(acidML); neutralState.mlA=Number(acidML.value); acidMLBadge.textContent=`${acidML.value} mL` });
+    baseML.addEventListener(&#39;input&#39;, ()=&gt;{ styleRange(baseML); neutralState.mlB=Number(baseML.value); baseMLBadge.textContent=`${baseML.value} mL` });
 
-    acidCollect.addEventListener('click', ()=>{ neutralState.loadedA=neutralState.mlA; acidLoaded.textContent=`Loaded: ${neutralState.loadedA} mL`; beep(500,0.05) });
-    baseCollect.addEventListener('click', ()=>{ neutralState.loadedB=neutralState.mlB; baseLoaded.textContent=`Loaded: ${neutralState.loadedB} mL`; beep(500,0.05) });
+    acidCollect.addEventListener(&#39;click&#39;, ()=&gt;{ neutralState.loadedA=neutralState.mlA; acidLoaded.textContent=`Loaded: ${neutralState.loadedA} mL`; beep(500,0.05) });
+    baseCollect.addEventListener(&#39;click&#39;, ()=&gt;{ neutralState.loadedB=neutralState.mlB; baseLoaded.textContent=`Loaded: ${neutralState.loadedB} mL`; beep(500,0.05) });
 
-    acidAdd.addEventListener('click', ()=> addToMain('acid'));
-    baseAdd.addEventListener('click', ()=> addToMain('base'));
+    acidAdd.addEventListener(&#39;click&#39;, ()=&gt; addToMain(&#39;acid&#39;));
+    baseAdd.addEventListener(&#39;click&#39;, ()=&gt; addToMain(&#39;base&#39;));
 
     neutralInited=true;
   }
-  if(!state.filled || state.mode!=='neutral'){
-    state.beakerLabelOverride='Neutral water';
+  if(!state.filled || state.mode!==&#39;neutral&#39;){
+    state.beakerLabelOverride=&#39;Neutral water&#39;;
     setPH(7, false);
-    liquidRect.setAttribute('fill', "#89caff"); wavePath.setAttribute('fill', "#89caff");
+    liquidRect.setAttribute(&#39;fill&#39;, &quot;#89caff&quot;); wavePath.setAttribute(&#39;fill&#39;, &quot;#89caff&quot;);
     setLevel(.54); state.filled=true;
   }
   if(!neutralState.active){
@@ -1910,13 +2170,13 @@ function initNeutralisationOnce(){
     neutralState.netMoles=0;
     neutralState.volL=0.2;
     neutralState.loadedA=0; neutralState.loadedB=0;
-    acidLoaded.textContent='Loaded: 0 mL'; baseLoaded.textContent='Loaded: 0 mL';
+    acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;;
   }
 }
 function addToMain(kind){
-  const isAcid = (kind==='acid');
+  const isAcid = (kind===&#39;acid&#39;);
   const loaded = isAcid ? neutralState.loadedA : neutralState.loadedB;
-  if(loaded<=0) return;
+  if(loaded&lt;=0) return;
 
   const key = isAcid ? neutralState.acidKey : neutralState.baseKey;
   const pH = SUBS[key]?.pH ?? 7;
@@ -1924,35 +2184,35 @@ function addToMain(kind){
 
   let delta = 0;
   if(isAcid){
-    const molH = (pH<7? H_from_pH(pH) : 1e-7) * volL;
+    const molH = (pH&lt;7? H_from_pH(pH) : 1e-7) * volL;
     delta = molH;
   }else{
-    const molOH = (pH>7? OH_from_pH(pH) : 1e-7) * volL;
+    const molOH = (pH&gt;7? OH_from_pH(pH) : 1e-7) * volL;
     delta = -molOH;
   }
 
-  const panelEl = isAcid ? document.getElementById('acidPanel') : document.getElementById('basePanel');
-  const startRect = panelEl.querySelector('.mini-beaker-slim').getBoundingClientRect();
+  const panelEl = isAcid ? document.getElementById(&#39;acidPanel&#39;) : document.getElementById(&#39;basePanel&#39;);
+  const startRect = panelEl.querySelector(&#39;.mini-beaker-slim&#39;).getBoundingClientRect();
   const rigRect = rig.getBoundingClientRect();
   const sx = (startRect.left + startRect.width/2 - rigRect.left) / currentScale;
   const sy = (startRect.bottom - rigRect.top) / currentScale - 8;
   const targetY = state.surfaceCssY + 14;
   const dropColor = INDICATORS.universal.color(pH);
-  for(let i=0;i<12;i++){
+  for(let i=0;i&lt;12;i++){
     const jitterX=(Math.random()-0.5)*24;
-    setTimeout(()=>spawnRigDrop(sx+jitterX,sy,dropColor,targetY),i*60);
+    setTimeout(()=&gt;spawnRigDrop(sx+jitterX,sy,dropColor,targetY),i*60);
   }
-  lab.classList.add('react-glow'); setTimeout(()=>lab.classList.remove('react-glow'),800);
+  lab.classList.add(&#39;react-glow&#39;); setTimeout(()=&gt;lab.classList.remove(&#39;react-glow&#39;),800);
 
-  const prevHex=liquidRect.getAttribute('fill');
+  const prevHex=liquidRect.getAttribute(&#39;fill&#39;);
   neutralState.netMoles += delta;
   neutralState.volL += volL;
 
   let finalPH=7;
-  if(neutralState.netMoles>1e-15){
+  if(neutralState.netMoles&gt;1e-15){
     const H = neutralState.netMoles/neutralState.volL;
     finalPH = -Math.log10(Math.max(1e-14,H));
-  }else if(neutralState.netMoles<-1e-15){
+  }else if(neutralState.netMoles&lt;-1e-15){
     const OH = (-neutralState.netMoles)/neutralState.volL;
     const pOH = -Math.log10(Math.max(1e-14,OH));
     finalPH = 14 - pOH;
@@ -1966,21 +2226,21 @@ function addToMain(kind){
   mixBeakerColorTo(newHex, 900);
   beep();
 
-  const addLabel = `${isAcid?'Acid':'Base'}: ${labelForSubKey(key).split('—')[0].trim()} — ${loaded} mL`;
+  const addLabel = `${isAcid?&#39;Acid&#39;:&#39;Base&#39;}: ${labelForSubKey(key).split(&#39;—&#39;)[0].trim()} — ${loaded} mL`;
   state.beakerLabelOverride = `Neutralisation Mix — ${addLabel}`;
-  resultCard.style.display='block';
-  resIndicator.textContent = 'Indicator: Neutralisation (mix)';
+  resultCard.style.display=&#39;block&#39;;
+  resIndicator.textContent = &#39;Indicator: Neutralisation (mix)&#39;;
   resSubstance.textContent = `Substance: ${addLabel}`;
   resPH.textContent = `pH: ${finalPH.toFixed(2)}`;
-  const nature= (finalPH<7?'Acidic':finalPH>7?'Basic (Alkaline)':'Neutral');
+  const nature= (finalPH&lt;7?&#39;Acidic&#39;:finalPH&gt;7?&#39;Basic (Alkaline)&#39;:&#39;Neutral&#39;);
   resNature.textContent=nature;
-  resNature.style.background= nature.startsWith('Acidic')?'rgba(255,100,120,.15)':nature.startsWith('Basic')?'rgba(100,255,170,.15)':'rgba(255,255,255,.08)';
+  resNature.style.background= nature.startsWith(&#39;Acidic&#39;)?&#39;rgba(255,100,120,.15)&#39;:nature.startsWith(&#39;Basic&#39;)?&#39;rgba(100,255,170,.15)&#39;:&#39;rgba(255,255,255,.08)&#39;;
   fromSq.style.background=prevHex; toSq.style.background=newHex;
   fromTxt.textContent=`from ${colorName(prevHex)}`; toTxt.textContent=`to ${colorName(newHex)}`;
-  pushHistory({indicator:'Neutralisation', substance:addLabel, pH:finalPH.toFixed(2), from:prevHex, to:newHex});
+  pushHistory({indicator:&#39;Neutralisation&#39;, substance:addLabel, pH:finalPH.toFixed(2), from:prevHex, to:newHex});
 
-  if(isAcid){ neutralState.loadedA=0; acidLoaded.textContent='Loaded: 0 mL'; }
-  else { neutralState.loadedB=0; baseLoaded.textContent='Loaded: 0 mL'; }
+  if(isAcid){ neutralState.loadedA=0; acidLoaded.textContent=&#39;Loaded: 0 mL&#39;; }
+  else { neutralState.loadedB=0; baseLoaded.textContent=&#39;Loaded: 0 mL&#39;; }
 }
 
 /* ====== Init ====== */
@@ -1989,14 +2249,221 @@ function init(){
   ensureWireInit(); animateWires(); toggleCondRig(false);
   initResizablePanels();
   checkOrientation();
-  setMode('single');
+  setMode(&#39;single&#39;);
   showOnboard();
 }
 init();
 
 /* Utility buttons */
-btnBubbles.addEventListener('click',()=>{ state.bubbles=!state.bubbles; if(state.mode!=='compare'){ if(state.bubbles) startBubbles(); else stopBubbles() } });
-condSwitch.addEventListener('click',()=>{ condState.on=!condState.on; condSwitch.classList.toggle('on',condState.on); condSwitch.setAttribute('aria-pressed', condState.on?'true':'false'); updateConductivity() });
+btnBubbles.addEventListener(&#39;click&#39;,()=&gt;{ state.bubbles=!state.bubbles; if(state.mode!==&#39;compare&#39;){ if(state.bubbles) startBubbles(); else stopBubbles() } });
+condSwitch.addEventListener(&#39;click&#39;,()=&gt;{ condState.on=!condState.on; condSwitch.classList.toggle(&#39;on&#39;,condState.on); condSwitch.setAttribute(&#39;aria-pressed&#39;, condState.on?&#39;true&#39;:&#39;false&#39;); updateConductivity() });
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1920;
+  const STAGE_H = 1080;
+  const IS_CUSTOM_SCALE = true;
+  const CUSTOM_SCALE_VAL = 40;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
 </script>
 </body>
 </html>
