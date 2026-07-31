@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrintGrid | Custom A4 Image Splitter & Cropper</title>
+    <!-- Stylish, modern, and attractive font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Theme Variables */
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981;
+            --secondary-hover: #059669;
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --blob-opacity: 0.25; 
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme Variables */
+            --primary: #6366F1;
+            --primary-hover: #4F46E5;
+            --secondary: #10B981;
+            --secondary-hover: #059669;
+            --bg: #0F172A;
+            --surface: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --blob-opacity: 0.45; 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: transparent; 
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: color 0.4s ease;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 0;
+        }
+
+        /* --- Gemini Style Background Animations --- */
+        .gemini-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; overflow: hidden; pointer-events: none;
+            background-color: var(--bg); transition: background-color 0.4s ease;
+        }
+        .gemini-blob {
+            position: absolute; filter: blur(120px); opacity: var(--blob-opacity);
+            border-radius: 50%; animation: moveBlob 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.4s ease;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #6366F1; }
+        .blob-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #c026d3; animation-delay: -5s; }
+        .blob-3 { top: 30%; left: 40%; width: 45vw; height: 45vw; background: #3b82f6; animation-delay: -10s; }
+
+        @keyframes moveBlob {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(15vw, 10vh) scale(1.1); }
+            66% { transform: translate(-10vw, 5vh) scale(0.9); }
+            100% { transform: translate(5vw, -15vh) scale(1.05); }
+        }
+
+        /* --- Page Entrance Animations --- */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-up { opacity: 0; animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+
+        /* --- Glassmorphism Navigation --- */
+        nav {
+            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); padding: 15px 30px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 15px; z-index: 100;
+            border-radius: 24px; max-width: 1200px; margin: 15px auto; width: 95%; transition: var(--transition);
+        }
+        .logo { font-size: 1.6rem; font-weight: 800; color: var(--primary); text-decoration: none; transition: var(--transition); letter-spacing: -0.05em; }
+        .nav-links { display: flex; align-items: center; gap: 20px; }
+        .nav-links a { color: var(--text-main); text-decoration: none; font-weight: 500; transition: var(--transition); cursor: pointer; }
+        .nav-links a:hover { color: var(--primary); transform: translateY(-2px); }
+
+        .theme-toggle {
+            background: var(--surface); border: 1px solid var(--border); color: var(--text-main); width: 40px; height: 40px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1.2rem; transition: var(--transition);
+        }
+        .theme-toggle:hover { transform: scale(1.1) rotate(15deg); box-shadow: var(--shadow); }
+
+        /* --- Hero Section & Gradient Text --- */
+        .hero { text-align: center; padding: 40px 20px 20px; }
+        @keyframes textGradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .hero h1 { 
+            font-size: 3.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 20px; line-height: 1.2; 
+            background: linear-gradient(270deg, #4F46E5, #c026d3, #ec4899, #3b82f6, #4F46E5);
+            background-size: 200% 200%; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: textGradientShift 15s ease infinite; 
+        }
+        .hero p { color: var(--text-main); font-size: 1.2rem; font-weight: 300; max-width: 700px; margin: 0 auto 30px; opacity: 0.8; }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 700;
+            padding: 16px 40px; border: none; border-radius: 50px; cursor: pointer;
+            transition: var(--transition); box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            animation: pulse 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .start-btn:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 15px 35px rgba(79, 70, 229, 0.6); animation: none; }
+
+        /* --- HERO DEMO ANIMATION (1 A4 -> Big Poster) --- */
+        .demo-wrapper { margin: 30px auto 10px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .demo-container { position: relative; width: 250px; height: 320px; display: flex; justify-content: center; align-items: center; perspective: 1000px; }
+        
+        .demo-single, .demo-piece {
+            position: absolute;
+            background-image: url('https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&w=600&q=80');
+            background-repeat: no-repeat;
+            box-sizing: border-box;
+        }
+        /* Single A4 Representation */
+        .demo-single {
+            width: 100px; height: 141px; /* A4 aspect ratio */
+            background-size: 100px 141px;
+            border: 2px solid white; border-radius: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            z-index: 5;
+            animation: single-anim 10s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Broken Pieces Representation (2x2 Grid) */
+        .demo-piece {
+            width: 100px; height: 141px; background-size: 200px 282px; border: 2px solid white; z-index: 10;
+        }
+        .demo-piece.p1 { background-position: left top; animation: p1-anim 10s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .demo-piece.p2 { background-position: right top; animation: p2-anim 10s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .demo-piece.p3 { background-position: left bottom; animation: p3-anim 10s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .demo-piece.p4 { background-position: right bottom; animation: p4-anim 10s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Animation Keyframes */
+        @keyframes single-anim {
+            0%, 10% { opacity: 1; transform: scale(1); }
+            15% { opacity: 0; transform: scale(1.2); }
+            80% { opacity: 0; transform: scale(0.8); }
+            85%, 100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes p1-anim {
+            0%, 10% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+            15% { opacity: 1; transform: translate(0,0) scale(0.5); border-color: transparent; }
+            30% { opacity: 1; transform: translate(-70px, -90px) scale(1.05) rotate(-8deg); border-color: white; box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
+            45%, 75% { opacity: 1; transform: translate(-50px, -70.5px) scale(1) rotate(0deg); border-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+            80%, 100% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+        }
+        @keyframes p2-anim {
+            0%, 10% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+            15% { opacity: 1; transform: translate(0,0) scale(0.5); border-color: transparent; }
+            30% { opacity: 1; transform: translate(70px, -90px) scale(1.05) rotate(8deg); border-color: white; box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
+            45%, 75% { opacity: 1; transform: translate(50px, -70.5px) scale(1) rotate(0deg); border-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+            80%, 100% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+        }
+        @keyframes p3-anim {
+            0%, 10% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+            15% { opacity: 1; transform: translate(0,0) scale(0.5); border-color: transparent; }
+            30% { opacity: 1; transform: translate(-70px, 90px) scale(1.05) rotate(-8deg); border-color: white; box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
+            45%, 75% { opacity: 1; transform: translate(-50px, 70.5px) scale(1) rotate(0deg); border-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+            80%, 100% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+        }
+        @keyframes p4-anim {
+            0%, 10% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+            15% { opacity: 1; transform: translate(0,0) scale(0.5); border-color: transparent; }
+            30% { opacity: 1; transform: translate(70px, 90px) scale(1.05) rotate(8deg); border-color: white; box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
+            45%, 75% { opacity: 1; transform: translate(50px, 70.5px) scale(1) rotate(0deg); border-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+            80%, 100% { opacity: 0; transform: translate(0,0) scale(0.5); border-color: transparent; box-shadow: none; }
+        }
+
+        .demo-caption { margin-top: 10px; font-size: 0.95rem; color: var(--text-muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: var(--glass-bg); padding: 5px 15px; border-radius: 20px; backdrop-filter: blur(5px); }
+
+        /* --- Main App Container (Hidden Initially) --- */
+        #appWrapper { display: none; opacity: 0; transition: opacity 0.8s ease; width: 100%; }
+        #appWrapper.visible { display: block; opacity: 1; }
+
+        .app-container { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1200px; margin: 0 auto 40px; padding: 0 20px; width: 100%; }
+
+        .controls-panel {
+            flex: 1; min-width: 320px; background: var(--surface); padding: 30px; border-radius: 20px;
+            box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 20px; height: fit-content;
+            transition: var(--transition); border: 1px solid var(--border); backdrop-filter: blur(10px);
+        }
+
+        .preview-panel {
+            flex: 2; min-width: 300px; background: var(--surface); padding: 20px; border-radius: 20px;
+            box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 500px; position: relative; overflow: hidden; transition: var(--transition); border: 1px solid var(--border);
+        }
+
+        /* --- UI Controls --- */
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: 600; font-size: 0.95rem; color: var(--text-main); display: flex; justify-content: space-between; transition: color 0.3s; }
+        input[type="number"], select {
+            font-family: 'Outfit', sans-serif; padding: 12px 15px; border: 2px solid var(--border); border-radius: 10px;
+            font-size: 1rem; font-weight: 500; transition: var(--transition); background: var(--bg); color: var(--text-main); outline: none;
+        }
+        input[type="number"]:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+
+        .transform-box { background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; transition: var(--transition); }
+        .transform-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--primary); font-weight: 700; }
+
+        .file-upload { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .file-upload-btn { background: var(--bg); border: 2px dashed var(--primary); color: var(--primary); padding: 15px; border-radius: 10px; text-align: center; font-weight: 600; transition: var(--transition); width: 100%; pointer-events: none; }
+        .file-upload:hover .file-upload-btn { background: rgba(79, 70, 229, 0.1); transform: scale(1.02); }
+
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { font-family: 'Outfit', sans-serif; flex: 1; background: var(--primary); color: white; padding: 14px 15px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition); display: flex; justify-content: center; align-items: center; gap: 8px; min-width: 140px; }
+        .btn.secondary { background: var(--border); color: var(--text-main); }
+        .btn.secondary:hover { background: var(--text-muted); color: white; }
+        .btn.print-btn { background: var(--secondary); }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); }
+        .btn.print-btn:hover { background: var(--secondary-hover); }
+        .btn:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .status-badge { padding: 8px 15px; border-radius: 20px; background: rgba(79, 70, 229, 0.1); color: var(--primary); font-size: 0.9rem; font-weight: 700; display: inline-block; opacity: 0; transition: opacity 0.3s; text-align: center; }
+
+        canvas { max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 0 0 1px var(--border); transition: opacity 0.5s ease; cursor: grab; }
+        canvas:active { cursor: grabbing; }
+
+        .instruction-overlay { position: absolute; top: 30px; background: var(--glass-bg); color: var(--text-main); border: 1px solid var(--glass-border); padding: 8px 15px; border-radius: 20px; font-size: 0.85rem; pointer-events: none; display: none; backdrop-filter: blur(8px); z-index: 10; font-weight: 600; box-shadow: var(--shadow); }
+
+        /* --- Stylish Roadmap Section --- */
+        .roadmap-section { max-width: 1000px; margin: 0 auto 80px; padding: 0 20px; position: relative; z-index: 1; }
+        .roadmap-title { text-align: center; font-size: 2.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 40px; letter-spacing: -0.02em; }
+        
+        .roadmap { display: flex; flex-direction: column; gap: 30px; position: relative; padding-left: 50px; }
+        .roadmap::before { content: ''; position: absolute; left: 18px; top: 10px; bottom: 10px; width: 4px; background: linear-gradient(to bottom, var(--primary), #c026d3); border-radius: 4px; }
+        
+        .road-step { position: relative; background: var(--glass-bg); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); transition: var(--transition); }
+        .road-step:hover { transform: translateX(10px); border-color: var(--primary); }
+        .road-step::before { content: ''; position: absolute; left: -42px; top: 35px; width: 20px; height: 20px; background: var(--bg); border: 5px solid var(--primary); border-radius: 50%; box-shadow: 0 0 10px rgba(79, 70, 229, 0.5); z-index: 2; transition: var(--transition); }
+        .road-step:hover::before { background: var(--primary); transform: scale(1.2); }
+        
+        .road-step h3 { color: var(--primary); font-size: 1.5rem; margin-bottom: 10px; font-weight: 700; letter-spacing: -0.02em; }
+        .road-step p { color: var(--text-main); font-weight: 300; font-size: 1.05rem; opacity: 0.9; }
+
+        /* --- Footer --- */
+        footer { background: #0F172A; color: #94A3B8; text-align: center; padding: 40px 20px; transition: var(--transition); position: relative; z-index: 1; margin-top: auto;}
+        footer p { margin-bottom: 10px; font-weight: 300; }
+        footer .brand-text { color: #6366F1; font-weight: 700; }
+        footer a { color: #CBD5E1; text-decoration: none; margin: 0 10px; transition: var(--transition); cursor: pointer; font-size: 0.95rem; font-weight: 400; }
+        footer a:hover { color: white; text-decoration: underline; }
+
+        /* --- Modals --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: var(--transition); z-index: 1000; padding: 20px; }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content { background: var(--surface); color: var(--text-main); width: 100%; max-width: 650px; max-height: 90vh; border-radius: 24px; padding: 35px; overflow-y: auto; transform: translateY(40px) scale(0.95); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; }
+        .modal-overlay.active .modal-content { transform: translateY(0) scale(1); }
+        .modal-close { background: var(--bg); border: 1px solid var(--border); width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); transition: var(--transition); position: absolute; right: 30px; top: 30px; }
+        .modal-close:hover { background: #ef4444; color: white; border-color: #ef4444; transform: rotate(90deg); }
+        .modal-content h2 { margin-top: 0; margin-bottom: 10px; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; font-weight: 700; letter-spacing: -0.02em; }
+        .modal-content p { color: var(--text-muted); line-height: 1.6; font-weight: 300; }
+
+        /* Crop Modal Specifics */
+        .crop-container { width: 100%; height: 400px; background: var(--bg); border-radius: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 2px 10px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .crop-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        #cropCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+        
+        .contact-box { background: var(--bg); padding: 20px; border-radius: 12px; border-left: 4px solid var(--primary); }
+        .contact-box strong { color: var(--text-main); font-weight: 600; }
+        .contact-box p { font-weight: 400; color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <!-- Gemini-Style Background -->
+    <div class="gemini-bg">
+        <div class="gemini-blob blob-1"></div>
+        <div class="gemini-blob blob-2"></div>
+        <div class="gemini-blob blob-3"></div>
+    </div>
+
+    <!-- Glassmorphism Navigation -->
+    <nav class="animate-up">
+        <a href="#" class="logo">PrintGrid.</a>
+        <div class="nav-links">
+            <a onclick="openModal('how-modal')">How it Works</a>
+            <a onclick="openModal('contact-modal')">Contact</a>
+            <button id="themeToggle" class="theme-toggle" title="Toggle Dark Mode">🌙</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero animate-up delay-1">
+        <h1>Perfect A4 Image Slicing</h1>
+        <p>Transform your favorite high-resolution photos into stunning multi-page wall posters with zero quality loss.</p>
+        <button class="start-btn" id="startWorkBtn">START THE WORK</button>
+        
+        <!-- App Demonstration Animation: 1 A4 Page -> Big Poster -->
+        <div class="demo-wrapper animate-up delay-2">
+            <div class="demo-container">
+                <div class="demo-single"></div>
+                <div class="demo-piece p1"></div>
+                <div class="demo-piece p2"></div>
+                <div class="demo-piece p3"></div>
+                <div class="demo-piece p4"></div>
+            </div>
+            <div class="demo-caption">1 A4 Page ➔ Expands into a Multi-Page Wall Poster</div>
+        </div>
+    </section>
+
+    <!-- Workspace Wrapper (Revealed on Click) -->
+    <div id="appWrapper">
+        <!-- Main Tool Container -->
+        <div class="app-container" id="toolWorkspace">
+            
+            <!-- Controls Panel -->
+            <div class="controls-panel">
+                <div class="input-group">
+                    <label>Step 1: Add Image</label>
+                    <div class="file-upload">
+                        <div class="file-upload-btn" id="uploadText">Upload Image...</div>
+                        <input type="file" id="imageInput" accept="image/*">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="columnsInput">Grid Columns</label>
+                        <input type="number" id="columnsInput" value="2" min="1" max="20">
+                    </div>
+                    <div class="input-group" style="flex: 1;">
+                        <label for="rowsInput">Grid Rows</label>
+                        <input type="number" id="rowsInput" value="2" min="1" max="20">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="orientationSelect">A4 Paper Orientation</label>
+                    <select id="orientationSelect">
+                        <option value="portrait" selected>Portrait (Tall)</option>
+                        <option value="landscape">Landscape (Wide)</option>
+                    </select>
+                </div>
+
+                <div class="transform-box">
+                    <div class="transform-title">Transform Selected Image</div>
+                    <div class="input-group">
+                        <label>Zoom (Scale) <span id="scaleValue">1.0x</span></label>
+                        <input type="range" id="scaleInput" min="0.1" max="5" step="0.1" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Rotation <span id="rotationValue">0°</span></label>
+                        <input type="range" id="rotationInput" min="0" max="360" step="1" value="0">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn" id="downloadBtn">Download Pieces</button>
+                    <button class="btn print-btn" id="printBtn">Print Directly</button>
+                </div>
+                
+                <div id="statusText" class="status-badge">Waiting for images...</div>
+            </div>
+
+            <!-- Canvas / Preview Panel -->
+            <div class="preview-panel" id="previewContainer">
+                <div id="instructionTag" class="instruction-overlay">✥ Click to Select | Drag to Move</div>
+                <p id="placeholderText" style="color: var(--text-muted); font-weight: 500;">Upload an image to start building your grid.</p>
+                <canvas id="previewCanvas" style="display: none;"></canvas>
+            </div>
+        </div>
+
+        <!-- Stylish Roadmap Section -->
+        <section class="roadmap-section">
+            <h2 class="roadmap-title">How It Works</h2>
+            <div class="roadmap">
+                <div class="road-step">
+                    <h3>Step 1: Upload & Freeform Crop</h3>
+                    <p>Import your high-resolution image and use our freeform adjustable crop tool to slice out exactly the section you need, preserving 100% original pixel quality.</p>
+                </div>
+                <div class="road-step">
+                    <h3>Step 2: Place & Arrange Elements</h3>
+                    <p>Want a collage? Click upload again! Place multiple cropped images onto your A4 canvas layout. Simply click any image to drag, scale, and rotate it perfectly into place.</p>
+                </div>
+                <div class="road-step">
+                    <h3>Step 3: Define Your Grid Size</h3>
+                    <p>Set how many A4 pages wide (Columns) and tall (Rows) your final poster should be. The engine mathematically calculates the strict dimensions to prevent any stretching.</p>
+                </div>
+                <div class="road-step">
+                    <h3>Step 4: Print & Assemble</h3>
+                    <p>Hit "Print Directly" for an instant 300-DPI high-quality printout, or "Download" to save the individual sliced pieces. Print them on standard A4 paper, tape them together, and hang your masterpiece!</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 All rights reserved by <span class="brand-text">laxoshedu</span></p>
+        <div>
+            <a onclick="openModal('how-modal')">How it Works</a>
+            <a onclick="openModal('privacy-modal')">Privacy Policy</a>
+            <a onclick="openModal('terms-modal')">Terms of Service</a>
+            <a onclick="openModal('contact-modal')">Contact Us</a>
+        </div>
+    </footer>
+
+    <!-- MODALS -->
+
+    <!-- Crop Modal (STEP 1) -->
+    <div class="modal-overlay" id="crop-modal">
+        <div class="modal-content" style="max-width: 750px;">
+            <h2>Step 1: Crop Image</h2>
+            <button class="modal-close" onclick="closeModal('crop-modal')">&times;</button>
+            <p style="margin-top:-10px; font-size:0.9rem;">Drag the blue box edges to resize. Drag inside the box to pan the image.</p>
+            
+            <div class="crop-container" id="cropContainer">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+            
+            <div class="crop-controls">
+                <div class="input-group">
+                    <label>Crop Shape</label>
+                    <select id="cropShapeSelect">
+                        <option value="freeform">Freeform (Draggable Box)</option>
+                        <option value="square">Square</option>
+                        <option value="circle">Circular</option>
+                        <option value="star">Star</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Edge Curve (Radius)</label>
+                    <input type="range" id="cropRadius" min="0" max="100" value="0">
+                </div>
+                <div class="input-group" style="grid-column: span 2;">
+                    <label>Image Zoom (Scale inside box)</label>
+                    <input type="range" id="cropZoom" min="0.1" max="5" step="0.1" value="1">
+                </div>
+            </div>
+
+            <div class="action-buttons" style="margin-top: 10px;">
+                <button class="btn secondary" onclick="skipCrop()">Skip & Add Original</button>
+                <button class="btn" onclick="applyCrop()">Crop & Add to Grid</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div class="modal-overlay" id="contact-modal">
+        <div class="modal-content">
+            <h2>Contact Us</h2>
+            <button class="modal-close" onclick="closeModal('contact-modal')">&times;</button>
+            <p>If you have any questions, feedback, or need support regarding the PrintGrid tool, please feel free to reach out to us using the details below:</p>
+            <div class="contact-box">
+                <p><strong>Name:</strong> RANGANATH GARI SANTHOSH</p>
+                <p><strong>Email:</strong> <a href="mailto:santhoshrgg2@gmail.com" style="color: var(--primary);">santhoshrgg2@gmail.com</a></p>
+                <p><strong>Phone:</strong> +91 7093636625</p>
+                <p><strong>Organization:</strong> laxoshedu</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legal Modals -->
+    <div class="modal-overlay" id="privacy-modal">
+        <div class="modal-content">
+            <h2>Privacy Policy</h2>
+            <button class="modal-close" onclick="closeModal('privacy-modal')">&times;</button>
+            <p><strong>1. Data Collection & Privacy:</strong> We strictly do not collect, store, or process any of the images you upload. All image splitting calculations and rendering are performed 100% locally on your device using HTML5 Canvas.</p>
+            <p><strong>2. Cookies:</strong> We use local storage solely to remember your theme preference (Dark/Light mode). No tracking cookies are used.</p>
+            <p><strong>3. Ownership:</strong> Tool provided and maintained by laxoshedu.</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="terms-modal">
+        <div class="modal-content">
+            <h2>Terms of Service</h2>
+            <button class="modal-close" onclick="closeModal('terms-modal')">&times;</button>
+            <p><strong>1. Acceptance:</strong> By using PrintGrid, you agree to these terms.</p>
+            <p><strong>2. Usage:</strong> This tool is provided "as is" free of charge for personal and commercial use by laxoshedu.</p>
+            <p><strong>3. Liability:</strong> We (laxoshedu and Ranganath Gari Santhosh) are not responsible for any wasted printer ink, misprints, or hardware issues resulting from the use of downloaded files.</p>
+            <p><strong>4. Copyright:</strong> You represent that you have the legal right to copy and modify the images you process through this tool.</p>
+        </div>
+    </div>
+
+    <!-- How it works Modal -->
+    <div class="modal-overlay" id="how-modal">
+        <div class="modal-content">
+            <h2>How to Use PrintGrid</h2>
+            <button class="modal-close" onclick="closeModal('how-modal')">&times;</button>
+            <p>1. <strong>Upload & Crop:</strong> Click upload. Adjust the freeform box by dragging edges, and pan the image inside to crop exactly what you need.</p>
+            <p>2. <strong>Add More:</strong> You can click 'Upload Image' again to add multiple elements to your layout.</p>
+            <p>3. <strong>Adjust Grid:</strong> Set how many A4 pages wide and tall your final grid should be.</p>
+            <p>4. <strong>Transform:</strong> Click any image on the canvas to select it. Drag to move, or use sliders to scale and rotate.</p>
+            <p>5. <strong>Print/Download:</strong> Save perfectly sliced A4 pieces ready to print!</p>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // --- Gateway Reveal Logic ---
+        const startWorkBtn = document.getElementById('startWorkBtn');
+        const appWrapper = document.getElementById('appWrapper');
+        
+        startWorkBtn.addEventListener('click', () => {
+            // Hide the hero section demo seamlessly to shift focus entirely to the workspace
+            document.querySelector('.demo-wrapper').style.display = 'none';
+            startWorkBtn.style.display = 'none';
+            appWrapper.classList.add('visible');
+            setTimeout(() => {
+                document.getElementById('toolWorkspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        });
+
+        // --- Theme Toggle Logic ---
+        const themeToggle = document.getElementById('themeToggle');
+        const root = document.documentElement;
+        if(localStorage.getItem('theme') === 'dark') {
+            root.setAttribute('data-theme', 'dark'); themeToggle.innerText = '☀️';
+        }
+        themeToggle.addEventListener('click', () => {
+            const newTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            themeToggle.innerText = newTheme === 'dark' ? '☀️' : '🌙';
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // --- Modal Logic ---
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        window.onclick = function(event) { if (event.target.classList.contains('modal-overlay')) event.target.classList.remove('active'); }
+
+        // --- Core DOM Elements ---
+        const imageInput = document.getElementById('imageInput');
+        const uploadText = document.getElementById('uploadText');
+        const columnsInput = document.getElementById('columnsInput');
+        const rowsInput = document.getElementById('rowsInput');
+        const orientationSelect = document.getElementById('orientationSelect');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const printBtn = document.getElementById('printBtn');
+        
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        const placeholderText = document.getElementById('placeholderText');
+        const instructionTag = document.getElementById('instructionTag');
+        const statusText = document.getElementById('statusText');
+        const previewContainer = document.getElementById('previewContainer');
+        
+        const scaleInput = document.getElementById('scaleInput');
+        const rotationInput = document.getElementById('rotationInput');
+        const scaleValue = document.getElementById('scaleValue');
+        const rotationValue = document.getElementById('rotationValue');
+
+        // Crop DOM
+        const cropCanvas = document.getElementById('cropCanvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        const cropContainer = document.getElementById('cropContainer');
+        const cropShapeSelect = document.getElementById('cropShapeSelect');
+        const cropRadius = document.getElementById('cropRadius');
+        const cropZoom = document.getElementById('cropZoom');
+
+        // STATE VARIABLES
+        const A4_PORTRAIT_RATIO = 210 / 297; 
+        const A4_LANDSCAPE_RATIO = 297 / 210;
+        const BASE_PIECE_WIDTH = 2480; // Quality Fix 300 DPI
+
+        let rawImage = new Image();
+        let gridImages = []; 
+        let activeImageIndex = -1; 
+        let currentPreviewScale = 1;
+        let gridData = {};
+
+        // Freeform Crop State Variables
+        let cropPanX = 0, cropPanY = 0;
+        let cropScale = 1;
+        let initialImageScale = 1;
+        
+        let cropBox = { x: 0, y: 0, w: 0, h: 0 };
+        let activeHandle = null; 
+        let isCroppingDrag = false;
+        let cropStartX = 0, cropStartY = 0;
+        let initialCropPanX = 0, initialCropPanY = 0;
+        let initialBox = {};
+
+        /* ===========================
+           STEP 1: UPLOAD & FREEFORM CROP
+           =========================== */
+        
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            uploadText.innerText = "Add Another Image...";
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                rawImage.onload = () => {
+                    cropPanX = 0; cropPanY = 0; cropScale = 1; cropZoom.value = 1;
+                    openModal('crop-modal');
+                    setTimeout(initCropCanvas, 100); 
+                };
+                rawImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+            imageInput.value = ""; 
+        });
+
+        function initCropCanvas() {
+            cropCanvas.width = cropContainer.clientWidth;
+            cropCanvas.height = cropContainer.clientHeight;
+            
+            // Base scale to fit image into preview initially
+            initialImageScale = Math.min((cropCanvas.width * 0.8) / rawImage.width, (cropCanvas.height * 0.8) / rawImage.height);
+            
+            // Initial Crop Box
+            cropBox = {
+                w: rawImage.width * initialImageScale,
+                h: rawImage.height * initialImageScale
+            };
+            cropBox.x = (cropCanvas.width - cropBox.w) / 2;
+            cropBox.y = (cropCanvas.height - cropBox.h) / 2;
+
+            renderCropPreview();
+        }
+
+        cropShapeSelect.addEventListener('change', renderCropPreview);
+        cropRadius.addEventListener('input', renderCropPreview);
+        cropZoom.addEventListener('input', (e) => { cropScale = parseFloat(e.target.value); renderCropPreview(); });
+
+        function getHandle(mouseX, mouseY) {
+            const hs = 12; // hit zone size
+            const near = (a, b) => Math.abs(a - b) <= hs;
+            const inX = mouseX >= cropBox.x && mouseX <= cropBox.x + cropBox.w;
+            const inY = mouseY >= cropBox.y && mouseY <= cropBox.y + cropBox.h;
+
+            if (near(mouseX, cropBox.x) && near(mouseY, cropBox.y)) return 'tl';
+            if (near(mouseX, cropBox.x + cropBox.w) && near(mouseY, cropBox.y)) return 'tr';
+            if (near(mouseX, cropBox.x) && near(mouseY, cropBox.y + cropBox.h)) return 'bl';
+            if (near(mouseX, cropBox.x + cropBox.w) && near(mouseY, cropBox.y + cropBox.h)) return 'br';
+            
+            if (near(mouseY, cropBox.y) && inX) return 't';
+            if (near(mouseY, cropBox.y + cropBox.h) && inX) return 'b';
+            if (near(mouseX, cropBox.x) && inY) return 'l';
+            if (near(mouseX, cropBox.x + cropBox.w) && inY) return 'r';
+            return null;
+        }
+
+        cropCanvas.addEventListener('mousemove', (e) => {
+            const rect = cropCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Update Cursor
+            if (!activeHandle && !isCroppingDrag) {
+                const handle = getHandle(mouseX, mouseY);
+                if (handle) {
+                    if (handle === 'tl' || handle === 'br') cropCanvas.style.cursor = 'nwse-resize';
+                    else if (handle === 'tr' || handle === 'bl') cropCanvas.style.cursor = 'nesw-resize';
+                    else if (handle === 't' || handle === 'b') cropCanvas.style.cursor = 'ns-resize';
+                    else if (handle === 'l' || handle === 'r') cropCanvas.style.cursor = 'ew-resize';
+                } else if (mouseX >= cropBox.x && mouseX <= cropBox.x + cropBox.w && mouseY >= cropBox.y && mouseY <= cropBox.y + cropBox.h) {
+                    cropCanvas.style.cursor = 'move';
+                } else {
+                    cropCanvas.style.cursor = 'default';
+                }
+            }
+
+            // Perform Drag
+            if (activeHandle) {
+                let dx = mouseX - cropStartX;
+                let dy = mouseY - cropStartY;
+
+                if(activeHandle.includes('l')) { cropBox.x = initialBox.x + dx; cropBox.w = initialBox.w - dx; }
+                if(activeHandle.includes('r')) { cropBox.w = initialBox.w + dx; }
+                if(activeHandle.includes('t')) { cropBox.y = initialBox.y + dy; cropBox.h = initialBox.h - dy; }
+                if(activeHandle.includes('b')) { cropBox.h = initialBox.h + dy; }
+                
+                // Constraints
+                if(cropBox.w < 50) { cropBox.w = 50; if(activeHandle.includes('l')) cropBox.x = initialBox.x + initialBox.w - 50; }
+                if(cropBox.h < 50) { cropBox.h = 50; if(activeHandle.includes('t')) cropBox.y = initialBox.y + initialBox.h - 50; }
+                
+                renderCropPreview();
+            } else if (isCroppingDrag) {
+                cropPanX = initialCropPanX + (mouseX - cropStartX);
+                cropPanY = initialCropPanY + (mouseY - cropStartY);
+                renderCropPreview();
+            }
+        });
+
+        cropCanvas.addEventListener('mousedown', (e) => {
+            const rect = cropCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            activeHandle = getHandle(mouseX, mouseY);
+            if (activeHandle) {
+                initialBox = { ...cropBox };
+            } else if (mouseX >= cropBox.x && mouseX <= cropBox.x + cropBox.w && mouseY >= cropBox.y && mouseY <= cropBox.y + cropBox.h) {
+                isCroppingDrag = true;
+                initialCropPanX = cropPanX; 
+                initialCropPanY = cropPanY;
+            }
+            cropStartX = mouseX; cropStartY = mouseY;
+        });
+
+        window.addEventListener('mouseup', () => { activeHandle = null; isCroppingDrag = false; });
+
+        function buildShapePath(context, shape, w, h, radius) {
+            context.beginPath();
+            if (shape === 'square') {
+                let s = Math.min(w, h);
+                context.roundRect(-s/2, -s/2, s, s, radius);
+            } else if (shape === 'freeform') {
+                context.roundRect(-w/2, -h/2, w, h, radius);
+            } else if (shape === 'circle') {
+                let r = Math.min(w, h) / 2;
+                context.arc(0, 0, r, 0, Math.PI * 2);
+            } else if (shape === 'star') {
+                let spikes = 5; let outerRadius = Math.min(w, h)/2; let innerRadius = outerRadius/2.5;
+                let rot = Math.PI / 2 * 3; let x, y; let step = Math.PI / spikes;
+                context.moveTo(0, -outerRadius);
+                for (let i = 0; i < spikes; i++) {
+                    x = Math.cos(rot) * outerRadius; y = Math.sin(rot) * outerRadius; context.lineTo(x, y); rot += step;
+                    x = Math.cos(rot) * innerRadius; y = Math.sin(rot) * innerRadius; context.lineTo(x, y); rot += step;
+                }
+            }
+            context.closePath();
+        }
+
+        function drawHandles(ctx, box) {
+            ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#4F46E5'; ctx.lineWidth = 2;
+            const hs = 8; const drawH = (x, y) => { ctx.fillRect(x - hs/2, y - hs/2, hs, hs); ctx.strokeRect(x - hs/2, y - hs/2, hs, hs); }
+            drawH(box.x, box.y); drawH(box.x + box.w, box.y); drawH(box.x, box.y + box.h); drawH(box.x + box.w, box.y + box.h);
+            drawH(box.x + box.w/2, box.y); drawH(box.x + box.w/2, box.y + box.h); drawH(box.x, box.y + box.h/2); drawH(box.x + box.w, box.y + box.h/2);
+            ctx.strokeRect(box.x, box.y, box.w, box.h);
+        }
+
+        function renderCropPreview() {
+            let cw = cropCanvas.width; let ch = cropCanvas.height;
+            cropCtx.clearRect(0, 0, cw, ch);
+
+            let radius = parseInt(cropRadius.value);
+
+            cropCtx.fillStyle = 'rgba(0,0,0,0.6)';
+            cropCtx.fillRect(0, 0, cw, ch);
+
+            cropCtx.save();
+            cropCtx.translate(cropBox.x + cropBox.w/2, cropBox.y + cropBox.h/2);
+            buildShapePath(cropCtx, cropShapeSelect.value, cropBox.w, cropBox.h, radius);
+            cropCtx.globalCompositeOperation = 'destination-out';
+            cropCtx.fill();
+            cropCtx.restore();
+
+            cropCtx.globalCompositeOperation = 'destination-over';
+            cropCtx.save();
+            cropCtx.translate(cw/2 + cropPanX, ch/2 + cropPanY);
+            let S = cropScale * initialImageScale;
+            cropCtx.scale(S, S);
+            cropCtx.drawImage(rawImage, -rawImage.width/2, -rawImage.height/2);
+            cropCtx.restore();
+
+            cropCtx.globalCompositeOperation = 'source-over';
+            drawHandles(cropCtx, cropBox);
+        }
+
+        function skipCrop() {
+            addProcessedImageToGrid(rawImage.src);
+            closeModal('crop-modal');
+        }
+
+        function applyCrop() {
+            let shape = cropShapeSelect.value;
+            let radius = parseInt(cropRadius.value);
+            
+            let finalW = cropBox.w; let finalH = cropBox.h;
+            if(shape === 'square' || shape === 'circle' || shape === 'star') { finalW = Math.min(cropBox.w, cropBox.h); finalH = finalW; }
+
+            // ZERO QUALITY LOSS MATH
+            let S = cropScale * initialImageScale;
+            let exportScale = 1 / S; 
+
+            const expCanvas = document.createElement('canvas');
+            expCanvas.width = finalW * exportScale; 
+            expCanvas.height = finalH * exportScale;
+            const eCtx = expCanvas.getContext('2d');
+
+            eCtx.scale(exportScale, exportScale);
+            eCtx.translate(-cropBox.x, -cropBox.y); 
+
+            eCtx.save();
+            eCtx.translate(cropBox.x + cropBox.w/2, cropBox.y + cropBox.h/2);
+            buildShapePath(eCtx, shape, cropBox.w, cropBox.h, radius);
+            eCtx.clip();
+            
+            eCtx.translate(-(cropBox.x + cropBox.w/2), -(cropBox.y + cropBox.h/2));
+            eCtx.translate(cropCanvas.width/2 + cropPanX, cropCanvas.height/2 + cropPanY);
+            eCtx.scale(S, S);
+            eCtx.drawImage(rawImage, -rawImage.width/2, -rawImage.height/2);
+            eCtx.restore();
+
+            addProcessedImageToGrid(expCanvas.toDataURL('image/png'));
+            closeModal('crop-modal');
+        }
+
+        /* ===========================
+           STEP 2: GRID & MULTIPLE IMAGES
+           =========================== */
+
+        function addProcessedImageToGrid(dataSrc) {
+            let newImg = new Image();
+            newImg.onload = () => {
+                gridImages.push({ img: newImg, x: 0, y: 0, scale: 1, rotation: 0 });
+                activeImageIndex = gridImages.length - 1; 
+                updateUIForActiveImage();
+                placeholderText.style.display = 'none';
+                canvas.style.display = 'block';
+                instructionTag.style.display = 'block';
+                renderGrid();
+            };
+            newImg.src = dataSrc;
+        }
+
+        columnsInput.addEventListener('input', renderGrid); rowsInput.addEventListener('input', renderGrid);
+        orientationSelect.addEventListener('change', renderGrid); window.addEventListener('resize', renderGrid);
+
+        scaleInput.addEventListener('input', (e) => {
+            if(activeImageIndex < 0) return;
+            gridImages[activeImageIndex].scale = parseFloat(e.target.value);
+            scaleValue.innerText = gridImages[activeImageIndex].scale.toFixed(1) + 'x';
+            renderGrid();
+        });
+        
+        rotationInput.addEventListener('input', (e) => {
+            if(activeImageIndex < 0) return;
+            gridImages[activeImageIndex].rotation = parseInt(e.target.value);
+            rotationValue.innerText = gridImages[activeImageIndex].rotation + '°';
+            renderGrid();
+        });
+
+        function updateUIForActiveImage() {
+            if(activeImageIndex < 0) return;
+            let actImg = gridImages[activeImageIndex];
+            scaleInput.value = actImg.scale; scaleValue.innerText = actImg.scale.toFixed(1) + 'x';
+            rotationInput.value = actImg.rotation; rotationValue.innerText = actImg.rotation + '°';
+        }
+
+        function calculateGridMath() {
+            let cols = parseInt(columnsInput.value) || 1;
+            let rows = parseInt(rowsInput.value) || 1;
+            let isPortrait = orientationSelect.value === 'portrait';
+            let a4_ratio = isPortrait ? A4_PORTRAIT_RATIO : A4_LANDSCAPE_RATIO;
+            let pieceWidth = BASE_PIECE_WIDTH; let pieceHeight = BASE_PIECE_WIDTH / a4_ratio;
+            let gridPixelWidth = cols * pieceWidth; let gridPixelHeight = rows * pieceHeight;
+            return { cols, rows, pieceWidth, pieceHeight, gridPixelWidth, gridPixelHeight };
+        }
+
+        function drawCompositedGrid(context, gData, isExport = false) {
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, gData.gridPixelWidth, gData.gridPixelHeight);
+
+            gridImages.forEach((item, index) => {
+                context.save();
+                context.translate((gData.gridPixelWidth / 2) + item.x, (gData.gridPixelHeight / 2) + item.y);
+                context.rotate((item.rotation * Math.PI) / 180);
+                context.scale(item.scale, item.scale);
+                
+                let baseScale = Math.min(gData.pieceWidth / item.img.width, gData.pieceHeight / item.img.height);
+                let drawW = item.img.width * baseScale; let drawH = item.img.height * baseScale;
+                
+                context.drawImage(item.img, -drawW / 2, -drawH / 2, drawW, drawH);
+                
+                if(!isExport && index === activeImageIndex) {
+                    context.strokeStyle = "#10B981"; context.lineWidth = 4 / item.scale / currentPreviewScale;
+                    context.setLineDash([10 / item.scale, 10 / item.scale]);
+                    context.strokeRect(-drawW / 2, -drawH / 2, drawW, drawH);
+                }
+                context.restore();
+            });
+        }
+
+        function renderGrid() {
+            if (gridImages.length === 0) return;
+            gridData = calculateGridMath();
+            let totalPages = gridData.cols * gridData.rows;
+            statusText.style.opacity = '1'; statusText.innerText = `Layout: ${totalPages} Pages (${gridData.cols}x${gridData.rows})`;
+            
+            const containerWidth = previewContainer.clientWidth - 40; const containerHeight = 600; 
+            currentPreviewScale = Math.min(containerWidth / gridData.gridPixelWidth, containerHeight / gridData.gridPixelHeight, 1);
+            canvas.width = gridData.gridPixelWidth * currentPreviewScale; canvas.height = gridData.gridPixelHeight * currentPreviewScale;
+
+            ctx.save(); ctx.scale(currentPreviewScale, currentPreviewScale); drawCompositedGrid(ctx, gridData, false); ctx.restore();
+
+            ctx.strokeStyle = "rgba(79, 70, 229, 0.9)"; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+            for (let i = 1; i < gridData.cols; i++) { let x = (canvas.width / gridData.cols) * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            for (let j = 1; j < gridData.rows; j++) { let y = (canvas.height / gridData.rows) * j; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if(gridImages.length === 0) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) / currentPreviewScale; const mouseY = (e.clientY - rect.top) / currentPreviewScale;
+            let clickedIndex = -1;
+            for(let i = gridImages.length - 1; i >= 0; i--) {
+                let item = gridImages[i];
+                let baseScale = Math.min(gridData.pieceWidth / item.img.width, gridData.pieceHeight / item.img.height);
+                let drawW = item.img.width * baseScale * item.scale; let drawH = item.img.height * baseScale * item.scale;
+                let imgCenterX = (gridData.gridPixelWidth / 2) + item.x; let imgCenterY = (gridData.gridPixelHeight / 2) + item.y;
+                if (mouseX >= imgCenterX - drawW/2 && mouseX <= imgCenterX + drawW/2 && mouseY >= imgCenterY - drawH/2 && mouseY <= imgCenterY + drawH/2) {
+                    clickedIndex = i; break;
+                }
+            }
+            if(clickedIndex !== -1) {
+                activeImageIndex = clickedIndex; updateUIForActiveImage();
+                isGridDrag = true; gridStartX = e.clientX; gridStartY = e.clientY;
+                initialGridPanX = gridImages[activeImageIndex].x; initialGridPanY = gridImages[activeImageIndex].y;
+            }
+            renderGrid(); 
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isGridDrag || activeImageIndex < 0) return;
+            gridImages[activeImageIndex].x = initialGridPanX + (e.clientX - gridStartX) / currentPreviewScale;
+            gridImages[activeImageIndex].y = initialGridPanY + (e.clientY - gridStartY) / currentPreviewScale;
+            renderGrid();
+        });
+
+        window.addEventListener('mouseup', () => isGridDrag = false);
+
+        /* ===========================
+           STEP 3: EXPORT (DOWNLOAD/PRINT)
+           =========================== */
+
+        function generatePieceCanvas(r, c) {
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = gridData.pieceWidth; exportCanvas.height = gridData.pieceHeight;
+            const exportCtx = exportCanvas.getContext('2d');
+            exportCtx.save(); exportCtx.translate(-(c * gridData.pieceWidth), -(r * gridData.pieceHeight));
+            drawCompositedGrid(exportCtx, gridData, true); exportCtx.restore();
+            return exportCanvas;
+        }
+
+        downloadBtn.addEventListener('click', async () => {
+            if (gridImages.length === 0) return alert("Please add an image first.");
+            downloadBtn.disabled = true;
+            let totalFiles = gridData.cols * gridData.rows; let count = 0;
+            for (let r = 0; r < gridData.rows; r++) {
+                for (let c = 0; c < gridData.cols; c++) {
+                    count++; downloadBtn.innerHTML = `Downloading ${count}/${totalFiles}...`;
+                    const link = document.createElement('a');
+                    link.download = `PrintGrid_Row${r+1}_Col${c+1}.jpg`;
+                    link.href = generatePieceCanvas(r, c).toDataURL('image/jpeg', 1.0);
+                    link.click();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+            }
+            downloadBtn.innerHTML = "Download Pieces"; downloadBtn.disabled = false;
+        });
+
+        printBtn.addEventListener('click', async () => {
+            if (gridImages.length === 0) return alert("Please add an image first.");
+            printBtn.disabled = true; printBtn.innerHTML = "Preparing Print...";
+            let printImagesHTML = '';
+            for (let r = 0; r < gridData.rows; r++) {
+                for (let c = 0; c < gridData.cols; c++) {
+                    printImagesHTML += `<img src="${generatePieceCanvas(r, c).toDataURL('image/jpeg', 1.0)}" class="print-page" />`;
+                }
+            }
+            const printWindow = window.open('', '_blank');
+            const isLandscape = orientationSelect.value === 'landscape';
+            printWindow.document.write(`
+                <html><head><title>PrintGrid - Print</title>
+                <style>@page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 0; } body { margin: 0; padding: 0; background: #fff; } .print-page { width: 100vw; height: 100vh; object-fit: contain; page-break-after: always; display: block; }</style>
+                </head><body>${printImagesHTML}<script>window.onload=function(){setTimeout(function(){window.print();window.onafterprint=function(){window.close();}},500);};<\/script></body></html>
+            `);
+            printWindow.document.close();
+            printBtn.innerHTML = "Print Directly"; printBtn.disabled = false;
+        });
+
+    </script>
+</body>
+</html>
