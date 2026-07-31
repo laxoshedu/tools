@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>English Pronunciation App</title>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f2f2f2;
+      text-align:center;
+      padding:40px;
+    }
+
+    .box{
+      background:white;
+      max-width:500px;
+      margin:auto;
+      padding:25px;
+      border-radius:15px;
+      box-shadow:0 0 10px rgba(0,0,0,0.2);
+    }
+
+    input{
+      width:90%;
+      padding:12px;
+      font-size:18px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      margin-bottom:20px;
+    }
+
+    button{
+      padding:12px 20px;
+      margin:8px;
+      border:none;
+      border-radius:10px;
+      font-size:16px;
+      cursor:pointer;
+      color:white;
+    }
+
+    .us{
+      background:#007bff;
+    }
+
+    .uk{
+      background:#28a745;
+    }
+
+    .india{
+      background:#ff6600;
+    }
+
+    h1{
+      color:#333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h1>🔊 English Pronunciation</h1>
+
+    <input type="text" id="word" placeholder="Enter English word">
+
+    <br>
+
+    <button class="us" onclick="speakUS()">
+      🇺🇸 American
+    </button>
+
+    <button class="uk" onclick="speakUK()">
+      🇬🇧 British
+    </button>
+
+    <button class="india" onclick="speakIndia()">
+      🇮🇳 Indian
+    </button>
+  </div>
+
+  <script>
+
+    function speak(languageCode){
+      let text = document.getElementById("word").value;
+
+      if(text.trim() === ""){
+        alert("Please enter a word");
+        return;
+      }
+
+      let speech = new SpeechSynthesisUtterance(text);
+
+      let voices = window.speechSynthesis.getVoices();
+
+      let selectedVoice = voices.find(voice =>
+        voice.lang.toLowerCase().includes(languageCode)
+      );
+
+      if(selectedVoice){
+        speech.voice = selectedVoice;
+      }
+
+      speech.rate = 0.9;
+      speech.pitch = 1;
+
+      window.speechSynthesis.speak(speech);
+    }
+
+    function speakUS(){
+      speak("en-us");
+    }
+
+    function speakUK(){
+      speak("en-gb");
+    }
+
+    function speakIndia(){
+      speak("en-in");
+    }
+
+    // Load voices properly in Chrome
+    speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.getVoices();
+    };
+
+  </script>
+
+</body>
+</html>
