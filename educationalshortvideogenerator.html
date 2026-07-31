@@ -1,0 +1,3068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfect Sync Quiz Generator - Pro v14 (Auto AI + Resilient Audio)</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
+    <!-- lamejs for MP3 encoding -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --accent: #f59e0b;
+            --ai-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1700px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .panel {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .sidebar {
+            flex: 1.5;
+            min-width: 400px;
+            max-width: 550px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-area {
+            flex: 2;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"], select, input[type="number"], input[type="color"] {
+            width: 100%;
+            padding: 8px;
+            background: #020617;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+
+        input[type="color"] {
+            padding: 4px;
+            height: 38px;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+            accent-color: var(--primary);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 15px;
+            margin-bottom: 15px;
+        }
+
+        .grid-header {
+            grid-column: span 2;
+            font-weight: bold;
+            color: var(--accent);
+            margin-top: 5px;
+            border-bottom: 1px solid #475569;
+            padding-bottom: 5px;
+        }
+
+        #questions-container .panel {
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        #questions-container .panel.active-question {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            background: #be123c;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #add-question-btn {
+            width: 100%;
+            padding: 12px;
+            background: #166534;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: -5px;
+            transition: background 0.2s;
+        }
+
+        .timeline-box {
+            background: #020617;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            margin-top: 10px;
+        }
+
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .time-label {
+            width: 120px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .time-input {
+            width: 70px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            background: #000;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+
+        button:disabled {
+            background: #475569;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-load { background: #0ea5e9; }
+        .btn-stop-load { background:#b91c1c; }
+        .btn-test { background: var(--accent); color: black; }
+
+        .btn-rec-main  { background: #22c55e; font-size: 1.0rem; }
+        .btn-rec-stop  { background: #b91c1c; font-size: 0.9rem; margin-top:6px; }
+
+        /* AUTO AI STYLES */
+        .auto-ai-box {
+            background: #000000;
+            border: 2px solid #a855f7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auto-ai-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: var(--ai-gradient);
+        }
+
+        .btn-auto-ai-start {
+            background: var(--ai-gradient);
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-auto-ai-stop {
+            background: #be123c;
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            display: none; /* Hidden by default */
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #fff;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .download-link {
+            display: none;
+            margin-top: 15px;
+            background: #22c55e;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .speech-mode-toggle {
+            background: #1e3a8a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #475569;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active { background: #22c55e; }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider { left: 33px; }
+
+        .mode-info {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .master-label-inline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal-content {
+            background: #020617;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            max-width: 950px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        .excel-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .excel-toolbar button {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            background: #0ea5e9;
+        }
+
+        .excel-wrapper {
+            border: 1px solid #334155;
+            max-height: 55vh;
+            overflow: auto;
+            background: #020617;
+            margin-bottom: 10px;
+        }
+
+        #excelTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        #excelTable th, #excelTable td {
+            border: 1px solid #334155;
+            padding: 4px 6px;
+            min-width: 80px;
+        }
+
+        #excelTable th {
+            background: #020617;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        #excelTable td[contenteditable="true"] {
+            cursor: text;
+            outline: none;
+        }
+
+        #excelTable tr:nth-child(even) td,
+        #excelTable tr:nth-child(odd) td {
+            background: #020617;
+        }
+
+        .excel-actions-btn {
+            background: #be123c;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+        }
+
+        .audio-status {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 999px;
+            display: inline-block;
+            background: #334155;
+            color: #e5e7eb;
+        }
+
+        .audio-status.ok {
+            background: #16a34a;
+            color: #f9fafb;
+        }
+
+        .audio-status.fail {
+            background: #b91c1c;
+            color: #fee2e2;
+        }
+
+        .audio-actions-row {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .audio-small-btn {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            background: #0ea5e9;
+        }
+
+        .audio-small-btn.red {
+            background: #b91c1c;
+        }
+
+        #videoModeModal .modal-content {
+            max-width: 520px;
+        }
+
+        #videoModeModal .mode-btn {
+            width: 100%;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        #videoModeModal .mode-btn strong {
+            display: block;
+            font-size: 0.9rem;
+        }
+
+        #videoModeModal .mode-btn span {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- LEFT: Inputs -->
+    <div class="sidebar">
+
+        <div id="questions-container" onclick="handlePanelClick(event)">
+            <h2>1. Questions</h2>
+        </div>
+        <button id="add-question-btn" onclick="openAddQuestionModal()">+ Add New Question</button>
+
+        <!-- Batch Edit toggle -->
+        <div class="speech-mode-toggle" style="background:#0b1120; margin-top:8px;">
+            <div>
+                <strong>🛠 Batch Edit</strong>
+                <div class="mode-info" id="batchInfo">Single question only</div>
+            </div>
+            <div class="toggle-switch" id="batchToggle" onclick="toggleBatchEdit()">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+
+        <!-- Batch Load Audio toggle -->
+        <div class="speech-mode-toggle" style="background:#052e16; margin-top:8px;">
+            <div>
+                <strong>📦 Batch Load Audio</strong>
+                <div class="mode-info" id="batchAudioInfo">Only active tab</div>
+            </div>
+            <div class="toggle-switch" id="batchAudioToggle" onclick="toggleBatchAudio()">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+
+        <!-- Word Animate toggle -->
+        <div class="speech-mode-toggle" style="background:#1f2937; margin-top:8px;">
+            <div>
+                <strong>✨ Word Animate</strong>
+                <div class="mode-info" id="wordAnimInfo">Off</div>
+            </div>
+            <div class="toggle-switch" id="wordAnimToggle" onclick="toggleWordAnimate()">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>2. Typography & Animation</h2>
+            <div class="controls-grid">
+                <div class="grid-header">Question</div>
+                <select id="fontQ" onchange="drawStatic()"></select>
+                <input type="number" id="sizeQ" value="45" onchange="drawStatic()" title="Font Size">
+                <select id="animQ" onchange="drawStatic()" title="Entrance Animation"></select>
+            </div>
+            <div class="controls-grid">
+                <div class="grid-header">Options</div>
+                <select id="fontO" onchange="drawStatic()"></select>
+                <input type="number" id="sizeO" value="28" onchange="drawStatic()">
+                <select id="animO" onchange="drawStatic()"></select>
+            </div>
+
+            <div class="controls-grid">
+                <div class="grid-header">Countdown Style</div>
+                <select id="fontC" onchange="drawStatic()"></select>
+                <input type="number" id="sizeC" value="150" onchange="drawStatic()" title="Font Size">
+                <input type="color" id="colorC" value="#f59e0b" oninput="drawStatic()" title="Color">
+                <div style="grid-column: span 2; margin-top:5px;">
+                    <label>Countdown Duration (sec)</label>
+                    <input type="number" id="countVal" value="5" min="3" max="30" onchange="resetAudio()">
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <div class="grid-header">Explanation</div>
+                <select id="fontE" onchange="drawStatic()"></select>
+                <input type="number" id="sizeE" value="38" onchange="drawStatic()">
+                <select id="animE" onchange="drawStatic()"></select>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>3. Visuals & Sync</h2>
+            <div class="controls-grid">
+                <div class="grid-header">Colors & Background</div>
+                <input type="color" id="bgColor1" value="#1e3a8a" oninput="drawStatic()">
+                <input type="color" id="bgColor2" value="#020617" oninput="drawStatic()">
+                <input type="color" id="cardColor" value="#FFFFFF" oninput="drawStatic()">
+                <input type="color" id="correctColor" value="#22c55e" oninput="drawStatic()">
+                <div style="grid-column: span 2;">
+                    <label>Global BG Image</label>
+                    <input type="file" accept="image/*" onchange="handleGlobalImage(this)">
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <div class="grid-header">Background Music</div>
+                <div style="grid-column: span 2;">
+                    <label>Upload Audio (MP3/WAV)</label>
+                    <input type="file" accept="audio/*" id="bgMusicFile" onchange="handleBgMusic(this)">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label>Music Volume (<span id="volLabel">20</span>%)</label>
+                    <input type="range" id="bgMusicVol" min="0" max="100" value="20" oninput="updateVolLabel(this.value)">
+                </div>
+            </div>
+
+            <div class="controls-grid" style="margin-top:15px;">
+                <div class="grid-header">Explanation Box Style</div>
+                <div>
+                    <label>Box BG</label>
+                    <input type="color" id="explBgColor" value="#000000" oninput="drawStatic()">
+                </div>
+                <div>
+                    <label>Text Color</label>
+                    <input type="color" id="explTextColor" value="#FFFFFF" oninput="drawStatic()">
+                </div>
+                <div style="grid-column: span 2; margin-top:5px;">
+                    <label style="display:flex; align-items:center;">
+                        <input type="checkbox" id="explNoBg" onchange="drawStatic()"> No Background (Text Only)
+                    </label>
+                </div>
+            </div>
+
+            <div class="timeline-box">
+                <div class="time-row">
+                    <div class="time-label">Read Options:</div>
+                    <input type="range" id="slideOpts" min="1" max="15" step="0.5" oninput="syncTime('opts', this.value)">
+                    <input type="number" id="valOpts" class="time-input" onchange="syncTime('opts', this.value)"> s
+                </div>
+                <div class="time-row">
+                    <div class="time-label">Reveal Answer:</div>
+                    <input type="range" id="slideAns" min="10" max="35" step="0.5" oninput="syncTime('ans', this.value)">
+                    <input type="number" id="valAns" class="time-input" onchange="syncTime('ans', this.value)"> s
+                </div>
+                <div style="text-align:right; font-size:0.8rem; color:#aaa;">
+                    Total Video: <span id="totalDur">20</span>s
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>4. Export</h2>
+
+            <!-- AUTO AI BOX -->
+            <div class="auto-ai-box">
+                <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Hands-Free)</div>
+                <p style="font-size:0.8rem; color:#e2e8f0; margin:5px 0;">
+                    1. Auto Load Audio (Smart Retry)<br>
+                    2. Record & Download Individual Videos<br>
+                    3. Record & Download Combined Video
+                </p>
+                <button id="btnAutoAI" class="btn-auto-ai-start" onclick="startAutoAIFlow()">🚀 START AUTO AI</button>
+                <button id="btnStopAutoAI" class="btn-auto-ai-stop" onclick="stopAutoAIFlow()">🛑 CANCEL AUTO AI</button>
+            </div>
+
+            <div class="speech-mode-toggle">
+                <div>
+                    <strong>🎙️ Offline Speech Mode</strong>
+                    <div class="mode-info" id="modeInfo">Using API (Online)</div>
+                </div>
+                <div class="toggle-switch" id="speechToggle" onclick="toggleSpeechMode()">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+
+            <div class="speech-mode-toggle" style="background:#0b1120; margin-top:5px;">
+                <div>
+                    <strong>🎧 Audio Mastering</strong>
+                    <div class="mode-info" id="masterInfo">Disabled</div>
+                </div>
+                <div class="toggle-switch" id="masterToggle" onclick="toggleMastering()">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+
+            <div id="masterPanel" style="display:none; margin-top:10px;">
+                <label>Voice Model (Offline Speech)</label>
+                <select id="voiceSelect"></select>
+
+                <div class="controls-grid" style="margin-top:10px;">
+                    <div class="grid-header">EQ & Tone</div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>Low Cut (Hz)</span>
+                            <span id="lowCutVal">80</span>
+                        </div>
+                        <input type="range" id="lowCut" min="20" max="1000" step="10" value="80" oninput="onMasterSliderChange()">
+                    </div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>High Cut (Hz)</span>
+                            <span id="highCutVal">12000</span>
+                        </div>
+                        <input type="range" id="highCut" min="2000" max="20000" step="100" value="12000" oninput="onMasterSliderChange()">
+                    </div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>Mid Cut (dB)</span>
+                            <span id="midCutVal">0</span>
+                        </div>
+                        <input type="range" id="midCut" min="-12" max="6" step="1" value="0" oninput="onMasterSliderChange()">
+                    </div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>Gain (dB)</span>
+                            <span id="gainVal">0</span>
+                        </div>
+                        <input type="range" id="gainSlider" min="-12" max="12" step="0.5" value="0" oninput="onMasterSliderChange()">
+                    </div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>Noise Remove</span>
+                            <span id="noiseVal">0</span>
+                        </div>
+                        <input type="range" id="noiseSlider" min="0" max="100" step="1" value="0" oninput="onMasterSliderChange()">
+                    </div>
+
+                    <div>
+                        <div class="master-label-inline">
+                            <span>Pitch (x)</span>
+                            <span id="pitchVal">1.00</span>
+                        </div>
+                        <input type="range" id="pitchSlider" min="0.8" max="1.2" step="0.01" value="1.00" oninput="onPitchChange()">
+                    </div>
+                </div>
+
+                <label style="display:flex; align-items:center; margin-top:8px;">
+                    <input type="checkbox" id="loopTest" onchange="loopTestEnabled = this.checked;">
+                    Loop Test Play
+                </label>
+                <p style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
+                    Loop Test replays the preview continuously so you can fine-tune mastering before recording.
+                </p>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-load" id="btnLoad" onclick="handleLoadAudioClick()">1. Load Audio</button>
+                <button class="btn-stop-load" id="btnStopLoad" onclick="stopLoadAudio()" disabled>Stop Load Audio</button>
+                <button class="btn-test" id="btnTest" onclick="testPlayback()" disabled>2. Test Play</button>
+            </div>
+
+            <button class="btn-rec-main" id="btnRec" onclick="openVideoModeModal()" disabled style="width:100%; margin-top:10px;">3. REC VIDEO</button>
+            <button class="btn-rec-stop" id="btnRecStop" onclick="stopAnyRecording()" disabled style="width:100%;">Stop REC VIDEO</button>
+        </div>
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div class="preview-area">
+        <div class="panel" style="width:100%; margin-bottom:10px;">
+            <label>Resolution</label>
+            <select id="resolution" onchange="resizeCanvas()">
+                <option value="mobile">Mobile (9:16)</option>
+                <option value="landscape" selected>Landscape (16:9)</option>
+                <option value="square">Square (1:1)</option>
+            </select>
+
+            <label style="margin-top:8px;">Video Quality</label>
+            <select id="videoQuality">
+                <option value="3000000">Low (3 Mbps)</option>
+                <option value="6000000" selected>Medium (6 Mbps)</option>
+                <option value="10000000">High (10 Mbps)</option>
+            </select>
+
+            <p style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">
+                Tip: Drag elements (including Countdown) to position them.
+            </p>
+        </div>
+
+        <div class="canvas-container">
+            <div id="overlay" class="overlay">
+                <div class="spinner"></div>
+                <div id="statusMsg">Processing...</div>
+                <div id="progress-container" style="display: none; width: 80%; max-width:300px; background: #334155; border-radius: 5px; overflow: hidden; height: 10px; margin-top: 15px;">
+                    <div id="progress-bar" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <canvas id="canvas"></canvas>
+        </div>
+        <a id="dlLink" class="download-link">Download Video</a>
+    </div>
+</div>
+
+<!-- Modal: Add Questions -->
+<div id="addQModal" class="modal-backdrop">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Questions</h3>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">
+                Close
+            </button>
+        </div>
+
+        <div id="addQModeChooser">
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">
+                Choose how you want to add questions.
+            </p>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button style="background:#22c55e;" onclick="handleAddSingleQuestion()">➕ Add a Single Question</button>
+                <button style="background:#0ea5e9;" onclick="openExcelEditor()">📋 Add Multiple Questions (Excel-style)</button>
+            </div>
+        </div>
+
+        <div id="excelEditorSection" style="display:none; margin-top:10px;">
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:6px;">
+                Paste a table from ChatGPT / Excel / Google Sheets. The header row below stays fixed; pasted headers will come in as the first data row.
+            </p>
+
+            <div class="excel-toolbar">
+                <button type="button" onclick="addExcelRow()">+ Add Row</button>
+                <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
+                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Paste from Clipboard</button>
+                <button type="button" onclick="backToModeChooser()" style="background:#0f172a;">◀ Back</button>
+            </div>
+
+            <div class="excel-wrapper">
+                <table id="excelTable">
+                    <thead>
+                    <tr>
+                        <th contenteditable="true">Question</th>
+                        <th contenteditable="true">Option A</th>
+                        <th contenteditable="true">Option B</th>
+                        <th contenteditable="true">Option C</th>
+                        <th contenteditable="true">Option D</th>
+                        <th contenteditable="true">Correct Option</th>
+                        <th contenteditable="true">Explanation</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <button type="button" onclick="importQuestionsFromTable()" style="background:#22c55e; margin-top:4px;">
+                ✅ Import these questions as tabs
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: choose video record mode -->
+<div id="videoModeModal" class="modal-backdrop">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Select Video Recording Mode</h3>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">
+                Close
+            </button>
+        </div>
+        <p style="font-size:0.85rem; color:#cbd5e1;">
+            Choose how you want to record the video.
+        </p>
+        <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
+            <strong>1. Record video for individual question tabs one by one</strong>
+            <span>Automatically records each tab. <span style="color:#ffdd00;">New: Automatically downloads each video when done.</span></span>
+        </button>
+        <button class="mode-btn" style="background:#22c55e; margin-top:8px;" onclick="recordActiveQuestionOnly()">
+            <strong>2. Record video for the ACTIVE QUESTION TAB only</strong>
+            <span>Quickly re-record just the currently selected question tab.</span>
+        </button>
+        <button class="mode-btn" style="background:#0ea5e9; margin-top:8px;" onclick="startFullCombinedRecordingMode()">
+            <strong>3. Record one single long continuous video (all question tabs)</strong>
+            <span>All question tabs will be connected into one full-length video. One final download button will appear.</span>
+        </button>
+    </div>
+</div>
+
+<!-- START: New Modal for Auto AI Setup -->
+<div id="autoAISetupModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 600px;">
+        <div id="aiSetupStep1">
+            <div class="modal-header">
+                <h3>Auto AI Setup (Step 1 of 2)</h3>
+            </div>
+            <h4>Arrange for Individual Videos</h4>
+            <p style="font-size:0.85rem; color:#cbd5e1;">
+                The canvas has been set to <strong>Mobile (9:16)</strong> ratio. Please arrange the elements (Question, Options, etc.) on the canvas for the individual short videos.
+            </p>
+            <p style="font-size:0.85rem; color:#f59e0b; background: #334155; padding: 8px; border-radius: 6px;">
+                <strong>Tip:</strong> Enable the "🛠 Batch Edit" toggle to apply your layout changes to all question tabs at once.
+            </p>
+            <button style="width:100%; background:#0ea5e9; margin-top:15px;" onclick="goToAISetupStep2()">
+                Arrangement is Done, Go to Next Step &rarr;
+            </button>
+             <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
+        </div>
+
+        <div id="aiSetupStep2" style="display:none;">
+            <div class="modal-header">
+                <h3>Auto AI Setup (Step 2 of 2)</h3>
+            </div>
+            <h4>Arrange for the Full Long Video</h4>
+            <p style="font-size:0.85rem; color:#cbd5e1;">
+                Now, select the ratio for the final combined long video and arrange the elements on the canvas accordingly.
+            </p>
+            <label style="margin-top:10px;">Long Video Ratio</label>
+            <select id="aiLongVideoRatio" onchange="setAILongVideoRatio(this.value)">
+                <option value="landscape">Landscape (16:9)</option>
+                <option value="mobile">Mobile (9:16)</option>
+                <option value="square">Square (1:1)</option>
+            </select>
+             <p style="font-size:0.85rem; color:#f59e0b; background: #334155; padding: 8px; border-radius: 6px;">
+                <strong>Tip:</strong> Remember to use "🛠 Batch Edit" if you want the same layout for all questions in the long video.
+            </p>
+            <button style="width:100%; background:#22c55e; margin-top:15px;" onclick="beginAutoAIExecution()">
+                🚀 Layout is Set, START AUTO AI
+            </button>
+             <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+<!-- END: New Modal for Auto AI Setup -->
+
+<script>
+    const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay'), statusMsg = document.getElementById('statusMsg');
+    const progressBar = document.getElementById('progress-bar'), progressContainer = document.getElementById('progress-container');
+
+    let audioCtx, destNode, mediaRecorder;
+    let questionCounter = 0, globalBgImage = null;
+    let buffers = {}, durations = {};
+    let bgMusicBuffer = null;
+
+    let useOfflineSpeech = false;
+    let currentSessionCacheKeys = [];
+
+    let masteringEnabled = false;
+    let masterNodes = null;
+    let pitchFactor = 1.0;
+    let loopTestEnabled = false;
+
+    let availableVoices = [];
+
+    const ANIM_DURATION = 0.75;
+
+    const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Indie Flower','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
+    const ANIMS = {'Fade In': 'fade','Slide from Top':'slide-t','Slide from Bottom':'slide-b','Slide from Left':'slide-l','Slide from Right':'slide-r','Zoom In':'zoom-in','Zoom Out':'zoom-out'};
+
+    let T = { q: 0.5, preOpts: 2.0, opts: 4.0, intro: 12.0, countStart: 13.0, reveal: 18.0, ans: 18.5, preExpl: 21.0, expl: null, total: 24.0 };
+    const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
+    let drag = { isDragging: false, activeZone: null, offsetX: 0, offsetY: 0 };
+
+    let batchEditEnabled = false;
+    let batchAudioEnabled = false;
+
+    let lastExcelCell = null;
+
+    let perQuestionAudio = {};   // qid -> { buffers, durations, hasAudio, explParts? }
+    let perQuestionVideoBlobs = {};
+    let combinedVideoBlob = null;
+
+    let offlineSession = null;   // persistent screen/tab audio capture for offline speech
+
+    let cancelLoad = false;
+    let cancelRecording = false;
+    let cancelAutoAI = false;
+
+    let wordAnimateEnabled = false;
+
+    // START: New variables for Auto AI Setup
+    let autoAISettings = {};
+    // END: New variables for Auto AI Setup
+
+    window.onload = () => {
+        populateControls();
+        resizeCanvas();
+        addQuestionPanel();
+        setupCanvasInteraction();
+        checkSpeechSynthesisSupport();
+        initVoices();
+        initMasteringLabels();
+        initExcelTable();
+    };
+
+    function escHtml(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function sanitizeFilename(str) {
+        if(!str) return "question";
+        return str.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_').substring(0, 50);
+    }
+
+    function populateControls() {
+        ['fontQ','fontO','fontE','fontC'].forEach(id => FONTS.forEach(f => document.getElementById(id).add(new Option(f, f))));
+        ['animQ','animO','animE'].forEach(id => Object.keys(ANIMS).forEach(a => document.getElementById(id).add(new Option(a, ANIMS[a]))));
+    }
+
+    function toggleExplanationField(cb) {
+        cb.closest('.panel').querySelector('.explanation-input-container').style.display = cb.checked ? 'block' : 'none';
+    }
+
+    function updateVolLabel(v) {
+        document.getElementById('volLabel').innerText = v;
+    }
+
+    function resetAudio() {
+        buffers = {};
+        durations = {};
+        ['btnTest','btnRec'].forEach(id => document.getElementById(id).disabled = true);
+    }
+
+    function toggleSpeechMode() {
+        useOfflineSpeech = !useOfflineSpeech;
+        const toggle = document.getElementById('speechToggle');
+        const info = document.getElementById('modeInfo');
+        if (useOfflineSpeech) {
+            toggle.classList.add('active');
+            info.textContent = 'Browser Speech (Offline) ✓';
+            info.style.color = '#22c55e';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Using API (Online)';
+            info.style.color = '#94a3b8';
+        }
+        resetAudio();
+    }
+
+    function toggleBatchEdit() {
+        batchEditEnabled = !batchEditEnabled;
+        const toggle = document.getElementById('batchToggle');
+        const info = document.getElementById('batchInfo');
+        if (batchEditEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'Apply layout to ALL tabs';
+            info.style.color = '#22c55e';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Single question only';
+            info.style.color = '#94a3b8';
+        }
+    }
+
+    function toggleBatchAudio() {
+        batchAudioEnabled = !batchAudioEnabled;
+        const toggle = document.getElementById('batchAudioToggle');
+        const info = document.getElementById('batchAudioInfo');
+        if (batchAudioEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'Batch load all tabs (one by one)';
+            info.style.color = '#22c55e';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Only active tab';
+            info.style.color = '#94a3b8';
+        }
+    }
+
+    function toggleWordAnimate() {
+        wordAnimateEnabled = !wordAnimateEnabled;
+        const toggle = document.getElementById('wordAnimToggle');
+        const info = document.getElementById('wordAnimInfo');
+        if (wordAnimateEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'On (bounce active word)';
+            info.style.color = '#22c55e';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Off';
+            info.style.color = '#94a3b8';
+        }
+        drawStatic();
+    }
+
+    function checkSpeechSynthesisSupport() {
+        if (!('speechSynthesis' in window)) {
+            alert('⚠️ Your browser does not support Speech Synthesis API. Offline mode will not work.');
+        }
+    }
+
+    function initVoices() {
+        if (!('speechSynthesis' in window)) return;
+        function loadVoices() {
+            availableVoices = window.speechSynthesis.getVoices();
+            const sel = document.getElementById('voiceSelect');
+            if (!sel) return;
+            sel.innerHTML = '';
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                sel.appendChild(opt);
+            });
+        }
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function toggleMastering() {
+        masteringEnabled = !masteringEnabled;
+        const toggle = document.getElementById('masterToggle');
+        const info = document.getElementById('masterInfo');
+        const panel = document.getElementById('masterPanel');
+
+        if (masteringEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'Enabled';
+            info.style.color = '#22c55e';
+            panel.style.display = 'block';
+            if (audioCtx) setupMasteringChain();
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Disabled';
+            info.style.color = '#94a3b8';
+            panel.style.display = 'none';
+            teardownMasteringChain();
+        }
+    }
+
+    function setupMasteringChain() {
+        if (!audioCtx) return;
+        masterNodes = {
+            input: audioCtx.createGain(),
+            lowcut: audioCtx.createBiquadFilter(),
+            highcut: audioCtx.createBiquadFilter(),
+            mid: audioCtx.createBiquadFilter(),
+            compressor: audioCtx.createDynamicsCompressor(),
+            gain: audioCtx.createGain()
+        };
+        masterNodes.lowcut.type = 'highpass';
+        masterNodes.highcut.type = 'lowpass';
+        masterNodes.mid.type = 'peaking';
+        masterNodes.mid.frequency.setValueAtTime(1500, audioCtx.currentTime);
+
+        masterNodes.input.connect(masterNodes.lowcut);
+        masterNodes.lowcut.connect(masterNodes.highcut);
+        masterNodes.highcut.connect(masterNodes.mid);
+        masterNodes.mid.connect(masterNodes.compressor);
+        masterNodes.compressor.connect(masterNodes.gain);
+
+        updateMasteringParams();
+        connectMasterOutput();
+    }
+
+    function teardownMasteringChain() {
+        if (!masterNodes) return;
+        try {
+            masterNodes.input.disconnect();
+            masterNodes.lowcut.disconnect();
+            masterNodes.highcut.disconnect();
+            masterNodes.mid.disconnect();
+            masterNodes.compressor.disconnect();
+            masterNodes.gain.disconnect();
+        } catch(e){}
+        masterNodes = null;
+    }
+
+    function connectMasterOutput() {
+        if (!masterNodes || !audioCtx) return;
+        try { masterNodes.gain.disconnect(); } catch(e){}
+        masterNodes.gain.connect(audioCtx.destination);
+        if (destNode) masterNodes.gain.connect(destNode);
+    }
+
+    function initMasteringLabels() {
+        document.getElementById('lowCutVal').innerText  = document.getElementById('lowCut').value;
+        document.getElementById('highCutVal').innerText = document.getElementById('highCut').value;
+        document.getElementById('midCutVal').innerText  = document.getElementById('midCut').value;
+        document.getElementById('gainVal').innerText    = document.getElementById('gainSlider').value;
+        document.getElementById('noiseVal').innerText   = document.getElementById('noiseSlider').value;
+        document.getElementById('pitchVal').innerText   = parseFloat(document.getElementById('pitchSlider').value).toFixed(2);
+    }
+
+    function onMasterSliderChange() {
+        document.getElementById('lowCutVal').innerText  = document.getElementById('lowCut').value;
+        document.getElementById('highCutVal').innerText = document.getElementById('highCut').value;
+        document.getElementById('midCutVal').innerText  = document.getElementById('midCut').value;
+        document.getElementById('gainVal').innerText    = document.getElementById('gainSlider').value;
+        document.getElementById('noiseVal').innerText   = document.getElementById('noiseSlider').value;
+        updateMasteringParams();
+    }
+
+    function updateMasteringParams() {
+        if (!masterNodes || !audioCtx) return;
+        const low  = parseFloat(document.getElementById('lowCut').value  || '80');
+        const high = parseFloat(document.getElementById('highCut').value || '12000');
+        const midDb= parseFloat(document.getElementById('midCut').value  || '0');
+        const gainDb = parseFloat(document.getElementById('gainSlider').value || '0');
+        const noiseAmt = parseFloat(document.getElementById('noiseSlider').value || '0') / 100;
+
+        masterNodes.lowcut.frequency.setValueAtTime(low, audioCtx.currentTime);
+        masterNodes.highcut.frequency.setValueAtTime(high, audioCtx.currentTime);
+        masterNodes.mid.gain.setValueAtTime(midDb, audioCtx.currentTime);
+
+        const linearGain = Math.pow(10, gainDb / 20);
+        masterNodes.gain.gain.setValueAtTime(linearGain, audioCtx.currentTime);
+
+        masterNodes.compressor.threshold.setValueAtTime(-60 + noiseAmt * 40, audioCtx.currentTime);
+        masterNodes.compressor.ratio.setValueAtTime(1 + noiseAmt * 19, audioCtx.currentTime);
+    }
+
+    function onPitchChange() {
+        pitchFactor = parseFloat(document.getElementById('pitchSlider').value || '1');
+        document.getElementById('pitchVal').innerText = pitchFactor.toFixed(2);
+        calculateTimeline();
+    }
+
+    function addQuestionPanel(prefill = null) {
+        questionCounter++;
+        const lang = prefill && prefill.lang ? prefill.lang : 'en';
+        const qText = prefill && prefill.question ? prefill.question : 'Which planet is the largest?';
+        const opts  = prefill && prefill.options && prefill.options.length === 4
+            ? prefill.options : ['Earth','Mars','Jupiter','Saturn'];
+        const correctIndex = prefill && typeof prefill.correctIndex === 'number'
+            ? prefill.correctIndex : 2;
+        const expl = prefill && prefill.explanation ? prefill.explanation : '';
+
+        const p = document.createElement('div');
+        p.className = 'panel question-panel';
+        p.id = `question-panel-${questionCounter}`;
+        p.dataset.qid = String(questionCounter);
+        p.innerHTML = `
+            <button class="remove-btn" onclick="removeQuestionPanel(${questionCounter})">&times;</button>
+            <label>Language</label>
+            <select class="q-lang">
+                <option value="en"${lang==='en'?' selected':''}>English</option>
+                <option value="hi"${lang==='hi'?' selected':''}>Hindi</option>
+            </select>
+            <label style="margin-top:10px">Question ${questionCounter}</label>
+            <input type="text" class="q-text" value="${escHtml(qText)}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+                <div><label>A</label><input type="text" class="q-opt" value="${escHtml(opts[0])}"></div>
+                <div><label>B</label><input type="text" class="q-opt" value="${escHtml(opts[1])}"></div>
+                <div><label>C</label><input type="text" class="q-opt" value="${escHtml(opts[2])}"></div>
+                <div><label>D</label><input type="text" class="q-opt" value="${escHtml(opts[3])}"></div>
+            </div>
+            <label style="margin-top:10px">Correct Answer</label>
+            <select class="q-ans">
+                <option value="0"${correctIndex===0?' selected':''}>A</option>
+                <option value="1"${correctIndex===1?' selected':''}>B</option>
+                <option value="2"${correctIndex===2?' selected':''}>C</option>
+                <option value="3"${correctIndex===3?' selected':''}>D</option>
+            </select>
+            <div style="margin-top: 10px;">
+                <label style="display:flex; align-items:center;">
+                    <input type="checkbox" class="q-explanation-toggle" onchange="toggleExplanationField(this)"${expl ? ' checked' : ''}>Enable Explanation
+                </label>
+            </div>
+            <div class="explanation-input-container" style="display:${expl ? 'block' : 'none'}; margin-top: 5px;">
+                <label>Explanation</label>
+                <input type="text" class="q-explanation-text" value="${escHtml(expl)}">
+            </div>
+            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
+            <label>Image (Optional)</label>
+            <input type="file" accept="image/*" class="q-img" onchange="handleQuestionImage(this)">
+            <label style="display:flex; align-items:center; margin-top:8px;">
+                <input type="checkbox" class="q-img-reveal">Reveal with Answer
+            </label>
+            <label style="margin-top:5px">Image Size</label>
+            <input type="range" class="q-img-scale" min="0.2" max="1.5" step="0.05" value="0.5" oninput="drawStatic()">
+
+            <div class="audio-actions-row">
+                <span class="audio-status" id="audioStatus-${questionCounter}">Audio not loaded</span>
+                <button type="button" class="audio-small-btn" onclick="retakeAudioForTab(${questionCounter})">Retake Audio (this tab)</button>
+            </div>
+        `;
+        p.positions = {
+            question: {x:0.5,y:0.15},
+            options: {x:0.5,y:0.7},
+            image: {x:0.5,y:0.4},
+            explanation: {x:0.5,y:0.5},
+            countdown: {x:0.5,y:0.85}
+        };
+        document.getElementById('questions-container').appendChild(p);
+
+        perQuestionAudio[String(questionCounter)] = {
+            buffers: null,
+            durations: null,
+            hasAudio: false,
+            explParts: null
+        };
+        updateAudioStatusBadge(questionCounter);
+
+        setActiveQuestion(p);
+        document.querySelectorAll('.question-panel .remove-btn').forEach(b => {
+            b.style.display = document.querySelectorAll('.question-panel').length > 1 ? 'flex' : 'none';
+        });
+    }
+
+    function removeQuestionPanel(id) {
+        if (document.querySelectorAll('.question-panel').length <= 1) return;
+        const p = document.getElementById(`question-panel-${id}`);
+        if (p.classList.contains('active-question')) {
+            const next = p.nextElementSibling || p.previousElementSibling;
+            if (next?.classList.contains('question-panel')) setActiveQuestion(next);
+        }
+        const qid = String(id);
+        delete perQuestionAudio[qid];
+        delete perQuestionVideoBlobs[qid];
+        p.remove();
+    }
+
+    function handlePanelClick(event) {
+        if (event.target.closest('.question-panel')) {
+            setActiveQuestion(event.target.closest('.question-panel'));
+        }
+    }
+
+    function setActiveQuestion(p) {
+        document.querySelectorAll('.question-panel').forEach(el => el.classList.remove('active-question'));
+        p.classList.add('active-question');
+
+        const qid = p.dataset.qid;
+        const store = perQuestionAudio[qid];
+
+        if (store && store.hasAudio && store.buffers && store.durations) {
+            buffers = store.buffers;
+            durations = store.durations;
+            calculateTimeline();
+            document.getElementById('btnTest').disabled = false;
+            document.getElementById('btnRec').disabled = false;
+        } else {
+            buffers = {};
+            durations = {};
+            document.getElementById('btnTest').disabled = true;
+            document.getElementById('btnRec').disabled = true;
+        }
+
+        currentSessionCacheKeys = [];
+        drawStatic();
+    }
+
+    function getQuestionDataFromPanel(p) {
+        if (!p) return null;
+        const qid = p.dataset.qid;
+        return {
+            qid,
+            lang: p.querySelector('.q-lang').value,
+            questionText: p.querySelector('.q-text').value,
+            options: Array.from(p.querySelectorAll('.q-opt')).map(i => i.value),
+            correctAnswerIndex: p.querySelector('.q-ans').value,
+            image: p.questionImageAsset,
+            imgReveal: p.querySelector('.q-img-reveal').checked,
+            imgScale: parseFloat(p.querySelector('.q-img-scale').value),
+            hasExplanation: p.querySelector('.q-explanation-toggle').checked,
+            explanationText: p.querySelector('.q-explanation-text').value,
+            positions: p.positions,
+            styles: {
+                qFont: document.getElementById('fontQ').value,
+                qSize: document.getElementById('sizeQ').value,
+                animQ: document.getElementById('animQ').value,
+                oFont: document.getElementById('fontO').value,
+                oSize: document.getElementById('sizeO').value,
+                animO: document.getElementById('animO').value,
+                eFont: document.getElementById('fontE').value,
+                eSize: document.getElementById('sizeE').value,
+                animE: document.getElementById('animE').value,
+                cFont: document.getElementById('fontC').value,
+                cSize: document.getElementById('sizeC').value,
+                cColor: document.getElementById('colorC').value,
+                countVal: parseInt(document.getElementById('countVal').value),
+                explBg: document.getElementById('explBgColor').value,
+                explText: document.getElementById('explTextColor').value,
+                explNoBg: document.getElementById('explNoBg').checked
+            }
+        };
+    }
+
+    function getActiveQuestionData() {
+        const p = document.querySelector('.question-panel.active-question');
+        if (!p) return null;
+        return getQuestionDataFromPanel(p);
+    }
+
+    function setupCanvasInteraction() {
+        const getPointerPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+            const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top)  * (canvas.height / rect.height)
+            };
+        };
+
+        const getHitZone = (mx, my, data) => {
+            for (const zone of ['image','question','options','explanation','countdown']) {
+                const box = getBoundingBox(zone, data);
+                if (box && mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) return zone;
+            }
+            return null;
+        };
+
+        const handleStart = (e) => {
+            if (e.type === 'touchstart') e.preventDefault();
+            const data = getActiveQuestionData();
+            if (!data) return;
+            const pos = getPointerPos(e);
+            const zone = getHitZone(pos.x, pos.y, data);
+            if (zone) {
+                drag = {
+                    isDragging: true,
+                    activeZone: zone,
+                    offsetX: pos.x - data.positions[zone].x * canvas.width,
+                    offsetY: pos.y - data.positions[zone].y * canvas.height
+                };
+            }
+        };
+
+        const handleMove = (e) => {
+            if (!drag.isDragging) return;
+            if (e.type === 'touchmove') e.preventDefault();
+            const data = getActiveQuestionData();
+            if (!data) return;
+            const pos = getPointerPos(e);
+            const zone = drag.activeZone;
+            data.positions[zone].x = (pos.x - drag.offsetX) / canvas.width;
+            data.positions[zone].y = (pos.y - drag.offsetY) / canvas.height;
+
+            if (batchEditEnabled && zone !== 'image') {
+                const panels = document.querySelectorAll('.question-panel');
+                panels.forEach(panel => {
+                    if (!panel.positions) {
+                        panel.positions = {
+                            question: {x:0.5,y:0.15},
+                            options: {x:0.5,y:0.7},
+                            image: {x:0.5,y:0.4},
+                            explanation: {x:0.5,y:0.5},
+                            countdown: {x:0.5,y:0.85}
+                        };
+                    }
+                    if (panel === document.querySelector('.question-panel.active-question')) return;
+                    if (!panel.positions[zone]) panel.positions[zone] = {x:0.5,y:0.5};
+                    panel.positions[zone].x = data.positions[zone].x;
+                    panel.positions[zone].y = data.positions[zone].y;
+                });
+            }
+            drawStatic();
+        };
+
+        const handleEnd = (e) => {
+            if (e.type === 'touchend') e.preventDefault();
+            drag.isDragging = false;
+        };
+
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        canvas.addEventListener('touchend', handleEnd, { passive: false });
+    }
+
+    function handleQuestionImage(input) {
+        const p = input.closest('.question-panel');
+        if (input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    p.questionImageAsset = img;
+                    drawStatic();
+
+                    if (batchEditEnabled) {
+                        const applyAll = confirm("Apply this image to ALL question tabs?\nOK = All questions, Cancel = Only this tab.");
+                        if (applyAll) {
+                            const panels = document.querySelectorAll('.question-panel');
+                            panels.forEach(panel => {
+                                panel.questionImageAsset = img;
+                            });
+                        }
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function handleGlobalImage(input) {
+        if (input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                globalBgImage = new Image();
+                globalBgImage.onload = () => drawStatic();
+                globalBgImage.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function handleBgMusic(input) {
+        if (input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const actx = new (window.AudioContext || window.webkitAudioContext)();
+                actx.decodeAudioData(e.target.result, (buffer) => { bgMusicBuffer = buffer; });
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        }
+    }
+
+    function resizeCanvas() {
+        const r = RESOLUTIONS[document.getElementById('resolution').value];
+        canvas.width = r.w;
+        canvas.height = r.h;
+        drawStatic();
+    }
+
+    function drawStatic() {
+        const data = getActiveQuestionData();
+        drawFrame(data ? -1 : 0, data);
+        if (data) {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ['question','options','image','explanation','countdown'].forEach(zone => {
+                const box = getBoundingBox(zone, data);
+                if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
+            });
+            ctx.setLineDash([]);
+        }
+    }
+
+    const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+    const arrayBufferToBase64 = b => {
+        let s = '';
+        new Uint8Array(b).forEach(byte => s += String.fromCharCode(byte));
+        return window.btoa(s);
+    };
+    const base64ToArrayBuffer = b => {
+        const s = window.atob(b);
+        const arr = new Uint8Array(s.length);
+        for (let i=0;i<s.length;i++) arr[i] = s.charCodeAt(i);
+        return arr;
+    };
+
+    async function getCachedAudio(key) {
+        try {
+            const base64 = localStorage.getItem(key);
+            if (!base64) return null;
+            currentSessionCacheKeys.push(key);
+            return await audioCtx.decodeAudioData(base64ToArrayBuffer(base64).buffer);
+        } catch (e) { return null; }
+    }
+
+    async function cacheAudio(key, arrayBuffer) {
+        try {
+            localStorage.setItem(key, arrayBufferToBase64(arrayBuffer));
+            currentSessionCacheKeys.push(key);
+        } catch(e) {}
+    }
+
+    function clearSessionCache() {
+        [...new Set(currentSessionCacheKeys)].forEach(key => localStorage.removeItem(key));
+        currentSessionCacheKeys = [];
+    }
+
+    async function captureAndSynthesize(tasks, lang, selectedVoice) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+             throw new Error("MOBILE_DETECTED");
+        }
+
+        alert("IMPORTANT:\n1. Select the 'Chrome Tab' option.\n2. Select THIS tab.\n3. Make sure 'Share tab audio' is CHECKED.\n4. Click 'Share'.");
+
+        if (!offlineSession || !offlineSession.stream || offlineSession.stream.getTracks().some(t => t.readyState === 'ended')) {
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            } catch (err) {
+                console.error(err);
+                throw new Error("Screen share permission denied or cancelled.");
+            }
+            const audioTrack = stream.getAudioTracks()[0];
+            if (!audioTrack) {
+                throw new Error("No audio track found! Ensure 'Share tab audio' is enabled.");
+            }
+
+            const recCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = recCtx.createMediaStreamSource(new MediaStream([audioTrack]));
+            const dest = recCtx.createMediaStreamDestination();
+            source.connect(dest);
+
+            offlineSession = { stream, recCtx, dest };
+        }
+
+        const { recCtx, dest } = offlineSession;
+        if (window.speechSynthesis.getVoices().length === 0) {
+            await new Promise(r => window.speechSynthesis.onvoiceschanged = r);
+        }
+        const voices = window.speechSynthesis.getVoices();
+        const defaultVoice = voices.find(v => v.lang.startsWith(lang === 'hi' ? 'hi' : 'en')) || voices[0];
+        const voice = selectedVoice || defaultVoice;
+
+        const results = {};
+
+        for (const task of tasks) {
+            if (!task.text.trim()) continue;
+            if (cancelLoad) break;
+            statusMsg.innerText = `Recording: ${task.desc}...`;
+            const recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus' });
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+            const recordingPromise = new Promise((resolve) => {
+                recorder.onstop = async () => {
+                    if (cancelLoad) { resolve(null); return; }
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const mp3Result = await convertToMp3(arrayBuffer, recCtx);
+                    resolve(mp3Result);
+                };
+            });
+            const utterance = new SpeechSynthesisUtterance(task.text);
+            utterance.voice = voice;
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            recorder.start();
+            await new Promise(r => setTimeout(r, 100));
+            speechSynthesis.speak(utterance);
+            await new Promise(resolve => {
+                utterance.onend = () => { setTimeout(() => { recorder.stop(); resolve(); }, 200); };
+                utterance.onerror = () => resolve();
+            });
+            if (cancelLoad) break;
+            results[task.key] = await recordingPromise;
+        }
+        return results;
+    }
+
+    async function convertToMp3(webmArrayBuffer, context) {
+        try {
+            const audioBuffer = await context.decodeAudioData(webmArrayBuffer);
+            const channels = 1;
+            const sampleRate = audioBuffer.sampleRate;
+            const samples = audioBuffer.getChannelData(0);
+            const int16Samples = new Int16Array(samples.length);
+            for (let i=0;i<samples.length;i++) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+            const mp3Data = [];
+            const samplesPerFrame = 1152;
+            for (let i=0;i<int16Samples.length;i+=samplesPerFrame) {
+                const chunk = int16Samples.subarray(i, i+samplesPerFrame);
+                const mp3buf = mp3encoder.encodeBuffer(chunk);
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            }
+            const mp3buf = mp3encoder.flush();
+            if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            const totalLength = mp3Data.reduce((a,arr)=>a+arr.length,0);
+            const mp3Buffer = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const c of mp3Data) { mp3Buffer.set(c, offset); offset += c.length; }
+            const mp3Blob = new Blob([mp3Buffer], { type: 'audio/mp3' });
+            const finalAB = await mp3Blob.arrayBuffer();
+            const audioBufFinal = await context.decodeAudioData(finalAB.slice(0));
+            return { audioBuffer: audioBufFinal, rawBuffer: finalAB };
+        } catch (error) {
+            console.error('MP3 conversion error:', error);
+            return { audioBuffer: await context.decodeAudioData(webmArrayBuffer), rawBuffer: webmArrayBuffer };
+        }
+    }
+
+    function handleLoadAudioClick() {
+        cancelLoad = false;
+        document.getElementById('btnStopLoad').disabled = false;
+        if (batchAudioEnabled) {
+            batchLoadAudioForAllTabs();
+        } else {
+            loadAudioForActiveTab();
+        }
+    }
+
+    function stopLoadAudio() {
+        cancelLoad = true;
+        speechSynthesis.cancel();
+        overlay.style.display = 'none';
+        progressContainer.style.display = 'none';
+        document.getElementById('btnStopLoad').disabled = true;
+    }
+
+    async function loadAudioForActiveTab() {
+        const data = getActiveQuestionData();
+        if (!data || !data.questionText) {
+            alert("Select a question.");
+            return;
+        }
+
+        // NOTE: Do not clear session keys here if running in Auto AI / Batch, 
+        // otherwise we lose previous tabs' data. 
+        // But for single tab, it's safer to clear old cache to force reload if needed.
+        if (!batchAudioEnabled && !cancelAutoAI) currentSessionCacheKeys = [];
+
+        overlay.style.display = 'flex';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        buffers = {};
+        durations = {};
+        try {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(!destNode) destNode = audioCtx.createMediaStreamDestination();
+            if (masteringEnabled) setupMasteringChain();
+
+            const p = {
+                'en': { preOpts:"The options are", intro:"Your time starts now", ans:"The correct option is", preExpl:"The explanation" },
+                'hi': { preOpts:"विकल्प हैं", intro:"समय शुरू होता है", ans:"सही उत्तर है", preExpl:"स्पष्टीकरण" }
+            }[data.lang] || { preOpts:"Options are", intro:"Time starts", ans:"Answer is", preExpl:"Explanation" };
+
+            const explanationChunks = (data.hasExplanation && data.explanationText.trim())
+                ? splitTextIntoChunks(data.explanationText)
+                : [];
+            const explanationPartsDurations = [];
+            const explanationPartsTexts = explanationChunks.slice();
+            const countNumbers = Array.from({length:data.styles.countVal},(_,i)=>data.styles.countVal - i);
+
+            const tasks = [
+                { text: data.questionText, key:'q',       desc:'Question' },
+                { text: p.preOpts,        key:'preOpts', desc:'Intro Options' },
+                { text: data.options.join(', '), key:'opts', desc:'Options' },
+                { text: p.intro,          key:'intro',   desc:'Intro' },
+                { text: `${p.ans} ${data.options[data.correctAnswerIndex]}`, key:'ans', desc:'Answer' },
+                { text: p.preExpl,        key:'preExpl', desc:'Intro Explanation' },
+                ...countNumbers.map(i => ({ text:String(i), key:`c${i}`, desc:`Countdown ${i}` })),
+                ...explanationChunks.map((chunk,i) => ({ text:chunk, key:`expl_${i}`, desc:`Explanation (${i+1})` }))
+            ];
+
+            let progress = 0;
+            const explanationBuffers = [];
+            let effectiveOfflineSpeech = useOfflineSpeech;
+
+            if (useOfflineSpeech) {
+                try {
+                    if (window.speechSynthesis.getVoices().length === 0) {
+                        await new Promise(r => window.speechSynthesis.onvoiceschanged = r);
+                    }
+                    const voiceName = document.getElementById('voiceSelect').value;
+                    const selectedVoice = availableVoices.find(v => v.name === voiceName);
+                    const recordedData = await captureAndSynthesize(tasks, data.lang, selectedVoice);
+                    for (const task of tasks) {
+                        if (cancelLoad) break;
+                        const result = recordedData[task.key];
+                        if (!result) { progressBar.style.width = `${(++progress / tasks.length) * 100}%`; continue; }
+                        const cacheKey = 'audio_' + hashCode(task.text + data.lang + '_offline');
+                        await cacheAudio(cacheKey, result.rawBuffer);
+                        if (task.key.startsWith('expl_')) {
+                            explanationBuffers.push(result.audioBuffer);
+                            explanationPartsDurations.push(result.audioBuffer.duration);
+                        } else {
+                            buffers[task.key] = result.audioBuffer;
+                            durations[task.key] = result.audioBuffer.duration;
+                        }
+                        progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
+                    }
+                } catch (err) {
+                    if (err.message === "MOBILE_DETECTED") {
+                        alert("Offline Speech Mode (Recording System Audio) is not supported on Mobile browsers.\nSwitching to Online API automatically.");
+                        effectiveOfflineSpeech = false;
+                    } else {
+                        throw err;
+                    }
+                }
+            } 
+            
+            if (!effectiveOfflineSpeech) {
+                for (const task of tasks) {
+                    if (cancelLoad) break;
+                    statusMsg.innerText = `Loading ${task.desc}...`;
+                    const cacheKey = 'audio_' + hashCode(task.text + data.lang);
+                    let audioBuffer = await getCachedAudio(cacheKey);
+
+                    if (!audioBuffer) {
+                        const u = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${data.lang}&client=tw-ob&q=${encodeURIComponent(task.text)}`;
+                        const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`);
+                        if (!r.ok) throw new Error('TTS error');
+                        const ab = await r.arrayBuffer();
+                        await cacheAudio(cacheKey, ab);
+                        audioBuffer = await audioCtx.decodeAudioData(ab);
+                    }
+
+                    if (task.key.startsWith('expl_')) {
+                        explanationBuffers.push(audioBuffer);
+                        explanationPartsDurations.push(audioBuffer.duration);
+                    } else {
+                        buffers[task.key] = audioBuffer;
+                        durations[task.key] = audioBuffer.duration;
+                    }
+                    progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
+                }
+            }
+
+            if (cancelLoad) throw new Error("Loading cancelled");
+
+            if (explanationBuffers.length > 0) {
+                buffers.expl = concatenateAudioBuffers(explanationBuffers, audioCtx);
+                durations.expl = buffers.expl ? buffers.expl.duration : 0;
+            } else {
+                delete buffers.expl;
+                durations.expl = 0;
+            }
+
+            calculateTimeline();
+            ['btnTest','btnRec'].forEach(id => document.getElementById(id).disabled = false);
+
+            const qid = data.qid;
+            perQuestionAudio[qid] = {
+                buffers: cloneBuffers(buffers),
+                durations: Object.assign({}, durations),
+                hasAudio: true,
+                explParts: explanationBuffers.length ? { texts: explanationPartsTexts, durations: explanationPartsDurations } : null
+            };
+            updateAudioStatusBadge(qid, true);
+
+            if(!batchAudioEnabled && !cancelAutoAI) alert("Audio loaded successfully for this question tab.");
+            
+        } catch(e) {
+            console.error(e);
+            // Update status to failed
+            const qidNow = data.qid;
+            updateAudioStatusBadge(qidNow, false);
+            
+            if (e.message !== "Loading cancelled") {
+                // If single mode, alert user. If batch, throw to let the retry logic handle it.
+                if (!batchAudioEnabled && !cancelAutoAI) alert("Audio Load Failed: " + e.message);
+                else throw e; // Re-throw for batch retry
+            }
+        } finally {
+            // Only hide overlay if NOT in batch mode
+            if (!batchAudioEnabled && !cancelAutoAI) {
+                overlay.style.display = 'none';
+                progressContainer.style.display = 'none';
+                document.getElementById('btnStopLoad').disabled = true;
+            }
+            speechSynthesis.cancel();
+        }
+    }
+
+    function cloneBuffers(src) {
+        const out = {};
+        for (const k in src) {
+            out[k] = src[k];
+        }
+        return out;
+    }
+
+    function updateAudioStatusBadge(qid, success) {
+        const span = document.getElementById('audioStatus-' + qid);
+        if (!span) return;
+        const store = perQuestionAudio[qid];
+        if (success === true || (store && store.hasAudio)) {
+            span.textContent = 'Audio loaded successfully';
+            span.classList.remove('fail');
+            span.classList.add('ok');
+        } else if (success === false) {
+            span.textContent = 'Audio load failed';
+            span.classList.remove('ok');
+            span.classList.add('fail');
+        } else {
+            span.textContent = 'Audio not loaded';
+            span.classList.remove('ok','fail');
+        }
+    }
+
+    async function batchLoadAudioForAllTabs(autoAI = false) {
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (!panels.length) return;
+        
+        if (!autoAI) {
+            const confirmBatch = confirm("Batch Load Audio will process all tabs one by one.\nIt will RETRY FAILED TABS automatically.\n\nContinue?");
+            if (!confirmBatch) return;
+        }
+
+        overlay.style.display = 'flex';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        statusMsg.innerText = 'Batch loading audio...';
+
+        // Force batch flag on for logic in loadAudioForActiveTab
+        const prevBatch = batchAudioEnabled;
+        batchAudioEnabled = true;
+        cancelLoad = false;
+
+        try {
+            for (let i = 0; i < panels.length; i++) {
+                if (cancelLoad || cancelAutoAI) break;
+                const panel = panels[i];
+                const qid = panel.dataset.qid;
+
+                // Check if already has valid audio (green)
+                if (perQuestionAudio[qid] && perQuestionAudio[qid].hasAudio) {
+                    continue; // Skip already loaded
+                }
+
+                setActiveQuestion(panel);
+                let success = false;
+                let retryCount = 0;
+
+                // RESILIENT LOOP: Keep trying until success or cancel
+                while (!success && !cancelLoad && !cancelAutoAI) {
+                    try {
+                        retryCount++;
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Loading Audio${retryCount > 1 ? ` (Retry ${retryCount-1})` : ''}...`;
+                        
+                        await loadAudioForActiveTab(); // This calls logic which updates perQuestionAudio
+
+                        // Verify success
+                        if (perQuestionAudio[qid] && perQuestionAudio[qid].hasAudio) {
+                            success = true;
+                        } else {
+                            throw new Error("Verification failed");
+                        }
+                    } catch (err) {
+                        console.log("Batch retry needed for qid " + qid);
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Load failed. Retrying in 2s...`;
+                        // Wait 2 seconds before retrying to respect API rate limits
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+                progressBar.style.width = `${((i+1) / panels.length) * 100}%`;
+            }
+            if (!cancelLoad && !cancelAutoAI && !autoAI) alert("Batch audio load completed for all tabs.");
+        } finally {
+            batchAudioEnabled = prevBatch; // Restore original state
+            if (!autoAI) {
+                overlay.style.display = 'none';
+                progressContainer.style.display = 'none';
+                document.getElementById('btnStopLoad').disabled = true;
+            }
+            speechSynthesis.cancel();
+        }
+    }
+
+    async function retakeAudioForTab(id) {
+        const panel = document.getElementById('question-panel-' + id);
+        if (!panel) return;
+        const confirmRetake = confirm("Retake audio for this question tab only?\nPrevious audio will be replaced for this tab.");
+        if (!confirmRetake) return;
+        setActiveQuestion(panel);
+        cancelLoad = false;
+        document.getElementById('btnStopLoad').disabled = false;
+        await loadAudioForActiveTab();
+    }
+
+    /* --- START: UPDATED AUTO AI LOGIC --- */
+    
+    // Helper function to get all panel layouts
+    function getLayoutsForAllPanels() {
+        const panels = document.querySelectorAll('.question-panel');
+        return Array.from(panels).map(p => JSON.parse(JSON.stringify(p.positions)));
+    }
+
+    // Helper function to apply layouts to all panels
+    function setLayoutsForAllPanels(layouts) {
+        const panels = document.querySelectorAll('.question-panel');
+        panels.forEach((p, index) => {
+            if (layouts[index]) {
+                p.positions = JSON.parse(JSON.stringify(layouts[index]));
+            }
+        });
+        drawStatic(); // Redraw canvas with new positions
+    }
+
+    // Main entry point for Auto AI button
+    function startAutoAIFlow() {
+        const panels = document.querySelectorAll('.question-panel');
+        if(panels.length === 0) { alert("Add questions first."); return; }
+
+        // Store initial state to restore later on cancel or completion
+        autoAISettings.initial = {
+            ratio: document.getElementById('resolution').value,
+            layouts: getLayoutsForAllPanels()
+        };
+
+        // Setup for Step 1: Individual videos
+        document.getElementById('resolution').value = 'mobile';
+        resizeCanvas();
+        
+        document.getElementById('aiSetupStep1').style.display = 'block';
+        document.getElementById('aiSetupStep2').style.display = 'none';
+        document.getElementById('autoAISetupModal').style.display = 'flex';
+    }
+
+    // Modal navigation: Cancel
+    function closeAutoAISetupModal() {
+        document.getElementById('autoAISetupModal').style.display = 'none';
+        // Restore initial state on cancel
+        if (autoAISettings.initial) {
+            document.getElementById('resolution').value = autoAISettings.initial.ratio;
+            setLayoutsForAllPanels(autoAISettings.initial.layouts);
+            resizeCanvas();
+        }
+    }
+    
+    // Modal navigation: Step 1 to Step 2
+    function goToAISetupStep2() {
+        // Save layouts from Step 1
+        autoAISettings.individualLayouts = getLayoutsForAllPanels();
+
+        // Setup for Step 2
+        const defaultLongRatio = 'landscape';
+        document.getElementById('aiLongVideoRatio').value = defaultLongRatio;
+        setAILongVideoRatio(defaultLongRatio);
+
+        document.getElementById('aiSetupStep1').style.display = 'none';
+        document.getElementById('aiSetupStep2').style.display = 'block';
+    }
+
+    // Modal interaction: Change ratio for long video
+    function setAILongVideoRatio(ratio) {
+        document.getElementById('resolution').value = ratio;
+        resizeCanvas();
+    }
+    
+    // Modal navigation: Start the process
+    function beginAutoAIExecution() {
+        // Save layouts from Step 2
+        autoAISettings.longLayouts = getLayoutsForAllPanels();
+        autoAISettings.longRatio = document.getElementById('aiLongVideoRatio').value;
+
+        // Close modal and start
+        document.getElementById('autoAISetupModal').style.display = 'none';
+        executeAutoAIFlow();
+    }
+
+    // This function contains the actual automated process
+    async function executeAutoAIFlow() {
+        cancelAutoAI = false;
+        const btnStart = document.getElementById('btnAutoAI');
+        const btnStop = document.getElementById('btnStopAutoAI');
+        btnStart.style.display = 'none';
+        btnStop.style.display = 'block';
+
+        try {
+            // STEP 1: BATCH AUDIO (Resilient)
+            statusMsg.innerText = "Auto AI: Step 1/5 - Loading Audio...";
+            overlay.style.display = 'flex';
+            progressContainer.style.display = 'block';
+            
+            await batchLoadAudioForAllTabs(true); // true = isAutoAI mode
+            
+            if(cancelAutoAI) throw new Error("Auto AI Cancelled");
+
+            // STEP 2 & 3: Setup and record INDIVIDUAL VIDEOS
+            statusMsg.innerText = "Auto AI: Step 2/5 - Preparing for individual videos...";
+            document.getElementById('resolution').value = 'mobile';
+            setLayoutsForAllPanels(autoAISettings.individualLayouts);
+            resizeCanvas();
+            await new Promise(r => setTimeout(r, 500)); // Give canvas time to draw
+            
+            statusMsg.innerText = "Auto AI: Step 3/5 - Recording individual videos (9:16)...";
+            await recordAllQuestionsIndividually(true); // true = isAutoAI mode
+
+            if(cancelAutoAI) throw new Error("Auto AI Cancelled");
+
+            // STEP 4 & 5: Setup and record COMBINED VIDEO
+            statusMsg.innerText = "Auto AI: Step 4/5 - Preparing for combined video...";
+            document.getElementById('resolution').value = autoAISettings.longRatio;
+            setLayoutsForAllPanels(autoAISettings.longLayouts);
+            resizeCanvas();
+            await new Promise(r => setTimeout(r, 500));
+
+            statusMsg.innerText = `Auto AI: Step 5/5 - Recording combined video...`;
+            await recordAllQuestionsAsSingleVideo(true); // true = isAutoAI mode
+
+            if(!cancelAutoAI) {
+                alert("🎉 AUTO AI COMPLETE!\n\nEverything is completed. Please check your device's download folder (Files) for:\n1. Individual video files (Mobile 9:16 Ratio)\n2. The full combined video file.");
+            }
+
+        } catch (e) {
+            console.log(e);
+            if (e.message !== "Auto AI Cancelled") alert("Auto AI Error: " + e.message);
+        } finally {
+            cancelAutoAI = false;
+            btnStart.style.display = 'block';
+            btnStop.style.display = 'none';
+            overlay.style.display = 'none';
+            progressContainer.style.display = 'none';
+            
+            // Restore initial state before Auto AI was started
+            if (autoAISettings.initial) {
+                document.getElementById('resolution').value = autoAISettings.initial.ratio;
+                setLayoutsForAllPanels(autoAISettings.initial.layouts);
+                resizeCanvas();
+            }
+        }
+    }
+
+    function stopAutoAIFlow() {
+        cancelAutoAI = true;
+        cancelLoad = true;
+        cancelRecording = true;
+        stopAnyRecording();
+    }
+
+    /* --- END: UPDATED AUTO AI LOGIC --- */
+
+
+    function drawFrame(elapsed, staticData = null) {
+        const data = staticData || getActiveQuestionData();
+        if (!data) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+        const w = canvas.width, h = canvas.height;
+
+        const bg = ctx.createLinearGradient(0,0,0,h);
+        bg.addColorStop(0, document.getElementById('bgColor1').value);
+        bg.addColorStop(1, document.getElementById('bgColor2').value);
+        ctx.fillStyle = bg;
+        ctx.fillRect(0,0,w,h);
+        if (globalBgImage) {
+            ctx.globalAlpha = 0.3;
+            drawImageCover(ctx, globalBgImage, 0,0,w,h);
+            ctx.globalAlpha = 1;
+        }
+
+        const qBox = getBoundingBox('question', data);
+        if (qBox) {
+            const p = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.q) / ANIM_DURATION));
+            ctx.save();
+            applyAnimation(ctx, p, data.styles.animQ, qBox);
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${data.styles.qSize}px "${data.styles.qFont}"`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            wrapText(ctx, data.questionText, 0, -qBox.h/2, qBox.w, data.styles.qSize * 1.3);
+            ctx.restore();
+        }
+
+        if (data.image && (elapsed === -1 || (data.imgReveal ? elapsed > T.reveal : true))) {
+            const iBox = getBoundingBox('image', data);
+            const pp = (elapsed === -1 || !data.imgReveal) ? 1 : Math.max(0, Math.min(1, (elapsed - T.reveal) / ANIM_DURATION));
+            ctx.save();
+            applyAnimation(ctx, pp, 'fade', iBox);
+            ctx.drawImage(data.image, -iBox.w/2, -iBox.h/2, iBox.w, iBox.h);
+            ctx.restore();
+        }
+
+        const oBox = getBoundingBox('options', data);
+        if (oBox && (elapsed === -1 || elapsed > T.preOpts)) {
+            const px = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.preOpts) / ANIM_DURATION));
+            ctx.save();
+            applyAnimation(ctx, px, data.styles.animO, oBox);
+            const isP = h > w;
+            const bH = isP ? h*0.07 : h*0.1;
+            const bW = isP ? w*0.85 : w*0.4;
+            const cardColor = document.getElementById('cardColor').value;
+            const correctColor = document.getElementById('correctColor').value;
+            const correct = parseInt(data.correctAnswerIndex);
+            const pos = isP
+                ? Array.from({length:4},(_,i)=>({x:0, y:-oBox.h/2+(bH/2)+i*(bH+10)}))
+                : [
+                    {x:-bW/2-10,y:-bH/2-10},
+                    {x: bW/2+10,y:-bH/2-10},
+                    {x:-bW/2-10,y: bH/2+10},
+                    {x: bW/2+10,y: bH/2+10}
+                ];
+            pos.forEach((pPos, i) => {
+                let color = `${cardColor}1A`, alpha = 1;
+                if (elapsed > T.reveal) {
+                    if (i === correct) color = correctColor;
+                    else alpha = 0.3;
+                }
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(pPos.x - bW/2, pPos.y - bH/2, bW, bH, 10);
+                ctx.fill();
+                ctx.fillStyle = '#f59e0b';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${bH*0.4}px Arial`;
+                ctx.fillText(['A','B','C','D'][i], pPos.x-bW/2+20, pPos.y);
+                ctx.fillStyle = 'white';
+                ctx.font = `${data.styles.oSize}px "${data.styles.oFont}"`;
+                fitText(ctx, data.options[i], pPos.x-bW/2+50, pPos.y, bW-60);
+                ctx.globalAlpha = 1;
+            });
+            ctx.restore();
+        }
+
+        const eBox = getBoundingBox('explanation', data);
+        if (eBox && data.hasExplanation && (elapsed === -1 || elapsed > T.preExpl)) {
+            const pp = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.preExpl) / ANIM_DURATION));
+            ctx.save();
+            applyAnimation(ctx, pp, data.styles.animE, eBox);
+            if (!data.styles.explNoBg) {
+                ctx.fillStyle = data.styles.explBg;
+                ctx.globalAlpha = 0.85 * pp;
+                ctx.beginPath();
+                ctx.roundRect(-eBox.w/2, -eBox.h/2, eBox.w, eBox.h, 15);
+                ctx.fill();
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+            ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
+
+            let hlIndex = 0;
+            const wordsAll = data.explanationText.split(' ').filter(w => w.length);
+            const store = perQuestionAudio[data.qid];
+
+            const explDurationScaled = (store && store.durations && store.durations.expl) ? (store.durations.expl / pitchFactor) : 0;
+            const explFinished = (elapsed !== -1 && explDurationScaled > 0 && elapsed > (T.expl + explDurationScaled));
+
+            if (explFinished) {
+                hlIndex = wordsAll.length - 1;
+            } else {
+                if (elapsed === -1 || !durations.expl || !T.expl || !store || !store.explParts) {
+                    const explProgress = (elapsed === -1 || !durations.expl)
+                        ? 0
+                        : Math.max(0, Math.min(1, (elapsed - T.expl) / (durations.expl / pitchFactor)));
+                    hlIndex = Math.floor(explProgress * wordsAll.length);
+                } else {
+                    const parts = store.explParts;
+                    const partDur = parts.durations || [];
+                    const partTexts = parts.texts || [];
+                    const tSample = Math.max(0, (elapsed - T.expl) * pitchFactor);
+                    let cum = 0;
+                    let partIndex = 0;
+                    for (let i=0;i<partDur.length;i++) {
+                        if (tSample < cum + partDur[i]) { partIndex = i; break; }
+                        cum += partDur[i];
+                        if (i === partDur.length-1) partIndex = i;
+                    }
+                    const curPartDur = partDur[partIndex] || 0.0001;
+                    const inside = Math.max(0, Math.min(1, (tSample - cum)/curPartDur));
+                    let wordsBefore = 0;
+                    for (let j=0;j<partIndex;j++) {
+                        wordsBefore += (partTexts[j] || '').split(' ').filter(w => w.length).length;
+                    }
+                    const curWords = (partTexts[partIndex] || '').split(' ').filter(w => w.length);
+                    const idxInPart = Math.floor(inside * curWords.length);
+                    hlIndex = Math.min(wordsAll.length-1, wordsBefore + idxInPart);
+                }
+            }
+            hlIndex = Math.max(0, Math.min(hlIndex, wordsAll.length-1));
+            drawKaraokeText(ctx, lines = layoutKaraokeLines(ctx, data.explanationText, eBox.w - 40), 0, 0, hlIndex, data.styles.eSize * 1.5, eBox.h, data.styles.explText, explFinished);
+            ctx.restore();
+        }
+
+        const cBox = getBoundingBox('countdown', data);
+        if (cBox && (elapsed === -1 || (elapsed > T.intro && elapsed < T.reveal))) {
+            let n = "";
+            if (elapsed !== -1) {
+                const timeLeft = Math.ceil(T.reveal - elapsed);
+                if (timeLeft > 0 && timeLeft <= data.styles.countVal) n = String(timeLeft);
+            } else {
+                n = String(data.styles.countVal);
+            }
+            if (n) {
+                ctx.save();
+                ctx.translate(cBox.x + cBox.w/2, cBox.y + cBox.h/2);
+                const s = (elapsed !== -1) ? 1 + Math.sin((elapsed%1)*Math.PI)*0.2 : 1;
+                ctx.scale(s,s);
+                ctx.fillStyle = data.styles.cColor;
+                ctx.font = `bold ${data.styles.cSize}px "${data.styles.cFont}"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(n, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        if (elapsed !== -1) {
+            const hbar = h-8;
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(0, h-8, w * (Math.min(elapsed, T.total)/T.total), 8);
+        }
+    }
+
+    function getBoundingBox(zone, data) {
+        if (!data || (zone==='image' && !data.image) || (zone==='explanation' && !data.hasExplanation)) return null;
+        const w = canvas.width, h = canvas.height, pos = data.positions[zone];
+        let boxW, boxH;
+        switch(zone) {
+            case 'question': boxW = w*0.9; boxH = data.styles.qSize*3; break;
+            case 'options':
+                const isP = h>w;
+                boxW = isP ? w*0.9 : (w*0.4+20)*2;
+                boxH = isP ? (h*0.07+10)*4 : (h*0.1+20)*2;
+                break;
+            case 'image':
+                boxH = h*0.4*data.imgScale;
+                boxW = (data.image.width/data.image.height)*boxH;
+                break;
+            case 'explanation':
+                boxW = w*0.9;
+                boxH = parseInt(data.styles.eSize)*1.5*3;
+                break;
+            case 'countdown':
+                boxH = parseInt(data.styles.cSize);
+                boxW = boxH;
+                break;
+        }
+        return {x:pos.x*w-boxW/2,y:pos.y*h-boxH/2,w:boxW,h:boxH};
+    }
+
+    function applyAnimation(ctx, p, type, box) {
+        ctx.translate(box.x+box.w/2, box.y+box.h/2);
+        let i = 1-p;
+        switch(type){
+            case 'fade': ctx.globalAlpha = p; break;
+            case 'slide-t': ctx.translate(0,-i*(box.y+box.h)); ctx.globalAlpha=p; break;
+            case 'slide-b': ctx.translate(0,i*(canvas.height-box.y)); ctx.globalAlpha=p; break;
+            case 'slide-l': ctx.translate(-i*(box.x+box.w),0); ctx.globalAlpha=p; break;
+            case 'slide-r': ctx.translate(i*(canvas.width-box.x),0); ctx.globalAlpha=p; break;
+            case 'zoom-in': ctx.scale(p,p); ctx.globalAlpha=p; break;
+            case 'zoom-out': ctx.scale(1+i,1+i); ctx.globalAlpha=p; break;
+        }
+    }
+
+    function drawKaraokeText(c, lines, x, y, hIndex, lineH, boxH, color, isFinished) {
+        let wordCount = 0, activeLine = 0;
+        for (let i=0;i<lines.length;i++) {
+            if (hIndex >= wordCount && hIndex < wordCount + lines[i].length) { activeLine = i; break; }
+            wordCount += lines[i].length;
+        }
+        const startY = y - boxH/2 + lineH/2;
+        const scrollOffset = Math.max(0, activeLine-1)*lineH;
+        wordCount = 0;
+        for (let i=0;i<lines.length;i++) {
+            const lineY = startY + i*lineH - scrollOffset;
+            const lineText = lines[i].join(' ');
+            const lineW = c.measureText(lineText).width;
+            let cx = x - lineW/2;
+            for (const word of lines[i]) {
+                const isActiveWord = (wordCount === hIndex);
+                c.fillStyle = isActiveWord ? '#f59e0b' : color;
+                if (i < activeLine-1 || i > activeLine+1) c.globalAlpha=0;
+                else if (i !== activeLine) c.globalAlpha=0.5;
+                else c.globalAlpha=1;
+                c.textAlign='left';
+                c.textBaseline='middle';
+                if (isActiveWord && wordAnimateEnabled && !isFinished) {
+                    const baseWidth = c.measureText(word).width;
+                    const tx = cx + baseWidth/2;
+                    const ty = lineY;
+                    c.save();
+                    c.translate(tx, ty);
+                    const scale = 1.12 + 0.04 * Math.sin(performance.now()/120);
+                    c.scale(scale, scale);
+                    c.fillText(word, -baseWidth/2, 0);
+                    c.restore();
+                } else {
+                    c.fillText(word, cx, lineY);
+                }
+                cx += c.measureText(word+' ').width;
+                wordCount++;
+            }
+        }
+        c.globalAlpha = 1;
+    }
+
+    const layoutKaraokeLines = (c,t,maxW) => {
+        const words=t.split(' '), lines=[], cur=[];
+        for (const w of words) {
+            const test=[...cur,w].join(' ');
+            if (c.measureText(test).width>maxW && cur.length>0) {
+                lines.push([...cur]); cur.length=0;
+            }
+            cur.push(w);
+        }
+        if (cur.length) lines.push(cur);
+        return lines;
+    };
+
+    const wrapText = (c,t,x,y,maxW,lineH) => {
+        const words=t.split(' '), lines=[];
+        let line='';
+        for(let i=0;i<words.length;i++){
+            let test=line+words[i]+' ';
+            if(c.measureText(test).width>maxW&&i>0){lines.push(line);line=words[i]+' ';}else line=test;
+        }
+        lines.push(line);
+        for(let i=0;i<lines.length;i++) c.fillText(lines[i],x,y+i*lineH);
+    };
+
+    const fitText = (c,t,x,y,maxW) => {
+        let u=t;
+        while(c.measureText(u).width>maxW&&u.length>0) u=u.slice(0,-1);
+        if(u.length<t.length) u+='...';
+        c.fillText(u,x,y);
+    };
+
+    const splitTextIntoChunks = (t,maxLen=180) => {
+        const chunks=[]; let remaining=t.trim();
+        while(remaining.length>0){
+            if(remaining.length<=maxLen){chunks.push(remaining);break;}
+            let idx=remaining.lastIndexOf('.',maxLen);
+            if(idx===-1) idx=remaining.lastIndexOf(' ',maxLen);
+            if(idx===-1) idx=maxLen;
+            chunks.push(remaining.substring(0,idx+1));
+            remaining=remaining.substring(idx+1).trim();
+        }
+        return chunks.filter(s=>s.length>0);
+    };
+
+    const concatenateAudioBuffers = (list, ctx) => {
+        if(!list||!list.length) return null;
+        let length=0;
+        list.forEach(b=>length+=b.length);
+        const out=ctx.createBuffer(list[0].numberOfChannels,length,list[0].sampleRate);
+        let offset=0;
+        list.forEach(b=>{
+            for(let ch=0;ch<b.numberOfChannels;ch++){
+                out.getChannelData(ch).set(b.getChannelData(ch),offset);
+            }
+            offset+=b.length;
+        });
+        return out;
+    };
+
+    function dDur(key) {
+        return (durations[key] || 0) / pitchFactor;
+    }
+
+    function computeTimelineFromDurations(durs, countValLocal) {
+        const out = {};
+        const d = (k)=> (durs[k] || 0)/pitchFactor;
+        out.q = 0.5;
+        out.preOpts = out.q + d('q') + 0.2;
+        out.opts = out.preOpts + d('preOpts');
+        out.intro = out.opts + d('opts') + 0.5;
+        out.countStart = out.intro + d('intro');
+        out.reveal = out.countStart + countValLocal;
+        out.ans = out.reveal + 0.5;
+        if (durs.expl && durs.expl > 0) {
+            out.preExpl = out.ans + d('ans') + 0.5;
+            out.expl = out.preExpl + d('preExpl') + 0.2;
+            out.total = out.expl + d('expl') + 2;
+        } else {
+            out.preExpl = null;
+            out.expl = null;
+            out.total = out.ans + d('ans') + 2;
+        }
+        return out;
+    }
+
+    function calculateTimeline() {
+        const data = getActiveQuestionData();
+        if (!data) return;
+        T = computeTimelineFromDurations(durations, data.styles.countVal);
+        updateUI();
+    }
+
+    function updateUI() {
+        ['Opts','Ans'].forEach(id=>{
+            document.getElementById('slide'+id).value =
+            document.getElementById('val'+id).value =
+                parseFloat(T[id.toLowerCase()]).toFixed(1);
+        });
+        document.getElementById('totalDur').innerText = T.total.toFixed(1);
+    }
+
+    function syncTime(key,val) {
+        const t = parseFloat(val);
+        if (key==='opts') T.opts = t;
+        else if (key==='ans') {
+            T.reveal = t;
+            T.ans = t + 0.5;
+        }
+        let newTotal = (durations.expl>0)
+            ? T.ans + dDur('ans') + 0.5 + dDur('expl') + 2
+            : T.ans + dDur('ans') + 2;
+        T.total = Math.max(newTotal, T.reveal + 3);
+        updateUI();
+    }
+
+    function scheduleAllAudio(startTime) {
+        const data = getActiveQuestionData();
+        if (!data) return;
+        Object.keys(buffers).forEach(k=>{
+            if (k.startsWith('expl_')) return;
+            let when;
+            if (k.startsWith('c')) {
+                const n = parseInt(k.substring(1));
+                when = T.countStart + (data.styles.countVal - n);
+            } else if (k === 'expl') {
+                when = T.expl;
+            } else {
+                when = T[k];
+            }
+            if (when !== undefined && when !== null) playScheduled(buffers[k], startTime + when);
+        });
+
+        if (bgMusicBuffer) {
+            const bgSrc = audioCtx.createBufferSource();
+            bgSrc.buffer = bgMusicBuffer;
+            bgSrc.loop = true;
+            const bgGain = audioCtx.createGain();
+            bgGain.gain.value = document.getElementById('bgMusicVol').value / 100;
+            if (masteringEnabled && masterNodes) {
+                bgSrc.connect(masterNodes.input);
+            } else {
+                bgSrc.connect(audioCtx.destination);
+                if (destNode) bgSrc.connect(destNode);
+            }
+            bgGain.connect(masteringEnabled && masterNodes ? masterNodes.input : audioCtx.destination);
+            bgSrc.start(startTime);
+            bgSrc.stop(startTime + T.total + 1);
+        }
+    }
+
+    function playScheduled(buffer, time) {
+        if (!audioCtx || !buffer) return;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = pitchFactor;
+        if (masteringEnabled && masterNodes) {
+            src.connect(masterNodes.input);
+        } else {
+            src.connect(audioCtx.destination);
+            if (destNode) src.connect(destNode);
+        }
+        src.start(time);
+    }
+
+    function runAnimation(startTime) {
+        const loop = () => {
+            if (!audioCtx) return;
+            const elapsed = audioCtx.currentTime - startTime;
+            drawFrame(elapsed);
+            if (elapsed < T.total + 0.5) requestAnimationFrame(loop);
+        };
+        loop();
+    }
+
+    function testPlayback() {
+        if (!audioCtx) return;
+        destNode = null;
+        if (masteringEnabled) connectMasterOutput();
+        startTestLoop();
+    }
+
+    function startTestLoop() {
+        const startTime = audioCtx.currentTime + 0.1;
+        scheduleAllAudio(startTime);
+        runAnimation(startTime);
+        if (loopTestEnabled) {
+            setTimeout(() => {
+                if (loopTestEnabled) startTestLoop();
+            }, (T.total + 0.5) * 1000);
+        }
+    }
+
+    function openVideoModeModal() {
+        document.getElementById('videoModeModal').style.display = 'flex';
+    }
+
+    function closeVideoModeModal() {
+        document.getElementById('videoModeModal').style.display = 'none';
+    }
+
+    function stopAnyRecording() {
+        cancelRecording = true;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            try { mediaRecorder.stop(); } catch(e){}
+        }
+        overlay.style.display = 'none';
+        document.getElementById('btnRecStop').disabled = true;
+    }
+
+    async function startPerQuestionRecordingMode() {
+        closeVideoModeModal();
+        await recordAllQuestionsIndividually();
+    }
+
+    function recordActiveQuestionOnly() {
+        closeVideoModeModal();
+        recordActiveQuestionToBlob();
+    }
+
+    function startFullCombinedRecordingMode() {
+        closeVideoModeModal();
+        recordAllQuestionsAsSingleVideo();
+    }
+
+    async function recordActiveQuestionToBlob() {
+        const p = document.querySelector('.question-panel.active-question');
+        if (!p) {
+            alert("Select a question tab first.");
+            return;
+        }
+        document.getElementById('btnRecStop').disabled = false;
+        await recordQuestionPanelToBlob(p);
+        document.getElementById('btnRecStop').disabled = false;
+    }
+
+    async function recordQuestionPanelToBlob(panel, autoDownload = false) {
+        const data = getQuestionDataFromPanel(panel);
+        if (!perQuestionAudio[data.qid] || !perQuestionAudio[data.qid].hasAudio) {
+            alert("Load audio first for this tab.");
+            return;
+        }
+
+        setActiveQuestion(panel);
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        destNode = audioCtx.createMediaStreamDestination();
+        if (masteringEnabled) setupMasteringChain();
+
+        cancelRecording = false;
+        document.getElementById('dlLink').style.display = 'none';
+        overlay.style.display = 'flex';
+        statusMsg.innerText = `Recording video for: ${data.questionText.substring(0,20)}...`;
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(destNode);
+        osc.start();
+        osc.stop(audioCtx.currentTime + T.total + 2);
+
+        const stream = canvas.captureStream(30);
+        const combined = new MediaStream([stream.getVideoTracks()[0], destNode.stream.getAudioTracks()[0]]);
+        let mime = 'video/webm';
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2'))
+            mime = 'video/mp4;codecs=avc1,mp4a.40.2';
+
+        const quality = parseInt(document.getElementById('videoQuality').value || '6000000');
+
+        mediaRecorder = new MediaRecorder(combined, { mimeType:mime, videoBitsPerSecond:quality });
+        let chunks = [];
+        const donePromise = new Promise(resolve => {
+            mediaRecorder.ondataavailable = e => { if (e.data.size>0) chunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                if (cancelRecording) { chunks = []; resolve(); return; }
+                const blob = new Blob(chunks, { type:mime });
+                perQuestionVideoBlobs[data.qid] = blob;
+                const a = document.getElementById('dlLink');
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
+                a.style.display = 'block';
+                overlay.style.display = 'none';
+
+                if (autoDownload) {
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }
+                resolve();
+            };
+        });
+
+        mediaRecorder.start();
+        const startTime = audioCtx.currentTime + 0.5;
+        scheduleAllAudio(startTime);
+        runAnimation(startTime);
+        setTimeout(()=> {
+            if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+        }, (T.total + 1)*1000);
+
+        await donePromise;
+    }
+
+    async function recordAllQuestionsIndividually(autoAI = false) {
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (!panels.length) return;
+
+        if (!autoAI) {
+            for (const p of panels) {
+                const qid = p.dataset.qid;
+                if (!perQuestionAudio[qid] || !perQuestionAudio[qid].hasAudio) {
+                    alert("Please load audio for ALL question tabs before automatic per-question recording.");
+                    return;
+                }
+            }
+        }
+
+        cancelRecording = false;
+        document.getElementById('btnRecStop').disabled = false;
+        overlay.style.display = 'flex';
+        statusMsg.innerText = "Recording all question tabs one by one...";
+
+        for (let i=0; i<panels.length; i++) {
+            if (cancelRecording || cancelAutoAI) break;
+            const p = panels[i];
+            const data = getQuestionDataFromPanel(p);
+            if(autoAI) statusMsg.innerText = `Auto AI: Recording individual video ${i+1} of ${panels.length}...`;
+            await recordQuestionPanelToBlob(p, true);
+            if (i < panels.length - 1) {
+                 await new Promise(r => setTimeout(r, 1500));
+            }
+        }
+
+        overlay.style.display = 'none';
+        document.getElementById('btnRecStop').disabled = true;
+        cancelRecording = false;
+        if(!autoAI) alert("Batch recording complete! Check your downloads folder.");
+    }
+
+    async function recordAllQuestionsAsSingleVideo(autoAI = false) {
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (!panels.length) return;
+
+        if (!autoAI) {
+            for (const p of panels) {
+                const qid = p.dataset.qid;
+                if (!perQuestionAudio[qid] || !perQuestionAudio[qid].hasAudio) {
+                    alert("Please load audio for ALL question tabs before recording the full combined video.");
+                    return;
+                }
+            }
+        }
+
+        overlay.style.display = 'flex';
+        statusMsg.innerText = "Recording full combined video...";
+        progressContainer.style.display = 'none';
+
+        const qDatas = [];
+        const timelines = [];
+        const durationsArr = [];
+        const offsets = [];
+        let totalDuration = 0;
+        const countValGlobal = parseInt(document.getElementById('countVal').value);
+
+        panels.forEach((p, idx) => {
+            const qData = getQuestionDataFromPanel(p);
+            const qid = qData.qid;
+            const store = perQuestionAudio[qid];
+            const localDur = store.durations;
+            const localT = computeTimelineFromDurations(localDur, countValGlobal);
+            qDatas.push(qData);
+            timelines.push(localT);
+            durationsArr.push(localDur);
+            offsets.push(totalDuration);
+            totalDuration += localT.total + 0.3;
+        });
+
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        destNode = audioCtx.createMediaStreamDestination();
+        if (masteringEnabled) setupMasteringChain();
+
+        cancelRecording = false;
+        document.getElementById('btnRecStop').disabled = false;
+
+        const stream = canvas.captureStream(30);
+        const combinedStream = new MediaStream([stream.getVideoTracks()[0], destNode.stream.getAudioTracks()[0]]);
+        let mime = 'video/webm';
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2'))
+            mime = 'video/mp4;codecs=avc1,mp4a.40.2';
+
+        const quality = parseInt(document.getElementById('videoQuality').value || '6000000');
+
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType:mime, videoBitsPerSecond:quality });
+        const chunks = [];
+        const donePromise = new Promise(resolve => {
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                if (cancelRecording) { overlay.style.display='none'; document.getElementById('btnRecStop').disabled = true; resolve(); return; }
+                const blob = new Blob(chunks, { type:mime });
+                combinedVideoBlob = blob;
+                const a = document.getElementById('dlLink');
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
+                a.style.display = 'block';
+                overlay.style.display = 'none';
+                document.getElementById('btnRecStop').disabled = true;
+                clearSessionCache();
+                
+                if(autoAI) {
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }
+                resolve();
+            };
+        });
+
+        mediaRecorder.start();
+        const baseTime = audioCtx.currentTime + 0.5;
+
+        if (bgMusicBuffer) {
+            const bgSrc = audioCtx.createBufferSource();
+            bgSrc.buffer = bgMusicBuffer;
+            bgSrc.loop = true;
+            const bgGain = audioCtx.createGain();
+            bgGain.gain.value = document.getElementById('bgMusicVol').value / 100;
+            if (masteringEnabled && masterNodes) {
+                bgSrc.connect(masterNodes.input);
+            } else {
+                bgSrc.connect(audioCtx.destination);
+                if (destNode) bgSrc.connect(destNode);
+            }
+            bgSrc.start(baseTime);
+            bgSrc.stop(baseTime + totalDuration + 1);
+        }
+
+        for (let i=0;i<panels.length;i++) {
+            const qData = qDatas[i];
+            const qid = qData.qid;
+            const store = perQuestionAudio[qid];
+            const localBuffers = store.buffers;
+            const localT = timelines[i];
+            const startOffset = offsets[i];
+
+            Object.keys(localBuffers).forEach(k => {
+                if (k.startsWith('expl_')) return;
+                let whenLocal;
+                if (k.startsWith('c')) {
+                    const n = parseInt(k.substring(1));
+                    whenLocal = localT.countStart + (qData.styles.countVal - n);
+                } else if (k === 'expl') {
+                    whenLocal = localT.expl;
+                } else {
+                    whenLocal = localT[k];
+                }
+                if (whenLocal !== undefined && whenLocal !== null) {
+                    const whenGlobal = baseTime + startOffset + whenLocal;
+                    const src = audioCtx.createBufferSource();
+                    src.buffer = localBuffers[k];
+                    src.playbackRate.value = pitchFactor;
+                    if (masteringEnabled && masterNodes) {
+                        src.connect(masterNodes.input);
+                    } else {
+                        src.connect(audioCtx.destination);
+                        if (destNode) src.connect(destNode);
+                    }
+                    src.start(whenGlobal);
+                }
+            });
+        }
+
+        const animateLong = () => {
+            if (!audioCtx || cancelRecording) return;
+            const now = audioCtx.currentTime;
+            const globalElapsed = now - baseTime;
+            if (globalElapsed < 0) {
+                requestAnimationFrame(animateLong);
+                return;
+            }
+            if (globalElapsed > totalDuration + 1) return;
+
+            let curIndex = qDatas.length - 1;
+            for (let i=0;i<qDatas.length;i++) {
+                if (globalElapsed >= offsets[i] && globalElapsed < offsets[i] + timelines[i].total) {
+                    curIndex = i;
+                    break;
+                }
+            }
+            const localElapsed = globalElapsed - offsets[curIndex];
+            T = timelines[curIndex];
+            drawFrame(localElapsed, qDatas[curIndex]);
+            requestAnimationFrame(animateLong);
+        };
+        animateLong();
+
+        setTimeout(()=> {
+            if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+        }, (totalDuration + 1) * 1000);
+
+        await donePromise;
+    }
+
+    const drawImageCover = (c,i,x,y,w,h) => {
+        const r=w/h, ir=i.width/i.height;
+        let dw=w, dh=h;
+        if (ir>r) dw=h*ir; else dh=w/ir;
+        c.drawImage(i,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+    };
+
+    function initExcelTable() {
+        const tbody = document.querySelector('#excelTable tbody');
+        for (let i=0;i<5;i++) {
+            tbody.appendChild(createExcelRow());
+        }
+
+        const table = document.getElementById('excelTable');
+        table.addEventListener('click', e => {
+            if (e.target.tagName === 'TD') lastExcelCell = e.target;
+        });
+        table.addEventListener('focusin', e => {
+            if (e.target.tagName === 'TD') lastExcelCell = e.target;
+        });
+        table.addEventListener('paste', handleExcelPaste);
+    }
+
+    function createExcelRow(initial = []) {
+        const tr = document.createElement('tr');
+        const colCount = 7;
+        for (let i=0;i<colCount;i++) {
+            const td = document.createElement('td');
+            td.contentEditable = "true";
+            td.textContent = initial[i] || '';
+            tr.appendChild(td);
+        }
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '✕';
+        btn.className = 'excel-actions-btn';
+        btn.onclick = () => tr.remove();
+        actionTd.appendChild(btn);
+        tr.appendChild(actionTd);
+        return tr;
+    }
+
+    function addExcelRow() {
+        const tbody = document.querySelector('#excelTable tbody');
+        tbody.appendChild(createExcelRow());
+    }
+
+    function clearExcelTable() {
+        const tbody = document.querySelector('#excelTable tbody');
+        tbody.innerHTML = '';
+        for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
+    }
+
+    function pasteTextIntoExcel(text, startCell) {
+        if (!text) return;
+        const tbody = document.querySelector('#excelTable tbody');
+        const rows = text.trim().split(/\r?\n/).filter(r => r.length);
+        const grid = rows.map(rowStr => rowStr.split('\t'));
+        let startRow = 0, startCol = 0;
+
+        if (startCell) {
+            const td = startCell.closest('td');
+            const tr = startCell.closest('tr');
+            if (td && tr && tr.parentElement === tbody) {
+                startRow = Array.from(tbody.rows).indexOf(tr);
+                startCol = td.cellIndex;
+                if (startCol > 6) startCol = 0;
+            }
+        }
+
+        while (tbody.rows.length < startRow + grid.length) {
+            tbody.appendChild(createExcelRow());
+        }
+
+        grid.forEach((cols, rIdx) => {
+            const tr = tbody.rows[startRow + rIdx];
+            for (let cIdx = 0; cIdx < cols.length && (startCol + cIdx) < 7; cIdx++) {
+                const targetCell = tr.cells[startCol + cIdx];
+                if (targetCell) {
+                    targetCell.textContent = cols[cIdx];
+                }
+            }
+        });
+    }
+
+    function handleExcelPaste(e) {
+        const clipboard = e.clipboardData || window.clipboardData;
+        if (!clipboard) return;
+        const text = clipboard.getData('text/plain');
+        if (!text) return;
+        e.preventDefault();
+        const startCell = e.target.closest('td') || lastExcelCell;
+        pasteTextIntoExcel(text, startCell);
+    }
+
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) {
+                alert('Clipboard is empty or not accessible.');
+                return;
+            }
+            let startCell = lastExcelCell;
+            if (!startCell) {
+                const tbody = document.querySelector('#excelTable tbody');
+                if (tbody.rows[0]) startCell = tbody.rows[0].cells[0];
+            }
+            pasteTextIntoExcel(text, startCell);
+        } catch (err) {
+            alert('Browser blocked clipboard access. Click a cell and use Ctrl+V to paste.');
+        }
+    }
+
+    function importQuestionsFromTable() {
+        const tbody = document.querySelector('#excelTable tbody');
+        const rows = Array.from(tbody.rows);
+        let imported = 0;
+        rows.forEach(tr => {
+            const cells = Array.from(tr.cells);
+            if (cells.length < 7) return;
+            const q = cells[0].innerText.trim();
+            const a = cells[1].innerText.trim();
+            const b = cells[2].innerText.trim();
+            const c = cells[3].innerText.trim();
+            const d = cells[4].innerText.trim();
+            const correctRaw = cells[5].innerText.trim();
+            const expl = cells[6].innerText.trim();
+            if (!q && !a && !b && !c && !d) return;
+
+            const options = [a,b,c,d];
+            let correctIndex = 0;
+            if (correctRaw) {
+                const upper = correctRaw.toUpperCase();
+                if (['A','B','C','D'].includes(upper)) {
+                    correctIndex = upper.charCodeAt(0) - 65;
+                } else if (/^[1-4]$/.test(correctRaw)) {
+                    correctIndex = parseInt(correctRaw,10) - 1;
+                } else {
+                    const matchIdx = options.findIndex(o => o && o.toLowerCase() === correctRaw.toLowerCase());
+                    if (matchIdx >= 0) correctIndex = matchIdx;
+                }
+            }
+            if (correctIndex < 0 || correctIndex > 3 || !options[correctIndex]) correctIndex = 0;
+
+            addQuestionPanel({
+                lang: 'en',
+                question: q,
+                options,
+                correctIndex,
+                explanation: expl
+            });
+            imported++;
+        });
+
+        if (!imported) {
+            alert('No valid rows found to import.');
+            return;
+        }
+        closeAddQuestionModal();
+    }
+
+    function openAddQuestionModal() {
+        document.getElementById('addQModal').style.display = 'flex';
+        document.getElementById('addQModeChooser').style.display = 'block';
+        document.getElementById('excelEditorSection').style.display = 'none';
+    }
+
+    function closeAddQuestionModal() {
+        document.getElementById('addQModal').style.display = 'none';
+    }
+
+    function handleAddSingleQuestion() {
+        closeAddQuestionModal();
+        addQuestionPanel();
+    }
+
+    function openExcelEditor() {
+        document.getElementById('addQModeChooser').style.display = 'none';
+        document.getElementById('excelEditorSection').style.display = 'block';
+    }
+
+    function backToModeChooser() {
+        document.getElementById('excelEditorSection').style.display = 'none';
+        document.getElementById('addQModeChooser').style.display = 'block';
+    }
+</script>
+</body>
+</html>
