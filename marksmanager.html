@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Student Marks Management</title>
+    <style>
+        /* Base Styles */
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; transition: background 0.3s; }
+        h1, h2, h3, h4 { color: #333; margin-top: 0; }
+        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .panel { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* Buttons */
+        button { background-color: #28a745; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        button:hover { background-color: #218838; }
+        .btn-blue { background-color: #007bff; }
+        .btn-blue:hover { background-color: #0069d9; }
+        .btn-red { background-color: #dc3545; float: right; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-warning { background-color: #ffc107; color: #000; }
+        .btn-warning:hover { background-color: #e0a800; }
+        
+        /* Layouts */
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .workspace { display: flex; gap: 20px; align-items: flex-start; }
+        .sidebar { width: 320px; background: #fff; border: 1px solid #ccc; padding: 15px; border-radius: 5px; max-height: 800px; overflow-y: auto; flex-shrink: 0; }
+        .main-content { flex-grow: 1; background: #eef2f5; border: 1px solid #ccc; padding: 20px; border-radius: 5px; min-height: 500px; overflow-x: auto; width: 100%; box-sizing: border-box; }
+
+        /* Tree & Lists */
+        .tree-list { list-style: none; padding-left: 20px; margin: 0; }
+        .tree-item { margin: 8px 0; }
+        .tree-toggle { cursor: pointer; font-weight: bold; color: #333; }
+        .tree-toggle:hover { color: #000; text-decoration: underline; }
+        .section-link { cursor: pointer; color: #333; font-weight: bold; }
+        .section-link:hover { text-decoration: underline; }
+        .badge { background: #333; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 5px; }
+        .global-list-box { max-height: 120px; overflow-y: auto; border: 1px solid #ddd; background: #fff; margin-top: 5px; padding: 5px; }
+        .list-item-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 3px 0; font-size: 13px; }
+
+        /* Toolbars & App Navigation */
+        .master-toolbar { background: #343a40; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 5px; flex-wrap: wrap; gap:10px;}
+        .app-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { background: #e0e0e0; color: #333; padding: 10px 20px; font-size: 16px; border-radius: 5px 5px 0 0; border: 1px solid #ccc; border-bottom: none; }
+        .tab-btn.active { background: #fff; font-weight: bold; color: #0056b3; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); border-bottom: 2px solid #fff;}
+        .view-section { display: none; }
+        .view-section.active { display: flex; flex-direction: column; gap: 20px; }
+        
+        .toolbar { background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-top: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;}
+        .toolbar-group { display: flex; flex-direction: column; gap: 5px; }
+        .checkbox-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+        .checkbox-group label { font-weight: normal; font-size: 13px; display: flex; align-items: center; gap: 3px; }
+        .toggle-switch { display: flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; color: #333; background: #fff; padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;}
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 3px; color: #555; }
+        
+        #syncStatus { font-size: 12px; margin-left: 10px; padding: 3px 8px; border-radius: 15px; white-space: nowrap;}
+        .status-off { background: #6c757d; color: white; }
+        .status-sync { background: #ffc107; color: black; }
+        .status-on { background: #28a745; color: white; }
+
+        /* REAL A4 PAGE CONTAINER UI */
+        .page-wrapper {
+            background-color: #525659;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: auto;
+            border: 1px solid #ccc;
+        }
+        .a4-sheet {
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            padding: 15mm;
+            box-sizing: border-box;
+            transition: width 0.3s ease, min-height 0.3s ease;
+            width: 210mm;
+            min-height: 297mm;
+            flex-shrink: 0; /* Prevents container layout compression on small mobile screens */
+        }
+        body.landscape-mode .a4-sheet {
+            width: 297mm;
+            min-height: 210mm;
+        }
+
+        /* SIMPLE TABLE DESIGN */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: transparent; white-space: nowrap; border: 1px solid #000; color: #000; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: center; position: relative; }
+        th { font-weight: bold; vertical-align: middle; background: transparent; }
+        .sub-header { font-size: 13px; font-weight: bold; }
+        
+        thead th { background-color: #000; color: #fff; border-color: #444; }
+        thead th .sort-box span { background: #444; border: 1px solid #666; color: #fff; }
+        thead th .sort-box span:hover { background: #666; }
+
+        .marks-input { width: 60px; text-align: center; padding: 4px; border: 1px solid transparent; border-bottom: 1px solid #ccc; font-weight: bold; transition: width 0.2s; background: transparent; }
+        .marks-input:focus { outline: none; border-bottom: 2px solid #000; }
+        .reg-input { width: 100px; text-align: left; }
+
+        .note-btn { position: absolute; right: 2px; top: 2px; font-size: 10px; cursor: pointer; background: #eee; border: 1px solid #999; border-radius: 2px; padding: 2px 4px; display: none; color: #333; font-weight: bold; }
+        td:hover .note-btn { display: inline-block; }
+
+        /* --- UPDATED STATEMENT HEADER LAYOUT (CENTERED + EDITABLE) --- */
+        .statement-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        
+        /* Editable Heading */
+        .heading-input { text-align: center; font-size: 24px; font-weight: bold; text-transform: uppercase; border: 1px solid transparent; background: transparent; width: 100%; outline: none; margin: 0 0 5px 0; padding: 0; color: #000; transition: border 0.2s; }
+        .heading-input:hover, .heading-input:focus { border-bottom: 1px dashed #ccc; }
+
+        /* Centered Details */
+        .statement-details-row { display: flex; justify-content: center; flex-wrap: wrap; width: 100%; margin-bottom: 5px; }
+        .statement-details-group { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; font-size: 14px; }
+
+        /* Analytics UI specific */
+        .analytics-card { background: #fff; border: 1px solid #ccc; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #007bff; margin-top: 5px; }
+        .clickable-list-item { cursor: pointer; padding: 5px; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .clickable-list-item:hover { background: #eef5ff; color: #0056b3; font-weight: bold; }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .grid-3, .grid-2 { grid-template-columns: 1fr; }
+            .workspace { flex-direction: column; }
+            .sidebar { width: 100%; max-height: 300px; }
+            .toolbar { flex-direction: column; align-items: flex-start; }
+            .toolbar-group { width: 100%; border-left: none !important; padding-left: 0 !important; }
+            .page-wrapper { justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .master-toolbar { flex-direction: column; text-align: center; }
+            .master-toolbar > div { justify-content: center; width: 100%; flex-wrap: wrap;}
+            .db-connection-flex { flex-direction: column; align-items: stretch !important;}
+            .page-wrapper { padding: 10px; justify-content: flex-start; overflow-x: auto; } 
+            .statement-details-group { gap: 10px; flex-direction: column; align-items: center;}
+        }
+
+        /* EXACT WYSIWYG Print Rules */
+        @media print {
+            body * { visibility: hidden; }
+            body, .panel, .workspace, .main-content { background: transparent !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+            
+            #tableContainer, #tableContainer * { visibility: visible; }
+            #analyticsPrintArea, #analyticsPrintArea * { visibility: visible; }
+            
+            .page-wrapper { padding: 0; background: transparent; border: none; display: block; overflow: visible; margin: 0; position: absolute; left: 0; top: 0; width: 100%; }
+            .a4-sheet { box-shadow: none; margin: 0; padding: 0; width: 100% !important; min-height: auto !important; position: static; left: 0; top: 0; }
+            
+            .no-print { display: none !important; }
+            .marks-input, .reg-input { border: none !important; }
+            .heading-input { border: none !important; } 
+            
+            /* Force printing background colors (for the black header) */
+            thead th {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: #fff !important; 
+            }
+            
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; } 
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Global Navigation Header -->
+    <div class="master-toolbar no-print">
+        <div style="display:flex; align-items:center; flex-wrap:wrap; justify-content:center; gap:5px;">
+            <h2 style="margin:0; color:white;">Ultimate Marks Manager</h2>
+            <span id="syncStatus" class="status-off">Database Offline</span>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-secondary" onclick="undoData()">↩️ Undo</button>
+            <button class="btn-secondary" onclick="redoData()">↪️ Redo</button>
+            <button class="btn-blue" onclick="forceSaveData()">💾 Save & Sync</button>
+        </div>
+    </div>
+
+    <!-- View Layer Switcher Tabs -->
+    <div class="app-tabs no-print" style="max-width: 1400px; margin: 0 auto;">
+        <button class="tab-btn active" id="tab_marks" onclick="switchTab('marks')">📝 Marks Management</button>
+        <button class="tab-btn" id="tab_analytics" onclick="switchTab('analytics')">📊 Analytics & Reports</button>
+    </div>
+
+    <!-- VIEW 1: MARKS MANAGEMENT -->
+    <div id="view_marks" class="view-section active container">
+        <div class="panel no-print" style="background: #eef5ff; border: 1px solid #b8daff;">
+            <h2 style="color: #0056b3; margin:0 0 10px 0;">☁️ Google Sheets Database Connection</h2>
+            <div class="db-connection-flex" style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label>Apps Script Web App URL</label>
+                    <input type="text" id="db_url" placeholder="Paste your App Script Web App URL here">
+                </div>
+                <button class="btn-warning" onclick="connectDb()">🔗 Connect & Load</button>
+            </div>
+        </div>
+
+        <div class="panel no-print">
+            <h2>1. Global Master Data</h2>
+            <div class="grid-3">
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <label>Teachers</label>
+                    <textarea id="g_teachers" rows="2"></textarea>
+                    <button onclick="addGlobal('teachers')" style="margin-top: 5px; width:100%;">Add Teachers</button>
+                    <div class="global-list-box" id="list_teachers"></div>
+                </div>
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <label>Subjects</label>
+                    <textarea id="g_subjects" rows="2"></textarea>
+                    <button onclick="addGlobal('subjects')" style="margin-top: 5px; width:100%;">Add Subjects</button>
+                    <div class="global-list-box" id="list_subjects"></div>
+                </div>
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <label>Terms</label>
+                    <textarea id="g_terms" rows="2"></textarea>
+                    <button onclick="addGlobal('terms')" style="margin-top: 5px; width:100%;">Add Terms</button>
+                    <div class="global-list-box" id="list_terms"></div>
+                </div>
+            </div>
+            <hr>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Add Classes</label>
+                    <input type="text" id="g_classes">
+                    <button onclick="addClasses()" style="margin-top: 5px;">Add Classes</button>
+                </div>
+                <div class="form-group">
+                    <label>Select Class & Add Sections</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="sel_class" style="flex: 1;"></select>
+                        <input type="text" id="g_sections" style="flex: 2;">
+                    </div>
+                    <button onclick="addSections()" style="margin-top: 5px;">Add Sections</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel workspace">
+            <div class="sidebar no-print">
+                <h3>Directory</h3>
+                <p style="font-size: 12px; color: #666;">Click a Section to manage it.</p>
+                <ul id="directoryTree" class="tree-list"></ul>
+            </div>
+            <div id="mainContent" class="main-content">
+                <h3 style="color: #888; text-align: center; margin-top: 100px;">👈 Select a Section</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: ANALYTICS & REPORTS -->
+    <div id="view_analytics" class="view-section container">
+        <div class="panel workspace" style="min-height: 700px;">
+            <div class="sidebar no-print">
+                <h3 style="color:#0056b3;">📊 App Directory</h3>
+                <p style="font-size: 12px; color: #666;">Click Teachers or Subjects to view detailed reports.</p>
+                
+                <h4 style="margin: 15px 0 5px 0; border-bottom: 1px solid #ccc;">👩‍🏫 All Teachers</h4>
+                <div id="analytics_teachers" style="max-height: 150px; overflow-y:auto; margin-bottom:10px;"></div>
+
+                <h4 style="margin: 15px 0 5px 0; border-bottom: 1px solid #ccc;">📚 All Subjects</h4>
+                <div id="analytics_subjects" style="max-height: 150px; overflow-y:auto; margin-bottom:10px;"></div>
+
+                <h4 style="margin: 15px 0 5px 0; border-bottom: 1px solid #ccc;">🏫 All Classes & Sections</h4>
+                <div id="analytics_classes" style="max-height: 250px; overflow-y:auto;"></div>
+            </div>
+            
+            <div id="analyticsMain" class="main-content" style="background: #fff;">
+                <h2 style="color: #888; text-align: center; margin-top: 100px;">👈 Select a Teacher or Subject from the sidebar to view their Analytics Report.</h2>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CENTRAL STATE DATA ARCHITECTURE ---
+        let db = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], school: {} };
+        let historyStack = [];
+        let historyIndex = -1;
+        let backendUrl = localStorage.getItem("advancedMarksURL") || "";
+        let isLandscapeMode = false; 
+        
+        const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyBLmRbVp8OGH6n5kfwQM0uxLo6fDPoXiewSKrRITOFPDb9zzRVEx3Mj3FcJzrd83vJ/exec";
+        let marksTabClickCount = 0;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            
+            document.getElementById(`tab_${tabName}`).classList.add('active');
+            document.getElementById(`view_${tabName}`).classList.add('active');
+
+            if(tabName === 'analytics') {
+                renderAnalyticsSidebar();
+                marksTabClickCount = 0;
+            }
+
+            if(tabName === 'marks') {
+                marksTabClickCount++;
+                if(marksTabClickCount === 10) {
+                    let currentUrl = document.getElementById("db_url").value.trim();
+                    if(!currentUrl) {
+                        document.getElementById("db_url").value = DEFAULT_URL;
+                        connectDb();
+                        alert("Developer Mode Unlocked: Default Cloud Database Connected!");
+                    }
+                    marksTabClickCount = 0;
+                }
+            }
+        }
+
+        // --- HISTORY TRACKING TIMELINE (UNDO / REDO) ---
+        function pushHistory() {
+            historyStack = historyStack.slice(0, historyIndex + 1);
+            historyStack.push(JSON.stringify(db));
+            historyIndex++;
+        }
+        function undoData() {
+            if(historyIndex > 0) { historyIndex--; db = JSON.parse(historyStack[historyIndex]); saveDb(false); refreshUI(); alert("Undo successful!"); } 
+            else { alert("Nothing to undo."); }
+        }
+        function redoData() {
+            if(historyIndex < historyStack.length - 1) { historyIndex++; db = JSON.parse(historyStack[historyIndex]); saveDb(false); refreshUI(); alert("Redo successful!"); } 
+            else { alert("Nothing to redo."); }
+        }
+        function refreshUI() {
+            renderGlobalLists(); updateClassDropdown(); renderTree();
+            if(document.getElementById('currentSecCls')) refreshSectionPanel();
+            if(document.getElementById('view_analytics').classList.contains('active')) renderAnalyticsSidebar();
+        }
+
+        async function connectDb() {
+            let url = document.getElementById("db_url").value.trim();
+            if(!url) return alert("Please enter the Web App URL.");
+            setSyncStatus("Connecting...", "status-sync");
+            try {
+                let res = await fetch(url); let cloudData = await res.json();
+                if(!cloudData.school) cloudData = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], school: {} };
+                db = cloudData; backendUrl = url; localStorage.setItem("advancedMarksURL", url);
+                pushHistory(); refreshUI(); setSyncStatus("Connected ✅", "status-on"); alert("Connected successfully! Cloud data loaded.");
+            } catch(e) { setSyncStatus("Connection Failed", "status-off"); alert("Connection failed!"); }
+        }
+
+        function setSyncStatus(msg, className) {
+            let el = document.getElementById("syncStatus"); el.innerText = msg; el.className = className;
+        }
+
+        function saveDb(recordHistory = true) {
+            localStorage.setItem("advancedMarksDB", JSON.stringify(db));
+            if(recordHistory) pushHistory();
+            if(backendUrl) {
+                setSyncStatus("Syncing...", "status-sync");
+                fetch(backendUrl, { method: 'POST', body: JSON.stringify(db) })
+                  .then(res => res.json())
+                  .then(data => { if(data.status === "success") setSyncStatus("Connected ✅", "status-on"); else setSyncStatus("Error Syncing", "status-off"); })
+                  .catch(e => { setSyncStatus("Offline (Local only)", "status-off"); });
+            }
+        }
+
+        function forceSaveData() { saveDb(true); alert("Data saved and synced!"); }
+
+        function loadDb() {
+            document.getElementById("db_url").value = backendUrl;
+            let saved = localStorage.getItem("advancedMarksDB");
+            if(saved) {
+                db = JSON.parse(saved);
+                if(!db.terms) db.terms = []; 
+                if(!db.year) db.year = "";
+                if(!db.reportHeading) db.reportHeading = "MARKS STATEMENT";
+                if(!db.school) db.school = {};
+            }
+            pushHistory(); refreshUI();
+            if(backendUrl) connectDb();
+            applyLandscapeMode(); 
+        }
+
+        function clearData() { if(confirm("Erase local data?")) { localStorage.removeItem("advancedMarksDB"); location.reload(); } }
+        function parseStr(str) { return str.split(/[,\n]+/).map(i => i.trim()).filter(i => i !== ""); }
+
+        // --- MASTER DATA CRUD MANAGEMENT ---
+        function addGlobal(type) {
+            let inputs = parseStr(document.getElementById(`g_${type}`).value);
+            if(inputs.length === 0) return alert("Enter valid data.");
+            inputs.forEach(val => { if(!db[type].includes(val)) db[type].push(val); });
+            saveDb(); document.getElementById(`g_${type}`).value = ""; refreshUI();
+        }
+
+        function renameGlobal(type, oldName) {
+            let newName = prompt(`Rename ${type.slice(0,-1)}:`, oldName);
+            if(!newName || newName === oldName) return;
+            let idx = db[type].indexOf(oldName); if(idx > -1) db[type][idx] = newName;
+
+            for(let c in db.school) {
+                for(let s in db.school[c]) {
+                    let sec = db.school[c][s];
+                    if(type === 'teachers') sec.allotted.forEach(a => { if(a.teacher === oldName) a.teacher = newName; });
+                    if(type === 'subjects') {
+                        sec.allotted.forEach(a => { if(a.sub === oldName) a.sub = newName; });
+                        if(sec.marks && sec.marks[oldName]) { sec.marks[newName] = sec.marks[oldName]; delete sec.marks[oldName]; }
+                    }
+                    if(type === 'terms' && sec.marks) {
+                        for(let sub in sec.marks) {
+                            for(let stu in sec.marks[sub]) {
+                                if(sec.marks[sub][stu] && sec.marks[sub][stu][oldName] !== undefined) {
+                                    sec.marks[sub][stu][newName] = sec.marks[sub][stu][oldName]; delete sec.marks[sub][stu][oldName];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            saveDb(); refreshUI();
+        }
+
+        function deleteGlobal(type, name) {
+            if(!confirm(`Delete ${name}?`)) return;
+            db[type] = db[type].filter(i => i !== name);
+            for(let c in db.school) {
+                for(let s in db.school[c]) {
+                    let sec = db.school[c][s];
+                    if(type === 'teachers') sec.allotted.forEach(a => { if(a.teacher === name) a.teacher = "Unassigned"; });
+                    if(type === 'subjects') { sec.allotted = sec.allotted.filter(a => a.sub !== name); if(sec.marks) delete sec.marks[name]; }
+                    if(type === 'terms' && sec.marks) {
+                        for(let sub in sec.marks) { for(let stu in sec.marks[sub]) { if(sec.marks[sub][stu]) delete sec.marks[sub][stu][name]; } }
+                    }
+                }
+            }
+            saveDb(); refreshUI();
+        }
+
+        function renderGlobalLists() {
+            ['teachers', 'subjects', 'terms'].forEach(type => {
+                document.getElementById(`list_${type}`).innerHTML = db[type].map(item => `
+                    <div class="list-item-row">
+                        <span>${item}</span>
+                        <div>
+                            <button class="action-btn" onclick="renameGlobal('${type}', '${item}')">✏️</button>
+                            <button class="action-btn" onclick="deleteGlobal('${type}', '${item}')">🗑️</button>
+                        </div>
+                    </div>`).join('');
+            });
+        }
+        
+        function addClasses() { let cls = parseStr(document.getElementById("g_classes").value); cls.forEach(c => { if(!db.school[c]) db.school[c] = {}; }); saveDb(); document.getElementById("g_classes").value = ""; refreshUI(); }
+        function addSections() {
+            let c = document.getElementById("sel_class").value; let secs = parseStr(document.getElementById("g_sections").value);
+            if(!c) return alert("Select class.");
+            secs.forEach(s => { 
+                if(!db.school[c][s]) db.school[c][s] = { students: [], regNos: {}, allotted: [], marks: {} }; 
+                if(!db.school[c][s].regNos) db.school[c][s].regNos = {};
+                if(!db.school[c][s].marks) db.school[c][s].marks = {};
+            });
+            saveDb(); document.getElementById("g_sections").value = ""; refreshUI();
+        }
+
+        function renameClass(oldCls) { let newCls = prompt("Rename:", oldCls); if(!newCls || newCls===oldCls) return; db.school[newCls] = db.school[oldCls]; delete db.school[oldCls]; saveDb(); refreshUI(); }
+        function deleteClass(cls) { if(!confirm(`Delete ${cls}?`)) return; delete db.school[cls]; saveDb(); refreshUI(); }
+        function renameSection(cls, oldSec) { let newSec = prompt("Rename:", oldSec); if(!newSec || newSec===oldSec) return; db.school[cls][newSec] = db.school[cls][oldSec]; delete db.school[cls][oldSec]; saveDb(); refreshUI(); }
+        function deleteSection(cls, sec) { if(!confirm(`Delete ${sec}?`)) return; delete db.school[cls][sec]; saveDb(); refreshUI(); }
+
+        function updateClassDropdown() {
+            let sel = document.getElementById("sel_class"); let curr = sel.value; sel.innerHTML = "";
+            Object.keys(db.school).forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+            if(Object.keys(db.school).includes(curr)) sel.value = curr;
+        }
+
+        function renderTree() {
+            let tree = document.getElementById("directoryTree"); tree.innerHTML = "";
+            Object.keys(db.school).forEach(c => {
+                let html = `<li class="tree-item"><div style="display:flex; justify-content:space-between; align-items:center;"><span class="tree-toggle" onclick="this.parentElement.nextElementSibling.style.display = this.parentElement.nextElementSibling.style.display === 'none' ? 'block' : 'none'">📁 ${c}</span>
+                            <div><button class="action-btn" onclick="renameClass('${c}')">✏️</button><button class="action-btn" onclick="deleteClass('${c}')">🗑️</button></div></div>
+                        <ul style="display:block; padding-left:15px; list-style:none;">`;
+                Object.keys(db.school[c]).forEach(s => {
+                    html += `<li style="margin:5px 0; display:flex; justify-content:space-between; align-items:center;">
+                            <span class="section-link" onclick="openSection('${c}', '${s}')">📂 ${s} <span class="badge">${db.school[c][s].students.length}</span></span>
+                            <div><button class="action-btn" onclick="renameSection('${c}','${s}')">✏️</button><button class="action-btn" onclick="deleteSection('${c}','${s}')">🗑️</button></div></li>`;
+                });
+                tree.innerHTML += html + `</ul></li>`;
+            });
+        }
+
+        // --- RENDER GRADE MATRICES & MANAGEMENT ---
+        let activeSec = { cls: null, sec: null };
+        function openSection(cls, sec) { activeSec = { cls, sec }; refreshSectionPanel(); }
+
+        function refreshSectionPanel() {
+            let { cls, sec } = activeSec;
+            if(!cls || !sec || !db.school[cls] || !db.school[cls][sec]) return;
+            
+            let data = db.school[cls][sec];
+            if(!data.regNos) data.regNos = {}; 
+            if(!data.marks) data.marks = {};
+            let subOptions = db.subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+            let trOptions = db.teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+            let stuListHTML = data.students.map(stu => `<div class="list-item-row"><span>${stu} <small>(Reg: ${data.regNos[stu]||'N/A'})</small></span>
+                    <div><button class="action-btn" onclick="renameStudent('${stu}')">✏️</button><button class="action-btn" onclick="deleteStudent('${stu}')">🗑️</button></div></div>`).join('');
+
+            document.getElementById("mainContent").innerHTML = `
+                <input type="hidden" id="currentSecCls" value="${cls}">
+                <h2>Dashboard: ${cls} - ${sec}</h2>
+                <div class="grid-2 no-print" style="background:#fff; padding:15px; border:1px solid #ccc; border-radius:5px;">
+                    <div><label>Add Students</label><textarea id="sec_students" rows="2"></textarea><button class="btn-blue" onclick="addSecStudents()" style="margin-top:5px;">Add</button>
+                        <h4 style="margin: 15px 0 5px 0;">Student List</h4><div class="global-list-box">${stuListHTML || "<i>None</i>"}</div></div>
+                    <div><label>Allot Subject & Teacher</label><select id="sec_sub" style="margin-bottom:5px;">${subOptions}</select><select id="sec_tr" style="margin-bottom:5px;">${trOptions}</select><button class="btn-blue" onclick="allotSecSubject()">Allot</button></div>
+                </div>
+                
+                <div class="toolbar no-print">
+                    <div style="display:flex; flex-wrap:wrap; gap:15px;">
+                        <div class="toolbar-group"><label>Filter Subject</label><select id="filter_sub"><option value="ALL">-- All --</option>${data.allotted.map(a => `<option value="${a.sub}">${a.sub}</option>`).join('')}</select></div>
+                        <div class="toolbar-group"><label>Filter Teacher</label><select id="filter_tr"><option value="ALL">-- All --</option>${[...new Set(data.allotted.map(a => a.teacher))].map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+                        <div class="toolbar-group" style="border-left: 1px solid #ccc; padding-left: 15px;"><label class="toggle-switch"><input type="checkbox" id="compareToggle" onchange="toggleCompareUI()"> 🔄 Term Compare</label>
+                            <div id="singleTermDiv" style="margin-top:5px;"><select id="filter_single_term">${db.terms.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+                            <div id="multiTermDiv" class="checkbox-group" style="display:none;">${db.terms.map(t => `<label><input type="checkbox" class="term-chk" value="${t}" checked> ${t}</label>`).join('')}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="toolbar-group" style="flex-direction: row; align-items: center; gap: 15px; border-left: 1px solid #ccc; padding-left: 15px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="landscapeToggle" onchange="toggleLandscape()" ${isLandscapeMode ? 'checked' : ''}> 📄 Page Landscape Mode
+                        </label>
+                        <button class="btn-secondary" onclick="printStatement()" style="padding: 10px 15px;">🖨️ Print Sheet</button>
+                        <button class="btn-blue" onclick="renderMasterTable()" style="padding: 10px 20px; font-size:16px;">🔍 GET MARKS</button>
+                    </div>
+                </div>
+                
+                <div id="tableContainer" style="margin-top: 20px;"></div>`;
+            if(db.terms.length > 0) renderMasterTable(); 
+        }
+
+        function renameStudent(old) { let n = prompt("Rename:", old); if(!n||n===old) return; let { cls, sec } = activeSec; let d = db.school[cls][sec]; let idx = d.students.indexOf(old); if(idx !== -1) d.students[idx] = n; d.regNos[n] = d.regNos[old]; delete d.regNos[old]; Object.keys(d.marks).forEach(sub => { if(d.marks[sub][old]) { d.marks[sub][n] = d.marks[sub][old]; delete d.marks[sub][old]; } }); saveDb(); refreshUI(); }
+        function deleteStudent(n) { if(!confirm(`Delete ${n}?`)) return; let { cls, sec } = activeSec; let d = db.school[cls][sec]; d.students = d.students.filter(s => s !== n); delete d.regNos[n]; Object.keys(d.marks).forEach(sub => delete d.marks[sub][n]); saveDb(); refreshUI(); }
+        function addSecStudents() { let { cls, sec } = activeSec; parseStr(document.getElementById("sec_students").value).forEach(s => { if(!db.school[cls][sec].students.includes(s)) db.school[cls][sec].students.push(s); }); saveDb(); refreshUI(); }
+        function allotSecSubject() { let { cls, sec } = activeSec; let sub = document.getElementById("sec_sub").value; let tr = document.getElementById("sec_tr").value; if(!sub || !tr) return; if(db.school[cls][sec].allotted.find(a => a.sub === sub)) return alert("Already allotted!"); db.school[cls][sec].allotted.push({sub, teacher: tr}); if(!db.school[cls][sec].marks[sub]) db.school[cls][sec].marks[sub] = {}; saveDb(); refreshUI(); }
+
+        function toggleCompareUI() { let isC = document.getElementById("compareToggle").checked; document.getElementById("singleTermDiv").style.display = isC ? "none" : "block"; document.getElementById("multiTermDiv").style.display = isC ? "flex" : "none"; }
+        
+        // Input updates
+        function updateHeading(val) { db.reportHeading = val; saveDb(false); }
+        function updateYear(val) { db.year = val; saveDb(false); applyLandscapeMode(); }
+
+        // --- LANDSCAPE AND PRINTER SETTING MANAGER ---
+        function toggleLandscape() { 
+            let t = document.getElementById('landscapeToggle');
+            if(t) isLandscapeMode = t.checked; 
+            applyLandscapeMode(); 
+        }
+        
+        function applyLandscapeMode() { 
+            let t = document.getElementById('landscapeToggle'); 
+            if(t) t.checked = isLandscapeMode; 
+            
+            if(isLandscapeMode) { 
+                document.body.classList.add('landscape-mode'); 
+            } else { 
+                document.body.classList.remove('landscape-mode'); 
+            } 
+            
+            let styleId = 'dynamic-print-style';
+            let styleTag = document.getElementById(styleId);
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = styleId;
+                document.head.appendChild(styleTag);
+            }
+            
+            const { cls, sec } = activeSec.cls ? activeSec : { cls: 'N/A', sec: 'N/A' };
+            const systemYear = new Date().getFullYear();
+            const footerYear = `Year: ${systemYear}`;
+
+            styleTag.innerHTML = `
+                @page {
+                    size: A4 ${isLandscapeMode ? 'landscape' : 'portrait'};
+                    margin: 20mm;
+
+                    @top-left {
+                        content: "Class: ${cls}";
+                        font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                        border-bottom: 1px solid #ccc; padding-bottom: 5px; width: 100%;
+                    }
+
+                    @top-right {
+                        content: "Section: ${sec}";
+                        font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                        border-bottom: 1px solid #ccc; padding-bottom: 5px; width: 100%;
+                    }
+
+                    @bottom-left {
+                        content: "${footerYear}";
+                        font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                    }
+
+                    @bottom-right {
+                        content: "Page " counter(page);
+                        font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                    }
+                }
+            `;
+        }
+        
+        function printStatement() { saveMasterMarks(false); window.print(); }
+
+        function sortTable(sub, term, order) {
+            saveMasterMarks(false); let { cls, sec } = activeSec; let d = db.school[cls][sec];
+            d.students.sort((a, b) => {
+                let vA = d.marks[sub]?.[a]?.[term] || ""; let vB = d.marks[sub]?.[b]?.[term] || "";
+                let nA = parseFloat(vA); let nB = parseFloat(vB); let iA = !isNaN(nA) && vA.trim() !== ""; let iB = !isNaN(nB) && vB.trim() !== "";
+                if(iA && iB) return order === 'desc' ? nB - nA : nA - nB;
+                if(vA === "" && vB !== "") return 1; if(vB === "" && vA !== "") return -1; if(vA === "" && vB === "") return 0;
+                if(iA && !iB) return -1; if(!iA && iB) return 1;
+                return order === 'desc' ? vB.localeCompare(vA) : vA.localeCompare(vB);
+            }); saveDb(true); renderMasterTable();
+        }
+
+        function addNoteToCell(btn) { let i = btn.previousElementSibling; let n = prompt("Note:", i.value); if(n !== null) { i.value = n; i.title = n; i.style.width = n.length > 5 ? '120px' : '60px'; saveMasterMarks(false); } }
+
+        function renderMasterTable() {
+            let { cls, sec } = activeSec; let d = db.school[cls][sec];
+            if(d.students.length === 0) return document.getElementById("tableContainer").innerHTML = "<i>No students loaded inside this section roster.</i>";
+            if(d.allotted.length === 0) return document.getElementById("tableContainer").innerHTML = "<i>No operational subjects assigned.</i>";
+
+            let fSub = document.getElementById("filter_sub").value; let fTr = document.getElementById("filter_tr").value; let isC = document.getElementById("compareToggle").checked;
+            let sTerms = isC ? Array.from(document.querySelectorAll(".term-chk:checked")).map(c=>c.value) : [document.getElementById("filter_single_term").value].filter(Boolean);
+            if(sTerms.length === 0) return;
+
+            let vAllot = d.allotted.filter(a => (fSub === "ALL" || a.sub === fSub) && (fTr === "ALL" || a.teacher === fTr));
+            if(vAllot.length === 0) return document.getElementById("tableContainer").innerHTML = "<i>No tracking records match selection.</i>";
+
+            let hSub = [...new Set(vAllot.map(a => a.sub))].join(", "); let hTr = [...new Set(vAllot.map(a => a.teacher))].join(", ");
+
+            let html = `<div class="page-wrapper"><div class="a4-sheet">`;
+
+            // --- FULLY CENTERED LAYOUT WITH EDITABLE HEADING ---
+            html += `<div class="statement-header">
+                        <input type="text" class="heading-input nav-input" value="${db.reportHeading}" onchange="updateHeading(this.value)">
+                        
+                        <div class="statement-details-row">
+                            <div class="statement-details-group">
+                                <span><strong>Class:</strong> ${cls}</span>
+                                <span><strong>Section:</strong> ${sec}</span>
+                                <span><strong>Term(s):</strong> ${sTerms.join(", ")}</span>
+                            </div>
+                        </div>
+
+                        <div class="statement-details-row">
+                            <div class="statement-details-group">
+                                <span><strong>Subject(s):</strong> ${hSub}</span>
+                                <span><strong>Teacher(s):</strong> ${hTr}</span>
+                            </div>
+                        </div>
+                    </div>`;
+            
+            html += `<table><thead><tr><th rowspan="${isC ? 2 : 1}">Reg. No.</th><th rowspan="${isC ? 2 : 1}">Student Name</th>`;
+            
+            vAllot.forEach(a => { html += `<th colspan="${sTerms.length}">${a.sub}<br><small>(${a.teacher})</small>` + (isC ? "" : `<div class="sort-box no-print"><span onclick="sortTable('${a.sub}', '${sTerms[0]}', 'desc')">⬇️</span><span onclick="sortTable('${a.sub}', '${sTerms[0]}', 'asc')">⬆️</span></div>`) + `</th>`; });
+            html += `</tr>`;
+            if(isC) { html += `<tr>`; vAllot.forEach(a => { sTerms.forEach(t => { html += `<th class="sub-header">${t}<div class="sort-box no-print"><span onclick="sortTable('${a.sub}', '${t}', 'desc')">⬇️</span><span onclick="sortTable('${a.sub}', '${t}', 'asc')">⬆️</span></div></th>`; }); }); html += `</tr>`; }
+            html += `</thead><tbody>`;
+
+            d.students.forEach((stu, rIdx) => {
+                html += `<tr><td><input type="text" class="marks-input reg-input nav-input" data-r="${rIdx}" data-c="0" data-type="reg" data-stu="${stu}" value="${d.regNos[stu] || ""}"></td><td><strong>${stu}</strong></td>`;
+                let cIdx = 1;
+                vAllot.forEach(a => {
+                    sTerms.forEach(t => {
+                        let v = d.marks[a.sub]?.[stu]?.[t] || "";
+                        html += `<td><input type="text" class="marks-input nav-input data-entry" style="${v.length>5?'width:120px;':''}" data-r="${rIdx}" data-c="${cIdx}" data-stu="${stu}" data-sub="${a.sub}" data-term="${t}" data-type="mark" value="${v}" title="${v}"><span class="note-btn no-print" onclick="addNoteToCell(this)">📝</span></td>`;
+                        cIdx++;
+                    });
+                }); html += `</tr>`;
+            });
+            
+            html += `</tbody></table>
+                    <div class="no-print" style="margin-top:15px; display:flex; gap:10px;"><button class="btn-blue" onclick="saveMasterMarks(true)">💾 Save Marks</button></div>
+                    </div></div>`;
+            
+            document.getElementById("tableContainer").innerHTML = html; 
+            applyLandscapeMode(); 
+        }
+
+        // --- CRITICAL SAVE REPAIR ROUTINE ---
+        function saveMasterMarks(showAlert = true) {
+            let { cls, sec } = activeSec;
+            if(!cls || !sec || !db.school[cls] || !db.school[cls][sec]) return;
+
+            let targetSection = db.school[cls][sec];
+            if (!targetSection.regNos) targetSection.regNos = {};
+            if (!targetSection.marks) targetSection.marks = {};
+
+            document.querySelectorAll('.data-entry, .reg-input').forEach(inp => {
+                let type = inp.getAttribute('data-type'); 
+                let stu = inp.getAttribute('data-stu'); 
+                let val = inp.value;
+                
+                if(type === 'reg') {
+                    targetSection.regNos[stu] = val;
+                } else { 
+                    let sub = inp.getAttribute('data-sub');
+                    let term = inp.getAttribute('data-term');
+                    
+                    if (!targetSection.marks[sub]) targetSection.marks[sub] = {};
+                    if (!targetSection.marks[sub][stu]) targetSection.marks[sub][stu] = {};
+                    
+                    targetSection.marks[sub][stu][term] = val;
+                }
+            }); 
+            
+            saveDb(true); 
+            if(showAlert) alert("Marks saved locally and processing sync to Cloud Directories!");
+        }
+
+        // Keyboard Spreadsheet Navigation Listener
+        document.addEventListener('keydown', function(e) {
+            if(!e.target.classList.contains('nav-input')) return;
+            let r = parseInt(e.target.getAttribute('data-r')); let c = parseInt(e.target.getAttribute('data-c')); let n;
+            if(e.key === 'ArrowUp') n = document.querySelector(`.nav-input[data-r="${r-1}"][data-c="${c}"]`);
+            if(e.key === 'ArrowDown') n = document.querySelector(`.nav-input[data-r="${r+1}"][data-c="${c}"]`);
+            if(e.key === 'ArrowLeft') n = document.querySelector(`.nav-input[data-r="${r}"][data-c="${c-1}"]`);
+            if(e.key === 'ArrowRight') n = document.querySelector(`.nav-input[data-r="${r}"][data-c="${c+1}"]`);
+            if(n) { n.focus(); n.select(); e.preventDefault(); }
+        });
+
+        // --- DATA ANALYTICS & INSIGHT RENDERING ---
+        function renderAnalyticsSidebar() {
+            document.getElementById("analytics_teachers").innerHTML = db.teachers.map(t => 
+                `<div class="clickable-list-item" onclick="viewTeacherAnalytics('${t}')">👩‍🏫 ${t}</div>`).join('') || "<i>No teachers registered</i>";
+                
+            document.getElementById("analytics_subjects").innerHTML = db.subjects.map(s => 
+                `<div class="clickable-list-item" onclick="viewSubjectAnalytics('${s}')">📚 ${s}</div>`).join('') || "<i>No subjects registered</i>";
+            
+            let classHtml = "";
+            for(let c in db.school) {
+                classHtml += `<strong>📁 Class ${c}</strong><br>`;
+                for(let s in db.school[c]) {
+                    classHtml += `<div style="padding-left:15px; font-size:13px; color:#666;">📂 Sec ${s} (${db.school[c][s].students.length} students)</div>`;
+                }
+            }
+            document.getElementById("analytics_classes").innerHTML = classHtml || "<i>No classes structured</i>";
+        }
+
+        function getAveragePercent(marksArr) {
+            let nums = marksArr.map(n => parseFloat(n)).filter(n => !isNaN(n));
+            if(nums.length === 0) return "N/A";
+            return (nums.reduce((a,b) => a+b, 0) / nums.length).toFixed(1) + "%"; 
+        }
+
+        function viewTeacherAnalytics(teacherName) {
+            let allotments = []; let uniqueStudents = new Set();
+            let teacherMarksList = []; let termMarks = {}; 
+            
+            for(let c in db.school) {
+                for(let s in db.school[c]) {
+                    let sec = db.school[c][s];
+                    sec.allotted.forEach(a => {
+                        if(a.teacher === teacherName) {
+                            allotments.push({ cls: c, sec: s, sub: a.sub });
+                            sec.students.forEach(stu => uniqueStudents.add(`${c}_${s}_${stu}`));
+                            db.terms.forEach(term => {
+                                if(!termMarks[term]) termMarks[term] = [];
+                                sec.students.forEach(stu => {
+                                    let mark = sec.marks?.[a.sub]?.[stu]?.[term];
+                                    if(mark && !isNaN(parseFloat(mark))) { teacherMarksList.push(mark); termMarks[term].push(mark); }
+                                });
+                            });
+                        }
+                    });
+                }
+            }
+
+            let overallAvg = getAveragePercent(teacherMarksList);
+            let comparisonHtml = "";
+            
+            allotments.forEach(al => {
+                let currentSec = db.school[al.cls][al.sec];
+                let otherSubjectMarks = [];
+                currentSec.allotted.forEach(otherA => {
+                    if(otherA.sub !== al.sub) {
+                        currentSec.students.forEach(stu => { db.terms.forEach(t => { let m = currentSec.marks?.[otherA.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) otherSubjectMarks.push(m); }); });
+                    }
+                });
+                
+                let otherSectionMarks = [];
+                for(let otherS in db.school[al.cls]) {
+                    if(otherS !== al.sec) {
+                        let osData = db.school[al.cls][otherS];
+                        if(osData.allotted.find(x => x.sub === al.sub && x.teacher !== teacherName)) {
+                            osData.students.forEach(stu => { db.terms.forEach(t => { let m = osData.marks?.[al.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) otherSectionMarks.push(m); }); });
+                        }
+                    }
+                }
+
+                let thisAllotmentMarks = [];
+                currentSec.students.forEach(stu => { db.terms.forEach(t => { let m = currentSec.marks?.[al.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) thisAllotmentMarks.push(m); }); });
+                
+                comparisonHtml += `<div style="border-bottom: 1px solid #ddd; padding: 10px 0;"><strong style="color:#d68100;">Class ${al.cls} - ${al.sec} (${al.sub})</strong>
+                        <ul style="margin: 5px 0; font-size: 14px;"><li>Teacher's Performance here: <strong>${getAveragePercent(thisAllotmentMarks)}</strong></li>
+                            <li>Vs. Rest of Section (${al.sec} all subjects avg): <strong>${getAveragePercent(otherSubjectMarks)}</strong></li>
+                            <li>Vs. Other Sections (${al.cls} ${al.sub} avg): <strong>${getAveragePercent(otherSectionMarks)}</strong></li></ul></div>`;
+            });
+
+            document.getElementById("analyticsMain").innerHTML = `
+                <div id="analyticsPrintArea">
+                    <h2 style="color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom:5px;">👨‍🏫 Teacher Profile: ${teacherName}</h2>
+                    <div class="grid-3" style="margin-top: 20px;">
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Total Allotments</div><div class="stat-value">${allotments.length}</div></div>
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Unique Students Taught</div><div class="stat-value">${uniqueStudents.size}</div></div>
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Overall Performance</div><div class="stat-value" style="color: ${parseFloat(overallAvg) >= 70 ? '#28a745' : '#dc3545'};">${overallAvg}</div></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="analytics-card"><h3 style="margin-top:0;">📅 Term-wise Performance</h3><table style="border:none;">
+                                ${db.terms.map(t => `<tr><td style="border:none; text-align:left; border-bottom:1px solid #eee;"><strong>${t}</strong></td><td style="border:none; text-align:right; border-bottom:1px solid #eee;">${getAveragePercent(termMarks[t] || [])}</td></tr>`).join('')}
+                            </table></div>
+                        <div class="analytics-card"><h3 style="margin-top:0;">🏫 Allotted Classes</h3><ul style="padding-left:15px; font-size:14px;">
+                                ${allotments.map(a => `<li><strong>Class ${a.cls} - ${a.sec}</strong>: ${a.sub}</li>`).join('') || "<i>No current classes.</i>"}
+                            </ul></div>
+                    </div>
+                    <div class="analytics-card"><h3 style="margin-top:0;">📊 Comparative Analysis</h3>${comparisonHtml || "<i>Not enough performance cross-metrics found.</i>"}</div>
+                    <button class="btn-secondary no-print" onclick="window.print()" style="margin-top:10px;">🖨️ Print Report</button>
+                </div>`;
+        }
+
+        function viewSubjectAnalytics(subjectName) {
+            let classesTaught = new Set();
+            let teacherMap = {}; 
+            let uniqueStudents = new Set();
+            let totalAllotments = 0;
+
+            for(let c in db.school) {
+                for(let s in db.school[c]) {
+                    let sec = db.school[c][s];
+                    sec.allotted.forEach(a => {
+                        if(a.sub === subjectName) {
+                            classesTaught.add(c);
+                            totalAllotments++;
+                            if(!teacherMap[a.teacher]) teacherMap[a.teacher] = [];
+                            teacherMap[a.teacher].push({ cls: c, sec: s });
+                            sec.students.forEach(stu => uniqueStudents.add(`${c}_${s}_${stu}`));
+                        }
+                    });
+                }
+            }
+
+            let classBreakdownHtml = "";
+            classesTaught.forEach(c => {
+                classBreakdownHtml += `<div style="border-bottom: 1px solid #ddd; padding: 10px 0;"><strong style="color:#d68100; font-size: 16px;">📁 Class ${c}</strong><ul style="margin: 5px 0; font-size: 14px; list-style:none; padding-left: 20px;">`;
+                for(let s in db.school[c]) {
+                    let secAllot = db.school[c][s].allotted.find(a => a.sub === subjectName);
+                    if(secAllot) { classBreakdownHtml += `<li style="margin: 3px 0;">📂 <strong>Section ${s}</strong> &nbsp;—&nbsp; Taught by: <strong>${secAllot.teacher}</strong> <span style="color:#666; font-size:12px;">(${db.school[c][s].students.length} students)</span></li>`; }
+                }
+                classBreakdownHtml += `</ul></div>`;
+            });
+
+            let teacherRosterHtml = "";
+            for(let teacher in teacherMap) {
+                let allotmentsList = teacherMap[teacher].map(al => `Class ${al.cls} (${al.sec})`).join(", ");
+                teacherRosterHtml += `<div style="border-bottom: 1px solid #ddd; padding: 10px 0; display:flex; flex-direction:column; gap:5px;">
+                        <strong style="color:#0056b3; font-size: 15px;">👩‍🏫 ${teacher}</strong>
+                        <div style="font-size: 13px; color: #444;"><strong>Total Sections:</strong> ${teacherMap[teacher].length} <br><strong>Allotted In:</strong> ${allotmentsList}</div></div>`;
+            }
+
+            document.getElementById("analyticsMain").innerHTML = `
+                <div id="analyticsPrintArea">
+                    <h2 style="color: #28a745; border-bottom: 2px solid #28a745; padding-bottom:5px;">📚 Subject Profile: ${subjectName}</h2>
+                    <div class="grid-3" style="margin-top: 20px;">
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Total Classes Applied</div><div class="stat-value">${classesTaught.size}</div></div>
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Total Section Allotments</div><div class="stat-value">${totalAllotments}</div></div>
+                        <div class="analytics-card"><div style="color:#666; font-size:14px;">Total Enrolled Students</div><div class="stat-value">${uniqueStudents.size}</div></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="analytics-card"><h3 style="margin-top:0;">🏫 Class Breakdown</h3>${classBreakdownHtml || "<i>Subject not allotted to any class yet.</i>"}</div>
+                        <div class="analytics-card"><h3 style="margin-top:0;">👨‍🏫 Teacher Roster</h3><p style="font-size:13px; color:#666; margin-top:0;">All teachers currently teaching ${subjectName}:</p>${teacherRosterHtml || "<i>No teachers assigned to this subject.</i>"}</div>
+                    </div>
+                    <button class="btn-secondary no-print" onclick="window.print()" style="margin-top:10px;">🖨️ Print Subject Report</button>
+                </div>`;
+        }
+
+        window.onload = loadDb;
+    </script>
+</body>
+</html>
