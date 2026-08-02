@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Room Allotment System</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --text: #0f172a;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Top Header Bar */
+        .app-header {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: #1e293b;
+            color: #ffffff;
+            border: 1px solid #475569;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: auto;
+        }
+
+        .header-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .header-btn.danger-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            background: #1e293b;
+            padding: 0 20px;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            border-bottom: 4px solid var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Capacity Status Banner */
+        .capacity-banner {
+            background: #ffffff;
+            border: 2px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .capacity-banner.ok {
+            border-color: var(--success);
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .capacity-banner.error {
+            border-color: var(--danger);
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* Layout Grid */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+
+        h3 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            font-size: 17px;
+        }
+
+        /* Form Inputs */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 9px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        /* Checkbox Container */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #ffffff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .checkbox-item input {
+            width: auto;
+            cursor: pointer;
+        }
+
+        /* BENCH BUILDER TOOLBAR & MATRIX */
+        .bench-builder-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .btn-small-add {
+            background: #e2e8f0;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+        }
+
+        .btn-small-add:hover {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .matrix-selector-wrapper {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            max-height: 280px;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        .matrix-grid-builder {
+            display: grid;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* ROW & COLUMN MATRIX HEADINGS */
+        .matrix-header-cell {
+            background: #334155;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 6px 4px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .matrix-header-cell:hover {
+            background: #ef4444;
+        }
+
+        .matrix-header-cell.corner-cell {
+            background: #1e293b;
+            cursor: default;
+        }
+
+        .matrix-bench-cell {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-align: center;
+            position: relative;
+        }
+
+        .matrix-empty-spacer {
+            background: #ffffff;
+            border: 1px dashed #e2e8f0;
+            border-radius: 4px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #cbd5e1;
+            user-select: none;
+        }
+
+        .matrix-seats-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .matrix-seat-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .matrix-seat-label input {
+            width: auto;
+            margin: 0;
+        }
+
+        .delete-bench-icon {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            color: #ef4444;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Action Buttons for Items */
+        .item-action-btns {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .edit-btn {
+            background-color: #0284c7;
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            width: auto;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .edit-btn:hover { background-color: #0369a1; }
+
+        /* Dynamic Section Subject List */
+        .section-subject-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .section-subject-row span {
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .section-subject-row select {
+            margin: 0;
+            padding: 6px;
+            font-size: 13px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button.delete-btn {
+            background-color: #ef4444;
+            padding: 4px 8px;
+            font-size: 12px;
+            width: auto;
+            border-radius: 4px;
+        }
+
+        button.delete-btn:hover { background-color: #dc2626; }
+
+        /* Lists */
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            background: #f8fafc;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        /* Schedule Cards */
+        .schedule-date-group {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            padding: 12px;
+        }
+
+        .schedule-date-header {
+            font-weight: bold;
+            color: #0f172a;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Printable A4 Page Controls */
+        .a4-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .allotment-controls {
+            background: var(--card-bg);
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            width: 100%;
+            max-width: 21cm;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+        }
+
+        .controls-top-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        /* REPORT VIEW BUTTONS BAR */
+        .report-views-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .report-view-btn {
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 10px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .report-view-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .report-view-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        .a4-page {
+            width: 21cm;
+            min-height: 29.7cm;
+            background: white;
+            padding: 1.5cm;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            margin-bottom: 2cm;
+        }
+
+        .room-allotment {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+
+        .room-header {
+            text-align: center;
+            background: #f1f5f9;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            border: 1px solid black;
+            border-bottom: none;
+        }
+
+        /* VISUAL SEATING BENCH GRID MAP STYLES */
+        .bench-grid-container {
+            border: 1px solid #000;
+            padding: 12px;
+            background: #fff;
+            margin-bottom: 10px;
+        }
+
+        .blackboard-bar {
+            text-align: center;
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 11px;
+            letter-spacing: 2px;
+            padding: 4px;
+            margin-bottom: 15px;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+
+        .bench-grid {
+            display: grid;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .bench-box {
+            border: 1px solid #64748b;
+            background: #f8fafc;
+            padding: 6px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .bench-spacer-cell {
+            background: #ffffff;
+            border: 1px dashed #f1f5f9;
+            border-radius: 4px;
+            min-height: 60px;
+        }
+
+        .bench-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: #475569;
+            text-align: center;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 2px;
+        }
+
+        .bench-seats-wrapper {
+            display: flex;
+            gap: 4px;
+        }
+
+        .seat-slot {
+            flex: 1;
+            border: 1px solid #1e293b;
+            background: #eff6ff;
+            padding: 6px 4px;
+            font-size: 11px;
+            text-align: center;
+            border-radius: 3px;
+            min-height: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+        }
+
+        .seat-slot.empty-seat {
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            color: #94a3b8;
+        }
+
+        .seat-slot.restricted-seat {
+            background: #fef2f2;
+            border: 1px dashed #ef4444;
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .seat-class {
+            font-weight: bold;
+            color: #1e3a8a;
+            font-size: 11px;
+        }
+
+        .seat-roll {
+            font-weight: bold;
+            color: #0f172a;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+
+        .seat-subject {
+            font-size: 10px;
+            color: #475569;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        /* Unallocated Warning Alert Box */
+        .unallocated-alert-box {
+            background: #fef2f2;
+            border: 2px dashed #ef4444;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            color: #991b1b;
+            font-size: 13px;
+        }
+
+        /* PAPER SUMMARY BOX */
+        .paper-summary-box {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 10px 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .paper-summary-title {
+            font-weight: bold;
+            color: #b45309;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #fde68a;
+            padding-bottom: 4px;
+        }
+
+        .paper-badge-card {
+            background: #ffffff;
+            border: 1px solid #f59e0b;
+            padding: 6px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .paper-breakdown-text {
+            display: inline-block;
+            color: #1e293b;
+            font-weight: normal;
+            margin-left: 6px;
+            background: #fef8ee;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #fde68a;
+        }
+
+        /* Section Map Box */
+        .section-map-container {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px dashed #000;
+            page-break-inside: avoid;
+        }
+
+        .section-map-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            background: #e2e8f0;
+            padding: 6px;
+            border: 1px solid #000;
+        }
+
+        .section-map-card {
+            border: 1px solid #000;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #fff;
+        }
+
+        .section-map-header {
+            font-weight: bold;
+            font-size: 13px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+
+        .section-map-room-line {
+            font-size: 12px;
+            margin-bottom: 3px;
+            padding-left: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 6px 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-top: 6px solid var(--primary);
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            body { background: white; }
+            .app-header, .tabs, .allotment-controls, .capacity-banner, .modal-overlay { display: none !important; }
+            .tab-content { padding: 0; }
+            .a4-page {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                min-height: auto;
+            }
+            .room-allotment, .section-map-container {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header with Save/Reset -->
+    <div class="app-header">
+        <div class="app-title">
+            🏫 Exam Room Allotment System
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="saveDataToStorage(true)">💾 Save Data to Device</button>
+            <button class="header-btn danger-btn" onclick="resetAllData()">🗑️ Reset All Data</button>
+        </div>
+    </div>
+
+    <!-- Capacity Shortage Pop-up Modal -->
+    <div class="modal-overlay" id="shortageModal">
+        <div class="modal-content" style="border-top-color: var(--danger);">
+            <h3 style="color: var(--danger); margin-top:0;">⚠️ Room Capacity Shortage Detected!</h3>
+            <p id="modalMessage" style="font-size: 14px; line-height: 1.5; color: #334155;"></p>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="closeModal('shortageModal')" style="width: auto; background-color: #475569;">OK, I Will Adjust Room Capacity</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIRECTIONAL BENCH INSERTION MODAL -->
+    <div class="modal-overlay" id="customBenchModal">
+        <div class="modal-content">
+            <h3 style="margin-top:0; color: var(--primary);">➕ Insert Custom Bench Relative to Coordinate</h3>
+            <p style="font-size: 12px; color: #64748b; margin-top:-5px; margin-bottom: 15px;">
+                Specify the target bench location and choose which side to insert. Other benches will slide automatically!
+            </p>
+            
+            <div style="display:flex; gap:10px; margin-bottom: 12px;">
+                <div style="flex:1;">
+                    <label>Target Row</label>
+                    <input type="number" id="benchTargetRow" value="2" min="1">
+                </div>
+                <div style="flex:1;">
+                    <label>Target Column</label>
+                    <input type="number" id="benchTargetCol" value="2" min="1">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Insertion Placement Side:</label>
+                <select id="benchPlacementSide">
+                    <option value="left">👈 LEFT of Target Column (Slide Columns Right)</option>
+                    <option value="right">👉 RIGHT of Target Column (Slide Columns Right)</option>
+                    <option value="front">👆 FRONT / ABOVE Target Row (Slide Rows Down)</option>
+                    <option value="back">👇 BACK / BELOW Target Row (Slide Rows Down)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Bench Capacity:</label>
+                <select id="benchSeatsCount">
+                    <option value="2">2 Students per Bench</option>
+                    <option value="1">1 Student per Bench</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" onclick="closeModal('customBenchModal')" style="width:auto; background:#94a3b8;">Cancel</button>
+                <button type="button" onclick="executeAddCustomBench()" style="width:auto;">Insert Bench Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('settings')">⚙️ Settings & Scheduling</button>
+        <button class="tab-btn" onclick="switchTab('preview')">📄 A4 Allotment Preview</button>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="settings" class="tab-content active">
+
+        <!-- Global Capacity Banner -->
+        <div class="capacity-banner" id="globalCapacityBanner">
+            <span>📊 System Status: Add Classes and Rooms to begin.</span>
+        </div>
+
+        <div class="grid-container">
+            
+            <!-- 1. Class & Section Management -->
+            <div class="card">
+                <h3>1. Manage Classes & Sections</h3>
+                <form id="classForm" onsubmit="addClass(event)">
+                    <div class="form-group">
+                        <label>Class Name (e.g. Class 7, Grade 10)</label>
+                        <input type="text" id="className" placeholder="Class 7" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Section Name (e.g. A, B)</label>
+                        <input type="text" id="sectionName" placeholder="A" required>
+                    </div>
+                    <div class="form-group" style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Start Roll No.</label>
+                            <input type="number" id="startRoll" value="1" min="1" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label>End Roll No.</label>
+                            <input type="number" id="endRoll" value="40" min="1" required>
+                        </div>
+                    </div>
+                    <button type="submit">Add Class/Section</button>
+                </form>
+                <div style="margin-top: 15px;">
+                    <ul id="classList"></ul>
+                </div>
+            </div>
+
+            <!-- 2. Subject Management -->
+            <div class="card">
+                <h3>2. Manage Subjects</h3>
+                <form id="subjectForm" onsubmit="addSubject(event)">
+                    <div class="form-group">
+                        <label>Subject Name</label>
+                        <input type="text" id="subjectName" placeholder="e.g. Mathematics, Science" required>
+                    </div>
+                    <button type="submit">Add Subject</button>
+                </form>
+                <div style="margin-top: 15px;">
+                    <ul id="subjectList"></ul>
+                </div>
+            </div>
+
+            <!-- 3. Room & Physical Bench Grid Setup -->
+            <div class="card">
+                <h3>3. Manage Rooms & Bench Layouts</h3>
+                <form id="roomForm" onsubmit="addRoom(event)">
+                    <div class="form-group">
+                        <label>Room Name/No.</label>
+                        <input type="text" id="roomName" placeholder="e.g. Room 101, Hall A" required>
+                    </div>
+                    
+                    <div class="form-group" style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>Base Rows</label>
+                            <input type="number" id="roomRows" value="5" min="1" oninput="initializeRoomBuilder()" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Base Columns</label>
+                            <input type="number" id="roomCols" value="4" min="1" oninput="initializeRoomBuilder()" required>
+                        </div>
+                    </div>
+
+                    <!-- BENCH BUILDER TOOLBAR -->
+                    <div class="form-group">
+                        <label>Extend Layout & Custom Bench Options:</label>
+                        <div class="bench-builder-actions">
+                            <button type="button" class="btn-small-add" onclick="builderAddRow(1)">+ Add Row (1-Seat)</button>
+                            <button type="button" class="btn-small-add" onclick="builderAddRow(2)">+ Add Row (2-Seat)</button>
+                            <button type="button" class="btn-small-add" onclick="builderAddCol(1)">+ Add Col (1-Seat)</button>
+                            <button type="button" class="btn-small-add" onclick="builderAddCol(2)">+ Add Col (2-Seat)</button>
+                            <button type="button" class="btn-small-add" onclick="openCustomBenchModal()" style="background:#3b82f6; color:#fff;">+ Add Custom Bench (Directional)</button>
+                        </div>
+                    </div>
+
+                    <!-- INTERACTIVE SEAT MATRIX CONTAINER -->
+                    <div class="form-group">
+                        <label>Bench Grid Matrix (Click Row/Col Headings to Delete Entire Row/Col):</label>
+                        <div class="matrix-selector-wrapper">
+                            <div id="matrixBuilderContainer" class="matrix-grid-builder"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="background: #f1f5f9; padding: 8px; border-radius: 4px; font-size: 13px;">
+                        Active Room Capacity: <b id="capacityPreviewText">40 Seats</b>
+                    </div>
+                    <button type="submit">Add Room</button>
+                </form>
+                <div style="margin-top: 15px;">
+                    <ul id="roomList"></ul>
+                </div>
+            </div>
+
+            <!-- 4. Schedule Exams & Saved Exams List -->
+            <div class="card" style="grid-column: span auto;">
+                <h3>4. Schedule Exams (Same Day & Timing)</h3>
+                <form id="scheduleForm" onsubmit="saveSchedule(event)">
+                    <div class="form-group">
+                        <label>Exam Date</label>
+                        <input type="date" id="examDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Select Classes Having Exam (Check Multiple):</label>
+                        <div class="checkbox-group" id="classCheckboxes">
+                            <span style="font-size:12px; color:#94a3b8;">Add classes first</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Subject for Each Section:</label>
+                        <div id="sectionSubjectContainer">
+                            <span style="font-size:12px; color:#94a3b8;">Check class(es) above to assign subjects per section</span>
+                        </div>
+                    </div>
+
+                    <button type="submit">Save Schedule for Selected Date</button>
+                </form>
+
+                <!-- SAVED EXAM DATES LIST -->
+                <div style="margin-top: 20px; border-top: 2px solid #f1f5f9; padding-top: 15px;">
+                    <h4 style="margin: 0 0 10px 0; color:#1e293b; font-size:15px;">📅 Saved Exam Dates List:</h4>
+                    <div id="scheduleList"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PREVIEW TAB -->
+    <div id="preview" class="tab-content">
+        <div class="a4-container">
+            <div class="allotment-controls">
+                <div class="controls-top-row">
+                    <div class="form-group" style="flex:1; margin-bottom:0;">
+                        <label>Select Scheduled Date</label>
+                        <select id="allotmentDate" onchange="updateLiveCapacityStatus(); renderPreviewRoomChecklist();"></select>
+                    </div>
+
+                    <div class="form-group" style="flex:1.4; margin-bottom:0;">
+                        <label>Seating Distribution Method</label>
+                        <select id="distributionMethod" onchange="generateAllotment()">
+                            <option value="sequential_jumbled">🎲 Jumbled Sequential Block (5 Students/Room Side-by-Side)</option>
+                            <option value="sequential_regular">➡️ Regular Sequential Block (Roll 1..N Side-by-Side Rooms)</option>
+                            <option value="interleaved">🔀 Fully Interleaved / Anti-Cheating Jumbled</option>
+                        </select>
+                    </div>
+
+                    <button onclick="generateAllotment()" style="width: auto;">🔄 Generate Allotment</button>
+                    <button onclick="window.print()" style="width: auto; background-color: #059669;">🖨️ Print View</button>
+                </div>
+
+                <!-- SELECTIVE ROOMS CHECKBOX CONTAINER -->
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Select Active Rooms to Use for This Allotment:</label>
+                    <div class="checkbox-group" id="previewRoomChecklist">
+                        <span style="font-size:12px; color:#94a3b8;">Add rooms in Settings first</span>
+                    </div>
+                </div>
+
+                <!-- Live Capacity Banner on Preview -->
+                <div id="previewCapacityStatus" style="font-size: 13px; font-weight: bold; padding: 6px 10px; border-radius: 4px; background:#e2e8f0;">
+                    Select an exam date to view capacity status.
+                </div>
+
+                <!-- REPORT VIEW FILTER BUTTONS -->
+                <div>
+                    <label style="margin-bottom: 6px;">Select Report View to Display & Print:</label>
+                    <div class="report-views-bar">
+                        <button class="report-view-btn active" id="btn-view-full" onclick="setReportView('full')">📄 Full Report (Everything)</button>
+                        <button class="report-view-btn" id="btn-view-grid" onclick="setReportView('grid')">🪑 Visual Bench Grid Maps</button>
+                        <button class="report-view-btn" id="btn-view-seating" onclick="setReportView('seating')">📋 Seating List Tables</button>
+                        <button class="report-view-btn" id="btn-view-papers" onclick="setReportView('papers')">📦 Paper Dispatch Summary</button>
+                        <button class="report-view-btn" id="btn-view-map" onclick="setReportView('map')">🗺️ Section Roll Map</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="a4-page" id="printableArea">
+                <h2 style="text-align: center; color:#94a3b8; margin-top: 100px;">
+                    Select an exam date and click "Generate Allotment" to view preview.
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STORE ---
+        let classes = [];   
+        let subjects = ["Mathematics", "Science", "English", "Social Studies", "Physics"]; 
+        let rooms = [];     
+        let schedules = []; 
+        let lastAllocations = []; 
+        let lastUnallocatedStudents = [];
+        let lastSelectedDate = "";
+        let currentReportView = "full"; 
+
+        // Active Bench Builder State
+        let currentBuilderBenches = []; 
+
+        const STORAGE_KEY = "EXAM_ROOM_ALLOTMENT_SYSTEM_DATA_V6";
+
+        window.onload = function() {
+            loadDataFromStorage();
+            renderSubjects();
+            renderClasses();
+            renderRooms();
+            renderSchedules();
+            initializeRoomBuilder();
+            updateLiveCapacityStatus();
+        };
+
+        function saveDataToStorage(showAlert = false) {
+            const dataPayload = { classes, subjects, rooms, schedules };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataPayload));
+            if (showAlert) {
+                alert("✅ All settings, room structures, and schedules saved to device storage!");
+            }
+        }
+
+        function loadDataFromStorage() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.classes) classes = parsed.classes;
+                    if (parsed.subjects) subjects = parsed.subjects;
+                    if (parsed.rooms) {
+                        rooms = parsed.rooms;
+                        rooms.forEach(r => { if (r.selected === undefined) r.selected = true; });
+                    }
+                    if (parsed.schedules) schedules = parsed.schedules;
+                } catch(e) {
+                    console.error("Error loading stored data", e);
+                }
+            }
+        }
+
+        function resetAllData() {
+            if (confirm("🚨 Are you sure you want to reset all data? This will delete all saved classes, rooms, and schedules!")) {
+                localStorage.removeItem(STORAGE_KEY);
+                classes = [];
+                subjects = ["Mathematics", "Science", "English", "Social Studies", "Physics"];
+                rooms = [];
+                schedules = [];
+                lastAllocations = [];
+                lastUnallocatedStudents = [];
+                
+                renderSubjects();
+                renderClasses();
+                renderRooms();
+                renderSchedules();
+                renderScheduleClassCheckboxes();
+                initializeRoomBuilder();
+                updateLiveCapacityStatus();
+                document.getElementById('printableArea').innerHTML = '<h2 style="text-align: center; color:#94a3b8; margin-top: 100px;">Data reset successfully.</h2>';
+                alert("Data cleared.");
+            }
+        }
+
+        function showModal(id, msg) {
+            if(msg) document.getElementById('modalMessage').innerHTML = msg;
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function setReportView(viewType) {
+            currentReportView = viewType;
+            document.querySelectorAll('.report-view-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-view-${viewType}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            renderA4Preview();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn'))
+                                 .find(btn => btn.getAttribute('onclick').includes(tabId));
+            if(activeBtn) activeBtn.classList.add('active');
+
+            if(tabId === 'preview') {
+                updateDateDropdown();
+                renderPreviewRoomChecklist();
+                updateLiveCapacityStatus();
+            }
+        }
+
+        // --- 1. CLASS & SECTION LOGIC (WITH EDIT & RENAME) ---
+        function addClass(e) {
+            e.preventDefault();
+            const className = document.getElementById('className').value.trim();
+            const sectionName = document.getElementById('sectionName').value.trim();
+            const startRoll = parseInt(document.getElementById('startRoll').value);
+            const endRoll = parseInt(document.getElementById('endRoll').value);
+
+            if (startRoll > endRoll) {
+                alert("Start Roll No. cannot be greater than End Roll No.");
+                return;
+            }
+
+            let classObj = classes.find(c => c.className.toLowerCase() === className.toLowerCase());
+            if (!classObj) {
+                classObj = { className, sections: [] };
+                classes.push(classObj);
+            }
+
+            if (classObj.sections.some(s => s.sectionName.toLowerCase() === sectionName.toLowerCase())) {
+                alert("This section already exists for this class.");
+                return;
+            }
+
+            classObj.sections.push({ sectionName, start: startRoll, end: endRoll });
+            document.getElementById('sectionName').value = '';
+            
+            renderClasses();
+            renderScheduleClassCheckboxes();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function editClassSection(className, sectionName) {
+            let classObj = classes.find(c => c.className === className);
+            if (!classObj) return;
+            let secObj = classObj.sections.find(s => s.sectionName === sectionName);
+            if (!secObj) return;
+
+            const newClassName = prompt("Edit Class Name:", classObj.className) || classObj.className;
+            const newSectionName = prompt("Edit Section Name:", secObj.sectionName) || secObj.sectionName;
+            const newStart = parseInt(prompt("Edit Start Roll No:", secObj.start)) || secObj.start;
+            const newEnd = parseInt(prompt("Edit End Roll No:", secObj.end)) || secObj.end;
+
+            if (newStart > newEnd) {
+                alert("Start Roll cannot be greater than End Roll.");
+                return;
+            }
+
+            // Update schedules if class or section renamed
+            schedules.forEach(s => {
+                if (s.className === className && s.sectionName === sectionName) {
+                    s.className = newClassName.trim();
+                    s.sectionName = newSectionName.trim();
+                }
+            });
+
+            // Apply updates
+            secObj.sectionName = newSectionName.trim();
+            secObj.start = newStart;
+            secObj.end = newEnd;
+            classObj.className = newClassName.trim();
+
+            renderClasses();
+            renderSchedules();
+            renderScheduleClassCheckboxes();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function deleteSection(className, sectionName) {
+            let classObj = classes.find(c => c.className === className);
+            if (classObj) {
+                classObj.sections = classObj.sections.filter(s => s.sectionName !== sectionName);
+                if (classObj.sections.length === 0) {
+                    classes = classes.filter(c => c.className !== className);
+                }
+            }
+            renderClasses();
+            renderScheduleClassCheckboxes();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function renderClasses() {
+            const list = document.getElementById('classList');
+            list.innerHTML = '';
+            classes.forEach(c => {
+                c.sections.forEach(s => {
+                    const count = (s.end - s.start + 1);
+                    list.innerHTML += `
+                        <li>
+                            <span><b>${c.className}</b> - Sec <b>${s.sectionName}</b> (Rolls: ${s.start} to ${s.end} = <b>${count} Students</b>)</span>
+                            <div class="item-action-btns">
+                                <button class="edit-btn" onclick="editClassSection('${c.className}', '${s.sectionName}')">✏️ Edit</button>
+                                <button class="delete-btn" onclick="deleteSection('${c.className}', '${s.sectionName}')">🗑️ Delete</button>
+                            </div>
+                        </li>`;
+                });
+            });
+        }
+
+        // --- 2. SUBJECT LOGIC (WITH EDIT & RENAME) ---
+        function addSubject(e) {
+            e.preventDefault();
+            const name = document.getElementById('subjectName').value.trim();
+            if (subjects.some(s => s.toLowerCase() === name.toLowerCase())) {
+                alert("Subject already exists.");
+                return;
+            }
+            subjects.push(name);
+            document.getElementById('subjectForm').reset();
+            renderSubjects();
+            renderSectionSubjectRows(); 
+            saveDataToStorage();
+        }
+
+        function editSubject(oldName) {
+            const newName = prompt("Edit Subject Name:", oldName);
+            if (newName && newName.trim() !== "" && newName.trim() !== oldName) {
+                const trimmed = newName.trim();
+                let idx = subjects.indexOf(oldName);
+                if (idx !== -1) subjects[idx] = trimmed;
+
+                // Update schedules
+                schedules.forEach(s => {
+                    if (s.subject === oldName) s.subject = trimmed;
+                });
+
+                renderSubjects();
+                renderSchedules();
+                renderSectionSubjectRows();
+                saveDataToStorage();
+            }
+        }
+
+        function deleteSubject(name) {
+            subjects = subjects.filter(s => s !== name);
+            renderSubjects();
+            renderSectionSubjectRows();
+            saveDataToStorage();
+        }
+
+        function renderSubjects() {
+            const list = document.getElementById('subjectList');
+            list.innerHTML = '';
+            subjects.forEach(s => {
+                list.innerHTML += `
+                    <li>
+                        <span><b>${s}</b></span>
+                        <div class="item-action-btns">
+                            <button class="edit-btn" onclick="editSubject('${s}')">✏️ Edit</button>
+                            <button class="delete-btn" onclick="deleteSubject('${s}')">🗑️ Delete</button>
+                        </div>
+                    </li>`;
+            });
+        }
+
+        // --- 3. MATRIX BENCH BUILDER & ROW/COLUMN HEADING DELETE LOGIC ---
+        function initializeRoomBuilder() {
+            const rows = parseInt(document.getElementById('roomRows').value) || 1;
+            const cols = parseInt(document.getElementById('roomCols').value) || 1;
+
+            currentBuilderBenches = [];
+            let benchId = 1;
+            for (let r = 1; r <= rows; r++) {
+                for (let c = 1; c <= cols; c++) {
+                    currentBuilderBenches.push({
+                        id: `bench_${benchId++}`,
+                        row: r,
+                        col: c,
+                        seats: 2 
+                    });
+                }
+            }
+            renderMatrixBuilderUI();
+        }
+
+        function builderAddRow(seatsCount) {
+            let maxRow = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.row)) : 0;
+            let maxCol = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.col)) : 1;
+            let newRow = maxRow + 1;
+
+            for (let c = 1; c <= maxCol; c++) {
+                currentBuilderBenches.push({
+                    id: `bench_${Date.now()}_${Math.random().toString(36).substr(2,4)}`,
+                    row: newRow,
+                    col: c,
+                    seats: seatsCount
+                });
+            }
+            document.getElementById('roomRows').value = newRow;
+            renderMatrixBuilderUI();
+        }
+
+        function builderAddCol(seatsCount) {
+            let maxRow = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.row)) : 1;
+            let maxCol = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.col)) : 0;
+            let newCol = maxCol + 1;
+
+            for (let r = 1; r <= maxRow; r++) {
+                currentBuilderBenches.push({
+                    id: `bench_${Date.now()}_${Math.random().toString(36).substr(2,4)}`,
+                    row: r,
+                    col: newCol,
+                    seats: seatsCount
+                });
+            }
+            document.getElementById('roomCols').value = newCol;
+            renderMatrixBuilderUI();
+        }
+
+        function openCustomBenchModal() {
+            showModal('customBenchModal');
+        }
+
+        function executeAddCustomBench() {
+            const targetRow = parseInt(document.getElementById('benchTargetRow').value) || 1;
+            const targetCol = parseInt(document.getElementById('benchTargetCol').value) || 1;
+            const side = document.getElementById('benchPlacementSide').value;
+            const seats = parseInt(document.getElementById('benchSeatsCount').value) || 2;
+
+            let newRow = targetRow;
+            let newCol = targetCol;
+
+            if (side === 'left') {
+                currentBuilderBenches.forEach(b => { if (b.col >= targetCol) b.col += 1; });
+            } else if (side === 'right') {
+                currentBuilderBenches.forEach(b => { if (b.col > targetCol) b.col += 1; });
+                newCol = targetCol + 1;
+            } else if (side === 'front') {
+                currentBuilderBenches.forEach(b => { if (b.row >= targetRow) b.row += 1; });
+            } else if (side === 'back') {
+                currentBuilderBenches.forEach(b => { if (b.row > targetRow) b.row += 1; });
+                newRow = targetRow + 1;
+            }
+
+            currentBuilderBenches.push({
+                id: `bench_${Date.now()}_${Math.random().toString(36).substr(2,4)}`,
+                row: newRow,
+                col: newCol,
+                seats: seats
+            });
+
+            closeModal('customBenchModal');
+            renderMatrixBuilderUI();
+        }
+
+        // DELETE ENTIRE ROW BY HEADING
+        function builderDeleteEntireRow(rowNum) {
+            if (confirm(`Delete entire Row R${rowNum} and all its benches?`)) {
+                currentBuilderBenches = currentBuilderBenches.filter(b => b.row !== rowNum);
+                currentBuilderBenches.forEach(b => {
+                    if (b.row > rowNum) b.row -= 1;
+                });
+                renderMatrixBuilderUI();
+            }
+        }
+
+        // DELETE ENTIRE COLUMN BY HEADING
+        function builderDeleteEntireCol(colNum) {
+            if (confirm(`Delete entire Column C${colNum} and all its benches?`)) {
+                currentBuilderBenches = currentBuilderBenches.filter(b => b.col !== colNum);
+                currentBuilderBenches.forEach(b => {
+                    if (b.col > colNum) b.col -= 1;
+                });
+                renderMatrixBuilderUI();
+            }
+        }
+
+        function builderDeleteBench(benchId) {
+            currentBuilderBenches = currentBuilderBenches.filter(b => b.id !== benchId);
+            renderMatrixBuilderUI();
+        }
+
+        // RENDER MATRIX BUILDER WITH ROW & COLUMN HEADINGS
+        function renderMatrixBuilderUI() {
+            const container = document.getElementById('matrixBuilderContainer');
+            
+            let maxRow = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.row)) : 1;
+            let maxCol = currentBuilderBenches.length > 0 ? Math.max(...currentBuilderBenches.map(b => b.col)) : 1;
+            
+            // Grid columns = maxCol + 1 (for left row headings)
+            container.style.gridTemplateColumns = `auto repeat(${Math.max(maxCol, 1)}, 1fr)`;
+            container.innerHTML = '';
+
+            let benchMap = {};
+            currentBuilderBenches.forEach(b => {
+                benchMap[`${b.row}_${b.col}`] = b;
+            });
+
+            // TOP-LEFT CORNER CELL
+            container.innerHTML += `<div class="matrix-header-cell corner-cell">Grid</div>`;
+
+            // TOP ROW: COLUMN HEADERS (C1, C2, C3...)
+            for (let c = 1; c <= maxCol; c++) {
+                container.innerHTML += `
+                    <div class="matrix-header-cell" onclick="builderDeleteEntireCol(${c})" title="Click to Delete Entire Column C${c}">
+                        C${c} 🗑️
+                    </div>
+                `;
+            }
+
+            // GRID BODY WITH ROW HEADERS
+            for (let r = 1; r <= maxRow; r++) {
+                // LEFT ROW HEADER (R1, R2, R3...)
+                container.innerHTML += `
+                    <div class="matrix-header-cell" onclick="builderDeleteEntireRow(${r})" title="Click to Delete Entire Row R${r}">
+                        R${r} 🗑️
+                    </div>
+                `;
+
+                for (let c = 1; c <= maxCol; c++) {
+                    let b = benchMap[`${r}_${c}`];
+                    if (b) {
+                        let benchHTML = `<div class="matrix-bench-cell">
+                            <span class="delete-bench-icon" onclick="builderDeleteBench('${b.id}')" title="Delete Bench">✕</span>
+                            <b>R${b.row}C${b.col}</b>
+                            <div class="matrix-seats-row">`;
+
+                        for (let s = 1; s <= b.seats; s++) {
+                            let seatKey = `${b.id}_S${s}`;
+                            benchHTML += `
+                                <label class="matrix-seat-label" title="Uncheck to restrict seat">
+                                    <input type="checkbox" data-seat-key="${seatKey}" checked onchange="calculateRoomCapacityPreview()">
+                                    S${s}
+                                </label>
+                            `;
+                        }
+                        benchHTML += `</div></div>`;
+                        container.innerHTML += benchHTML;
+                    } else {
+                        container.innerHTML += `<div class="matrix-empty-spacer">R${r}C${c} [ EMPTY ]</div>`;
+                    }
+                }
+            }
+
+            calculateRoomCapacityPreview();
+        }
+
+        function calculateRoomCapacityPreview() {
+            const totalBoxes = document.querySelectorAll('#matrixBuilderContainer input[type="checkbox"]');
+            const activeBoxes = document.querySelectorAll('#matrixBuilderContainer input[type="checkbox"]:checked');
+            
+            const totalSeats = totalBoxes.length;
+            const activeCapacity = activeBoxes.length;
+            const restrictedCount = totalSeats - activeCapacity;
+
+            document.getElementById('capacityPreviewText').innerText = `${activeCapacity} Seats (${restrictedCount > 0 ? restrictedCount + ' Restricted' : '0 Restricted'})`;
+        }
+
+        function addRoom(e) {
+            e.preventDefault();
+            const name = document.getElementById('roomName').value.trim();
+
+            if (rooms.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+                alert("Room already exists.");
+                return;
+            }
+
+            if (currentBuilderBenches.length === 0) {
+                alert("Please add at least one bench.");
+                return;
+            }
+
+            const disabledSeats = [];
+            const seatCheckboxes = document.querySelectorAll('#matrixBuilderContainer input[type="checkbox"]');
+            seatCheckboxes.forEach(cb => {
+                if (!cb.checked) {
+                    disabledSeats.push(cb.getAttribute('data-seat-key'));
+                }
+            });
+
+            let totalPossible = currentBuilderBenches.reduce((sum, b) => sum + b.seats, 0);
+            let capacity = totalPossible - disabledSeats.length;
+
+            let maxRow = Math.max(...currentBuilderBenches.map(b => b.row));
+            let maxCol = Math.max(...currentBuilderBenches.map(b => b.col));
+
+            rooms.push({
+                name,
+                rows: maxRow,
+                cols: maxCol,
+                benches: JSON.parse(JSON.stringify(currentBuilderBenches)),
+                disabledSeats,
+                capacity,
+                selected: true
+            });
+
+            document.getElementById('roomForm').reset();
+            initializeRoomBuilder();
+            renderRooms();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function editRoomName(roomName) {
+            let r = rooms.find(room => room.name === roomName);
+            if (!r) return;
+            const newName = prompt("Rename Room:", r.name);
+            if (newName && newName.trim() !== "") {
+                r.name = newName.trim();
+                renderRooms();
+                renderPreviewRoomChecklist();
+                updateLiveCapacityStatus();
+                saveDataToStorage();
+            }
+        }
+
+        function toggleRoomSelection(roomName, isSelected) {
+            let r = rooms.find(room => room.name === roomName);
+            if (r) {
+                r.selected = isSelected;
+                updateLiveCapacityStatus();
+                saveDataToStorage();
+            }
+        }
+
+        function deleteRoom(name) {
+            rooms = rooms.filter(r => r.name !== name);
+            renderRooms();
+            renderPreviewRoomChecklist();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function renderRooms() {
+            const list = document.getElementById('roomList');
+            list.innerHTML = '';
+            rooms.forEach(r => {
+                const disabledCount = (r.disabledSeats ? r.disabledSeats.length : 0);
+                const benchCount = r.benches ? r.benches.length : (r.rows * r.cols);
+                const checkedAttr = r.selected !== false ? 'checked' : '';
+
+                list.innerHTML += `
+                    <li>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" ${checkedAttr} onchange="toggleRoomSelection('${r.name}', this.checked)" title="Check to use for exam allotment">
+                            <span><b>${r.name}</b> (${benchCount} Benches, <b>${r.capacity} Active Seats</b> ${disabledCount > 0 ? '['+disabledCount+' Restricted]' : ''})</span>
+                        </div>
+                        <div class="item-action-btns">
+                            <button class="edit-btn" onclick="editRoomName('${r.name}')">✏️ Rename</button>
+                            <button class="delete-btn" onclick="deleteRoom('${r.name}')">🗑️ Delete</button>
+                        </div>
+                    </li>`;
+            });
+            renderPreviewRoomChecklist();
+        }
+
+        function renderPreviewRoomChecklist() {
+            const container = document.getElementById('previewRoomChecklist');
+            if(!container) return;
+            container.innerHTML = '';
+
+            if (rooms.length === 0) {
+                container.innerHTML = '<span style="font-size:12px; color:#94a3b8;">Add rooms in Settings first</span>';
+                return;
+            }
+
+            rooms.forEach(r => {
+                const checkedAttr = r.selected !== false ? 'checked' : '';
+                container.innerHTML += `
+                    <label class="checkbox-item">
+                        <input type="checkbox" ${checkedAttr} onchange="toggleRoomSelection('${r.name}', this.checked)"> ${r.name} (${r.capacity} Seats)
+                    </label>
+                `;
+            });
+        }
+
+        // --- 4. SCHEDULE LOGIC ---
+        function renderScheduleClassCheckboxes() {
+            const container = document.getElementById('classCheckboxes');
+            container.innerHTML = '';
+
+            if (classes.length === 0) {
+                container.innerHTML = '<span style="font-size:12px; color:#94a3b8;">Add classes first</span>';
+                renderSectionSubjectRows();
+                return;
+            }
+
+            classes.forEach(c => {
+                container.innerHTML += `
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="${c.className}" onchange="renderSectionSubjectRows()"> ${c.className}
+                    </label>
+                `;
+            });
+            renderSectionSubjectRows();
+        }
+
+        function renderSectionSubjectRows() {
+            const container = document.getElementById('sectionSubjectContainer');
+            container.innerHTML = '';
+
+            const selectedClassNodes = document.querySelectorAll('#classCheckboxes input[type="checkbox"]:checked');
+            const selectedClasses = Array.from(selectedClassNodes).map(node => node.value);
+
+            if (selectedClasses.length === 0) {
+                container.innerHTML = '<span style="font-size:12px; color:#94a3b8;">Check class(es) above to assign subjects per section</span>';
+                return;
+            }
+
+            if (subjects.length === 0) {
+                container.innerHTML = '<span style="font-size:12px; color:#ef4444;">Please add subjects in Section 2 first!</span>';
+                return;
+            }
+
+            selectedClasses.forEach(className => {
+                const classObj = classes.find(c => c.className === className);
+                if (classObj) {
+                    classObj.sections.forEach(sec => {
+                        let options = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+                        container.innerHTML += `
+                            <div class="section-subject-row">
+                                <span>${classObj.className} - Sec ${sec.sectionName}</span>
+                                <select data-class="${classObj.className}" data-section="${sec.sectionName}">
+                                    ${options}
+                                </select>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
+        function saveSchedule(e) {
+            e.preventDefault();
+            const date = document.getElementById('examDate').value;
+            const dropdowns = document.querySelectorAll('#sectionSubjectContainer select');
+
+            if (dropdowns.length === 0) {
+                alert("Please select at least one class and section.");
+                return;
+            }
+
+            dropdowns.forEach(select => {
+                const className = select.getAttribute('data-class');
+                const sectionName = select.getAttribute('data-section');
+                const subject = select.value;
+
+                schedules = schedules.filter(s => !(s.date === date && s.className === className && s.sectionName === sectionName));
+
+                schedules.push({
+                    id: Date.now() + Math.random().toString(),
+                    date,
+                    className,
+                    sectionName,
+                    subject
+                });
+            });
+
+            alert("Exam schedule saved for " + date);
+            renderSchedules();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function editScheduleItem(id) {
+            let sched = schedules.find(s => s.id === id);
+            if (!sched) return;
+            const newDate = prompt("Edit Exam Date (YYYY-MM-DD):", sched.date);
+            const newSubj = prompt("Edit Subject Name:", sched.subject);
+
+            if (newDate && newSubj) {
+                sched.date = newDate.trim();
+                sched.subject = newSubj.trim();
+                renderSchedules();
+                updateDateDropdown();
+                updateLiveCapacityStatus();
+                saveDataToStorage();
+            }
+        }
+
+        function deleteScheduleDate(date) {
+            if (confirm(`Delete all scheduled exams for ${date}?`)) {
+                schedules = schedules.filter(s => s.date !== date);
+                renderSchedules();
+                updateLiveCapacityStatus();
+                saveDataToStorage();
+            }
+        }
+
+        function deleteSingleScheduleItem(id) {
+            schedules = schedules.filter(s => s.id !== id);
+            renderSchedules();
+            updateLiveCapacityStatus();
+            saveDataToStorage();
+        }
+
+        function loadDateToPreview(date) {
+            switchTab('preview');
+            document.getElementById('allotmentDate').value = date;
+            generateAllotment();
+        }
+
+        function renderSchedules() {
+            const container = document.getElementById('scheduleList');
+            container.innerHTML = '';
+
+            const grouped = {};
+            schedules.forEach(s => {
+                if(!grouped[s.date]) grouped[s.date] = [];
+                grouped[s.date].push(s);
+            });
+
+            const sortedDates = Object.keys(grouped).sort();
+
+            if (sortedDates.length === 0) {
+                container.innerHTML = '<span style="font-size:12px; color:#94a3b8;">No saved exams found. Schedule an exam above.</span>';
+                return;
+            }
+
+            sortedDates.forEach(date => {
+                let items = grouped[date];
+                let html = `<div class="schedule-date-group">
+                                <div class="schedule-date-header">
+                                    <span>📅 Date: <b>${date}</b> (${items.length} Exams Scheduled)</span>
+                                    <div>
+                                        <button type="button" onclick="loadDateToPreview('${date}')" style="width:auto; padding:3px 8px; font-size:11px; background:#0284c7;">👁️ Preview</button>
+                                        <button type="button" onclick="deleteScheduleDate('${date}')" class="delete-btn">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                                <ul>`;
+                items.forEach(s => {
+                    html += `
+                        <li>
+                            <span><b>${s.className} (Sec ${s.sectionName})</b> &nbsp;➔&nbsp; Subject: <b>${s.subject}</b></span>
+                            <div class="item-action-btns">
+                                <button class="edit-btn" onclick="editScheduleItem('${s.id}')">✏️ Edit</button>
+                                <button class="delete-btn" onclick="deleteSingleScheduleItem('${s.id}')">🗑️ Delete</button>
+                            </div>
+                        </li>
+                    `;
+                });
+                html += `</ul></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        // --- LIVE CAPACITY CHECKER ---
+        function updateLiveCapacityStatus() {
+            const date = document.getElementById('allotmentDate').value || (schedules.length > 0 ? schedules[0].date : null);
+            const activeRooms = rooms.filter(r => r.selected !== false);
+            const totalRoomSeats = activeRooms.reduce((sum, r) => sum + r.capacity, 0);
+
+            let scheduledCount = 0;
+            if (date) {
+                const todaysSchedules = schedules.filter(s => s.date === date);
+                todaysSchedules.forEach(s => {
+                    const cObj = classes.find(c => c.className === s.className);
+                    if (cObj) {
+                        const secObj = cObj.sections.find(sec => sec.sectionName === s.sectionName);
+                        if (secObj) {
+                            scheduledCount += (secObj.end - secObj.start + 1);
+                        }
+                    }
+                });
+            }
+
+            const globalBanner = document.getElementById('globalCapacityBanner');
+            const previewBanner = document.getElementById('previewCapacityStatus');
+
+            if (!date) {
+                globalBanner.className = "capacity-banner";
+                globalBanner.innerHTML = `<span>📊 Active Room Capacity: <b>${totalRoomSeats} Seats</b> (${activeRooms.length} of ${rooms.length} Rooms Selected).</span>`;
+                if(previewBanner) previewBanner.innerHTML = `Select an exam date to view capacity status.`;
+                return;
+            }
+
+            const diff = totalRoomSeats - scheduledCount;
+            let statusText = `Date: ${date} | Total Students Scheduled: <b>${scheduledCount}</b> | Selected Rooms Capacity: <b>${totalRoomSeats} Seats</b> (${activeRooms.length} Rooms)`;
+
+            if (diff >= 0) {
+                globalBanner.className = "capacity-banner ok";
+                globalBanner.innerHTML = `<span>✅ ${statusText} &nbsp;➔&nbsp; <b>Adequate Capacity (+${diff} Surplus Seats)</b></span>`;
+                if(previewBanner) {
+                    previewBanner.style.color = "#065f46";
+                    previewBanner.innerHTML = `✅ Capacity Check Passed: ${scheduledCount} Students Scheduled vs ${totalRoomSeats} Seats in Selected Rooms.`;
+                }
+            } else {
+                const shortage = Math.abs(diff);
+                globalBanner.className = "capacity-banner error";
+                globalBanner.innerHTML = `<span>🚨 ${statusText} &nbsp;➔&nbsp; <b style="color:#ef4444;">SHORTAGE OF ${shortage} SEATS! Check more rooms or add new rooms.</b></span>`;
+                if(previewBanner) {
+                    previewBanner.style.color = "#991b1b";
+                    previewBanner.innerHTML = `🚨 Shortage Alert: ${shortage} students cannot fit into selected rooms! Check more room checkboxes.`;
+                }
+            }
+        }
+
+        // --- 5. ALLOTMENT & CHUNKED SEQUENTIAL DISTRIBUTION ALGORITHMS ---
+        function updateDateDropdown() {
+            const select = document.getElementById('allotmentDate');
+            const currentVal = select.value;
+            select.innerHTML = '';
+            const uniqueDates = [...new Set(schedules.map(s => s.date))].sort();
+
+            if (uniqueDates.length === 0) {
+                select.innerHTML = '<option value="">No scheduled exams found</option>';
+                return;
+            }
+
+            uniqueDates.forEach(d => {
+                select.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            if(currentVal && uniqueDates.includes(currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        function shuffle(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function interleaveGroups(groups) {
+            let result = [];
+            let maxLength = Math.max(...groups.map(g => g.length));
+
+            for (let i = 0; i < maxLength; i++) {
+                for (let j = 0; j < groups.length; j++) {
+                    if (i < groups[j].length) {
+                        result.push(groups[j][i]);
+                    }
+                }
+            }
+            return result;
+        }
+
+        function formatRollRanges(rolls) {
+            if (!rolls || rolls.length === 0) return '';
+            let sorted = [...rolls].sort((a, b) => a - b);
+            let ranges = [];
+            let start = sorted[0];
+            let end = sorted[0];
+
+            for (let i = 1; i < sorted.length; i++) {
+                if (sorted[i] === end + 1) {
+                    end = sorted[i];
+                } else {
+                    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+                    start = sorted[i];
+                    end = sorted[i];
+                }
+            }
+            ranges.push(start === end ? `${start}` : `${start}-${end}`);
+            return ranges.join(', ');
+        }
+
+        function generateAllotment() {
+            const date = document.getElementById('allotmentDate').value;
+            const distMethod = document.getElementById('distributionMethod').value; 
+
+            if (!date) {
+                alert("Please select a date.");
+                return;
+            }
+
+            const activeRooms = rooms.filter(r => r.selected !== false);
+
+            if (activeRooms.length === 0) {
+                alert("No rooms selected! Please check at least one room checkbox.");
+                return;
+            }
+
+            const todaysSchedules = schedules.filter(s => s.date === date);
+            if (todaysSchedules.length === 0) {
+                alert("No scheduled exams found for this date.");
+                return;
+            }
+
+            let sectionPools = [];
+            let totalStudentsCount = 0;
+
+            todaysSchedules.forEach(sched => {
+                const classObj = classes.find(c => c.className === sched.className);
+                if (classObj) {
+                    const sectionObj = classObj.sections.find(s => s.sectionName === sched.sectionName);
+                    if (sectionObj) {
+                        let groupStudents = [];
+                        for (let r = sectionObj.start; r <= sectionObj.end; r++) {
+                            groupStudents.push({
+                                className: sched.className,
+                                sectionName: sched.sectionName,
+                                rollNo: r,
+                                subject: sched.subject
+                            });
+                        }
+                        totalStudentsCount += groupStudents.length;
+                        groupStudents.sort((a, b) => a.rollNo - b.rollNo);
+                        sectionPools.push(groupStudents);
+                    }
+                }
+            });
+
+            const totalRoomCapacity = activeRooms.reduce((sum, r) => sum + r.capacity, 0);
+
+            if (totalStudentsCount > totalRoomCapacity) {
+                const shortage = totalStudentsCount - totalRoomCapacity;
+                showModal('shortageModal', `
+                    <b>Total Students Scheduled:</b> ${totalStudentsCount}<br>
+                    <b>Selected Rooms Capacity:</b> ${totalRoomCapacity} Seats<br><br>
+                    <span style="color:#ef4444; font-weight:bold;">❌ ${shortage} STUDENTS COULD NOT BE ALLOTTED!</span><br><br>
+                    Because of lacking room strength, ${shortage} students will be left without seats. 
+                    Please check more rooms or increase room capacities.
+                `);
+            }
+
+            let masterStudentPool = [];
+
+            if (distMethod === 'interleaved') {
+                let shuffledGroups = sectionPools.map(g => shuffle(g));
+                shuffledGroups = shuffle(shuffledGroups);
+                masterStudentPool = interleaveGroups(shuffledGroups);
+            } 
+            else if (distMethod === 'sequential_jumbled') {
+                let allChunks = [];
+                sectionPools.forEach(secList => {
+                    const CHUNK_SIZE = 5;
+                    for (let i = 0; i < secList.length; i += CHUNK_SIZE) {
+                        allChunks.push(secList.slice(i, i + CHUNK_SIZE));
+                    }
+                });
+
+                allChunks = shuffle(allChunks);
+                masterStudentPool = allChunks.flat();
+            } 
+            else {
+                sectionPools.sort((a, b) => {
+                    if (a[0].className !== b[0].className) return a[0].className.localeCompare(b[0].className);
+                    return a[0].sectionName.localeCompare(b[0].sectionName);
+                });
+                masterStudentPool = sectionPools.flat();
+            }
+
+            if (masterStudentPool.length === 0) {
+                alert("No students found for this schedule.");
+                return;
+            }
+
+            // Room Seat Allocation using Active Selected Rooms
+            let allocations = [];
+            let studentIndex = 0;
+
+            activeRooms.forEach(room => {
+                let seatedStudents = [];
+                for (let i = 0; i < room.capacity; i++) {
+                    if (studentIndex < masterStudentPool.length) {
+                        seatedStudents.push(masterStudentPool[studentIndex]);
+                        studentIndex++;
+                    }
+                }
+                if (seatedStudents.length > 0) {
+                    allocations.push({
+                        roomObj: room,
+                        students: seatedStudents
+                    });
+                }
+            });
+
+            let unallocated = masterStudentPool.slice(studentIndex);
+
+            lastAllocations = allocations;
+            lastUnallocatedStudents = unallocated;
+            lastSelectedDate = date;
+
+            renderA4Preview();
+        }
+
+        function renderA4Preview() {
+            if (!lastAllocations || lastAllocations.length === 0) return;
+
+            const date = lastSelectedDate;
+            const container = document.getElementById('printableArea');
+            const distMethod = document.getElementById('distributionMethod').value;
+
+            let methodLabel = "Jumbled Sequential Block (5 Students/Room Side-by-Side)";
+            if (distMethod === 'sequential_regular') methodLabel = "Regular Sequential Block";
+            else if (distMethod === 'interleaved') methodLabel = "Fully Interleaved / Anti-Cheating Jumbled";
+
+            container.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                    <h1 style="margin:0; font-size: 20px; text-transform: uppercase;">EXAMINATION ROOM ALLOTMENT</h1>
+                    <h3 style="margin: 5px 0 0 0; font-size: 13px; color: #333;">Date of Exam: ${date} &nbsp;|&nbsp; Strategy: ${methodLabel}</h3>
+                </div>
+            `;
+
+            // UNALLOCATED WARNING BLOCK
+            if (lastUnallocatedStudents && lastUnallocatedStudents.length > 0) {
+                let unallocMap = {};
+                lastUnallocatedStudents.forEach(st => {
+                    let key = `${st.className} - Sec ${st.sectionName}`;
+                    if(!unallocMap[key]) unallocMap[key] = [];
+                    unallocMap[key].push(st.rollNo);
+                });
+
+                let unallocHTML = `<div class="unallocated-alert-box">
+                    <strong style="font-size:14px;">🚨 WARNING: ${lastUnallocatedStudents.length} STUDENTS NOT ALLOTTED DUE TO ROOM CAPACITY SHORTAGE:</strong><br>`;
+                
+                Object.keys(unallocMap).forEach(k => {
+                    unallocHTML += `➔ <b>${k}:</b> Roll No. ${formatRollRanges(unallocMap[k])} (${unallocMap[k].length} Students)<br>`;
+                });
+                unallocHTML += `<span style="font-size:11px; margin-top:4px; display:inline-block;">* Please check more rooms or increase room capacity in Settings to fit these students.</span></div>`;
+                
+                container.innerHTML += unallocHTML;
+            }
+
+            let showPaperSummary = (currentReportView === 'full' || currentReportView === 'papers');
+            let showSeatingTables = (currentReportView === 'full' || currentReportView === 'seating');
+            let showVisualGrid = (currentReportView === 'full' || currentReportView === 'grid');
+            let showSectionMap = (currentReportView === 'full' || currentReportView === 'map');
+
+            // RENDER ROOM ALLOCATIONS
+            if (showPaperSummary || showSeatingTables || showVisualGrid) {
+                lastAllocations.forEach(alloc => {
+                    const room = alloc.roomObj;
+                    const disabledSet = new Set(room.disabledSeats || []);
+
+                    let paperDetails = {}; 
+                    alloc.students.forEach(s => {
+                        if (!paperDetails[s.subject]) {
+                            paperDetails[s.subject] = { total: 0, breakdown: {} };
+                        }
+                        paperDetails[s.subject].total++;
+                        let classSecKey = `${s.className} Sec ${s.sectionName}`;
+                        paperDetails[s.subject].breakdown[classSecKey] = (paperDetails[s.subject].breakdown[classSecKey] || 0) + 1;
+                    });
+
+                    // 1. QUESTION PAPER DISPATCH SUMMARY
+                    let paperSummaryHTML = '';
+                    if (showPaperSummary) {
+                        let badgeCards = Object.keys(paperDetails).map(subj => {
+                            let details = paperDetails[subj];
+                            let breakdownText = Object.keys(details.breakdown)
+                                .map(cs => `<b>${cs}:</b> ${details.breakdown[cs]} Sets`)
+                                .join(', ');
+
+                            return `
+                                <div class="paper-badge-card">
+                                    <b>${subj}</b>: Total <b>${details.total} Papers</b> 
+                                    <span class="paper-breakdown-text">(${breakdownText})</span>
+                                </div>
+                            `;
+                        }).join('');
+
+                        paperSummaryHTML = `
+                            <div class="paper-summary-box">
+                                <div class="paper-summary-title">📦 QUESTION PAPER DISPATCH SUMMARY (${alloc.students.length} Total Papers Required):</div>
+                                <div>${badgeCards}</div>
+                            </div>
+                        `;
+                    }
+
+                    // 2. VISUAL BENCH GRID MAP
+                    let visualGridHTML = '';
+                    if (showVisualGrid) {
+                        let benchList = room.benches ? [...room.benches] : [];
+                        if (benchList.length === 0) {
+                            let bId = 1;
+                            for(let r=1; r<=room.rows; r++) {
+                                for(let c=1; c<=room.cols; c++) {
+                                    benchList.push({ id:`bench_${bId++}`, row:r, col:c, seats:2 });
+                                }
+                            }
+                        }
+
+                        let maxRow = Math.max(...benchList.map(b => b.row));
+                        let maxCol = Math.max(...benchList.map(b => b.col));
+
+                        let benchMap = {};
+                        benchList.forEach(b => {
+                            benchMap[`${b.row}_${b.col}`] = b;
+                        });
+
+                        let studentSeatIdx = 0;
+
+                        visualGridHTML = `
+                            <div class="bench-grid-container">
+                                <div class="blackboard-bar">📺 BLACKBOARD / FRONT OF CLASSROOM 📺</div>
+                                <div class="bench-grid" style="grid-template-columns: repeat(${maxCol}, 1fr);">
+                        `;
+
+                        for (let r = 1; r <= maxRow; r++) {
+                            for (let c = 1; c <= maxCol; c++) {
+                                let b = benchMap[`${r}_${c}`];
+                                if (b) {
+                                    visualGridHTML += `
+                                        <div class="bench-box">
+                                            <div class="bench-title">Bench R${b.row}C${b.col}</div>
+                                            <div class="bench-seats-wrapper">
+                                    `;
+
+                                    for (let s = 1; s <= b.seats; s++) {
+                                        let seatKey = `${b.id}_S${s}`;
+
+                                        if (disabledSet.has(seatKey)) {
+                                            visualGridHTML += `
+                                                <div class="seat-slot restricted-seat">
+                                                    <div>❌ RESTRICTED</div>
+                                                </div>
+                                            `;
+                                        } else if (studentSeatIdx < alloc.students.length) {
+                                            const st = alloc.students[studentSeatIdx];
+                                            studentSeatIdx++;
+                                            visualGridHTML += `
+                                                <div class="seat-slot">
+                                                    <div class="seat-class">${st.className}-${st.sectionName}</div>
+                                                    <div class="seat-roll">Roll: ${st.rollNo}</div>
+                                                    <div class="seat-subject">${st.subject}</div>
+                                                </div>
+                                            `;
+                                        } else {
+                                            visualGridHTML += `
+                                                <div class="seat-slot empty-seat">
+                                                    <div style="font-size:10px; font-weight:bold;">[ EMPTY ]</div>
+                                                </div>
+                                            `;
+                                        }
+                                    }
+                                    visualGridHTML += `</div></div>`;
+                                } else {
+                                    visualGridHTML += `<div class="bench-spacer-cell"></div>`;
+                                }
+                            }
+                        }
+
+                        visualGridHTML += `</div></div>`;
+                    }
+
+                    // 3. SEATING LIST TABLE
+                    let tableHTML = '';
+                    if (showSeatingTables) {
+                        tableHTML = `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 12%;">Seat No</th>
+                                        <th style="width: 25%;">Class & Section</th>
+                                        <th style="width: 20%;">Roll No</th>
+                                        <th style="width: 43%;">Subject</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        alloc.students.forEach((st, idx) => {
+                            tableHTML += `
+                                <tr>
+                                    <td><b>${idx + 1}</b></td>
+                                    <td>${st.className} - ${st.sectionName}</td>
+                                    <td><b>${st.rollNo}</b></td>
+                                    <td>${st.subject}</td>
+                                </tr>
+                            `;
+                        });
+                        tableHTML += `</tbody></table>`;
+                    }
+
+                    let roomBlockHTML = `
+                        <div class="room-allotment">
+                            <div class="room-header">${room.name.toUpperCase()} &nbsp;(Seated: ${alloc.students.length} / Active Capacity: ${room.capacity})</div>
+                            ${paperSummaryHTML}
+                            ${visualGridHTML}
+                            ${tableHTML}
+                        </div>
+                    `;
+                    container.innerHTML += roomBlockHTML;
+                });
+            }
+
+            // 4. SECTION-WISE ROLL LOCATION MAP
+            if (showSectionMap) {
+                let sectionMap = {};
+
+                lastAllocations.forEach(alloc => {
+                    alloc.students.forEach(st => {
+                        let key = `${st.className} - Sec ${st.sectionName}`;
+                        if (!sectionMap[key]) {
+                            sectionMap[key] = {
+                                subject: st.subject,
+                                rooms: {}
+                            };
+                        }
+                        if (!sectionMap[key].rooms[alloc.roomObj.name]) {
+                            sectionMap[key].rooms[alloc.roomObj.name] = [];
+                        }
+                        sectionMap[key].rooms[alloc.roomObj.name].push(st.rollNo);
+                    });
+                });
+
+                let mapHTML = `
+                    <div class="section-map-container">
+                        <div class="section-map-title">MAP OF CLASS & SECTION ROLL NUMBERS PER ROOM</div>
+                `;
+
+                Object.keys(sectionMap).sort().forEach(secKey => {
+                    let secData = sectionMap[secKey];
+                    mapHTML += `
+                        <div class="section-map-card">
+                            <div class="section-map-header">${secKey.toUpperCase()} &nbsp;|&nbsp; Subject: ${secData.subject}</div>
+                    `;
+
+                    Object.keys(secData.rooms).forEach(roomName => {
+                        let rollList = secData.rooms[roomName];
+                        let formattedRanges = formatRollRanges(rollList);
+                        mapHTML += `
+                            <div class="section-map-room-line">
+                                ➔ <b>${roomName}:</b> Roll No. <b>${formattedRanges}</b> (${rollList.length} Students)
+                            </div>
+                        `;
+                    });
+
+                    mapHTML += `</div>`;
+                });
+
+                mapHTML += `</div>`;
+                container.innerHTML += mapHTML;
+            }
+        }
+    </script>
+</body>
+</html>
