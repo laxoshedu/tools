@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Timetable Coordinator - A4 Canvas</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --warning: #fef08a; /* Soft yellow for non-core */
+            --bg: #cbd5e1; /* Neutral canvas backdrop */
+            --text: #0f172a;
+            --border: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0; padding: 20px;
+            font-size: 0.82rem;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .header-bar h1 { margin: 0; font-size: 1.3rem; }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-toggle-layout {
+            background-color: #475569;
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-toggle-layout:hover { background-color: #334155; }
+
+        .btn-save {
+            background-color: var(--success);
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-save:hover { background-color: #15803d; }
+
+        .btn-print {
+            background-color: #0f172a;
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-print:hover { background-color: #1e293b; }
+
+        .panel {
+            background: white; padding: 12px; border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .management-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .input-row { display: flex; gap: 6px; }
+        
+        input[type="text"], select { 
+            padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.78rem;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+        
+        .toggle-container { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; }
+
+        button { 
+            padding: 4px 8px; background: var(--primary); color: white; 
+            border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.78rem;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-hover); }
+
+        .chip-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+        .chip { 
+            background: #e2e8f0; padding: 3px 8px; border-radius: 12px; 
+            font-size: 0.75rem; display: flex; align-items: center; gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chip:hover {
+            background: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        .chip.teacher-chip {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            font-weight: 600;
+        }
+        .chip.teacher-chip:hover {
+            background: #bfdbfe;
+        }
+        .chip.teacher-chip.active-teacher {
+            background: #2563eb;
+            color: white;
+            border-color: #1d4ed8;
+        }
+        .chip.non-core-chip { border: 1px solid #eab308; background: #fefce8; }
+
+        /* VIEW FILTER TABS BAR */
+        .view-filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .view-btn {
+            background: white;
+            color: #334155;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.82rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+
+        .view-btn:hover { background: #f1f5f9; }
+        .view-btn.active {
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
+        }
+
+        /* A4 SHEET CANVAS AREA */
+        #timetables-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .a4-page {
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 2px;
+            box-sizing: border-box;
+            position: relative;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        /* Standard Horizontal Mode */
+        .a4-page.horizontal-mode.portrait {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 12mm;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .a4-page.horizontal-mode.landscape {
+            width: 297mm;
+            min-height: 210mm;
+            padding: 12mm;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Vertical Sideways Mode */
+        .a4-page.vertical-mode {
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            position: relative;
+        }
+
+        .a4-page.vertical-mode .a4-page-inner {
+            position: absolute;
+            width: 255mm;
+            height: 175mm;
+            left: calc(50% - 127.5mm);
+            top: calc(50% - 87.5mm);
+            transform: rotate(-90deg);
+            transform-origin: center center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .a4-page-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .a4-page-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .orientation-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #334155;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+        }
+
+        table { 
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse; 
+            background: #ffffff;
+            margin: 0 auto;
+            table-layout: auto;
+        }
+        
+        th, td { 
+            padding: 3px 4px; 
+            text-align: center; 
+            border: 1px solid #000; 
+            vertical-align: middle;
+            white-space: nowrap !important;
+            height: auto;
+        }
+        
+        th { 
+            background: #334155; 
+            color: white; 
+            position: relative; 
+            font-weight: 600;
+            font-size: 0.75rem;
+            line-height: 1.1;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .time-slot-title {
+            cursor: pointer;
+            display: inline-block;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        .time-slot-title:hover {
+            background: rgba(255, 255, 255, 0.2);
+            text-decoration: underline;
+        }
+
+        .day-label { 
+            background: #f8fafc; 
+            font-weight: 700; 
+            color: #475569; 
+            font-size: 0.75rem;
+            padding: 2px 6px;
+        }
+
+        /* Compact Dropdowns */
+        td.timetable-td { padding: 2px; }
+        .sub-select, .teach-select, .work-select {
+            width: 100%;
+            max-width: 95px;
+            font-size: 0.7rem;
+            padding: 1px 2px;
+            border: 1px solid #cbd5e1;
+            border-radius: 2px;
+            background: #ffffff;
+            margin: 1px auto;
+            display: block;
+            text-align: center;
+        }
+        .work-select {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .teach-select {
+            color: #475569;
+        }
+
+        /* Merged Break Column */
+        .cell-break {
+            background-color: #f8fafc !important;
+            border: 1px solid #000 !important;
+            padding: 6px 2px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap !important;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #64748b;
+            text-transform: uppercase;
+            cursor: text;
+            outline: none;
+            width: 22px !important;
+            max-width: 25px !important;
+        }
+
+        .cell-break:focus {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+
+        /* Teacher View Specific Class Tags */
+        .teacher-class-tag {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 700;
+            font-size: 0.72rem;
+            margin: 1px 0;
+            text-align: center;
+            display: block;
+            white-space: nowrap;
+        }
+        .teacher-class-tag small {
+            display: block;
+            font-weight: 500;
+            font-size: 0.65rem;
+            color: #0284c7;
+        }
+        .teacher-class-tag.conflict-tag {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border-color: #fca5a5;
+        }
+        .teacher-class-tag.conflict-tag small {
+            color: #dc2626;
+        }
+
+        /* Minimal Status Highlights */
+        .cell-empty { background-color: #f0fdf4 !important; }
+        .cell-non-core { background-color: var(--warning) !important; }
+        .cell-conflict { background-color: #fee2e2 !important; }
+        .cell-conflict select { border-color: var(--danger) !important; }
+
+        /* Column Controls */
+        .add-col-btn {
+            background: var(--success); color: white; border-radius: 50%; width: 14px; height: 14px;
+            padding: 0; font-size: 10px; line-height: 14px; position: absolute; right: 2px; top: 2px; z-index: 5;
+        }
+        .break-toggle { display: block; font-size: 8px; color: #fde047; cursor: pointer; margin-top: 1px; }
+
+        #conflict-alert {
+            position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
+            background: var(--danger); color: white; padding: 6px 16px; border-radius: 16px; 
+            display: none; z-index: 1000; font-weight: bold; font-size: 0.78rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .class-box { border: 1px solid var(--border); padding: 5px; border-radius: 4px; margin-top: 5px; }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: white; border-radius: 8px; padding: 18px;
+            width: 100%; max-width: 400px;
+            box-shadow: 0 10px 25px -3px rgba(0,0,0,0.2);
+        }
+
+        .form-option {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn-secondary { background: #64748b; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+        .btn-secondary:hover { background: #475569; }
+
+        /* STRICT PRINT STYLES */
+        @media print {
+            body { 
+                background: white !important; 
+                color: black !important; 
+                padding: 0 !important; 
+                margin: 0 !important; 
+                font-size: 8pt !important; 
+            }
+            .management-grid, .header-bar, .view-filter-bar, #conflict-alert, .modal-overlay, .add-col-btn, .break-toggle, .sec-btn, .orientation-badge {
+                display: none !important;
+            }
+            #timetables-area {
+                display: block !important;
+                gap: 0 !important;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            .a4-page.horizontal-mode {
+                width: 100% !important;
+                height: 100vh !important;
+                padding: 10mm !important;
+                box-sizing: border-box !important;
+            }
+            .a4-page.vertical-mode {
+                width: 210mm !important;
+                height: 297mm !important;
+                position: relative !important;
+            }
+            .a4-page.vertical-mode .a4-page-inner {
+                position: absolute !important;
+                width: 255mm !important;
+                height: 175mm !important;
+                left: calc(50% - 127.5mm) !important;
+                top: calc(50% - 87.5mm) !important;
+                transform: rotate(-90deg) !important;
+                transform-origin: center center !important;
+            }
+            .a4-page.hidden-for-print {
+                display: none !important;
+            }
+            .a4-page-header {
+                border-bottom: 2px solid #000 !important;
+                margin-bottom: 6mm !important;
+            }
+            .a4-page-header h2 {
+                font-size: 1.2rem !important;
+                text-align: center !important;
+                width: 100% !important;
+            }
+            table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+                table-layout: auto !important;
+            }
+            th, td {
+                border: 1px solid #000 !important;
+                color: black !important;
+                padding: 2px 4px !important;
+                font-size: 7.5pt !important;
+                white-space: nowrap !important;
+            }
+            th {
+                background-color: #f1f5f9 !important;
+                color: black !important;
+                font-weight: bold !important;
+            }
+            select {
+                border: none !important;
+                background: transparent !important;
+                appearance: none !important;
+                -webkit-appearance: none;
+                text-align-last: center;
+                font-weight: 600;
+                color: #000 !important;
+                font-size: 7.5pt !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .cell-break {
+                background-color: #f8fafc !important;
+                border: 1px solid #000 !important;
+                padding: 4px 2px !important;
+                font-size: 7.5pt !important;
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="conflict-alert">⚠️ TEACHER OVERLAP DETECTED IN RED CELLS</div>
+
+    <div class="header-bar">
+        <h1>Timetable Coordinator Pro</h1>
+        <div class="action-btns">
+            <button class="btn-toggle-layout" onclick="toggleLayoutOrientation()">
+                <span id="layout-icon">↔️</span> <span id="layout-text">Content: Horizontal</span>
+            </button>
+            <button class="btn-save" onclick="saveStore()">💾 Save Data</button>
+            <button class="btn-print" onclick="openPrintModal()">🖨️ Print Timetable</button>
+        </div>
+    </div>
+
+    <div class="management-grid">
+        <!-- Teachers -->
+        <div class="panel">
+            <h3 style="margin-top:0;">1. Teachers <small style="font-weight:normal; font-size:0.75rem; color:#64748b;">(Click to view timetable)</small></h3>
+            <div class="input-row">
+                <input type="text" id="t-input" placeholder="Teacher Name">
+                <button onclick="addTeacher()">Add</button>
+            </div>
+            <div id="t-list" class="chip-list"></div>
+        </div>
+
+        <!-- Subjects -->
+        <div class="panel">
+            <h3 style="margin-top:0;">2. Subjects</h3>
+            <div class="input-group">
+                <div class="input-row">
+                    <input type="text" id="s-input" placeholder="Subject Name">
+                    <button onclick="addSubject()">Add</button>
+                </div>
+                <label class="toggle-container">
+                    <input type="checkbox" id="s-core" checked> Is this a Core Subject?
+                </label>
+            </div>
+            <div id="s-list" class="chip-list"></div>
+        </div>
+
+        <!-- Work / Activity Types -->
+        <div class="panel">
+            <h3 style="margin-top:0;">3. Work / Activity Types</h3>
+            <div class="input-row">
+                <input type="text" id="w-input" placeholder="e.g. Practical, Remedial">
+                <button onclick="addWorkType()">Add</button>
+            </div>
+            <div id="w-list" class="chip-list"></div>
+        </div>
+
+        <!-- Classes -->
+        <div class="panel">
+            <h3 style="margin-top:0;">4. Classes & Sections</h3>
+            <div class="input-row">
+                <input type="text" id="c-input" placeholder="e.g. Grade 10">
+                <button onclick="addClass()">Create</button>
+            </div>
+            <div id="c-list"></div>
+        </div>
+    </div>
+
+    <!-- VIEW FILTER TABS -->
+    <div class="view-filter-bar">
+        <button class="view-btn active" id="btn-view-classes" onclick="setViewMode('classes')">🏫 Class Timetables</button>
+        <button class="view-btn" id="btn-view-teachers" onclick="setViewMode('all_teachers')">👤 Teacher Timetables</button>
+    </div>
+
+    <!-- A4 CANVAS SHEET CONTAINER -->
+    <div id="timetables-area"></div>
+
+    <!-- Print Options Modal -->
+    <div id="print-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Print Timetable Options</h3>
+            <p style="font-size:0.78rem; color:#64748b; margin-bottom:8px;">Select print scope:</p>
+            
+            <label class="form-option">
+                <input type="radio" name="printScope" value="all_classes" checked onchange="togglePrintSelects()">
+                Print All Class Timetables
+            </label>
+
+            <label class="form-option">
+                <input type="radio" name="printScope" value="specific_class" onchange="togglePrintSelects()">
+                Print Specific Class / Section
+            </label>
+
+            <div id="specific-class-controls" style="display: none; margin-top: 4px; padding-left: 18px; flex-direction: column; gap: 4px;">
+                <div>
+                    <label style="font-size:0.72rem; display:block; margin-bottom:2px; font-weight:600;">Class:</label>
+                    <select id="print-class-select" style="width:100%;" onchange="populatePrintSections()">
+                        <option value="">-- Choose Class --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.72rem; display:block; margin-bottom:2px; font-weight:600;">Section:</label>
+                    <select id="print-section-select" style="width:100%;">
+                        <option value="ALL">All Sections</option>
+                    </select>
+                </div>
+            </div>
+
+            <label class="form-option">
+                <input type="radio" name="printScope" value="all_teachers" onchange="togglePrintSelects()">
+                Print All Teacher Timetables
+            </label>
+
+            <label class="form-option">
+                <input type="radio" name="printScope" value="specific_teacher" onchange="togglePrintSelects()">
+                Print Specific Teacher
+            </label>
+
+            <div id="specific-teacher-controls" style="display: none; margin-top: 4px; padding-left: 18px; flex-direction: column; gap: 4px;">
+                <label style="font-size:0.72rem; display:block; margin-bottom:2px; font-weight:600;">Teacher:</label>
+                <select id="print-teacher-select" style="width:100%;">
+                    <option value="">-- Choose Teacher --</option>
+                </select>
+            </div>
+
+            <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
+
+            <div>
+                <label style="font-size:0.78rem; display:block; margin-bottom:4px; font-weight:600; color:#0f172a;">Print Orientation:</label>
+                <div style="display:flex; gap:12px;">
+                    <label class="form-option" style="margin:0;">
+                        <input type="radio" name="printOrientation" value="landscape" checked> Landscape
+                    </label>
+                    <label class="form-option" style="margin:0;">
+                        <input type="radio" name="printOrientation" value="portrait"> Portrait
+                    </label>
+                    <label class="form-option" style="margin:0;">
+                        <input type="radio" name="printOrientation" value="auto"> Auto
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closePrintModal()">Cancel</button>
+                <button onclick="executePrint()">Print Preview</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let store = {
+            teachers: [],
+            subjects: [], 
+            workTypes: ["Class", "Remedial", "Practical"],
+            classes: [],  
+            schedule: {},
+            layoutOrientation: 'horizontal',
+            viewMode: 'classes', // 'classes', 'all_teachers', 'specific_teacher'
+            selectedTeacher: null
+        };
+
+        const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+        // LOCAL STORAGE FUNCTIONS
+        function loadStore() {
+            const saved = localStorage.getItem('timetable_coordinator_store');
+            if (saved) {
+                try {
+                    store = JSON.parse(saved);
+                    if (!store.workTypes) store.workTypes = ["Class", "Remedial", "Practical"];
+                    if (!store.layoutOrientation) store.layoutOrientation = 'horizontal';
+                    if (!store.viewMode) store.viewMode = 'classes';
+                } catch(e) {
+                    console.error("Error loading local storage:", e);
+                }
+            }
+        }
+
+        function saveStore() {
+            localStorage.setItem('timetable_coordinator_store', JSON.stringify(store));
+            alert("💾 All Timetable Data Saved to LocalStorage!");
+        }
+
+        function toggleLayoutOrientation() {
+            store.layoutOrientation = (store.layoutOrientation === 'vertical') ? 'horizontal' : 'vertical';
+            updateLayoutToggleBtn();
+            renderTables();
+        }
+
+        function updateLayoutToggleBtn() {
+            const icon = document.getElementById('layout-icon');
+            const text = document.getElementById('layout-text');
+            if (store.layoutOrientation === 'vertical') {
+                icon.innerText = '↕️';
+                text.innerText = 'Content: Vertical Sideways';
+            } else {
+                icon.innerText = '↔️';
+                text.innerText = 'Content: Horizontal';
+            }
+        }
+
+        function setViewMode(mode, teacherName = null) {
+            store.viewMode = mode;
+            store.selectedTeacher = teacherName;
+
+            document.getElementById('btn-view-classes').classList.toggle('active', mode === 'classes');
+            document.getElementById('btn-view-teachers').classList.toggle('active', mode === 'all_teachers' || mode === 'specific_teacher');
+
+            renderTables();
+        }
+
+        function addTeacher() {
+            let val = document.getElementById('t-input').value.trim();
+            if (val && !store.teachers.includes(val)) {
+                store.teachers.push(val);
+                document.getElementById('t-input').value = '';
+                updateUI();
+            }
+        }
+
+        function addSubject() {
+            let val = document.getElementById('s-input').value.trim();
+            let isCore = document.getElementById('s-core').checked;
+            if (val && !store.subjects.find(s => s.name === val)) {
+                store.subjects.push({ name: val, isCore: isCore });
+                document.getElementById('s-input').value = '';
+                updateUI();
+            }
+        }
+
+        function addWorkType() {
+            let val = document.getElementById('w-input').value.trim();
+            if (val && !store.workTypes.includes(val)) {
+                store.workTypes.push(val);
+                document.getElementById('w-input').value = '';
+                updateUI();
+            }
+        }
+
+        function addClass() {
+            let val = document.getElementById('c-input').value.trim();
+            if (val && !store.classes.find(c => c.name === val)) {
+                store.classes.push({
+                    name: val,
+                    sections: [],
+                    timeSlots: ["09:00 - 10:00", "10:00 - 11:00"],
+                    breaks: [],
+                    breakLabels: {}
+                });
+                document.getElementById('c-input').value = '';
+                updateUI();
+            }
+        }
+
+        function addSection(className) {
+            let secName = prompt(`Enter Section name for ${className}:`);
+            if (secName) {
+                let cls = store.classes.find(c => c.name === className);
+                if (!cls.sections.includes(secName)) {
+                    cls.sections.push(secName);
+                    renderTables();
+                }
+            }
+        }
+
+        function addTimeSlot(className, afterIdx) {
+            let newTime = prompt("Enter Time (e.g. 11:00 - 11:45):");
+            if (newTime) {
+                let cls = store.classes.find(c => c.name === className);
+                cls.timeSlots.splice(afterIdx + 1, 0, newTime);
+                cls.breaks = cls.breaks.map(b => b > afterIdx ? b + 1 : b);
+                renderTables();
+            }
+        }
+
+        function editTimeSlot(className, slotIdx) {
+            let cls = store.classes.find(c => c.name === className);
+            if (!cls) return;
+            let currentTime = cls.timeSlots[slotIdx];
+            let newTime = prompt(`Edit Time Slot (${currentTime}):`, currentTime);
+            if (newTime && newTime.trim() !== '') {
+                cls.timeSlots[slotIdx] = newTime.trim();
+                renderTables();
+            }
+        }
+
+        function formatTimeSlotDisplay(timeStr) {
+            if (!timeStr) return '';
+            let parts = timeStr.split('-');
+            if (parts.length === 2) {
+                return `${parts[0].trim()}<br>${parts[1].trim()}`;
+            }
+            return timeStr.replace(' ', '<br>');
+        }
+
+        function toggleBreak(className, slotIdx) {
+            let cls = store.classes.find(c => c.name === className);
+            if (cls.breaks.includes(slotIdx)) {
+                cls.breaks = cls.breaks.filter(b => b !== slotIdx);
+            } else {
+                cls.breaks.push(slotIdx);
+            }
+            renderTables();
+        }
+
+        function updateBreakLabel(className, slotIdx, text) {
+            let cls = store.classes.find(c => c.name === className);
+            if (cls) {
+                if (!cls.breakLabels) cls.breakLabels = {};
+                cls.breakLabels[slotIdx] = text.trim() || "BREAK";
+            }
+        }
+
+        function updateCell(className, section, day, slotIdx, type, val) {
+            const key = `${className}-${section}`;
+            if (!store.schedule[key]) store.schedule[key] = {};
+            const cellKey = `${day}-${slotIdx}`;
+            if (!store.schedule[key][cellKey]) store.schedule[key][cellKey] = { sub: '', teach: '', work: '' };
+            store.schedule[key][cellKey][type] = val;
+            applyVisualStates();
+        }
+
+        /* MAIN RENDER ENGINE FOR CLASS & TEACHER TIMETABLE A4 CANVASES */
+        function renderTables() {
+            const area = document.getElementById('timetables-area');
+            area.innerHTML = '';
+
+            const isVerticalMode = (store.layoutOrientation === 'vertical');
+
+            // 1. RENDER CLASS TIMETABLE A4 CANVASES
+            if (store.viewMode === 'classes') {
+                store.classes.forEach(cls => {
+                    cls.sections.forEach(sec => {
+                        const columnCount = cls.timeSlots.length;
+                        const isLandscape = columnCount > 5;
+                        
+                        let modeClass = isVerticalMode ? 'vertical-mode' : `horizontal-mode ${isLandscape ? 'landscape' : 'portrait'}`;
+                        let badgeText = isVerticalMode ? '📄 A4 Portrait (Sideways)' : (isLandscape ? '📄 A4 Landscape' : '📄 A4 Portrait');
+
+                        let html = `
+                        <div class="a4-page ${modeClass}" data-type="class" data-class="${cls.name}" data-section="${sec}">
+                            <div class="a4-page-inner">
+                                <div class="a4-page-header">
+                                    <h2>${cls.name} - Section ${sec}</h2>
+                                    <span class="orientation-badge">${badgeText}</span>
+                                </div>
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Day / Time</th>
+                                                ${cls.timeSlots.map((time, i) => `
+                                                    <th>
+                                                        <span class="time-slot-title" title="Click to Edit Time" onclick="editTimeSlot('${cls.name}', ${i})">${formatTimeSlotDisplay(time)}</span>
+                                                        <button class="add-col-btn" title="Add Column After" onclick="addTimeSlot('${cls.name}', ${i})">+</button>
+                                                        <span class="break-toggle" onclick="toggleBreak('${cls.name}', ${i})">
+                                                            ${cls.breaks.includes(i) ? '⏹ Class' : '⏸ Break'}
+                                                        </span>
+                                                    </th>
+                                                `).join('')}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${days.map((day, dayIdx) => `
+                                                <tr>
+                                                    <td class="day-label">${day}</td>
+                                                    ${cls.timeSlots.map((time, i) => {
+                                                        if (cls.breaks.includes(i)) {
+                                                            if (dayIdx === 0) {
+                                                                const breakText = cls.breakLabels?.[i] || "BREAK";
+                                                                return `
+                                                                    <td rowspan="${days.length}" class="cell-break" contenteditable="true"
+                                                                        title="Click to edit break label"
+                                                                        onblur="updateBreakLabel('${cls.name}', ${i}, this.innerText)">${breakText}</td>
+                                                                `;
+                                                            } else {
+                                                                return ''; 
+                                                            }
+                                                        }
+                                                        
+                                                        const cellData = (store.schedule[`${cls.name}-${sec}`]?.[`${day}-${i}`]) || {sub:'', teach:'', work:''};
+                                                        return `
+                                                            <td class="timetable-td" 
+                                                                data-cls="${cls.name}" data-sec="${sec}" 
+                                                                data-day="${day}" data-time="${time}" data-idx="${i}">
+                                                                <select class="sub-select" onchange="updateCell('${cls.name}','${sec}','${day}',${i},'sub',this.value)">
+                                                                    <option value="">-- Subject --</option>
+                                                                    ${store.subjects.map(s => `<option value="${s.name}" ${s.name==cellData.sub?'selected':''}>${s.name}</option>`).join('')}
+                                                                </select>
+                                                                <select class="teach-select" onchange="updateCell('${cls.name}','${sec}','${day}',${i},'teach',this.value)">
+                                                                    <option value="">-- Teacher --</option>
+                                                                    ${store.teachers.map(t => `<option value="${t}" ${t==cellData.teach?'selected':''}>${t}</option>`).join('')}
+                                                                </select>
+                                                                <select class="work-select" onchange="updateCell('${cls.name}','${sec}','${day}',${i},'work',this.value)">
+                                                                    <option value="">-- Work --</option>
+                                                                    ${store.workTypes.map(w => `<option value="${w}" ${w==cellData.work?'selected':''}>${w}</option>`).join('')}
+                                                                </select>
+                                                            </td>
+                                                        `;
+                                                    }).join('')}
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>`;
+                        area.insertAdjacentHTML('beforeend', html);
+                    });
+                });
+            }
+
+            // 2. RENDER TEACHER TIMETABLE A4 CANVASES
+            if (store.viewMode === 'all_teachers' || store.viewMode === 'specific_teacher') {
+                let teachersToRender = store.teachers;
+                if (store.viewMode === 'specific_teacher' && store.selectedTeacher) {
+                    teachersToRender = [store.selectedTeacher];
+                }
+
+                // Collect overall time slots across all classes
+                let timeSlots = [];
+                store.classes.forEach(c => {
+                    c.timeSlots.forEach(ts => {
+                        if (!timeSlots.includes(ts)) timeSlots.push(ts);
+                    });
+                });
+                if (timeSlots.length === 0) timeSlots = ["09:00 - 10:00", "10:00 - 11:00"];
+
+                teachersToRender.forEach(teacherName => {
+                    const columnCount = timeSlots.length;
+                    const isLandscape = columnCount > 5;
+                    let modeClass = isVerticalMode ? 'vertical-mode' : `horizontal-mode ${isLandscape ? 'landscape' : 'portrait'}`;
+                    let badgeText = isVerticalMode ? '📄 A4 Portrait (Sideways)' : (isLandscape ? '📄 A4 Landscape' : '📄 A4 Portrait');
+
+                    let html = `
+                    <div class="a4-page ${modeClass}" data-type="teacher" data-teacher="${teacherName}">
+                        <div class="a4-page-inner">
+                            <div class="a4-page-header">
+                                <h2>TEACHER TIMETABLE: ${teacherName.toUpperCase()}</h2>
+                                <span class="orientation-badge">${badgeText}</span>
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Day / Time</th>
+                                            ${timeSlots.map(time => `<th>${formatTimeSlotDisplay(time)}</th>`).join('')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${days.map(day => `
+                                            <tr>
+                                                <td class="day-label">${day}</td>
+                                                ${timeSlots.map(timeSlot => {
+                                                    let assignedClasses = [];
+                                                    
+                                                    store.classes.forEach(cls => {
+                                                        cls.sections.forEach(sec => {
+                                                            const key = `${cls.name}-${sec}`;
+                                                            cls.timeSlots.forEach((ts, idx) => {
+                                                                if (ts === timeSlot) {
+                                                                    const cellData = store.schedule[key]?.[`${day}-${idx}`];
+                                                                    if (cellData && cellData.teach === teacherName && cellData.sub) {
+                                                                        assignedClasses.push({
+                                                                            className: cls.name,
+                                                                            section: sec,
+                                                                            subject: cellData.sub,
+                                                                            work: cellData.work
+                                                                        });
+                                                                    }
+                                                                }
+                                                            });
+                                                        });
+                                                    });
+
+                                                    if (assignedClasses.length === 0) return `<td>—</td>`;
+
+                                                    const isConflict = assignedClasses.length > 1;
+                                                    return `
+                                                        <td>
+                                                            ${assignedClasses.map(ac => `
+                                                                <span class="teacher-class-tag ${isConflict ? 'conflict-tag' : ''}">
+                                                                    ${ac.className} (${ac.section})
+                                                                    <small>${ac.subject}${ac.work ? ' • ' + ac.work : ''}</small>
+                                                                </span>
+                                                            `).join('')}
+                                                        </td>
+                                                    `;
+                                                }).join('')}
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>`;
+                    area.insertAdjacentHTML('beforeend', html);
+                });
+            }
+
+            applyVisualStates();
+        }
+
+        function applyVisualStates() {
+            const alert = document.getElementById('conflict-alert');
+            let hasConflict = false;
+            
+            const allTds = document.querySelectorAll('.timetable-td');
+            allTds.forEach(td => {
+                td.classList.remove('cell-empty', 'cell-non-core', 'cell-conflict');
+            });
+
+            allTds.forEach(td => {
+                const sub = td.querySelector('.sub-select').value;
+                const teach = td.querySelector('.teach-select').value;
+                
+                if (!sub || !teach) {
+                    td.classList.add('cell-empty');
+                } else {
+                    const subObj = store.subjects.find(s => s.name === sub);
+                    if (subObj && !subObj.isCore) {
+                        td.classList.add('cell-non-core');
+                    }
+                }
+            });
+
+            days.forEach(day => {
+                const teacherUsage = {};
+
+                document.querySelectorAll(`.timetable-td[data-day="${day}"]`).forEach(td => {
+                    const t = td.querySelector('.teach-select').value;
+                    const time = td.getAttribute('data-time');
+                    if (t && time) {
+                        const key = `${t}|${time}`;
+                        if (!teacherUsage[key]) teacherUsage[key] = [];
+                        teacherUsage[key].push(td);
+                    }
+                });
+
+                for (let key in teacherUsage) {
+                    if (teacherUsage[key].length > 1) {
+                        hasConflict = true;
+                        teacherUsage[key].forEach(td => {
+                            td.classList.remove('cell-empty', 'cell-non-core');
+                            td.classList.add('cell-conflict');
+                        });
+                    }
+                }
+            });
+
+            alert.style.display = hasConflict ? 'block' : 'none';
+        }
+
+        function updateUI() {
+            // Teacher Chips
+            document.getElementById('t-list').innerHTML = store.teachers.map(t => {
+                const isActive = (store.viewMode === 'specific_teacher' && store.selectedTeacher === t);
+                return `
+                <span class="chip teacher-chip ${isActive ? 'active-teacher' : ''}" onclick="setViewMode('specific_teacher', '${t.replace(/'/g, "\\'")}')" title="Click to view ${t}'s timetable">
+                    👤 ${t}
+                </span>
+            `}).join('');
+            
+            document.getElementById('s-list').innerHTML = store.subjects.map(s => `
+                <span class="chip ${!s.isCore ? 'non-core-chip' : ''}">
+                    ${s.name} ${!s.isCore ? ' (Non-Core)' : ''}
+                </span>
+            `).join('');
+
+            document.getElementById('w-list').innerHTML = store.workTypes.map(w => `<span class="chip">${w}</span>`).join('');
+
+            document.getElementById('c-list').innerHTML = store.classes.map(c => `
+                <div class="class-box">
+                    <strong>${c.name}</strong> <button class="sec-btn" style="background:var(--success); font-size:10px; margin-left:8px; padding:2px 6px;" onclick="addSection('${c.name}')">+ Section</button>
+                    <div class="chip-list">${c.sections.map(s => `<span class="chip">${s}</span>`).join('')}</div>
+                </div>
+            `).join('');
+            
+            updateLayoutToggleBtn();
+            renderTables();
+        }
+
+        /* PRINT MODAL & ENGINE LOGIC */
+        function openPrintModal() {
+            const modal = document.getElementById('print-modal');
+            const classSelect = document.getElementById('print-class-select');
+            const teacherSelect = document.getElementById('print-teacher-select');
+            
+            classSelect.innerHTML = '<option value="">-- Choose Class --</option>' + 
+                store.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+            teacherSelect.innerHTML = '<option value="">-- Choose Teacher --</option>' + 
+                store.teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+
+            populatePrintSections();
+            modal.style.display = 'flex';
+        }
+
+        function closePrintModal() {
+            document.getElementById('print-modal').style.display = 'none';
+        }
+
+        function togglePrintSelects() {
+            const scope = document.querySelector('input[name="printScope"]:checked').value;
+            document.getElementById('specific-class-controls').style.display = (scope === 'specific_class') ? 'flex' : 'none';
+            document.getElementById('specific-teacher-controls').style.display = (scope === 'specific_teacher') ? 'flex' : 'none';
+        }
+
+        function populatePrintSections() {
+            const selectedClass = document.getElementById('print-class-select').value;
+            const sectionSelect = document.getElementById('print-section-select');
+            sectionSelect.innerHTML = '<option value="ALL">All Sections</option>';
+
+            const cls = store.classes.find(c => c.name === selectedClass);
+            if (cls) {
+                cls.sections.forEach(sec => {
+                    sectionSelect.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
+                });
+            }
+        }
+
+        function executePrint() {
+            const scope = document.querySelector('input[name="printScope"]:checked').value;
+            const orientChoice = document.querySelector('input[name="printOrientation"]:checked').value;
+
+            // Render whatever view is necessary if user selected teacher printing while in class view
+            if (scope === 'all_teachers' || scope === 'specific_teacher') {
+                if (scope === 'specific_teacher') {
+                    const t = document.getElementById('print-teacher-select').value;
+                    if (!t) { alert("Please select a teacher to print."); return; }
+                    setViewMode('specific_teacher', t);
+                } else {
+                    setViewMode('all_teachers');
+                }
+            } else if (scope === 'all_classes' || scope === 'specific_class') {
+                setViewMode('classes');
+            }
+
+            const pages = document.querySelectorAll('.a4-page');
+            pages.forEach(page => page.classList.remove('hidden-for-print'));
+
+            // Filter page visibility based on scope
+            if (scope === 'specific_class') {
+                const targetClass = document.getElementById('print-class-select').value;
+                const targetSec = document.getElementById('print-section-select').value;
+                if (!targetClass) { alert("Please select a class to print."); return; }
+
+                pages.forEach(page => {
+                    if (page.getAttribute('data-type') !== 'class') {
+                        page.classList.add('hidden-for-print');
+                        return;
+                    }
+                    const cardClass = page.getAttribute('data-class');
+                    const cardSec = page.getAttribute('data-section');
+                    const matchClass = cardClass === targetClass;
+                    const matchSec = (targetSec === 'ALL') || (cardSec === targetSec);
+                    if (!matchClass || !matchSec) page.classList.add('hidden-for-print');
+                });
+            }
+
+            // Force Print Orientation CSS injection
+            let finalOrientation = orientChoice;
+            if (orientChoice === 'auto') {
+                finalOrientation = 'landscape';
+            }
+
+            let orientStyle = document.getElementById('print-orientation-style');
+            if (!orientStyle) {
+                orientStyle = document.createElement('style');
+                orientStyle.id = 'print-orientation-style';
+                document.head.appendChild(orientStyle);
+            }
+            orientStyle.innerHTML = `@media print { @page { size: ${finalOrientation}; margin: 0; } }`;
+
+            closePrintModal();
+            window.print();
+        }
+
+        // AUTO INITIALIZE ON PAGE LOAD
+        window.onload = function() {
+            loadStore();
+            updateUI();
+        };
+    </script>
+</body>
+</html>
