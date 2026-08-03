@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Facial Attendance System</title>
+  
+  <!-- Load Face API JS Neural Network Library -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    
+    h1 { text-align: center; margin-bottom: 20px; color: #0f172a; }
+    
+    /* URL Config Bar */
+    .config-card { background: #ffffff; padding: 15px 20px; border-radius: 8px; border: 2px solid #2563eb; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .config-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #1d4ed8; display: flex; align-items: center; gap: 8px; }
+    .url-input-group { display: flex; gap: 10px; }
+    .url-input-group input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    
+    /* Model Status Bar */
+    .model-status-card { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Navigation Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 0; border-bottom: 2px solid #cbd5e1; }
+    .tab-btn { padding: 12px 24px; border: none; background: #e2e8f0; cursor: pointer; font-weight: bold; border-radius: 8px 8px 0 0; color: #475569; }
+    .tab-btn.active { background: #2563eb; color: white; }
+    
+    .tab-content { display: none; background: white; padding: 25px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .tab-content.active { display: block; }
+
+    /* Layout */
+    .flex-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+    .card { flex: 1; min-width: 300px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    
+    /* Video Camera View */
+    .video-wrapper { position: relative; width: 100%; max-width: 440px; height: 320px; background: #000; border-radius: 8px; overflow: hidden; }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    
+    /* Forms & Inputs */
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; color: #475569; font-size: 14px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    
+    /* Buttons */
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+
+    /* Stats Cards */
+    .stats-container { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 180px; padding: 15px; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 6px; }
+    .stat-card h3 { margin: 0; font-size: 26px; color: #1e3a8a; }
+    .stat-card p { margin: 5px 0 0; color: #475569; font-size: 13px; font-weight: 600; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background: #f1f5f9; color: #334155; }
+    
+    .status-msg { margin-top: 12px; padding: 12px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+    .msg-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .msg-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .msg-info { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏫 AI Facial Attendance System</h1>
+
+  <!-- AI MODEL LOADING STATUS BAR -->
+  <div class="model-status-card" id="model-status-bar">
+    <span>⏳ Loading AI Facial Recognition Neural Models... Please wait.</span>
+  </div>
+
+  <!-- BACKEND APPS SCRIPT URL INPUT SECTION -->
+  <div class="config-card">
+    <h3>🔗 Backend Apps Script Web App Connection</h3>
+    <div class="url-input-group">
+      <input type="url" id="script-url" placeholder="Paste your Google Apps Script Web App URL here (https://script.google.com/macros/s/.../exec)">
+      <button class="btn btn-primary" onclick="saveAndTestConnection()">Save & Connect</button>
+    </div>
+    <div id="connection-status"></div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('scan', event)">📷 Attendance Scanner</button>
+    <button class="tab-btn" onclick="switchTab('register', event)">👤 Register / Delete Staff</button>
+    <button class="tab-btn" onclick="switchTab('reports', event)">📊 Reports & Calculations</button>
+  </div>
+
+  <!-- TAB 1: ATTENDANCE SCANNER -->
+  <div id="tab-scan" class="tab-content active">
+    <div class="flex-grid">
+      <div>
+        <div class="video-wrapper">
+          <video id="scan-video" autoplay playsinline muted></video>
+        </div>
+        <button id="btn-scan" class="btn btn-primary" style="margin-top:12px; width:100%; font-size:16px;" onclick="scanAndMark()" disabled>
+          Scan Face & Mark Attendance
+        </button>
+      </div>
+      <div class="card">
+        <h3>Scanner Status</h3>
+        <p>Position face clearly in the camera frame and click <b>Scan Face & Mark Attendance</b>.</p>
+        <div id="scan-feedback"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: REGISTER & DELETE -->
+  <div id="tab-register" class="tab-content">
+    <div class="flex-grid">
+      <div class="card">
+        <h3>Register New Staff</h3>
+        <div class="video-wrapper">
+          <video id="reg-video" autoplay playsinline muted></video>
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Employee / Staff ID</label>
+          <input type="text" id="reg-id" placeholder="e.g. SCH-101">
+        </div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="e.g. Sarah Jenkins">
+        </div>
+        <div class="form-group">
+          <label>Department / Designation</label>
+          <input type="text" id="reg-dept" placeholder="e.g. Mathematics Teacher">
+        </div>
+        <button id="btn-register" class="btn btn-success" style="width:100%;" onclick="captureAndRegister()" disabled>
+          Capture Photo & Extract Facial Vector
+        </button>
+        <div id="reg-feedback"></div>
+      </div>
+
+      <div class="card">
+        <h3>Registered Staff Members</h3>
+        <button class="btn btn-primary" onclick="loadEmployees()">Refresh List</button>
+        <table id="emp-table">
+          <thead>
+            <tr><th>ID</th><th>Name</th><th>Dept</th><th>Action</th></tr>
+          </thead>
+          <tbody><!-- Populated dynamically --></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: REPORTS & CALCULATIONS -->
+  <div id="tab-reports" class="tab-content">
+    <div class="stats-container">
+      <div class="stat-card"><h3 id="stat-total">0</h3><p>TOTAL REGISTERED STAFF</p></div>
+      <div class="stat-card"><h3 id="stat-present">0</h3><p>PRESENT TODAY</p></div>
+      <div class="stat-card"><h3 id="stat-absent">0</h3><p>ABSENT TODAY</p></div>
+      <div class="stat-card"><h3 id="stat-rate">0%</h3><p>ATTENDANCE RATE</p></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="loadSummary()">Refresh Stats & Logs</button>
+
+    <h3>Attendance Records</h3>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Emp ID</th><th>Name</th><th>Time In</th><th>Status</th></tr>
+      </thead>
+      <tbody id="logs-table-body"><!-- Populated dynamically --></tbody>
+    </table>
+  </div>
+</div>
+
+<canvas id="hidden-canvas" style="display:none;"></canvas>
+
+<script>
+  let currentStream = null;
+  let modelsLoaded = false;
+  const MATCH_THRESHOLD = 0.52; // Strict facial distance threshold (0 = exact match, > 0.52 = different person)
+
+  // 1. INITIALIZE FACE-API NEURAL MODELS
+  async function loadFaceModels() {
+    const statusCard = document.getElementById('model-status-bar');
+    try {
+      // Load SSD MobileNet face detection, landmark detection, and recognition models
+      const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+      modelsLoaded = true;
+      statusCard.style.background = '#dcfce7';
+      statusCard.style.color = '#15803d';
+      statusCard.style.borderColor = '#bbf7d0';
+      statusCard.innerHTML = '<span>✅ AI Facial Recognition Neural Models loaded successfully! System ready.</span>';
+
+      document.getElementById('btn-scan').disabled = false;
+      document.getElementById('btn-register').disabled = false;
+    } catch (err) {
+      statusCard.style.background = '#fee2e2';
+      statusCard.style.color = '#b91c1c';
+      statusCard.style.borderColor = '#fecaca';
+      statusCard.innerHTML = `<span>❌ Error loading AI models: ${err.message}. Please refresh the page.</span>`;
+    }
+  }
+
+  // Helper API Call to Apps Script
+  async function apiCall(action, data = {}) {
+    const appUrl = localStorage.getItem('apps_script_url');
+    const statusDiv = document.getElementById('connection-status');
+
+    if (!appUrl) {
+      statusDiv.innerHTML = '<div class="status-msg msg-error">⚠️ Please paste and save your Google Apps Script Web App URL above first!</div>';
+      return { success: false, message: 'Apps Script URL missing' };
+    }
+
+    try {
+      const response = await fetch(appUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, data })
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network connection error: ' + error.message };
+    }
+  }
+
+  // Save & Test Backend URL Connection
+  async function saveAndTestConnection() {
+    const url = document.getElementById('script-url').value.trim();
+    const statusDiv = document.getElementById('connection-status');
+
+    if (!url) {
+      statusDiv.innerHTML = '<div class="status-msg msg-error">Please enter a valid Web App URL.</div>';
+      return;
+    }
+
+    localStorage.setItem('apps_script_url', url);
+    statusDiv.innerHTML = '<div class="status-msg msg-info">Testing connection to Apps Script backend...</div>';
+
+    const res = await apiCall('ping');
+    if (res.success) {
+      statusDiv.innerHTML = `<div class="status-msg msg-success">✅ ${res.message}</div>`;
+    } else {
+      statusDiv.innerHTML = `<div class="status-msg msg-error">❌ Connection failed: ${res.message}</div>`;
+    }
+  }
+
+  // Camera Controls
+  async function startCamera(videoId) {
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const videoElem = document.getElementById(videoId);
+      videoElem.srcObject = stream;
+      currentStream = stream;
+    } catch (err) {
+      alert("Error accessing webcam: " + err.message);
+    }
+  }
+
+  // Navigation Tab Switcher
+  function switchTab(tabName, evt) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(cnt => cnt.classList.remove('active'));
+
+    evt.target.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+
+    if (tabName === 'scan') startCamera('scan-video');
+    if (tabName === 'register') {
+      startCamera('reg-video');
+      loadEmployees();
+    }
+    if (tabName === 'reports') loadSummary();
+  }
+
+  // Frame Capture Helper
+  function captureFrame(videoId) {
+    const video = document.getElementById(videoId);
+    const canvas = document.getElementById('hidden-canvas');
+    canvas.width = 320;
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.5);
+  }
+
+  // 2. REGISTER EMPLOYEE WITH FACIAL DESCRIPTOR VECTOR
+  async function captureAndRegister() {
+    if (!modelsLoaded) {
+      alert("AI models are still loading. Please wait.");
+      return;
+    }
+
+    const id = document.getElementById('reg-id').value.trim();
+    const name = document.getElementById('reg-name').value.trim();
+    const dept = document.getElementById('reg-dept').value.trim();
+    const feedback = document.getElementById('reg-feedback');
+
+    if (!id || !name) {
+      feedback.innerHTML = '<div class="status-msg msg-error">Please enter Staff ID and Full Name.</div>';
+      return;
+    }
+
+    feedback.innerHTML = '<div class="status-msg msg-info">🔍 Scanning face features and extracting neural vector...</div>';
+
+    const videoElem = document.getElementById('reg-video');
+    
+    // Detect single face and extract 128-dimensional descriptor
+    const detection = await faceapi.detectSingleFace(videoElem, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      feedback.innerHTML = '<div class="status-msg msg-error">❌ No face detected in camera! Please face the camera directly in good lighting.</div>';
+      return;
+    }
+
+    const faceDescriptorArray = Array.from(detection.descriptor);
+    const faceDescriptorStr = JSON.stringify(faceDescriptorArray);
+    const photoData = captureFrame('reg-video');
+
+    feedback.innerHTML = '<div class="status-msg msg-info">💾 Storing staff facial descriptor into Google Sheet...</div>';
+
+    const res = await apiCall('registerEmployee', { 
+      empId: id, 
+      name, 
+      department: dept, 
+      photoData, 
+      faceDescriptor: faceDescriptorStr 
+    });
+
+    feedback.innerHTML = `<div class="status-msg ${res.success ? 'msg-success' : 'msg-error'}">${res.message}</div>`;
+    
+    if (res.success) {
+      document.getElementById('reg-id').value = '';
+      document.getElementById('reg-name').value = '';
+      document.getElementById('reg-dept').value = '';
+      loadEmployees();
+    }
+  }
+
+  // Load Employee Table
+  async function loadEmployees() {
+    const res = await apiCall('getEmployees');
+    const tbody = document.querySelector('#emp-table tbody');
+    tbody.innerHTML = '';
+    
+    if (res.success && res.employees) {
+      res.employees.forEach(emp => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${emp.empId}</td>
+            <td>${emp.name}</td>
+            <td>${emp.department}</td>
+            <td><button class="btn btn-danger" onclick="deleteEmp('${emp.empId}')">Delete</button></td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  // Delete Employee
+  async function deleteEmp(empId) {
+    if (!confirm(`Are you sure you want to delete Staff ID: ${empId}?`)) return;
+    const res = await apiCall('deleteEmployee', { empId });
+    alert(res.message);
+    loadEmployees();
+  }
+
+  // 3. AUTOMATIC FACIAL MATCHING & ATTENDANCE SCANNING
+  async function scanAndMark() {
+    if (!modelsLoaded) {
+      alert("AI models are still loading. Please wait.");
+      return;
+    }
+
+    const feedback = document.getElementById('scan-feedback');
+    feedback.innerHTML = '<div class="status-msg msg-info">🔍 Analyzing camera frame for face features...</div>';
+
+    const videoElem = document.getElementById('scan-video');
+
+    // Detect face in current live video stream
+    const detection = await faceapi.detectSingleFace(videoElem, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      feedback.innerHTML = '<div class="status-msg msg-error">❌ No face detected! Please look directly at the camera.</div>';
+      return;
+    }
+
+    feedback.innerHTML = '<div class="status-msg msg-info">🧠 Comparing face descriptor against registered staff database...</div>';
+
+    const empRes = await apiCall('getEmployees');
+    if (!empRes.success || !empRes.employees || empRes.employees.length === 0) {
+      feedback.innerHTML = '<div class="status-msg msg-error">❌ No registered staff members found in database. Register staff first.</div>';
+      return;
+    }
+
+    let bestMatch = null;
+    let lowestDistance = 1.0; // 0 = identical match, 1 = completely different
+
+    // Iterate through registered employees and compute Euclidean Distance
+    empRes.employees.forEach(emp => {
+      if (emp.faceDescriptor) {
+        try {
+          const storedVector = new Float32Array(JSON.parse(emp.faceDescriptor));
+          const distance = faceapi.euclideanDistance(detection.descriptor, storedVector);
+          
+          if (distance < lowestDistance) {
+            lowestDistance = distance;
+            bestMatch = emp;
+          }
+        } catch(e) {
+          console.error("Error parsing stored face descriptor for ID " + emp.empId, e);
+        }
+      }
+    });
+
+    // Check if the closest face match falls within our strict security threshold
+    if (bestMatch && lowestDistance <= MATCH_THRESHOLD) {
+      const matchScore = ((1 - lowestDistance) * 100).toFixed(1);
+      feedback.innerHTML = `<div class="status-msg msg-info">✅ Face Matched: ${bestMatch.name} (ID: ${bestMatch.empId}) - Confidence: ${matchScore}%. Recording attendance...</div>`;
+
+      const attRes = await apiCall('recordAttendance', { empId: bestMatch.empId, name: bestMatch.name });
+      feedback.innerHTML = `<div class="status-msg ${attRes.success ? 'msg-success' : 'msg-error'}">${attRes.message}</div>`;
+    } else {
+      // Unrecognized face (e.g. unregistered friend)
+      feedback.innerHTML = `<div class="status-msg msg-error">⛔ Access Denied! Unrecognized Face. Face distance score (${lowestDistance.toFixed(2)}) exceeded security threshold.</div>`;
+    }
+  }
+
+  // Load Reports & Summary Statistics
+  async function loadSummary() {
+    const res = await apiCall('getAttendanceSummary');
+    if (res.success && res.summary) {
+      const s = res.summary;
+      document.getElementById('stat-total').innerText = s.totalEmployees;
+      document.getElementById('stat-present').innerText = s.todayPresent;
+      document.getElementById('stat-absent').innerText = s.todayAbsent;
+      document.getElementById('stat-rate').innerText = s.attendancePercentage + '%';
+
+      const tbody = document.getElementById('logs-table-body');
+      tbody.innerHTML = '';
+      s.logs.forEach(log => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${log.date}</td>
+            <td>${log.empId}</td>
+            <td>${log.name}</td>
+            <td>${log.timeIn}</td>
+            <td><strong style="color:green">${log.status}</strong></td>
+          </tr>
+        `;
+      });
+    }
+  }
+
+  // Page Load Setup
+  window.onload = async () => {
+    loadFaceModels();
+
+    const savedUrl = localStorage.getItem('apps_script_url');
+    if (savedUrl) {
+      document.getElementById('script-url').value = savedUrl;
+      saveAndTestConnection();
+    }
+    startCamera('scan-video');
+  };
+</script>
+
+</body>
+</html>
