@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attend Pro - V4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --success: #10b981;
+            --danger: #ef4444;
+            --holiday: #f59e0b;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); overflow-x: hidden; }
+
+        /* Topbar & Controls */
+        .topbar { background-color: var(--surface); height: 65px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: var(--shadow); position: fixed; width: 100%; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 10px; }
+        .topbar-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 3px; }
+        
+        .menu-btn { background: none; border: none; font-size: 22px; color: var(--text); cursor: pointer; margin-right: 10px; transition: 0.3s; }
+        .menu-btn:hover { color: var(--primary); }
+        .brand { font-size: 18px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        
+        .btn-topbar-icon { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .btn-topbar-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-topbar-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .cloud-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #fee2e2; color: var(--danger); font-weight: 500; display: flex; align-items: center; gap: 5px; }
+        .cloud-badge.connected { background: #d1fae5; color: var(--success); }
+        
+        .btn-topbar-save { background: var(--primary); color: white; border: none; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
+        .btn-topbar-save:hover { background: var(--primary-hover); }
+
+        .sidebar { position: fixed; top: 0; left: -310px; width: 310px; height: 100vh; background-color: var(--surface); box-shadow: 4px 0 10px rgba(0,0,0,0.1); z-index: 1000; transition: 0.4s; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .sidebar.open { left: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; font-size: 18px; font-weight: 600; color: var(--primary); }
+        .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-light); }
+        .nav-item { padding: 12px 16px; margin-bottom: 8px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 12px; color: var(--text-light); transition: all 0.3s ease; font-weight: 500; }
+        .nav-item:hover, .nav-item.active { background-color: var(--primary); color: white; }
+        
+        .sidebar-cloud-box { background: #f9fafb; border: 1px dashed var(--border); padding: 15px; border-radius: 8px; margin-top: auto; }
+        .sidebar-cloud-box label { font-size: 12px; font-weight: 600; color: var(--text-light); }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; opacity: 0; transition: 0.3s; }
+        .overlay.show { display: block; opacity: 1; }
+
+        /* Main Content */
+        .main-content { margin-top: 65px; padding: 20px; max-width: 1400px; margin-left: auto; margin-right: auto; }
+        .section { display: none; animation: fadeIn 0.4s ease; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* UI Elements */
+        .panel { background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; width: 100%; }
+        .panel-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; width: 100%; }
+        
+        input, select, textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 14px; width: 100%; background: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+        .btn { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; font-size: 14px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-holiday { background: transparent; border: 1px solid var(--holiday); color: var(--holiday); }
+        .btn-holiday:hover { background: var(--holiday); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg); color: var(--text); }
+        .btn-outline.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        .toggle-group { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
+        .toggle-group .btn { border-radius: 0; border: none; padding: 8px 14px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: var(--bg); font-weight: 500; color: var(--text-light); }
+        tr:hover { background-color: #f9fafb; }
+
+        .reg-input { padding: 6px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; width: 140px; }
+
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 48px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--danger); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        /* Report Table Styling */
+        .report-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .report-table th, .report-table td { padding: 5px 3px; text-align: center; border: 1px solid #d1d5db; font-size: 11px; min-width: 22px; }
+        .cell-p { color: var(--success); font-weight: 700; background: #f0fdf4; }
+        .cell-a { color: var(--danger); font-weight: 700; background: #fef2f2; }
+        .cell-h { background: #fffbeb; vertical-align: middle; }
+        .cell-none { color: #9ca3af; }
+
+        .vertical-text {
+            writing-mode: vertical-rl; transform: rotate(180deg);
+            text-align: center; margin: auto; font-weight: 600;
+            color: var(--holiday); letter-spacing: 1px;
+            max-height: 200px; white-space: nowrap; font-size: 10px;
+        }
+
+        .holiday-banner { background: #fffbeb; color: #b45309; padding: 20px; border-radius: 8px; text-align: center; border: 1px dashed #f59e0b; font-weight: 500; margin-top: 10px; }
+
+        /* Hierarchy UI */
+        .accordion { background: #fafafa; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        .accordion-header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .accordion-header:hover { background: #f3f4f6; }
+        .accordion-body { padding: 15px; border-top: 1px solid var(--border); background: white; display: none; }
+        .accordion-body.open { display: block; }
+        .bulk-input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; }
+
+        .action-btns { display: flex; gap: 6px; align-items: center; }
+
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: var(--shadow); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 1000; font-size: 14px; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Dashboard Cards */
+        .card-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; align-items: center; gap: 15px; }
+        .card-icon { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .card-info h3 { font-size: 13px; color: var(--text-light); }
+        .card-info p { font-size: 22px; font-weight: 600; }
+
+        /* --- A4 Page Framework --- */
+        .a4-wrapper { width: 100%; overflow-x: auto; padding-bottom: 15px; -webkit-overflow-scrolling: touch; }
+        .a4-container { display: flex; flex-direction: row; flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start; min-width: max-content; margin: 0 auto; }
+        .a4-page { background: #ffffff; padding: 12mm 15mm; box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-radius: 6px; border: 1px solid var(--border); box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: all 0.3s ease; }
+        .a4-page.landscape { width: 297mm; min-height: 200mm; }
+        .a4-page.portrait { width: 210mm; min-height: 285mm; }
+
+        .a4-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 12px; }
+        .a4-header .org-title { font-size: 16px; font-weight: 700; color: var(--primary); text-transform: uppercase; line-height: 1.2; }
+        .a4-header .org-subtitle { font-size: 11px; color: var(--text-light); font-weight: 500; }
+        .a4-header .hdr-right { text-align: right; }
+        .a4-header .report-main-heading { font-size: 14px; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px; }
+        .a4-header .report-sub-details { font-size: 11px; color: var(--text); font-weight: 500; }
+
+        .a4-body { flex-grow: 1; overflow-x: auto; }
+        .a4-footer { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 12px; font-size: 10px; color: var(--text-light); }
+        .a4-footer .ftr-sig { border-top: 1px solid #9ca3af; width: 140px; text-align: center; padding-top: 2px; }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 12px; margin-top: 60px; }
+            .filters { flex-direction: column; align-items: stretch; }
+            .filters input, .filters select, .filters button, .toggle-group { width: 100% !important; }
+            .panel-header { flex-direction: column; align-items: stretch; }
+            .card-container { grid-template-columns: 1fr; }
+            .a4-container { flex-direction: column; align-items: center; min-width: 100%; }
+            .a4-page { transform: scale(0.92); transform-origin: top center; margin-bottom: -15px; }
+        }
+
+        @media print {
+            body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .topbar, .sidebar, .overlay, .menu-btn, .btn, .panel-header, .filters, .toast, .bulk-input-group, .accordion, .card-container, #dashStatsContainer, #settings, .legend-box { display: none !important; }
+            .main-content { margin: 0 !important; padding: 0 !important; max-width: none !important; width: 100% !important; }
+            .panel { box-shadow: none !important; padding: 0 !important; border: none !important; background: transparent !important; margin: 0 !important; }
+            .a4-wrapper { overflow: visible !important; }
+            .a4-container { display: block !important; margin: 0 !important; min-width: 100% !important; }
+            .a4-page { width: 100% !important; max-width: none !important; min-height: 98vh !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; padding: 4mm 6mm !important; margin: 0 !important; transform: none !important; page-break-after: always !important; break-after: page !important; page-break-inside: avoid !important; }
+            body.print-daily .section:not(#attendance) { display: none !important; }
+            body.print-summary .section:not(#dashboard), body.print-summary #reportContainer { display: none !important; }
+            body.print-report .section:not(#dashboard), body.print-report #summaryContainer { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="brand"><i class="fas fa-clipboard-check"></i> SmartAttend</div>
+            <button class="btn-topbar-icon" id="btnUndo" onclick="undoAction()" title="Undo action" disabled><i class="fas fa-undo"></i> Undo</button>
+            <button class="btn-topbar-icon" id="btnRedo" onclick="redoAction()" title="Redo action" disabled><i class="fas fa-redo"></i> Redo</button>
+        </div>
+        <div class="topbar-right">
+            <div id="cloudStatusBadge" class="cloud-badge">
+                <i class="fas fa-exclamation-circle"></i> Local Storage Only
+            </div>
+            <button class="btn-topbar-save" onclick="manualSaveToCloud()" title="Save all data to backend Google Sheets">
+                <i class="fas fa-cloud-upload-alt"></i> Save Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            Menu <button class="close-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="nav-item active" onclick="switchTab('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
+        <div class="nav-item" onclick="switchTab('attendance')"><i class="fas fa-user-check"></i> Mark Attendance</div>
+        <div class="nav-item" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings & Classes</div>
+
+        <div class="sidebar-cloud-box">
+            <label><i class="fas fa-cloud-upload-alt"></i> Google Apps Script URL</label>
+            <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="margin: 8px 0; font-size:12px;">
+            <div style="display:flex; gap:6px;">
+                <button class="btn btn-primary btn-sm" style="flex:1;" onclick="saveScriptUrl()"><i class="fas fa-plug"></i> Connect</button>
+                <button class="btn btn-outline btn-sm" onclick="syncWithCloud()"><i class="fas fa-sync"></i> Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active">
+            <div class="panel">
+                <div class="panel-header" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+                    <div class="filters">
+                        <button class="btn btn-outline active" id="btnViewCards" onclick="setDashView('cards')"><i class="fas fa-chart-pie"></i> Overview</button>
+                        <button class="btn btn-outline" id="btnViewSummary" onclick="setDashView('summary')"><i class="fas fa-table"></i> Daily Summary</button>
+                        <button class="btn btn-outline" id="btnViewReport" onclick="setDashView('report')"><i class="fas fa-calendar-alt"></i> Total Monthly Report</button>
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap; justify-content:space-between; margin-top:10px;">
+                        <div class="toggle-group">
+                            <button class="btn btn-outline active" id="btnLandscape" onclick="setOrientation('landscape')"><i class="fas fa-file-alt"></i> Landscape</button>
+                            <button class="btn btn-outline" id="btnPortrait" onclick="setOrientation('portrait')"><i class="fas fa-file"></i> Portrait</button>
+                        </div>
+                        <button class="btn btn-outline" onclick="printDashboardView()"><i class="fas fa-print"></i> Print A4 View</button>
+                    </div>
+                </div>
+                
+                <div class="filters" style="margin-top: 15px;">
+                    <input type="date" id="dashDate" style="max-width: 200px;">
+                    <select id="dashClassSelect" onchange="updateDashSectionDropdown()" style="max-width: 220px;"></select>
+                    <select id="dashSectionSelect" onchange="triggerDashUpdate()" style="max-width: 220px;"></select>
+                </div>
+            </div>
+
+            <!-- View 1: Stats Cards -->
+            <div id="dashStatsContainer" class="card-container">
+                <div class="card"><div class="card-icon" style="background:#e0e7ff; color:var(--primary);"><i class="fas fa-users"></i></div>
+                    <div class="card-info"><h3>Total Students</h3><p id="dashTotalStudents">0</p></div></div>
+                <div class="card"><div class="card-icon" style="background:#d1fae5; color:var(--success);"><i class="fas fa-check"></i></div>
+                    <div class="card-info"><h3>Present</h3><p id="dashPresent">0</p></div></div>
+                <div class="card"><div class="card-icon" style="background:#fee2e2; color:var(--danger);"><i class="fas fa-times"></i></div>
+                    <div class="card-info"><h3>Absent</h3><p id="dashAbsent">0</p></div></div>
+            </div>
+
+            <!-- View 2: Summary Table -->
+            <div id="summaryContainer" style="display:none; width:100%;"></div>
+
+            <!-- View 3: Full Monthly Report -->
+            <div id="reportContainer" style="display:none; width:100%;"></div>
+        </div>
+
+        <!-- Mark Attendance Section -->
+        <div id="attendance" class="section">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="filters">
+                        <input type="date" id="attDate" style="max-width: 200px;">
+                        <select id="attClassSelect" onchange="updateAttSectionDropdown()" style="max-width: 220px;"></select>
+                        <select id="attSectionSelect" onchange="renderAttendanceSheet()" style="max-width: 220px;"></select>
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%; flex-wrap:wrap; justify-content:flex-end; margin-top:10px;">
+                        <button class="btn btn-holiday" id="btnHoliday" onclick="declareHoliday()"><i class="fas fa-umbrella-beach"></i> Declare Holiday</button>
+                        <button class="btn btn-outline" onclick="triggerPrint('print-daily')"><i class="fas fa-print"></i> Print Sheet</button>
+                        <button class="btn btn-primary" id="btnSaveAtt" onclick="saveAttendance()"><i class="fas fa-save"></i> Save Attendance</button>
+                    </div>
+                </div>
+                <div id="attendanceTableContainer"></div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings" class="section">
+            <div class="panel">
+                <h2>Institute & Cloud Configuration</h2>
+                
+                <div class="bulk-input-group" style="margin-top:15px;">
+                    <label><strong>Google Apps Script Web App URL</strong></label>
+                    <input type="url" id="settingsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary" style="width: fit-content;" onclick="saveScriptUrlFromSettings()"><i class="fas fa-link"></i> Save & Connect</button>
+                        <button class="btn btn-outline" style="width: fit-content;" onclick="syncWithCloud()"><i class="fas fa-cloud-download-alt"></i> Sync All Cloud Data</button>
+                    </div>
+                </div>
+
+                <div class="bulk-input-group" style="margin-top:15px;">
+                    <label><strong>Organization / Institute Name</strong></label>
+                    <input type="text" id="orgNameInput" placeholder="e.g. St. Xavier High School / Tech Academy">
+                    
+                    <label><strong>Tagline / Subtitle / Address</strong></label>
+                    <input type="text" id="orgTaglineInput" placeholder="e.g. Academic Session 2026-2027 | New Delhi">
+                    
+                    <label><strong>Academic Session Start Month</strong></label>
+                    <select id="orgStartMonthSelect">
+                        <option value="1">January</option>
+                        <option value="4">April</option>
+
+                        <option value="6">June</option>
+                        <option value="8" selected>August</option>
+                        <option value="9">September</option>
+                    </select>
+
+                    <button class="btn btn-primary" style="width: fit-content;" onclick="saveOrgDetails()"><i class="fas fa-save"></i> Save Organization Info</button>
+                </div>
+
+                <h2 style="margin-top: 30px;">Classes & Student Structure</h2>
+                <div class="bulk-input-group" style="margin-top:15px;">
+                    <label><strong>Add New Classes</strong> (One per line)</label>
+                    <textarea id="bulkClassesInput" placeholder="e.g.&#10;Grade 10&#10;Computer Science 1st Year"></textarea>
+                    <button class="btn btn-primary" style="width: fit-content;" onclick="addClasses()">Add Classes</button>
+                </div>
+                <div id="hierarchyContainer"></div>
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
+                <button class="btn btn-danger" onclick="clearAllData()"><i class="fas fa-trash-alt"></i> Factory Reset System</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast">Message here</div>
+
+    <script>
+        // State
+        let instituteData = JSON.parse(localStorage.getItem('smartAttendInst')) || [];
+        let attendanceData = JSON.parse(localStorage.getItem('smartAttendRecords')) || {};
+        let orgData = JSON.parse(localStorage.getItem('smartAttendOrg')) || {
+            name: "SmartAttend Institute",
+            tagline: "Academic Attendance Register",
+            startMonth: 8
+        };
+        let scriptUrl = localStorage.getItem('smartAttendScriptUrl') || '';
+        let currentDashView = 'cards';
+        let printOrientation = 'landscape';
+
+        // UNDO / REDO HISTORY STACK SYSTEM
+        let undoStack = [];
+        let redoStack = [];
+        const MAX_STACK_SIZE = 30;
+
+        function pushStateSnapshot() {
+            const snapshot = JSON.stringify({
+                instituteData: instituteData,
+                attendanceData: attendanceData,
+                orgData: orgData
+            });
+            if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snapshot) return;
+            undoStack.push(snapshot);
+            if (undoStack.length > MAX_STACK_SIZE) undoStack.shift();
+            redoStack = []; 
+            updateUndoRedoUI();
+        }
+
+        function updateUndoRedoUI() {
+            document.getElementById('btnUndo').disabled = (undoStack.length === 0);
+            document.getElementById('btnRedo').disabled = (redoStack.length === 0);
+        }
+
+        function undoAction() {
+            if (undoStack.length === 0) return;
+            const currentState = JSON.stringify({ instituteData, attendanceData, orgData });
+            redoStack.push(currentState);
+
+            const lastState = JSON.parse(undoStack.pop());
+            instituteData = lastState.instituteData;
+            attendanceData = lastState.attendanceData;
+            orgData = lastState.orgData;
+
+            saveLocalState(false);
+            refreshAllViews();
+            updateUndoRedoUI();
+            showToast("Undo applied!");
+        }
+
+        function redoAction() {
+            if (redoStack.length === 0) return;
+            const currentState = JSON.stringify({ instituteData, attendanceData, orgData });
+            undoStack.push(currentState);
+
+            const nextState = JSON.parse(redoStack.pop());
+            instituteData = nextState.instituteData;
+            attendanceData = nextState.attendanceData;
+            orgData = nextState.orgData;
+
+            saveLocalState(false);
+            refreshAllViews();
+            updateUndoRedoUI();
+            showToast("Redo applied!");
+        }
+
+        function saveLocalState(takeSnapshot = true) {
+            if (takeSnapshot) pushStateSnapshot();
+            localStorage.setItem('smartAttendInst', JSON.stringify(instituteData));
+            localStorage.setItem('smartAttendRecords', JSON.stringify(attendanceData));
+            localStorage.setItem('smartAttendOrg', JSON.stringify(orgData));
+        }
+
+        function refreshAllViews() {
+            populateDropdowns();
+            renderHierarchy();
+            triggerDashUpdate();
+            if(document.getElementById('attendance').classList.contains('active')) renderAttendanceSheet();
+        }
+
+        // DOM
+        const dashDate = document.getElementById('dashDate');
+        const attDate = document.getElementById('attDate');
+
+        // Init
+        window.onload = () => {
+            const today = new Date().toISOString().split('T')[0];
+            dashDate.value = today; attDate.value = today;
+            dashDate.addEventListener('change', triggerDashUpdate);
+            attDate.addEventListener('change', renderAttendanceSheet);
+            
+            document.getElementById('orgNameInput').value = orgData.name || '';
+            document.getElementById('orgTaglineInput').value = orgData.tagline || '';
+            document.getElementById('orgStartMonthSelect').value = orgData.startMonth || 8;
+            document.getElementById('scriptUrlInput').value = scriptUrl;
+            document.getElementById('settingsScriptUrl').value = scriptUrl;
+
+            updateCloudBadge();
+            populateDropdowns(); 
+            renderHierarchy(); 
+            triggerDashUpdate();
+
+            if(scriptUrl) syncWithCloud(true);
+        };
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            toggleSidebar();
+            if(tabId === 'dashboard') { populateDropdowns(); triggerDashUpdate(); }
+            if(tabId === 'attendance') { populateDropdowns(); renderAttendanceSheet(); }
+            if(tabId === 'settings') renderHierarchy();
+        }
+
+        // --- Apps Script Integration Logic ---
+        function updateCloudBadge(isConnected = false) {
+            const badge = document.getElementById('cloudStatusBadge');
+            if (scriptUrl && isConnected) {
+                badge.className = "cloud-badge connected";
+                badge.innerHTML = `<i class="fas fa-cloud"></i> Cloud Synced`;
+            } else if (scriptUrl) {
+                badge.className = "cloud-badge";
+                badge.style.background = "#fef3c7"; badge.style.color = "#d97706";
+                badge.innerHTML = `<i class="fas fa-wifi"></i> Cloud Ready`;
+            } else {
+                badge.className = "cloud-badge";
+                badge.style.background = "#fee2e2"; badge.style.color = "#ef4444";
+                badge.innerHTML = `<i class="fas fa-exclamation-circle"></i> Local Storage Only`;
+            }
+        }
+
+        function saveScriptUrl() { setScriptUrl(document.getElementById('scriptUrlInput').value.trim()); }
+        function saveScriptUrlFromSettings() { setScriptUrl(document.getElementById('settingsScriptUrl').value.trim()); }
+
+        function setScriptUrl(url) {
+            scriptUrl = url;
+            localStorage.setItem('smartAttendScriptUrl', url);
+            document.getElementById('scriptUrlInput').value = url;
+            document.getElementById('settingsScriptUrl').value = url;
+            if(url) {
+                showToast('Connecting to Apps Script...');
+                syncWithCloud();
+            } else {
+                updateCloudBadge(false);
+                showToast('Cloud URL removed. Using local storage.', 'error');
+            }
+        }
+
+        async function postToCloud(payload) {
+            if(!scriptUrl) return null;
+            try {
+                payload.startMonth = orgData.startMonth || 8;
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                return await response.json();
+            } catch(e) {
+                console.error("Cloud Sync Error:", e);
+                return null;
+            }
+        }
+
+        async function manualSaveToCloud() {
+            if (!scriptUrl) {
+                showToast('Please set your Apps Script Web App URL first in Settings', 'error');
+                return;
+            }
+            showToast('Saving all data to Google Sheets...');
+            const res = await postToCloud({
+                action: "saveAllData",
+                orgData: orgData,
+                instituteData: instituteData,
+                attendanceData: attendanceData
+            });
+
+            if (res && res.status === "success") {
+                updateCloudBadge(true);
+                showToast('All Data Saved to Cloud Backend!', 'success');
+            } else {
+                updateCloudBadge(false);
+                showToast('Failed to save to cloud backend.', 'error');
+            }
+        }
+
+        async function syncWithCloud(silent = false) {
+            if(!scriptUrl) {
+                if(!silent) showToast('Please enter Apps Script URL first', 'error');
+                return;
+            }
+
+            if(!silent) showToast('Syncing with Google Sheets...');
+
+            const res = await postToCloud({ action: "getAllData" });
+
+            if(res && res.status === "success") {
+                updateCloudBadge(true);
+                
+                if(res.instituteData && res.instituteData.length) {
+                    instituteData = res.instituteData;
+                }
+                if(res.attendanceData && Object.keys(res.attendanceData).length) {
+                    attendanceData = res.attendanceData;
+                }
+                if(res.orgData && res.orgData.name) {
+                    orgData = res.orgData;
+                }
+
+                saveLocalState(true);
+
+                await postToCloud({
+                    action: "saveAllData",
+                    orgData: orgData,
+                    instituteData: instituteData,
+                    attendanceData: attendanceData
+                });
+
+                refreshAllViews();
+                if(!silent) showToast('Cloud Sync Complete!');
+            } else {
+                updateCloudBadge(false);
+                if(!silent) showToast('Cloud connection failed. Using local data.', 'error');
+            }
+        }
+
+        function saveOrgDetails() {
+            pushStateSnapshot();
+            const name = document.getElementById('orgNameInput').value.trim();
+            const tagline = document.getElementById('orgTaglineInput').value.trim();
+            const startMonth = parseInt(document.getElementById('orgStartMonthSelect').value, 10) || 8;
+            if(!name) return showToast('Please enter organization name', 'error');
+            orgData = { name, tagline, startMonth };
+            saveLocalState(false);
+            
+            if(scriptUrl) {
+                postToCloud({ action: "saveAllData", orgData, instituteData, attendanceData });
+            }
+
+            showToast('Organization info saved!');
+            triggerDashUpdate();
+            if(document.getElementById('attendance').classList.contains('active')) renderAttendanceSheet();
+        }
+
+        // --- Data Hierarchy & Edit Logic ---
+        function addClasses() {
+            pushStateSnapshot();
+            const text = document.getElementById('bulkClassesInput').value;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            if(!lines.length) return showToast('Enter class names', 'error');
+            lines.forEach(name => instituteData.push({ id: 'c_' + Date.now() + Math.random().toString(36).substr(2,5), name, sections: [] }));
+            document.getElementById('bulkClassesInput').value = ''; 
+            saveLocalState(false); 
+            renderHierarchy(); 
+            populateDropdowns();
+            showToast('Classes added!');
+        }
+
+        function addSections(classId) {
+            pushStateSnapshot();
+            const text = document.getElementById(`bulkSecInput_${classId}`).value;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            if(!lines.length) return showToast('Enter section names', 'error');
+            const cls = instituteData.find(c => c.id === classId);
+            lines.forEach(name => cls.sections.push({ id: 's_' + Date.now() + Math.random().toString(36).substr(2,5), name, students: [] }));
+            saveLocalState(false); 
+            renderHierarchy(); 
+            populateDropdowns();
+            document.getElementById(`body_${classId}`).classList.add('open'); 
+            showToast('Sections added!');
+        }
+
+        function addStudents(classId, sectionId) {
+            pushStateSnapshot();
+            const text = document.getElementById(`bulkStuInput_${sectionId}`).value;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            if(!lines.length) return showToast('Enter student names', 'error');
+            const sec = instituteData.find(c => c.id === classId).sections.find(s => s.id === sectionId);
+            
+            let currentRoll = sec.students.length;
+            lines.forEach(line => {
+                let rollNo = (currentRoll + 1).toString();
+                let regNo = "";
+                let name = line;
+
+                if (line.includes('|')) {
+                    const parts = line.split('|').map(p => p.trim());
+                    if (parts.length >= 3) { rollNo = parts[0]; regNo = parts[1]; name = parts[2]; }
+                    else if (parts.length === 2) { rollNo = parts[0]; name = parts[1]; }
+                } else {
+                    const match = line.match(/^(\d+)[\s,\-\.:\t]+(.+)$/);
+                    if (match) {
+                        rollNo = match[1].trim();
+                        name = match[2].trim();
+                        let parsedNum = parseInt(match[1], 10);
+                        if (!isNaN(parsedNum) && parsedNum >= currentRoll) currentRoll = parsedNum;
+                    } else {
+                        currentRoll++;
+                    }
+                }
+
+                sec.students.push({
+                    id: 'st_' + Date.now() + Math.random().toString(36).substr(2,5),
+                    rollNo: rollNo,
+                    regNo: regNo,
+                    name: name
+                });
+            });
+
+            saveLocalState(false); 
+            renderHierarchy(); 
+            document.getElementById(`body_${classId}`).classList.add('open'); 
+            document.getElementById(`body_${sectionId}`).classList.add('open'); 
+            showToast('Students added successfully!');
+        }
+
+        // EDIT AND RENAME HANDLERS
+        function renameClass(cId) {
+            const cls = instituteData.find(c => c.id === cId);
+            if (!cls) return;
+            const newName = prompt("Rename Class:", cls.name);
+            if (newName && newName.trim()) {
+                pushStateSnapshot();
+                cls.name = newName.trim();
+                saveLocalState(false);
+                renderHierarchy();
+                populateDropdowns();
+                showToast("Class renamed successfully!");
+            }
+        }
+
+        function renameSection(cId, sId) {
+            const cls = instituteData.find(c => c.id === cId);
+            const sec = cls?.sections.find(s => s.id === sId);
+            if (!sec) return;
+            const newName = prompt("Rename Section:", sec.name);
+            if (newName && newName.trim()) {
+                pushStateSnapshot();
+                sec.name = newName.trim();
+                saveLocalState(false);
+                renderHierarchy();
+                populateDropdowns();
+                document.getElementById(`body_${cId}`).classList.add('open');
+                showToast("Section renamed successfully!");
+            }
+        }
+
+        function editStudent(cId, sId, stId) {
+            const sec = instituteData.find(c => c.id === cId)?.sections.find(s => s.id === sId);
+            const st = sec?.students.find(s => s.id === stId);
+            if (!st) return;
+
+            const newRoll = prompt("Edit Roll Number:", st.rollNo || "");
+            if (newRoll === null) return;
+            
+            const newReg = prompt("Edit Register Number (Reg No):", st.regNo || "");
+            if (newReg === null) return;
+
+            const newName = prompt("Edit Student Name:", st.name || "");
+            if (newName === null) return;
+
+            pushStateSnapshot();
+            st.rollNo = newRoll.trim();
+            st.regNo = newReg.trim();
+            st.name = newName.trim();
+
+            saveLocalState(false);
+            renderHierarchy();
+            document.getElementById(`body_${cId}`).classList.add('open');
+            document.getElementById(`body_${sId}`).classList.add('open');
+            showToast("Student details updated!");
+        }
+
+        function toggleAccordion(id) { document.getElementById(id).classList.toggle('open'); }
+        function deleteClass(cId) { 
+            if(confirm('Delete Class?')) { 
+                pushStateSnapshot();
+                instituteData = instituteData.filter(c => c.id !== cId); 
+                saveLocalState(false); 
+                renderHierarchy(); 
+                populateDropdowns(); 
+            } 
+        }
+        function deleteSection(cId, sId) { 
+            if(confirm('Delete Section?')) { 
+                pushStateSnapshot();
+                const c = instituteData.find(x => x.id === cId); 
+                c.sections = c.sections.filter(s => s.id !== sId); 
+                saveLocalState(false); 
+                renderHierarchy(); 
+                populateDropdowns(); 
+                document.getElementById(`body_${cId}`).classList.add('open'); 
+            } 
+        }
+        function deleteStudent(cId, sId, stId) { 
+            if(confirm('Delete Student?')) { 
+                pushStateSnapshot();
+                const s = instituteData.find(x => x.id === cId).sections.find(y => y.id === sId); 
+                s.students = s.students.filter(z => z.id !== stId); 
+                saveLocalState(false); 
+                renderHierarchy(); 
+                document.getElementById(`body_${cId}`).classList.add('open'); 
+                document.getElementById(`body_${sId}`).classList.add('open'); 
+            } 
+        }
+
+        function renderHierarchy() {
+            const container = document.getElementById('hierarchyContainer'); container.innerHTML = '';
+            if(!instituteData.length) return container.innerHTML = '<p style="color:var(--text-light); margin-top:10px;">No classes added yet.</p>';
+            instituteData.forEach(cls => {
+                let secHtml = '';
+                cls.sections.forEach(sec => {
+                    let stHtml = sec.students.map(st => `
+                        <tr>
+                            <td><strong>${st.rollNo}</strong></td>
+                            <td>${st.regNo || '-'}</td>
+                            <td>${st.name}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-outline btn-sm" onclick="editStudent('${cls.id}','${sec.id}','${st.id}')"><i class="fas fa-pencil-alt"></i> Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteStudent('${cls.id}','${sec.id}','${st.id}')"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>`).join('');
+                    
+                    secHtml += `
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion('body_${sec.id}')">
+                            <span>Section: <strong>${sec.name}</strong> (${sec.students.length} Students)</span>
+                            <div class="action-btns" onclick="event.stopPropagation();">
+                                <button class="btn btn-outline btn-sm" onclick="renameSection('${cls.id}', '${sec.id}')"><i class="fas fa-pencil-alt"></i> Rename</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteSection('${cls.id}', '${sec.id}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="accordion-body" id="body_${sec.id}">
+                            <div class="bulk-input-group">
+                                <textarea id="bulkStuInput_${sec.id}" placeholder="Enter students (One per line)&#10;Format options:&#10;101 | REG999 | SAI PRANAV&#10;SAI PRANAV"></textarea>
+                                <button class="btn btn-primary btn-sm" style="width:fit-content;" onclick="addStudents('${cls.id}', '${sec.id}')">Add Students</button>
+                            </div>
+                            ${sec.students.length ? `<table><tr><th>Roll No</th><th>Reg No</th><th>Name</th><th>Actions</th></tr>${stHtml}</table>` : ''}
+                        </div>
+                    </div>`;
+                });
+
+                container.innerHTML += `
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('body_${cls.id}')">
+                        <strong>Class: ${cls.name}</strong>
+                        <div class="action-btns" onclick="event.stopPropagation();">
+                            <button class="btn btn-outline btn-sm" onclick="renameClass('${cls.id}')"><i class="fas fa-pencil-alt"></i> Rename Class</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteClass('${cls.id}')"><i class="fas fa-trash"></i> Delete Class</button>
+                        </div>
+                    </div>
+                    <div class="accordion-body" id="body_${cls.id}">
+                        <div class="bulk-input-group">
+                            <textarea id="bulkSecInput_${cls.id}" placeholder="Section A"></textarea>
+                            <button class="btn btn-primary btn-sm" style="width:fit-content;" onclick="addSections('${cls.id}')">Add Sections</button>
+                        </div>
+                        ${secHtml}
+                    </div>
+                </div>`;
+            });
+        }
+
+        // --- Dropdowns ---
+        function populateDropdowns() {
+            const arr = [document.getElementById('dashClassSelect'), document.getElementById('attClassSelect')];
+            arr.forEach(dd => {
+                let v = dd.value; dd.innerHTML = '<option value="">-- Select Class --</option>';
+                instituteData.forEach(c => dd.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+                if(v && instituteData.find(c=>c.id===v)) dd.value = v;
+            });
+            updateDashSectionDropdown(); updateAttSectionDropdown();
+        }
+        function updateDashSectionDropdown() { populateSec(document.getElementById('dashClassSelect').value, document.getElementById('dashSectionSelect'), true); triggerDashUpdate(); }
+        function updateAttSectionDropdown() { populateSec(document.getElementById('attClassSelect').value, document.getElementById('attSectionSelect'), false); renderAttendanceSheet(); }
+        function populateSec(cId, sel, all) {
+            sel.innerHTML = all ? '<option value="">-- All Sections --</option>' : '<option value="">-- Select Section --</option>';
+            if(cId) instituteData.find(c=>c.id===cId)?.sections.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+        }
+
+        function setOrientation(mode) {
+            printOrientation = mode;
+            document.getElementById('btnLandscape').classList.toggle('active', mode === 'landscape');
+            document.getElementById('btnPortrait').classList.toggle('active', mode === 'portrait');
+            document.querySelectorAll('.a4-page').forEach(p => { p.classList.remove('landscape', 'portrait'); p.classList.add(mode); });
+            showToast(`Preview switched to ${mode.toUpperCase()}`);
+        }
+
+        function buildA4PageHtml(mainHeading, subDetails, bodyContent, footerNote = "Official System Audit Log") {
+            const currentTimestamp = new Date().toLocaleString();
+            return `
+            <div class="a4-page ${printOrientation}">
+                <div class="a4-header">
+                    <div class="hdr-left">
+                        <div class="org-title">${orgData.name || 'SmartAttend'}</div>
+                        <div class="org-subtitle">${orgData.tagline || 'Attendance Register'}</div>
+                    </div>
+                    <div class="hdr-right">
+                        <div class="report-main-heading">${mainHeading}</div>
+                        <div class="report-sub-details">${subDetails}</div>
+                    </div>
+                </div>
+                <div class="a4-body">${bodyContent}</div>
+                <div class="a4-footer">
+                    <div>Generated: ${currentTimestamp}</div>
+                    <div>Status: ${footerNote}</div>
+                    <div class="ftr-sig">Authorized Signature</div>
+                </div>
+            </div>`;
+        }
+
+        function renderAttendanceSheet() {
+            const container = document.getElementById('attendanceTableContainer');
+            const cId = document.getElementById('attClassSelect').value, sId = document.getElementById('attSectionSelect').value, date = attDate.value;
+            const btnHoliday = document.getElementById('btnHoliday'), btnSave = document.getElementById('btnSaveAtt');
+
+            if(!cId || !sId) return container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("DAILY ATTENDANCE SHEET", "Class Not Selected", "<p style='text-align:center; padding:40px; color:gray;'>Select Class & Section to load attendance sheet.</p>")}</div></div>`;
+            const cls = instituteData.find(c=>c.id===cId), sec = cls.sections.find(s=>s.id===sId);
+            
+            if(!sec.students.length) return container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("DAILY ATTENDANCE SHEET", `${cls.name} - ${sec.name}`, "<p style='text-align:center; padding:40px; color:gray;'>No students registered in this section.</p>")}</div></div>`;
+
+            const records = attendanceData[date]?.[`${cId}_${sId}`];
+            const isHoli = records === "HOLIDAY" || records?._isHoliday;
+
+            if(isHoli) {
+                const noteText = records.note || "No specific reason provided.";
+                container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml(
+                    "DAILY ATTENDANCE SHEET",
+                    `${cls.name} - ${sec.name} | Date: ${date}`,
+                    `<div class="holiday-banner"><h2>🏖️ Holiday Declared</h2><p>Note: <strong>${noteText}</strong></p><br><button class="btn btn-danger btn-sm" onclick="revokeHoliday()">Revoke Holiday</button></div>`
+                )}</div></div>`;
+                btnHoliday.style.display = 'none'; btnSave.style.display = 'none'; return;
+            }
+
+            btnHoliday.style.display = 'inline-flex'; btnSave.style.display = 'inline-flex';
+            let table = `<table><thead><tr><th>Roll No</th><th>Reg Number</th><th>Student Name</th><th>Status (Present)</th></tr></thead><tbody>`;
+            
+            sec.students.sort((a,b)=>a.rollNo.localeCompare(b.rollNo,undefined,{numeric:true})).forEach(st => {
+                const isP = records ? records[st.id] !== false : true; 
+                table += `
+                <tr>
+                    <td><strong>${st.rollNo}</strong></td>
+                    <td><input type="text" class="reg-input" data-st-id="${st.id}" value="${st.regNo || ''}" placeholder="Reg No (Optional)"></td>
+                    <td>${st.name}</td>
+                    <td><label class="switch"><input type="checkbox" class="att-toggle" data-id="${st.id}" ${isP?'checked':''}><span class="slider"></span></label></td>
+                </tr>`;
+            });
+            table += '</tbody></table>';
+
+            container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("DAILY ATTENDANCE SHEET", `${cls.name} - ${sec.name} | Date: ${date}`, table, "Daily Attendance Sheet")}</div></div>`;
+        }
+
+        function saveAttendance() {
+            pushStateSnapshot();
+            const cId = document.getElementById('attClassSelect').value, sId = document.getElementById('attSectionSelect').value, date = attDate.value;
+            if(!cId || !sId || !date) return showToast('Check inputs', 'error');
+
+            const sec = instituteData.find(c => c.id === cId)?.sections.find(s => s.id === sId);
+            
+            document.querySelectorAll('.reg-input').forEach(inp => {
+                const stId = inp.getAttribute('data-st-id');
+                const regVal = inp.value.trim();
+                if (sec) {
+                    const st = sec.students.find(s => s.id === stId);
+                    if (st) st.regNo = regVal;
+                }
+            });
+
+            saveLocalState(false);
+
+            const records = {}; 
+            document.querySelectorAll('.att-toggle').forEach(t => records[t.getAttribute('data-id')] = t.checked);
+            
+            if(!attendanceData[date]) attendanceData[date] = {};
+            attendanceData[date][`${cId}_${sId}`] = records; 
+            
+            saveLocalState(false);
+            if(scriptUrl) postToCloud({ action: "saveAttendance", instituteData, attendanceData });
+
+            showToast('Attendance & Reg Numbers Saved Successfully!'); 
+            triggerDashUpdate();
+        }
+
+        function declareHoliday() {
+            const cId = document.getElementById('attClassSelect').value, sId = document.getElementById('attSectionSelect').value, date = attDate.value;
+            if(!cId || !sId) return showToast('Select Class and Section first', 'error');
+            
+            const note = prompt("Enter Holiday Note/Reason (e.g. Rainy Day, Festival):", "Holiday");
+            if(note !== null) {
+                pushStateSnapshot();
+                if(!attendanceData[date]) attendanceData[date] = {};
+                attendanceData[date][`${cId}_${sId}`] = { _isHoliday: true, note: note }; 
+                saveLocalState(false);
+                if(scriptUrl) postToCloud({ action: "saveAttendance", instituteData, attendanceData });
+                renderAttendanceSheet(); triggerDashUpdate(); showToast('Holiday Declared!', 'success');
+            }
+        }
+        
+        function revokeHoliday() {
+            pushStateSnapshot();
+            const cId = document.getElementById('attClassSelect').value, sId = document.getElementById('attSectionSelect').value, date = attDate.value;
+            delete attendanceData[date][`${cId}_${sId}`]; 
+            saveLocalState(false);
+            if(scriptUrl) postToCloud({ action: "saveAttendance", instituteData, attendanceData });
+            renderAttendanceSheet(); triggerDashUpdate(); showToast('Holiday Revoked');
+        }
+
+        function setDashView(view) {
+            currentDashView = view;
+            ['btnViewCards', 'btnViewSummary', 'btnViewReport'].forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById('dashStatsContainer').style.display = 'none';
+            document.getElementById('summaryContainer').style.display = 'none';
+            document.getElementById('reportContainer').style.display = 'none';
+            document.getElementById('dashDate').disabled = (view === 'report');
+            
+            if(view === 'cards') { document.getElementById('dashStatsContainer').style.display = 'grid'; document.getElementById('btnViewCards').classList.add('active'); }
+            if(view === 'summary') { document.getElementById('summaryContainer').style.display = 'block'; document.getElementById('btnViewSummary').classList.add('active'); }
+            if(view === 'report') { document.getElementById('reportContainer').style.display = 'block'; document.getElementById('btnViewReport').classList.add('active'); }
+            triggerDashUpdate();
+        }
+
+        function triggerDashUpdate() {
+            if(currentDashView === 'cards') updateDashboardCards();
+            if(currentDashView === 'summary') generateSummaryTable();
+            if(currentDashView === 'report') generateFullReport();
+        }
+
+        function updateDashboardCards() {
+            const date = dashDate.value, cId = document.getElementById('dashClassSelect').value, sId = document.getElementById('dashSectionSelect').value;
+            let total = 0, p = 0, a = 0;
+            const dayRec = attendanceData[date] || {};
+
+            instituteData.forEach(c => {
+                if(cId && c.id !== cId) return;
+                c.sections.forEach(s => {
+                    if(sId && s.id !== sId) return;
+                    total += s.students.length;
+                    const rec = dayRec[`${c.id}_${s.id}`];
+                    const isHoli = rec === "HOLIDAY" || rec?._isHoliday;
+                    if(rec && !isHoli) { s.students.forEach(st => { rec[st.id]===false ? a++ : p++; }); }
+                });
+            });
+            document.getElementById('dashTotalStudents').innerText = total; document.getElementById('dashPresent').innerText = p; document.getElementById('dashAbsent').innerText = a;
+        }
+
+        function generateSummaryTable() {
+            const date = dashDate.value, cId = document.getElementById('dashClassSelect').value, sId = document.getElementById('dashSectionSelect').value;
+            const dayRec = attendanceData[date] || {};
+            const container = document.getElementById('summaryContainer');
+
+            let html = `<table><thead><tr><th>Class</th><th>Section</th><th>Total Enrolled</th><th>Present</th><th>Absent</th><th>Status</th></tr></thead><tbody>`;
+            let dataFound = false;
+
+            instituteData.forEach(c => {
+                if(cId && c.id !== cId) return;
+                c.sections.forEach(s => {
+                    if(sId && s.id !== sId) return;
+                    dataFound = true;
+                    const enrolled = s.students.length;
+                    let p = 0, a = 0, statusText = `<span style="color:var(--text-light)">Not Taken</span>`;
+                    const rec = dayRec[`${c.id}_${s.id}`];
+                    const isHoli = rec === "HOLIDAY" || rec?._isHoliday;
+
+                    if(isHoli) {
+                        statusText = `<span style="color:var(--holiday); font-weight:600;"><i class="fas fa-umbrella-beach"></i> ${rec.note || "Holiday"}</span>`;
+                    } else if (rec) {
+                        statusText = `<span style="color:var(--success); font-weight:600;"><i class="fas fa-check-circle"></i> Completed</span>`;
+                        s.students.forEach(st => { rec[st.id]===false ? a++ : p++; });
+                    }
+
+                    html += `<tr><td><strong>${c.name}</strong></td><td>${s.name}</td><td>${enrolled}</td>
+                        <td style="color:var(--success); font-weight:bold;">${p}</td>
+                        <td style="color:var(--danger); font-weight:bold;">${a}</td>
+                        <td>${statusText}</td></tr>`;
+                });
+            });
+            
+            if(!dataFound) html += `<tr><td colspan="6" style="text-align:center;">No class/section matches criteria.</td></tr>`;
+            html += `</tbody></table>`;
+            container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("DAILY SUMMARY AUDIT REPORT", `Date: ${date}`, html, "Daily Summary Register")}</div></div>`;
+        }
+
+        function generateFullReport() {
+            const cId = document.getElementById('dashClassSelect').value, sId = document.getElementById('dashSectionSelect').value;
+            const container = document.getElementById('reportContainer');
+            if(!cId || !sId) return container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("MONTHLY ATTENDANCE REGISTER", "Class & Section Not Selected", "<p style='text-align:center; color:gray; padding:40px;'>Select Class and Section to view full report.</p>")}</div></div>`;
+            
+            const cls = instituteData.find(c=>c.id===cId), sec = cls.sections.find(s=>s.id===sId);
+            const key = `${cId}_${sId}`;
+            let dates = Object.keys(attendanceData).filter(d => attendanceData[d][key] !== undefined).sort();
+            
+            if(!dates.length) return container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${buildA4PageHtml("MONTHLY ATTENDANCE REGISTER", `${cls.name} (${sec.name})`, "<p style='text-align:center; color:gray; padding:40px;'>No attendance records found for this section yet.</p>")}</div></div>`;
+
+            const startD = new Date(dates[0]), endD = new Date(); 
+            let currY = startD.getFullYear(), currM = startD.getMonth();
+            const eY = endD.getFullYear(), eM = endD.getMonth();
+            
+            let allA4PagesHtml = '';
+            const legendBox = `<div class="legend-box" style="background:#f9fafb; padding:6px 10px; border-radius:6px; margin-bottom:8px; font-size:10px; border:1px solid var(--border);"><strong>Legend:</strong> <span class="cell-p">P (Present)</span> | <span class="cell-a">A (Absent)</span> | <span style="color:var(--holiday); font-weight:bold;">Holiday Note</span></div>`;
+
+            while(currY < eY || (currY === eY && currM <= eM)) {
+                const daysInMonth = new Date(currY, currM + 1, 0).getDate();
+                const mName = new Date(currY, currM).toLocaleString('default', { month: 'long' });
+                
+                // PART 1 (Days 1 - 15) - Includes Roll, Reg No, Student Name
+                let p1Table = legendBox + `<table class="report-table"><thead><tr><th>Roll</th><th>Reg No</th><th style="min-width:100px; text-align:left;">Name</th>`;
+                for(let d=1; d<=15; d++) p1Table += `<th>${d}</th>`;
+                p1Table += `</tr></thead><tbody>`;
+
+                const totalStudents = sec.students.length;
+                sec.students.sort((a,b)=>a.rollNo.localeCompare(b.rollNo,undefined,{numeric:true})).forEach((st, sIndex) => {
+                    p1Table += `<tr><td>${st.rollNo}</td><td>${st.regNo || '-'}</td><td style="text-align:left; font-weight:500;">${st.name}</td>`;
+                    
+                    for(let d=1; d<=15; d++) {
+                        const dateStr = `${currY}-${String(currM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        const rec = attendanceData[dateStr]?.[key];
+                        const isHoli = rec === "HOLIDAY" || rec?._isHoliday;
+                        
+                        if(isHoli) {
+                            if(sIndex === 0) p1Table += `<td rowspan="${totalStudents}" class="cell-h"><div class="vertical-text">${rec.note || "HOLIDAY"}</div></td>`;
+                        }
+                        else if(rec && rec[st.id] !== false) { p1Table += `<td class="cell-p">P</td>`; }
+                        else if(rec && rec[st.id] === false) { p1Table += `<td class="cell-a">A</td>`; }
+                        else { p1Table += `<td class="cell-none">-</td>`; }
+                    }
+                    p1Table += `</tr>`;
+                });
+                p1Table += `</tbody></table>`;
+
+                allA4PagesHtml += buildA4PageHtml("MONTHLY ATTENDANCE REGISTER", `${cls.name} (${sec.name}) | ${mName} ${currY} | Part 1`, p1Table, "Monthly Register - Part 1");
+
+                // PART 2 (Days 16 - End) - OMITS Roll No, Reg No, Name. Starts directly with Day 16
+                let p2Table = legendBox + `<table class="report-table"><thead><tr>`;
+                for(let d=16; d<=daysInMonth; d++) p2Table += `<th>${d}</th>`;
+                p2Table += `<th>Total P</th><th>Total A</th><th>Att %</th></tr></thead><tbody>`;
+
+                sec.students.forEach((st, sIndex) => {
+                    let pCount = 0, aCount = 0;
+                    for(let d=1; d<=daysInMonth; d++) {
+                        const dateStr = `${currY}-${String(currM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        const rec = attendanceData[dateStr]?.[key];
+                        if(rec && !rec._isHoliday && rec !== "HOLIDAY") {
+                            if(rec[st.id] !== false) pCount++; else aCount++;
+                        }
+                    }
+
+                    const totalMarkedDays = pCount + aCount;
+                    const attPctStr = totalMarkedDays > 0 ? Math.round((pCount / totalMarkedDays) * 100) + "%" : "0%";
+
+                    p2Table += `<tr>`;
+                    
+                    for(let d=16; d<=daysInMonth; d++) {
+                        const dateStr = `${currY}-${String(currM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                        const rec = attendanceData[dateStr]?.[key];
+                        const isHoli = rec === "HOLIDAY" || rec?._isHoliday;
+                        
+                        if(isHoli) {
+                            if(sIndex === 0) p2Table += `<td rowspan="${totalStudents}" class="cell-h"><div class="vertical-text">${rec.note || "HOLIDAY"}</div></td>`;
+                        }
+                        else if(rec && rec[st.id] !== false) { p2Table += `<td class="cell-p">P</td>`; }
+                        else if(rec && rec[st.id] === false) { p2Table += `<td class="cell-a">A</td>`; }
+                        else { p2Table += `<td class="cell-none">-</td>`; }
+                    }
+                    
+                    p2Table += `<td style="background:#f0fdf4; color:var(--success); font-weight:bold;">${pCount}</td>
+                                <td style="background:#fef2f2; color:var(--danger); font-weight:bold;">${aCount}</td>
+                                <td style="background:#e0e7ff; color:var(--primary); font-weight:bold;">${attPctStr}</td></tr>`;
+                });
+                p2Table += `</tbody></table>`;
+
+                allA4PagesHtml += buildA4PageHtml("MONTHLY ATTENDANCE REGISTER", `${cls.name} (${sec.name}) | ${mName} ${currY} | Part 2`, p2Table, "Monthly Register - Part 2");
+
+                currM++; if(currM > 11) { currM = 0; currY++; }
+            }
+
+            container.innerHTML = `<div class="a4-wrapper"><div class="a4-container">${allA4PagesHtml}</div></div>`;
+        }
+
+        function triggerPrint(printClass) {
+            let dynamicStyle = document.getElementById('dynamicPrintStyle');
+            if(dynamicStyle) dynamicStyle.remove();
+            dynamicStyle = document.createElement('style');
+            dynamicStyle.id = 'dynamicPrintStyle';
+            dynamicStyle.innerHTML = `@media print { @page { size: A4 ${printOrientation}; margin: 5mm; } }`;
+            document.head.appendChild(dynamicStyle);
+
+            document.body.className = `${printClass} print-${printOrientation}`;
+            window.print();
+            setTimeout(() => { document.body.className = ''; }, 1000);
+        }
+
+        function printDashboardView() {
+            if(currentDashView === 'cards') return alert("Overview Cards view cannot be printed. Switch to Daily Summary or Total Monthly Report.");
+            if(currentDashView === 'summary') triggerPrint('print-summary');
+            if(currentDashView === 'report') triggerPrint('print-report');
+        }
+
+        async function clearAllData() { 
+            const confirm1 = confirm('FACTORY RESET WARNING:\n\nAre you sure you want to completely reset the system?');
+            if(!confirm1) return;
+
+            const confirm2 = confirm('FINAL CONFIRMATION:\n\nThis will PERMANENTLY DELETE:\n1. All Google Sheets files created in Google Drive\n2. All local browser storage data\n3. All student directories & attendance logs\n\nProceed with full factory reset?');
+            if(!confirm2) return;
+
+            showToast('Resetting backend and local storage...');
+
+            if (scriptUrl) {
+                await postToCloud({ action: "factoryReset" });
+            }
+
+            localStorage.clear(); 
+            location.reload(); 
+        }
+
+        function showToast(msg, type="success") { 
+            const t=document.getElementById('toast'); 
+            t.innerText=msg; 
+            t.style.background=type==="success"?"var(--success)":"var(--danger)"; 
+            t.classList.add('show'); 
+            setTimeout(()=>t.classList.remove('show'),3000); 
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+backend code
+
+
+
+
+
+
+
+
+
+
+/**
+ * Smart Attend Pro V4 - Reg No & Attendance % Enabled Backend (Code.gs)
+ * 
+ * FEATURES:
+ * 1. Supports 3-Column Student Info: Roll No, Reg No, Student Name.
+ * 2. Multi-column 37-width Grid (Roll No, Reg No, Name, Days 1-31, Total P, Total A, Att %).
+ * 3. Removes intermediate P.1 P / P.1 A columns.
+ * 4. In-Place non-destructive batch updates.
+ */
+
+var CLASS_FILE_CACHE = {};
+
+function doGet(e) { return handleRequest(e); }
+function doPost(e) { return handleRequest(e); }
+
+function handleRequest(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(30000);
+  
+  try {
+    var requestData = {};
+    if (e && e.postData && e.postData.contents) {
+      requestData = JSON.parse(e.postData.contents);
+    } else if (e && e.parameter) {
+      requestData = e.parameter;
+    }
+
+    var action = requestData.action || "ping";
+    var result = { status: "success" };
+    var mainSS = SpreadsheetApp.getActiveSpreadsheet();
+
+    if (action === "ping") {
+      result.message = "Connected to SmartAttend Pro Backend!";
+      result.ssUrl = mainSS.getUrl();
+    } 
+    else if (action === "saveAllData") {
+      saveOrgSettings(mainSS, requestData.orgData);
+      saveStudentsDirectory(mainSS, requestData.instituteData);
+      if (requestData.attendanceData) {
+        syncAttendanceInPlaceBatch(mainSS, requestData.instituteData, requestData.attendanceData, requestData.startMonth || 8);
+      }
+      result.message = "Cloud data and academic session spreadsheets updated successfully!";
+    }
+    else if (action === "getAllData") {
+      result.orgData = getOrgSettings(mainSS);
+      result.instituteData = getStudentsDirectory(mainSS);
+      result.attendanceData = readAllAttendanceFromClassFiles(mainSS, result.instituteData);
+      result.message = "Cloud data retrieved successfully!";
+    }
+    else if (action === "saveAttendance") {
+      saveStudentsDirectory(mainSS, requestData.instituteData);
+      syncAttendanceInPlaceBatch(mainSS, requestData.instituteData, requestData.attendanceData, requestData.startMonth || 8);
+      result.message = "Attendance saved with Reg No and Attendance % calculations!";
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "error", 
+      message: error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ==========================================
+// 1. ORGANIZATIONAL & STUDENT DIRECTORY
+// ==========================================
+
+function getOrCreateSheet(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+  }
+  return sheet;
+}
+
+function saveOrgSettings(mainSS, orgData) {
+  if (!orgData) return;
+  var sheet = getOrCreateSheet(mainSS, "Org_Settings");
+  sheet.clear();
+  sheet.appendRow(["Setting Key", "Setting Value"]);
+  sheet.appendRow(["Organization Name", orgData.name || ""]);
+  sheet.appendRow(["Tagline / Address", orgData.tagline || ""]);
+  sheet.appendRow(["Academic Start Month", orgData.startMonth || 8]);
+  sheet.getRange(1, 1, 1, 2).setFontWeight("bold").setBackground("#c7d2fe");
+}
+
+function getOrgSettings(mainSS) {
+  var sheet = mainSS.getSheetByName("Org_Settings");
+  if (!sheet) return null;
+  var data = sheet.getDataRange().getValues();
+  var org = {};
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === "Organization Name") org.name = data[i][1];
+    if (data[i][0] === "Tagline / Address") org.tagline = data[i][1];
+    if (data[i][0] === "Academic Start Month") org.startMonth = parseInt(data[i][1], 10) || 8;
+  }
+  return org;
+}
+
+function saveStudentsDirectory(mainSS, instituteData) {
+  if (!instituteData) return;
+  var sheet = getOrCreateSheet(mainSS, "Students_Directory");
+  sheet.clear();
+  sheet.appendRow(["Class ID", "Class Name", "Section ID", "Section Name", "Student ID", "Roll No", "Reg No", "Student Name"]);
+  
+  instituteData.forEach(function(cls) {
+    cls.sections.forEach(function(sec) {
+      sec.students.forEach(function(st, idx) {
+        var roll = (st.rollNo && st.rollNo.toString().trim() !== "") ? st.rollNo.toString().trim() : (idx + 1).toString();
+        var reg = (st.regNo && st.regNo.toString().trim() !== "") ? st.regNo.toString().trim() : "";
+        var name = (st.name && st.name.toString().trim() !== "") ? st.name.toString().trim() : "Student " + roll;
+        sheet.appendRow([cls.id, cls.name, sec.id, sec.name, st.id, roll, reg, name]);
+      });
+      if (!sec.students.length) {
+        sheet.appendRow([cls.id, cls.name, sec.id, sec.name, "", "", "", ""]);
+      }
+    });
+    if (!cls.sections.length) {
+      sheet.appendRow([cls.id, cls.name, "", "", "", "", "", ""]);
+    }
+  });
+
+  sheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#c7d2fe");
+}
+
+function getStudentsDirectory(mainSS) {
+  var sheet = mainSS.getSheetByName("Students_Directory");
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  var classMap = {};
+  for (var i = 1; i < data.length; i++) {
+    var cId = data[i][0], cName = data[i][1];
+    var sId = data[i][2], sName = data[i][3];
+    var stId = data[i][4], stRoll = data[i][5], stReg = data[i][6], stName = data[i][7];
+
+    if (!cId || !cName) continue;
+
+    if (!classMap[cId]) {
+      classMap[cId] = { id: cId, name: cName, sections: [], secMap: {} };
+    }
+
+    if (sId && sName) {
+      if (!classMap[cId].secMap[sId]) {
+        var newSec = { id: sId, name: sName, students: [] };
+        classMap[cId].sections.push(newSec);
+        classMap[cId].secMap[sId] = newSec;
+      }
+
+      if (stId && stName) {
+        classMap[cId].secMap[sId].students.push({
+          id: stId,
+          rollNo: stRoll ? stRoll.toString().trim() : "",
+          regNo: stReg ? stReg.toString().trim() : "",
+          name: stName.toString().trim()
+        });
+      }
+    }
+  }
+
+  var result = [];
+  for (var key in classMap) {
+    delete classMap[key].secMap;
+    result.push(classMap[key]);
+  }
+  return result;
+}
+
+// ==========================================
+// 2. ACADEMIC SESSION FILE MANAGER
+// ==========================================
+
+function getAcademicSessionInfo(dateStr, startMonth) {
+  var parts = dateStr.split("-");
+  var year = parseInt(parts[0], 10);
+  var month = parseInt(parts[1], 10);
+  
+  startMonth = parseInt(startMonth, 10) || 8;
+
+  var sessionStartYear = (month >= startMonth) ? year : (year - 1);
+  var sessionEndYear = sessionStartYear + 1;
+  var sessionTitle = sessionStartYear + " - " + sessionEndYear;
+
+  var monthsList = [];
+  var currY = sessionStartYear;
+  var currM = startMonth;
+
+  for (var i = 0; i < 12; i++) {
+    monthsList.push({
+      year: currY,
+      monthNum: currM,
+      monthStr: String(currM).padStart(2, '0')
+    });
+    currM++;
+    if (currM > 12) {
+      currM = 1;
+      currY++;
+    }
+  }
+
+  return {
+    sessionTitle: sessionTitle,
+    sessionStartYear: sessionStartYear,
+    monthsList: monthsList
+  };
+}
+
+function getOrCreateAcademicClassFile(mainSS, className, sessionTitle) {
+  var normClass = className.toString().trim();
+  var normSession = sessionTitle.toString().trim();
+  var cacheKey = normClass.toLowerCase() + "_" + normSession.toLowerCase();
+
+  if (CLASS_FILE_CACHE[cacheKey]) {
+    return CLASS_FILE_CACHE[cacheKey];
+  }
+
+  var indexSheet = getOrCreateSheet(mainSS, "Class_Files_Index");
+  if (indexSheet.getLastRow() === 0) {
+    indexSheet.appendRow(["Class Name", "Academic Session", "File ID", "File URL", "Created Date"]);
+    indexSheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#c7d2fe");
+    SpreadsheetApp.flush();
+  }
+
+  var data = indexSheet.getDataRange().getValues();
+  var fileName = normClass + " - (" + normSession + ")";
+
+  for (var i = 1; i < data.length; i++) {
+    var cNameInSheet = data[i][0] ? data[i][0].toString().trim() : "";
+    var sTitleInSheet = data[i][1] ? data[i][1].toString().trim() : "";
+    var fIdInSheet = data[i][2] ? data[i][2].toString().trim() : "";
+
+    if (cNameInSheet.toLowerCase() === normClass.toLowerCase() && sTitleInSheet.toLowerCase() === normSession.toLowerCase()) {
+      try {
+        var existingSS = SpreadsheetApp.openById(fIdInSheet);
+        CLASS_FILE_CACHE[cacheKey] = existingSS;
+        return existingSS;
+      } catch (e) {}
+    }
+  }
+
+  var newSS = SpreadsheetApp.create(fileName);
+  var fileId = newSS.getId();
+  var fileUrl = newSS.getUrl();
+
+  indexSheet.appendRow([normClass, normSession, fileId, fileUrl, new Date().toLocaleString()]);
+  SpreadsheetApp.flush();
+
+  CLASS_FILE_CACHE[cacheKey] = newSS;
+  return newSS;
+}
+
+// ==========================================
+// 3. HIGH-SPEED BATCH 2D MATRIX ATTENDANCE WRITER
+// ==========================================
+
+function syncAttendanceInPlaceBatch(mainSS, instituteData, attendanceData, startMonth) {
+  if (!instituteData || !attendanceData) return;
+
+  startMonth = parseInt(startMonth, 10) || 8;
+  var monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+
+  var sessionMap = {};
+  var dates = Object.keys(attendanceData);
+  if (dates.length === 0) {
+    var todayStr = new Date().toISOString().split('T')[0];
+    dates.push(todayStr);
+  }
+
+  dates.forEach(function(dStr) {
+    var sInfo = getAcademicSessionInfo(dStr, startMonth);
+    sessionMap[sInfo.sessionTitle] = sInfo;
+  });
+
+  for (var sTitle in sessionMap) {
+    var sessionInfo = sessionMap[sTitle];
+
+    instituteData.forEach(function(cls) {
+      if (!cls.sections || !cls.sections.length) return;
+
+      var classSS = getOrCreateAcademicClassFile(mainSS, cls.name, sessionInfo.sessionTitle);
+
+      cls.sections.forEach(function(sec) {
+        var secSheet = getOrCreateSheet(classSS, sec.name);
+        
+        var defaultSheet = classSS.getSheetByName("Sheet1");
+        if (defaultSheet && classSS.getSheets().length > 1) {
+          try { classSS.deleteSheet(defaultSheet); } catch(e){}
+        }
+
+        var grid = [];
+        var mergeRanges = [];
+
+        sessionInfo.monthsList.forEach(function(mObj) {
+          var daysInMonth = new Date(mObj.year, mObj.monthNum, 0).getDate();
+          var monthTitle = "MONTH: " + monthNames[mObj.monthNum - 1] + " " + mObj.year;
+
+          // Banner Row
+          var bannerRowIndex = grid.length + 1;
+          var bannerRow = [monthTitle];
+          for (var c = 1; c < 37; c++) bannerRow.push("");
+          grid.push(bannerRow);
+          mergeRanges.push({ row: bannerRowIndex, cols: daysInMonth + 6 });
+
+          // Header Row
+          var headerRow = ["Roll No", "Reg No", "Student Name"];
+          for (var d = 1; d <= 31; d++) {
+            if (d <= daysInMonth) headerRow.push(d.toString());
+            else headerRow.push("");
+          }
+          headerRow.push("Total Present", "Total Absent", "Attendance %");
+          grid.push(headerRow);
+
+          // Student Rows
+          sec.students.sort(function(a,b){
+            var rA = (a.rollNo || "").toString().trim();
+            var rB = (b.rollNo || "").toString().trim();
+            return rA.localeCompare(rB, undefined, {numeric: true});
+          }).forEach(function(st, stIdx) {
+            var roll = (st.rollNo && st.rollNo.toString().trim() !== "") ? st.rollNo.toString().trim() : (stIdx + 1).toString();
+            var reg = (st.regNo && st.regNo.toString().trim() !== "") ? st.regNo.toString().trim() : "";
+            var name = (st.name && st.name.toString().trim() !== "") ? st.name.toString().trim() : "Student " + roll;
+
+            var row = [roll, reg, name];
+            var pCount = 0;
+            var aCount = 0;
+
+            for (var day = 1; day <= 31; day++) {
+              if (day <= daysInMonth) {
+                var dStr = String(day).padStart(2, '0');
+                var mStr = String(mObj.monthNum).padStart(2, '0');
+                var dateKey = mObj.year + "-" + mStr + "-" + dStr;
+
+                var secKey = cls.id + "_" + sec.id;
+                var dayRec = attendanceData[dateKey] ? attendanceData[dateKey][secKey] : null;
+
+                if (dayRec && (dayRec._isHoliday || dayRec === "HOLIDAY")) {
+                  row.push("H (" + (dayRec.note || "Holiday") + ")");
+                } else if (dayRec && dayRec[st.id] !== undefined) {
+                  if (dayRec[st.id] === true) {
+                    row.push("P");
+                    pCount++;
+                  } else if (dayRec[st.id] === false) {
+                    row.push("A");
+                    aCount++;
+                  } else {
+                    row.push("-");
+                  }
+                } else {
+                  row.push("-");
+                }
+              } else {
+                row.push("");
+              }
+            }
+
+            var totalMarked = pCount + aCount;
+            var attPercentage = totalMarked > 0 ? Math.round((pCount / totalMarked) * 100) + "%" : "0%";
+
+            row.push(pCount, aCount, attPercentage);
+            grid.push(row);
+          });
+
+          // Spacing Row
+          var emptyRow = [];
+          for (var c = 0; c < 37; c++) emptyRow.push("");
+          grid.push(emptyRow);
+        });
+
+        secSheet.clear();
+        if (grid.length > 0) {
+          var range = secSheet.getRange(1, 1, grid.length, 37);
+          range.setValues(grid);
+
+          mergeRanges.forEach(function(m) {
+            var bRange = secSheet.getRange(m.row, 1, 1, m.cols);
+            bRange.merge().setFontWeight("bold").setBackground("#4f46e5").setFontColor("#ffffff");
+            var hRange = secSheet.getRange(m.row + 1, 1, 1, 37);
+            hRange.setFontWeight("bold").setBackground("#e0e7ff");
+          });
+        }
+      });
+    });
+  }
+
+  SpreadsheetApp.flush();
+}
+
+// ==========================================
+// 4. READ ATTENDANCE FROM CLASS FILES
+// ==========================================
+
+function readAllAttendanceFromClassFiles(mainSS, instituteData) {
+  var indexSheet = mainSS.getSheetByName("Class_Files_Index");
+  if (!indexSheet) return {};
+
+  var indexData = indexSheet.getDataRange().getValues();
+  if (indexData.length <= 1) return {};
+
+  var attendanceData = {};
+  var monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+
+  for (var i = 1; i < indexData.length; i++) {
+    var className = indexData[i][0] ? indexData[i][0].toString().trim() : "";
+    var fileId = indexData[i][2] ? indexData[i][2].toString().trim() : "";
+
+    var cls = instituteData.find(function(c){ return c.name.toString().trim() === className; });
+    if (!cls) continue;
+
+    try {
+      var classSS = SpreadsheetApp.openById(fileId);
+      cls.sections.forEach(function(sec) {
+        var secSheet = classSS.getSheetByName(sec.name);
+        if (!secSheet) return;
+
+        var data = secSheet.getDataRange().getValues();
+        var currentMonthNum = null;
+        var currentYear = null;
+        var dayHeaders = [];
+
+        for (var r = 0; r < data.length; r++) {
+          var rowVal = data[r][0] ? data[r][0].toString().trim() : "";
+
+          if (rowVal.indexOf("MONTH:") === 0) {
+            monthNames.forEach(function(mName, idx) {
+              if (rowVal.indexOf(mName) !== -1) {
+                currentMonthNum = String(idx + 1).padStart(2, '0');
+                var parts = rowVal.split(" ");
+                currentYear = parts[parts.length - 1];
+              }
+            });
+            continue;
+          }
+
+          if (rowVal === "Roll No" && data[r][1] === "Reg No") {
+            dayHeaders = data[r];
+            continue;
+          }
+
+          if (currentMonthNum && currentYear && dayHeaders.length > 3 && rowVal !== "") {
+            var rollNo = rowVal;
+            var regNo = data[r][1] ? data[r][1].toString().trim() : "";
+            var studentName = data[r][2] ? data[r][2].toString().trim() : "";
+
+            var st = sec.students.find(function(s){ return (s.rollNo && s.rollNo.toString().trim() === rollNo) || s.name.toString().trim() === studentName; });
+            if (!st) continue;
+            if (regNo && !st.regNo) st.regNo = regNo;
+
+            for (var c = 3; c < dayHeaders.length - 3; c++) {
+              var dayNum = dayHeaders[c];
+              if (!dayNum || isNaN(parseInt(dayNum, 10))) continue;
+
+              var dStr = String(dayNum).padStart(2, '0');
+              var dateKey = currentYear + "-" + currentMonthNum + "-" + dStr;
+              var cellVal = data[r][c] ? data[r][c].toString().trim() : "-";
+
+              if (cellVal === "-") continue;
+
+              if (!attendanceData[dateKey]) attendanceData[dateKey] = {};
+              var key = cls.id + "_" + sec.id;
+              if (!attendanceData[dateKey][key]) attendanceData[dateKey][key] = {};
+
+              if (cellVal === "P") {
+                attendanceData[dateKey][key][st.id] = true;
+              } else if (cellVal === "A") {
+                attendanceData[dateKey][key][st.id] = false;
+              } else if (cellVal.indexOf("H (") === 0) {
+                var note = cellVal.substring(3, cellVal.length - 1);
+                attendanceData[dateKey][key] = { _isHoliday: true, note: note };
+              }
+            }
+          }
+        }
+      });
+    } catch(e) {
+      console.error("Error reading file ID " + fileId + ": " + e.toString());
+    }
+  }
+
+  return attendanceData;
+}
