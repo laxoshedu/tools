@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Academic GPA & CGPA Calculator</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --secondary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --bg-body: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --input-bg: #f8fafc;
+            --danger: #ef4444;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
+            --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(99, 102, 241, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px 12px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden; /* Prevents whole screen horizontal scroll */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            animation: fadeInPage 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* HEADER STYLING */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 0 6px 0;
+            background: linear-gradient(135deg, #1e293b 0%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* TABS SEGMENTED CONTROL */
+        .tabs-container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 5px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            outline: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* MAIN CARD */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* TOGGLE CARD */
+        .toggle-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .toggle-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .toggle-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* CUSTOM TOGGLE SWITCH */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* ISOLATED RESPONSIVE TABLE WRAPPER FOR MOBILE */
+        .table-responsive {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth momentum scroll on iOS */
+            margin-bottom: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: #ffffff;
+            position: relative;
+        }
+
+        /* Custom subtle scrollbar for mobile swipe indicator */
+        .table-responsive::-webkit-scrollbar {
+            height: 6px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 520px; /* Minimum width ensures inputs don't get squished */
+            border-collapse: collapse;
+            background: #ffffff;
+            text-align: left;
+        }
+
+        /* Expand table min-width when Marks mode adds extra columns */
+        .marks-active table {
+            min-width: 720px;
+        }
+
+        th {
+            padding: 12px 14px;
+            background: #f8fafc;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        tbody tr {
+            animation: fadeInRow 0.25s ease-out;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* INPUTS */
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            outline: none;
+            min-height: 40px; /* Mobile touch friendly target */
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus {
+            background-color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+
+        .marks-col {
+            display: none;
+            background-color: #f8fafc;
+        }
+
+        .marks-active .marks-col {
+            display: table-cell;
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            min-height: 42px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .btn-danger {
+            background: #fef2f2;
+            color: var(--danger);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #fee2e2;
+            min-height: 36px;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        /* RESULTS DISPLAY CARD */
+        .result-card {
+            margin-top: 22px;
+            padding: 22px 24px;
+            border-radius: var(--radius-lg);
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+            gap: 15px;
+        }
+
+        .result-card.gpa-theme { background: var(--primary-gradient); }
+        .result-card.cgpa-theme { background: var(--secondary-gradient); }
+
+        .result-title {
+            font-size: 1rem;
+            font-weight: 700;
+            opacity: 0.95;
+        }
+
+        .result-badge {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(8px);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .result-score-container {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .result-score {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .result-pct {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-top: 6px;
+            opacity: 0.95;
+        }
+
+        /* KEYFRAME ANIMATIONS */
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInRow {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .pulse-anim {
+            animation: pulseScale 0.3s ease-out;
+        }
+
+        @keyframes pulseScale {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        /* MOBILE SPECIFIC MEDIA QUERIES */
+        @media (max-width: 580px) {
+            body {
+                padding: 12px 8px;
+            }
+
+            .card {
+                padding: 18px 14px;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .result-card {
+                flex-direction: row;
+                align-items: center;
+                padding: 18px 18px;
+            }
+
+            .result-score {
+                font-size: 2.2rem;
+            }
+
+            .result-pct {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🎓 Academic Grade Calculator</h1>
+        <p>Calculate Semester GPA & Cumulative CGPA instantly</p>
+    </div>
+
+    <!-- TABS NAVIGATION -->
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="openTab('gpaTab')">Semester GPA</button>
+        <button class="tab-btn" onclick="openTab('cgpaTab')">Overall CGPA</button>
+    </div>
+
+    <!-- TAB 1: GPA CALCULATOR -->
+    <div id="gpaTab" class="tab-content active card">
+        
+        <!-- Toggle Switch Card -->
+        <div class="toggle-card">
+            <div>
+                <div class="toggle-title">📝 Enable Subject Marks Mode</div>
+                <div class="toggle-sub">Input marks (e.g., 67 out of 100) to auto-convert to points</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="marksToggle" onchange="toggleMarksMode()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <!-- ISOLATED RESPONSIVE CONTAINER FOR TABLE (SCROLLS INTERNALLY ON MOBILE) -->
+        <div class="table-responsive" id="gpaTableWrapper">
+            <table id="gpaTable">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Subject</th>
+                        <th style="width: 18%">Credits</th>
+                        <th style="width: 18%" class="marks-col">Got Marks</th>
+                        <th style="width: 18%" class="marks-col">Out Of</th>
+                        <th style="width: 20%">Grade Points</th>
+                        <th style="width: 10%; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="gpaBody">
+                    <!-- Dynamic Rows Insertion -->
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-primary" onclick="addGpaRow()">
+            <span>➕</span> Add Subject Row
+        </button>
+
+        <!-- Final Results Card -->
+        <div class="result-card gpa-theme">
+            <div>
+                <div class="result-title">Semester GPA</div>
+                <div class="result-badge" id="gpaDetails">Total Credits: 0</div>
+            </div>
+            <div class="result-score-container">
+                <div class="result-score" id="gpaResult">0.00</div>
+                <div class="result-pct" id="gpaPercentage">Percentage: 0.00%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: CGPA CALCULATOR -->
+    <div id="cgpaTab" class="tab-content card">
+        <p style="color: var(--text-secondary); margin-top: 0; margin-bottom: 16px; font-size: 0.88rem; font-weight: 500;">
+            Add the GPA you received for each semester to compute your overall cumulative score.
+        </p>
+
+        <!-- ISOLATED RESPONSIVE CONTAINER FOR TABLE -->
+        <div class="table-responsive">
+            <table id="cgpaTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40%">Semester</th>
+                        <th style="width: 25%">GPA Obtained</th>
+                        <th style="width: 25%">Total Credits (Optional)</th>
+                        <th style="width: 10%; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cgpaBody">
+                    <!-- Dynamic Rows Insertion -->
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-primary" onclick="addCgpaRow()">
+            <span>➕</span> Add Semester Row
+        </button>
+
+        <!-- Final Results Card -->
+        <div class="result-card cgpa-theme">
+            <div>
+                <div class="result-title">Overall CGPA</div>
+                <div class="result-badge" id="cgpaDetails">Semesters: 0</div>
+            </div>
+            <div class="result-score-container">
+                <div class="result-score" id="cgpaResult">0.00</div>
+                <div class="result-pct" id="cgpaPercentage">Overall Percentage: 0.00%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- FULLSCREEN AUTO-TRIGGER ON TOUCH/CLICK ---
+    const eventsToTriggerFullscreen = ['click', 'touchstart', 'keydown'];
+    eventsToTriggerFullscreen.forEach(evt => {
+        document.body.addEventListener(evt, () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }, { once: false });
+    });
+
+    // Initialize Default Rows
+    window.onload = function() {
+        for(let i = 0; i < 4; i++) addGpaRow();
+        for(let i = 0; i < 2; i++) addCgpaRow();
+    };
+
+    // Tab Switching Logic
+    function openTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // --- GPA CALCULATOR LOGIC ---
+
+    function toggleMarksMode() {
+        const isChecked = document.getElementById('marksToggle').checked;
+        const wrapper = document.getElementById('gpaTableWrapper');
+        
+        if (isChecked) {
+            wrapper.classList.add('marks-active');
+        } else {
+            wrapper.classList.remove('marks-active');
+            document.querySelectorAll('.mark-obt, .mark-max').forEach(el => el.value = '');
+        }
+        calculateGPA();
+    }
+
+    function addGpaRow() {
+        const tbody = document.getElementById('gpaBody');
+        const tr = document.createElement('tr');
+        
+        tr.innerHTML = `
+            <td><input type="text" placeholder="Subject"></td>
+            <td><input type="number" class="gpa-credit" placeholder="3" min="0" step="0.5" oninput="calculateGPA()"></td>
+            <td class="marks-col"><input type="number" class="mark-obt" placeholder="67" min="0" oninput="autoCalcPoint(this)"></td>
+            <td class="marks-col"><input type="number" class="mark-max" placeholder="100" min="0" oninput="autoCalcPoint(this)"></td>
+            <td><input type="number" class="gpa-point" placeholder="8.5" min="0" step="0.1" max="10" oninput="calculateGPA()"></td>
+            <td style="text-align: center;"><button class="btn btn-danger" onclick="removeRow(this, calculateGPA)">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function autoCalcPoint(inputElem) {
+        const tr = inputElem.closest('tr');
+        const obt = parseFloat(tr.querySelector('.mark-obt').value) || 0;
+        const max = parseFloat(tr.querySelector('.mark-max').value) || 0;
+        
+        if (max > 0 && obt <= max) {
+            let pct = (obt / max) * 100;
+            let point = (pct / 10).toFixed(2);
+            tr.querySelector('.gpa-point').value = point;
+        }
+        calculateGPA();
+    }
+
+    function calculateGPA() {
+        let totalCredits = 0;
+        let totalPoints = 0;
+        let totalObtMarks = 0;
+        let totalMaxMarks = 0;
+        
+        let isMarksMode = document.getElementById('marksToggle').checked;
+
+        document.querySelectorAll('#gpaBody tr').forEach(row => {
+            let credit = parseFloat(row.querySelector('.gpa-credit').value);
+            let point = parseFloat(row.querySelector('.gpa-point').value);
+
+            if (!isNaN(credit) && !isNaN(point)) {
+                totalCredits += credit;
+                totalPoints += (credit * point);
+            }
+
+            if (isMarksMode) {
+                let obt = parseFloat(row.querySelector('.mark-obt').value) || 0;
+                let max = parseFloat(row.querySelector('.mark-max').value) || 0;
+                totalObtMarks += obt;
+                totalMaxMarks += max;
+            }
+        });
+
+        let gpaVal = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+        
+        let percentage = "0.00";
+        if (isMarksMode && totalMaxMarks > 0) {
+            percentage = ((totalObtMarks / totalMaxMarks) * 100).toFixed(2);
+        } else {
+            percentage = (parseFloat(gpaVal) * 10).toFixed(2);
+        }
+
+        const gpaResultElem = document.getElementById('gpaResult');
+        if (gpaResultElem.innerText !== gpaVal) {
+            gpaResultElem.classList.remove('pulse-anim');
+            void gpaResultElem.offsetWidth; // Reflow for pulse animation
+            gpaResultElem.classList.add('pulse-anim');
+        }
+
+        gpaResultElem.innerText = gpaVal;
+        document.getElementById('gpaDetails').innerText = `Total Credits: ${totalCredits}`;
+        document.getElementById('gpaPercentage').innerText = `Percentage: ${percentage}%`;
+    }
+
+    // --- CGPA CALCULATOR LOGIC ---
+
+    function addCgpaRow() {
+        const tbody = document.getElementById('cgpaBody');
+        const tr = document.createElement('tr');
+        const rowCount = tbody.children.length + 1;
+        
+        tr.innerHTML = `
+            <td><input type="text" value="Sem ${rowCount}" placeholder="Semester"></td>
+            <td><input type="number" class="cgpa-gpa" placeholder="8.5" min="0" step="0.01" max="10" oninput="calculateCGPA()"></td>
+            <td><input type="number" class="cgpa-credit" placeholder="20" min="0" step="0.5" oninput="calculateCGPA()"></td>
+            <td style="text-align: center;"><button class="btn btn-danger" onclick="removeRow(this, calculateCGPA)">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function calculateCGPA() {
+        let totalCredits = 0;
+        let totalPoints = 0;
+        let validSemesters = 0;
+        let simpleGpaSum = 0;
+        let usingCredits = false;
+
+        const rows = document.querySelectorAll('#cgpaBody tr');
+
+        rows.forEach(row => {
+            let gpa = parseFloat(row.querySelector('.cgpa-gpa').value);
+            let credit = parseFloat(row.querySelector('.cgpa-credit').value);
+
+            if (!isNaN(gpa)) {
+                validSemesters++;
+                simpleGpaSum += gpa;
+
+                if (!isNaN(credit)) {
+                    usingCredits = true;
+                    totalCredits += credit;
+                    totalPoints += (gpa * credit);
+                }
+            }
+        });
+
+        let cgpaVal = "0.00";
+
+        if (usingCredits && totalCredits > 0) {
+            cgpaVal = (totalPoints / totalCredits).toFixed(2);
+        } else if (validSemesters > 0) {
+            cgpaVal = (simpleGpaSum / validSemesters).toFixed(2);
+        }
+
+        let percentage = (parseFloat(cgpaVal) * 10).toFixed(2);
+
+        const cgpaResultElem = document.getElementById('cgpaResult');
+        if (cgpaResultElem.innerText !== cgpaVal) {
+            cgpaResultElem.classList.remove('pulse-anim');
+            void cgpaResultElem.offsetWidth; // Reflow for pulse animation
+            cgpaResultElem.classList.add('pulse-anim');
+        }
+
+        cgpaResultElem.innerText = cgpaVal;
+        document.getElementById('cgpaDetails').innerText = `Semesters: ${validSemesters}`;
+        document.getElementById('cgpaPercentage').innerText = `Overall Percentage: ${percentage}%`;
+    }
+
+    function removeRow(button, callback) {
+        const row = button.closest('tr');
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(10px)';
+        setTimeout(() => {
+            row.remove();
+            callback();
+        }, 180);
+    }
+</script>
+
+</body>
+</html>
