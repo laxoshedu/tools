@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Background Auto Torch</title>
+    <meta name="theme-color" content="#0f172a">
+    <title>Auto Power-Cut Torch</title>
+    
+    <!-- PWA Manifest embedded to make it an Installable App -->
+    <link rel="manifest" href='data:application/manifest+json;utf8,{"name":"Auto Torch","short_name":"AutoTorch","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔦</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -11,12 +16,13 @@
             --primary: #38bdf8;
             --success: #22c55e;
             --warning: #f59e0b;
+            --danger: #ef4444;
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
             --border: #334155;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
 
         body {
             background-color: var(--bg-dark);
@@ -35,96 +41,95 @@
             gap: 20px;
         }
 
-        .header { text-align: center; }
-        .header h1 { color: var(--primary); font-size: 1.6rem; }
-        .header p { color: var(--text-sub); font-size: 0.85rem; margin-top: 5px; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .header h1 { color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; gap: 10px;}
+        .header p { color: var(--text-sub); font-size: 0.9rem; margin-top: 5px; }
 
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 20px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
 
         /* TOGGLE SWITCH */
         .toggle-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+            background: #00000040; padding: 15px; border-radius: 12px; border: 1px solid #334155;
         }
 
-        .switch { position: relative; display: inline-block; width: 54px; height: 30px; }
+        .switch { position: relative; display: inline-block; width: 56px; height: 32px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
             background-color: #475569; transition: .3s; border-radius: 34px;
         }
         .slider:before {
-            position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px;
+            position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px;
             background-color: white; transition: .3s; border-radius: 50%;
         }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(24px); }
 
         .btn {
-            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            width: 100%; padding: 16px; border: none; border-radius: 12px;
             background: var(--primary); color: #0f172a; font-weight: bold;
-            font-size: 1rem; cursor: pointer; margin-top: 10px;
+            font-size: 1.1rem; cursor: pointer; margin-top: 10px; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.96); }
+
+        .btn-blackout {
+            background: #000000; color: #38bdf8; border: 2px solid #38bdf8;
         }
 
-        .btn-dark {
-            background: #000000; color: #ffffff; border: 2px solid #334155;
-        }
-
-        .status-box { text-align: center; margin-top: 10px; }
+        .status-box { text-align: center; margin-top: 10px; padding: 20px 0;}
         .indicator {
-            width: 80px; height: 80px; border-radius: 50%; background: #334155;
+            width: 90px; height: 90px; border-radius: 50%; background: #334155;
             margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center;
-            font-size: 2.5rem; transition: 0.3s;
+            font-size: 2.8rem; transition: 0.3s;
         }
         .indicator.active {
-            background: var(--warning); box-shadow: 0 0 35px rgba(245, 158, 11, 0.8);
+            background: var(--warning); box-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
             animation: pulse 1s infinite alternate;
         }
 
         @keyframes pulse {
             0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
+            100% { transform: scale(1.08); }
         }
 
         .meter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;}
-        .meter { background: var(--bg-dark); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border);}
-        .meter-title { font-size: 0.75rem; color: var(--text-sub); }
-        .meter-val { font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
+        .meter { background: #0f172a; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid var(--border);}
+        .meter-title { font-size: 0.75rem; color: var(--text-sub); font-weight: bold;}
+        .meter-val { font-size: 1.4rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
 
-        /* FAKE SCREEN OFF OVERLAY */
+        /* FAKE SCREEN OFF OVERLAY (Saves Battery, Keeps App Running) */
         #blackoutScreen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: black; z-index: 99999; display: none;
             flex-direction: column; justify-content: center; align-items: center;
-            color: #333; /* Very dim text */
+            color: #111; /* Extremely dim text */
         }
 
-        .hidden-video { position: absolute; opacity: 0; pointer-events: none; width: 10px; height: 10px; }
+        .hidden-video { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>🔦 Background Auto Torch</h1>
-        <p>Uses Dual Cameras & Audio Hack to run in background</p>
+        <h1>🔦 Auto Power-Cut Torch</h1>
+        <p>Installs as a Web App. Runs in Background.</p>
     </div>
 
-    <button id="permBtn" class="btn" onclick="requestPermissions()">📸 Grant Camera Permissions</button>
+    <button id="permBtn" class="btn" onclick="requestPermissions()">📸 Grant Dual Camera Access</button>
 
     <div class="card" id="controlCard" style="display: none;">
         <div class="toggle-row">
             <div>
-                <strong>Auto-Torch Service</strong>
-                <div style="font-size: 0.8rem; color: var(--text-sub);">Detects power cuts automatically</div>
+                <strong style="font-size: 1.1rem;">Enable Auto-Torch</strong>
+                <div style="font-size: 0.85rem; color: var(--text-sub); margin-top: 4px;">Monitors room darkness</div>
             </div>
             <label class="switch">
                 <input type="checkbox" id="serviceToggle" onchange="toggleService()">
@@ -134,40 +139,39 @@
 
         <div class="status-box">
             <div class="indicator" id="torchIcon">💡</div>
-            <h3 id="statusTitle">Service Inactive</h3>
+            <h2 id="statusTitle">Service Stopped</h2>
         </div>
 
         <div class="meter-grid">
             <div class="meter">
-                <div class="meter-title">FRONT SENSOR</div>
+                <div class="meter-title">FRONT CAMERA</div>
                 <div class="meter-val" id="frontVal">0%</div>
             </div>
             <div class="meter">
-                <div class="meter-title">BACK SENSOR</div>
+                <div class="meter-title">BACK CAMERA</div>
                 <div class="meter-val" id="backVal">0%</div>
             </div>
         </div>
 
-        <div style="margin-top: 20px;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px;">
-                <span>Darkness Threshold</span>
-                <span id="threshVal" style="color: var(--primary); font-weight: bold;">15%</span>
+        <div style="margin-top: 25px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px;">
+                <span>Trigger Threshold (Sensitivity)</span>
+                <span id="threshVal" style="color: var(--primary); font-weight: bold;">12%</span>
             </div>
-            <input type="range" id="threshSlider" min="1" max="40" value="15" style="width: 100%;" oninput="updateThreshold(this.value)">
+            <input type="range" id="threshSlider" min="1" max="40" value="12" style="width: 100%; height: 6px; accent-color: var(--primary);" oninput="updateThreshold(this.value)">
         </div>
 
-        <button class="btn btn-dark" onclick="enableBlackout()">⬛ Fake Screen Off Mode</button>
-        <p style="font-size: 0.75rem; color: var(--text-sub); text-align: center; margin-top: 10px;">
-            Use "Fake Screen Off" instead of the power button to guarantee camera stays active without battery drain.
+        <button class="btn btn-blackout" style="margin-top: 25px;" onclick="enableBlackout()">⬛ OLED Screen-Off Mode</button>
+        <p style="font-size: 0.8rem; color: var(--text-sub); text-align: center; margin-top: 10px;">
+            Use this instead of locking your phone. It turns the screen black and keeps the app running 100% all night.
         </p>
     </div>
 </div>
 
 <!-- FAKE SCREEN OFF -->
 <div id="blackoutScreen" onclick="disableBlackout()">
-    <div style="font-size: 3rem;">🌙</div>
-    <div style="margin-top: 15px; font-size: 0.9rem;">Screen is "Off". Monitoring Active.</div>
-    <div style="margin-top: 5px; font-size: 0.7rem;">Tap anywhere to wake up</div>
+    <div style="font-size: 1rem; color: #333;">Screen Off Mode Active</div>
+    <div style="margin-top: 5px; font-size: 0.8rem; color: #222;">Double tap anywhere to wake</div>
 </div>
 
 <!-- HIDDEN PROCESSING ELEMENTS -->
@@ -180,10 +184,14 @@
     let backStream = null;
     let isServiceActive = false;
     let isTorchOn = false;
-    let darkThreshold = 15;
+    let darkThreshold = 12;
     let processInterval = null;
     let wakeLock = null;
     let audioCtx = null;
+
+    // Smart Memory for Fixing Torch Reflection Bug
+    let baselineTorchBrightness = 0; 
+    let torchSettleTimer = null;
 
     const frontVideo = document.getElementById('frontVideo');
     const backVideo = document.getElementById('backVideo');
@@ -195,42 +203,33 @@
         document.getElementById('threshVal').innerText = val + '%';
     }
 
-    // --- AUDIO CPU HACK: KEEPS APP ALIVE IN BACKGROUND ---
+    // BACKGROUND AUDIO HACK
     function startSilentAudioHack() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-        // Create an oscillator (generates sound)
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
-        gainNode.gain.value = 0; // 0 VOLUME = SILENT
-        
+        gainNode.gain.value = 0; // Completely silent
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         oscillator.start();
-        
-        // This endless silent sound prevents WebViews from pausing JavaScript
     }
 
     async function requestPermissions() {
         try {
-            // Front Camera
             frontStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
             frontVideo.srcObject = frontStream;
 
-            // Back Camera
             backStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             backVideo.srcObject = backStream;
 
             document.getElementById('permBtn').style.display = 'none';
             document.getElementById('controlCard').style.display = 'block';
             
-            // Initialize Audio Hack on first user gesture
-            startSilentAudioHack();
-
+            startSilentAudioHack(); // Keep JS awake
         } catch (err) {
-            alert("Camera Access Denied! Please allow camera permissions in App Settings.");
+            alert("Camera Access Denied! Please allow camera permissions to monitor light.");
         }
     }
 
@@ -238,24 +237,20 @@
         isServiceActive = document.getElementById('serviceToggle').checked;
 
         if (isServiceActive) {
-            document.getElementById('statusTitle').innerText = "Monitoring Light...";
-            
-            // Web Wake Lock (Keeps screen hardware alive if possible)
+            document.getElementById('statusTitle').innerText = "Monitoring Darkness...";
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
             } catch (err) {}
 
-            processInterval = setInterval(checkDarkness, 300); // Check every 300ms
+            processInterval = setInterval(checkDarkness, 400); // Analyze every 400ms
 
         } else {
             clearInterval(processInterval);
             await setTorch(false);
-            
             if (wakeLock) { wakeLock.release(); wakeLock = null; }
-            document.getElementById('statusTitle').innerText = "Service Inactive";
-            
+            document.getElementById('statusTitle').innerText = "Service Stopped";
             document.getElementById('frontVal').innerText = "0%";
             document.getElementById('backVal').innerText = "0%";
         }
@@ -263,7 +258,6 @@
 
     function calculateBrightness(video) {
         if (!video.videoWidth) return 100;
-        
         ctx.drawImage(video, 0, 0, 16, 16);
         const data = ctx.getImageData(0, 0, 16, 16).data;
         let lumaSum = 0;
@@ -271,7 +265,6 @@
         for (let i = 0; i < data.length; i += 4) {
             lumaSum += (0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]);
         }
-        
         let avgLuma = lumaSum / (data.length / 4);
         return Math.round((avgLuma / 255) * 100);
     }
@@ -285,16 +278,36 @@
         document.getElementById('frontVal').innerText = frontLight + "%";
         document.getElementById('backVal').innerText = backLight + "%";
 
-        // BOTH sensors must be dark (power cut condition)
-        if (frontLight <= darkThreshold && backLight <= darkThreshold) {
-            if (!isTorchOn) {
+        // --- THE FIX FOR THE TORCH SELF-REFLECTION BUG ---
+        if (!isTorchOn) {
+            // NORMAL MODE: Waiting for power cut
+            if (frontLight <= darkThreshold && backLight <= darkThreshold) {
                 await setTorch(true);
                 document.getElementById('statusTitle').innerText = "⚡ Power Cut! Torch ON";
+                
+                // Allow 1 second for the camera to adjust to the new torch light, then memorize it
+                clearTimeout(torchSettleTimer);
+                torchSettleTimer = setTimeout(() => {
+                    baselineTorchBrightness = calculateBrightness(backVideo);
+                }, 1000);
             }
         } else {
-            if (isTorchOn) {
+            // TORCH IS ON MODE: Checking if power is back
+            // We only turn off if the room gets SIGNIFICANTLY brighter than the torch's own reflection
+            // OR if the front camera (which faces away from the torch) gets bright.
+            
+            let powerRestored = false;
+
+            if (frontLight > darkThreshold + 10) {
+                powerRestored = true; // Front camera saw the room light turn on
+            } else if (baselineTorchBrightness > 0 && backLight > baselineTorchBrightness + 15) {
+                powerRestored = true; // Back camera saw light much stronger than its own torch
+            }
+
+            if (powerRestored) {
                 await setTorch(false);
-                document.getElementById('statusTitle').innerText = "☀️ Light Detected";
+                document.getElementById('statusTitle').innerText = "☀️ Light Restored";
+                baselineTorchBrightness = 0; // Reset memory
             }
         }
     }
@@ -317,25 +330,35 @@
                 icon.innerText = "💡";
             }
         } catch (err) {
-            console.log("Torch API not supported on this device via Web");
+            console.log("Torch API not supported by browser hardware.");
         }
     }
 
-    // --- FAKE SCREEN OFF LOGIC ---
+    // --- OLED FAKE SCREEN OFF LOGIC ---
+    let tapCount = 0;
+    let tapTimer = null;
+
     function enableBlackout() {
         if (!isServiceActive) {
-            alert("Please turn on the Auto-Torch service first!");
+            alert("Turn on Auto-Torch first!");
             return;
         }
         document.getElementById('blackoutScreen').style.display = 'flex';
-        // Request fullscreen to hide status bar in blackout mode
-        document.documentElement.requestFullscreen().catch(()=>{});
+        document.documentElement.requestFullscreen().catch(()=>{}); // Hides status bar
     }
 
     function disableBlackout() {
-        document.getElementById('blackoutScreen').style.display = 'none';
-        if(document.fullscreenElement) {
-            document.exitFullscreen().catch(()=>{});
+        // Require double tap to wake up so it doesn't accidentally wake
+        tapCount++;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => { tapCount = 0; }, 500);
+
+        if (tapCount >= 2) {
+            document.getElementById('blackoutScreen').style.display = 'none';
+            if(document.fullscreenElement) {
+                document.exitFullscreen().catch(()=>{});
+            }
+            tapCount = 0;
         }
     }
 </script>
