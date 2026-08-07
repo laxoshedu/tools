@@ -2,340 +2,343 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Power-Cut Torch</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Background Auto Torch</title>
     <style>
         :root {
-            --bg-dark: #121212;
-            --panel-bg: #1e1e1e;
-            --text-main: #ffffff;
-            --text-muted: #a0a0a0;
-            --active-color: #00d2ff;
-            --inactive-color: #404040;
-            --danger: #ff4d4d;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: #334155;
         }
 
-        * {
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
-            margin: 0;
-            padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            padding: 20px;
             min-height: 100vh;
         }
 
-        /* SIMULATED NOTIFICATION SHADE UI */
-        .notification-panel {
-            background-color: var(--panel-bg);
+        .container {
             width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .quick-settings {
+        .header { text-align: center; }
+        .header h1 { color: var(--primary); font-size: 1.6rem; }
+        .header p { color: var(--text-sub); font-size: 0.85rem; margin-top: 5px; }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        /* TOGGLE SWITCH */
+        .toggle-row {
             display: flex;
-            justify-content: center;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 15px;
         }
 
-        .qs-tile {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
+        .switch { position: relative; display: inline-block; width: 54px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #475569; transition: .3s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            background: var(--primary); color: #0f172a; font-weight: bold;
+            font-size: 1rem; cursor: pointer; margin-top: 10px;
         }
 
-        .qs-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: var(--inactive-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            margin-bottom: 8px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        .btn-dark {
+            background: #000000; color: #ffffff; border: 2px solid #334155;
         }
 
-        .qs-tile.active .qs-icon {
-            background-color: var(--active-color);
-            color: #000;
-            box-shadow: 0 0 15px var(--active-color);
+        .status-box { text-align: center; margin-top: 10px; }
+        .indicator {
+            width: 80px; height: 80px; border-radius: 50%; background: #334155;
+            margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; transition: 0.3s;
+        }
+        .indicator.active {
+            background: var(--warning); box-shadow: 0 0 35px rgba(245, 158, 11, 0.8);
+            animation: pulse 1s infinite alternate;
         }
 
-        .qs-label {
-            font-size: 12px;
-            color: var(--text-muted);
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
         }
 
-        .qs-tile.active .qs-label {
-            color: var(--text-main);
+        .meter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;}
+        .meter { background: var(--bg-dark); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border);}
+        .meter-title { font-size: 0.75rem; color: var(--text-sub); }
+        .meter-val { font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
+
+        /* FAKE SCREEN OFF OVERLAY */
+        #blackoutScreen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: black; z-index: 99999; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: #333; /* Very dim text */
         }
 
-        /* MAIN APP UI */
-        .app-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .status-card {
-            background-color: var(--panel-bg);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .status-val {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 10px 0;
-            color: var(--active-color);
-        }
-
-        .warning-text {
-            font-size: 12px;
-            color: var(--danger);
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(255, 77, 77, 0.1);
-            border-radius: 8px;
-        }
-
-        /* HIDDEN ELEMENTS FOR CAMERA PROCESSING */
-        #videoElement {
-            display: none;
-        }
-        #canvasElement {
-            display: none;
-        }
+        .hidden-video { position: absolute; opacity: 0; pointer-events: none; width: 10px; height: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- SIMULATED QUICK SETTINGS PANEL -->
-    <div class="notification-panel">
-        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">
-            Simulated Edge / Quick Settings Panel
-        </div>
-        <div class="quick-settings">
-            <div class="qs-tile" id="qsToggle" onclick="toggleSystem()">
-                <div class="qs-icon">🔦</div>
-                <div class="qs-label">Auto Torch</div>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🔦 Background Auto Torch</h1>
+        <p>Uses Dual Cameras & Audio Hack to run in background</p>
     </div>
 
-    <!-- MAIN APP DASHBOARD -->
-    <div class="app-container">
-        <h2>Power-Cut Detector</h2>
-        <p style="color: var(--text-muted); font-size: 14px;">
-            Leave this screen on and facing the room. If it detects absolute darkness, the flashlight will turn on automatically.
+    <button id="permBtn" class="btn" onclick="requestPermissions()">📸 Grant Camera Permissions</button>
+
+    <div class="card" id="controlCard" style="display: none;">
+        <div class="toggle-row">
+            <div>
+                <strong>Auto-Torch Service</strong>
+                <div style="font-size: 0.8rem; color: var(--text-sub);">Detects power cuts automatically</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="serviceToggle" onchange="toggleService()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="status-box">
+            <div class="indicator" id="torchIcon">💡</div>
+            <h3 id="statusTitle">Service Inactive</h3>
+        </div>
+
+        <div class="meter-grid">
+            <div class="meter">
+                <div class="meter-title">FRONT SENSOR</div>
+                <div class="meter-val" id="frontVal">0%</div>
+            </div>
+            <div class="meter">
+                <div class="meter-title">BACK SENSOR</div>
+                <div class="meter-val" id="backVal">0%</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px;">
+                <span>Darkness Threshold</span>
+                <span id="threshVal" style="color: var(--primary); font-weight: bold;">15%</span>
+            </div>
+            <input type="range" id="threshSlider" min="1" max="40" value="15" style="width: 100%;" oninput="updateThreshold(this.value)">
+        </div>
+
+        <button class="btn btn-dark" onclick="enableBlackout()">⬛ Fake Screen Off Mode</button>
+        <p style="font-size: 0.75rem; color: var(--text-sub); text-align: center; margin-top: 10px;">
+            Use "Fake Screen Off" instead of the power button to guarantee camera stays active without battery drain.
         </p>
-
-        <div class="status-card">
-            <div>Ambient Light Level</div>
-            <div class="status-val" id="lightLevelUi">-- %</div>
-            <div style="height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 10px;">
-                <div id="lightMeter" style="height: 100%; width: 0%; background: var(--active-color);"></div>
-            </div>
-        </div>
-
-        <div class="status-card">
-            <div>Flashlight Status</div>
-            <div class="status-val" id="torchStatusUi" style="color: var(--text-muted);">OFF</div>
-        </div>
-
-        <div class="warning-text">
-            ⚠️ <b>Note:</b> Web Browsers cannot run cameras in the background. Your screen must remain ON for this tool to work.
-        </div>
     </div>
+</div>
 
-    <!-- Hidden Video & Canvas for Processing -->
-    <video id="videoElement" autoplay playsinline></video>
-    <canvas id="canvasElement"></canvas>
+<!-- FAKE SCREEN OFF -->
+<div id="blackoutScreen" onclick="disableBlackout()">
+    <div style="font-size: 3rem;">🌙</div>
+    <div style="margin-top: 15px; font-size: 0.9rem;">Screen is "Off". Monitoring Active.</div>
+    <div style="margin-top: 5px; font-size: 0.7rem;">Tap anywhere to wake up</div>
+</div>
 
-    <script>
-        // --- STATE VARIABLES ---
-        let isActive = false;
-        let isTorchCurrentlyOn = false;
-        let videoStream = null;
-        let videoTrack = null;
-        let detectionInterval = null;
+<!-- HIDDEN PROCESSING ELEMENTS -->
+<video id="frontVideo" class="hidden-video" autoplay playsinline muted></video>
+<video id="backVideo" class="hidden-video" autoplay playsinline muted></video>
+<canvas id="canvas" class="hidden-video" width="16" height="16"></canvas>
 
-        // Thresholds
-        const DARKNESS_THRESHOLD = 5; // Out of 100. Below this = Power Cut
+<script>
+    let frontStream = null;
+    let backStream = null;
+    let isServiceActive = false;
+    let isTorchOn = false;
+    let darkThreshold = 15;
+    let processInterval = null;
+    let wakeLock = null;
+    let audioCtx = null;
+
+    const frontVideo = document.getElementById('frontVideo');
+    const backVideo = document.getElementById('backVideo');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    function updateThreshold(val) {
+        darkThreshold = parseInt(val);
+        document.getElementById('threshVal').innerText = val + '%';
+    }
+
+    // --- AUDIO CPU HACK: KEEPS APP ALIVE IN BACKGROUND ---
+    function startSilentAudioHack() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        // Create an oscillator (generates sound)
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
         
-        // DOM Elements
-        const qsToggle = document.getElementById('qsToggle');
-        const lightLevelUi = document.getElementById('lightLevelUi');
-        const lightMeter = document.getElementById('lightMeter');
-        const torchStatusUi = document.getElementById('torchStatusUi');
-        const video = document.getElementById('videoElement');
-        const canvas = document.getElementById('canvasElement');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        gainNode.gain.value = 0; // 0 VOLUME = SILENT
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        
+        // This endless silent sound prevents WebViews from pausing JavaScript
+    }
 
-        // --- CORE SYSTEM TOGGLE (The Edge Icon) ---
-        async function toggleSystem() {
-            if (isActive) {
-                stopSystem();
-            } else {
-                await startSystem();
-            }
+    async function requestPermissions() {
+        try {
+            // Front Camera
+            frontStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            frontVideo.srcObject = frontStream;
+
+            // Back Camera
+            backStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            backVideo.srcObject = backStream;
+
+            document.getElementById('permBtn').style.display = 'none';
+            document.getElementById('controlCard').style.display = 'block';
+            
+            // Initialize Audio Hack on first user gesture
+            startSilentAudioHack();
+
+        } catch (err) {
+            alert("Camera Access Denied! Please allow camera permissions in App Settings.");
         }
+    }
 
-        async function startSystem() {
+    async function toggleService() {
+        isServiceActive = document.getElementById('serviceToggle').checked;
+
+        if (isServiceActive) {
+            document.getElementById('statusTitle').innerText = "Monitoring Light...";
+            
+            // Web Wake Lock (Keeps screen hardware alive if possible)
             try {
-                // Request back camera access
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: "environment", // Prioritize back camera for torch
-                        width: { ideal: 320 },     // Low res for fast processing
-                        height: { ideal: 240 }
-                    }
-                });
-
-                video.srcObject = videoStream;
-                videoTrack = videoStream.getVideoTracks()[0];
-
-                // Check if device actually has a torch
-                const capabilities = videoTrack.getCapabilities();
-                if (!capabilities.torch) {
-                    alert("Your device/browser does not support web-based flashlight control.");
-                    stopSystem();
-                    return;
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
                 }
+            } catch (err) {}
 
-                // Update UI
-                isActive = true;
-                qsToggle.classList.add('active');
-                
-                // Start sensing loop
-                startLightSensing();
+            processInterval = setInterval(checkDarkness, 300); // Check every 300ms
 
-            } catch (err) {
-                alert("Camera permission denied or camera not available.\nError: " + err.message);
-                stopSystem();
+        } else {
+            clearInterval(processInterval);
+            await setTorch(false);
+            
+            if (wakeLock) { wakeLock.release(); wakeLock = null; }
+            document.getElementById('statusTitle').innerText = "Service Inactive";
+            
+            document.getElementById('frontVal').innerText = "0%";
+            document.getElementById('backVal').innerText = "0%";
+        }
+    }
+
+    function calculateBrightness(video) {
+        if (!video.videoWidth) return 100;
+        
+        ctx.drawImage(video, 0, 0, 16, 16);
+        const data = ctx.getImageData(0, 0, 16, 16).data;
+        let lumaSum = 0;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            lumaSum += (0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]);
+        }
+        
+        let avgLuma = lumaSum / (data.length / 4);
+        return Math.round((avgLuma / 255) * 100);
+    }
+
+    async function checkDarkness() {
+        if (!isServiceActive) return;
+
+        let frontLight = calculateBrightness(frontVideo);
+        let backLight = calculateBrightness(backVideo);
+
+        document.getElementById('frontVal').innerText = frontLight + "%";
+        document.getElementById('backVal').innerText = backLight + "%";
+
+        // BOTH sensors must be dark (power cut condition)
+        if (frontLight <= darkThreshold && backLight <= darkThreshold) {
+            if (!isTorchOn) {
+                await setTorch(true);
+                document.getElementById('statusTitle').innerText = "⚡ Power Cut! Torch ON";
+            }
+        } else {
+            if (isTorchOn) {
+                await setTorch(false);
+                document.getElementById('statusTitle').innerText = "☀️ Light Detected";
             }
         }
+    }
 
-        function stopSystem() {
-            isActive = false;
-            qsToggle.classList.remove('active');
-            lightLevelUi.innerText = "-- %";
-            lightMeter.style.width = "0%";
+    async function setTorch(turnOn) {
+        if (!backStream) return;
+        const track = backStream.getVideoTracks()[0];
+        if (!track) return;
+
+        try {
+            await track.applyConstraints({ advanced: [{ torch: turnOn }] });
+            isTorchOn = turnOn;
             
-            if (detectionInterval) clearInterval(detectionInterval);
-            
-            turnTorch(false);
-
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-        }
-
-        // --- LIGHT SENSING & LOGIC ---
-        function startLightSensing() {
-            // Wait for video to be ready
-            video.onloadedmetadata = () => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                
-                // Main Loop: Runs every 1000ms
-                detectionInterval = setInterval(processLightFrame, 1000);
-            };
-        }
-
-        async function processLightFrame() {
-            if (!isActive) return;
-
-            // CRITICAL LOGIC: If torch is ON, the camera is blinded by its own light.
-            // We must briefly turn it OFF to check if the room power came back.
-            if (isTorchCurrentlyOn) {
-                await turnTorch(false);
-                // Wait 250ms for camera auto-exposure to adjust to the dark room
-                await new Promise(resolve => setTimeout(resolve, 250));
-            }
-
-            // 1. Capture Frame to Canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // 2. Calculate average brightness
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            let colorSum = 0;
-
-            // Loop through pixels (R, G, B, Alpha). Skip alpha.
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i+1];
-                const b = data[i+2];
-                // Simple perceived luminance formula
-                const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
-                colorSum += brightness;
-            }
-
-            // Calculate percentage (0 to 100)
-            const totalPixels = data.length / 4;
-            let avgBrightness = colorSum / totalPixels;
-            let brightnessPercentage = (avgBrightness / 255) * 100;
-            
-            // UI Update
-            lightLevelUi.innerText = brightnessPercentage.toFixed(1) + " %";
-            lightMeter.style.width = brightnessPercentage + "%";
-
-            // 3. Make Decision
-            if (brightnessPercentage < DARKNESS_THRESHOLD) {
-                // Room is dark (Power Cut) -> Turn Torch ON
-                await turnTorch(true);
+            const icon = document.getElementById('torchIcon');
+            if(turnOn) {
+                icon.classList.add('active');
+                icon.innerText = "🔦";
             } else {
-                // Room is bright (Power Restored) -> Keep Torch OFF
-                await turnTorch(false);
+                icon.classList.remove('active');
+                icon.innerText = "💡";
             }
+        } catch (err) {
+            console.log("Torch API not supported on this device via Web");
         }
+    }
 
-        // --- TORCH CONTROL ---
-        async function turnTorch(turnOn) {
-            if (!videoTrack) return;
-            try {
-                await videoTrack.applyConstraints({
-                    advanced: [{ torch: turnOn }]
-                });
-                isTorchCurrentlyOn = turnOn;
-                
-                // Update UI
-                torchStatusUi.innerText = turnOn ? "ON (Power Cut Detected)" : "OFF (Room is bright)";
-                torchStatusUi.style.color = turnOn ? "var(--active-color)" : "var(--text-muted)";
-                
-            } catch (err) {
-                console.error("Torch error:", err);
-            }
+    // --- FAKE SCREEN OFF LOGIC ---
+    function enableBlackout() {
+        if (!isServiceActive) {
+            alert("Please turn on the Auto-Torch service first!");
+            return;
         }
+        document.getElementById('blackoutScreen').style.display = 'flex';
+        // Request fullscreen to hide status bar in blackout mode
+        document.documentElement.requestFullscreen().catch(()=>{});
+    }
 
-        // Automatically pause system if user minimizes browser (since camera gets killed by OS anyway)
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden && isActive) {
-                alert("App minimized! The camera and auto-torch have been paused by your phone's security system. Keep the app open to continue monitoring.");
-                stopSystem();
-            }
-        });
+    function disableBlackout() {
+        document.getElementById('blackoutScreen').style.display = 'none';
+        if(document.fullscreenElement) {
+            document.exitFullscreen().catch(()=>{});
+        }
+    }
+</script>
 
-    </script>
-    
 </body>
 </html>
