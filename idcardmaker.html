@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enterprise ID Card Designer Workspace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --purple: #8b5cf6;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --bg-canvas: #e2e8f0;
+            --panel-border: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-canvas);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+
+        /* Control Center Toolbar */
+        .admin-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            max-width: 98%;
+            justify-content: center;
+            z-index: 100;
+            border: 1px solid var(--panel-border);
+        }
+
+        .tool-section {
+            border-right: 1px solid #e2e8f0;
+            padding: 0 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tool-section:last-child { border: none; }
+        .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        button {
+            padding: 8px 14px;
+            cursor: pointer;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        button:hover { opacity: 0.95; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        button.secondary { background: #64748b; }
+        button.success { background: var(--success); }
+        button.purple { background: var(--purple); }
+        button.danger { background: var(--danger); }
+        button.dark { background: var(--dark); }
+        button.icon-btn { padding: 6px 10px; font-weight: bold; font-size: 12px; }
+
+        input, select {
+            padding: 7px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f8fafc;
+            color: var(--dark);
+            font-size: 13px;
+        }
+        input:focus, select:focus { outline: 2px solid var(--primary); background: #ffffff; }
+        input[type="range"] { padding: 0; cursor: pointer; height: 6px; }
+
+        /* Toggle Switch Style */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: var(--success);
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Editing Suite Canvas Layout */
+        .canvas-area {
+            position: relative;
+            padding: 40px;
+            background: #94a3b8;
+            border-radius: 12px;
+            overflow: auto;
+            max-width: 95vw;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #id-card {
+            width: 450px;
+            height: 280px;
+            background-color: transparent;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #id-card-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            background-color: #ffffff;
+            background-size: cover;
+            background-position: center;
+            pointer-events: none;
+        }
+
+        /* Dynamic Canvas Elements Layout */
+        .element {
+            position: absolute;
+            min-width: 10px;
+            min-height: 10px;
+            cursor: move;
+            user-select: none;
+            border: 1px dashed transparent;
+            padding: 6px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            z-index: 5;
+        }
+
+        .element.image-element {
+            padding: 0 !important;
+        }
+
+        .element:hover { border-color: #2563eb; background: rgba(37, 99, 235, 0.03); }
+        .element.active { border: 2px solid var(--primary); background: transparent; }
+
+        .element img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: block;
+            object-fit: cover;
+        }
+
+        .text-content {
+            outline: none;
+            width: 100%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        /* Transforming Vector Framework Nodes */
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            right: -5px;
+            bottom: -5px;
+            cursor: nwse-resize;
+            display: none;
+            z-index: 10;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .element.active .resize-handle { display: block; }
+
+        /* Advanced Alignment Guides */
+        .alignment-guide {
+            position: absolute;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+        }
+        .alignment-guide.vertical {
+            width: 1px;
+            top: 0;
+            bottom: 0;
+            background: #ef4444;
+            box-shadow: 0 0 3px rgba(239, 68, 68, 0.5);
+        }
+        .alignment-guide.horizontal {
+            height: 1px;
+            left: 0;
+            right: 0;
+            background: #ef4444;
+            box-shadow: 0 0 3px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Component Layer Control Drawer System */
+        .drawer-panel {
+            position: fixed;
+            top: 0;
+            right: -340px;
+            width: 320px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--panel-border);
+        }
+        .drawer-panel.open { right: 0; }
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .drawer-header h3 { margin: 0; color: var(--dark); font-size: 15px; font-weight: 700; }
+        .close-btn { background: none; color: #64748b; font-size: 22px; padding: 0; border: none; cursor: pointer; }
+        
+        .layers-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .layer-item {
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .layer-item:hover { background: #f1f5f9; }
+        .layer-item.active-layer { background: #eff6ff; border-color: var(--primary); }
+        .layer-item-meta { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .layer-item-actions { display: flex; gap: 6px; justify-content: flex-end; width: 100%; }
+
+        /* Blueprint Storage Dashboard Layout */
+        .templates-section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 98%;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            box-sizing: border-box;
+            border: 1px solid var(--panel-border);
+        }
+
+        .templates-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .templates-section h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .backend-status-pill {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            color: #475569;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .backend-status-pill.online { background: #dcfce7; color: #15803d; }
+        .backend-status-pill.offline { background: #fef3c7; color: #b45309; }
+
+        .templates-grid { display: flex; flex-wrap: wrap; gap: 25px; justify-content: flex-start; }
+
+        .template-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .template-item:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+
+        .preview-container-box {
+            position: relative;
+            overflow: hidden;
+            background: #cbd5e1;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .pagination-container {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        /* Micro HTML Layout Reflection Engine System Styles */
+        .preview-scaled-mirror-root {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
+            pointer-events: none;
+            user-select: none;
+        }
+        .preview-scaled-mirror-root .element {
+            border: none !important;
+            background: transparent !important;
+        }
+        .preview-scaled-mirror-root .image-element {
+            padding: 0 !important;
+        }
+        .preview-scaled-mirror-root .resize-handle {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-panel">
+        <div class="tool-section">
+            <label>Workspace Save Management</label>
+            <div class="row">
+                <button class="success" onclick="saveActiveWorkspaceChanges()" style="font-weight: bold;" title="Update active template configuration changes directly (Ctrl + S)">💾 Save Changes</button>
+                <button class="purple" onclick="createNewTemplateBlueprint()" style="font-weight: bold;" title="Save current layout setup configurations as a completely fresh blueprint template profile block">📋 Save As Template</button>
+            </div>
+            <div class="row" style="margin-top: 2px;">
+                <button class="secondary icon-btn" onclick="undoWorkspaceAction()" title="Undo action layer mapping modification step">⟲ Undo</button>
+                <button class="secondary icon-btn" onclick="redoWorkspaceAction()" title="Redo structural rendering pipeline step">⟳ Redo</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>Card Formats Matrix</label>
+            <div class="row">
+                <button class="secondary" onclick="setOrientation('landscape')">Landscape</button>
+                <button class="secondary" onclick="setOrientation('portrait')">Vertical</button>
+            </div>
+            <div class="row">
+                W: <input type="number" id="cardW" value="450" style="width:52px" onchange="updateCardSize(); saveHistoryState(); pushRealTimePreviewSync();">
+                H: <input type="number" id="cardH" value="280" style="width:52px" onchange="updateCardSize(); saveHistoryState(); pushRealTimePreviewSync();">
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>Background Space</label>
+            <div class="row">
+                <button onclick="document.getElementById('bgInput').click()">Set Image</button>
+                <button class="danger" onclick="removeBackground()">Clear</button>
+                <input type="color" id="bgColor" value="#ffffff" onchange="updateBgColor(this.value)">
+            </div>
+            <div class="row">
+                <label style="font-weight:normal; text-transform:none;">Bg Opacity:</label>
+                <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="1" style="width:65px" oninput="updateBgOpacity(this.value); pushRealTimePreviewSync();" onchange="saveHistoryState()">
+            </div>
+            <input type="file" id="bgInput" hidden accept="image/*" onchange="handleBgUpload(event)">
+        </div>
+
+        <div class="tool-section">
+            <label>Add Dynamic Elements</label>
+            <div class="row">
+                <button onclick="addText()">+ Add Text Block</button>
+                <button onclick="document.getElementById('imgInput').click()">+ Add Image Element</button>
+            </div>
+            <input type="file" id="imgInput" hidden accept="image/*" onchange="handleImageUpload(event)">
+        </div>
+
+        <div class="tool-section">
+            <label>Text Customization Parameters</label>
+            <div class="row">
+                <select id="fontFamily" onchange="applySpanStyle('fontFamily', this.value)" style="width:115px;">
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Open Sans">Open Sans</option>
+                    <option value="Lato">Lato</option>
+                    <option value="Montserrat">Montserrat</option>
+                    <option value="Oswald">Oswald</option>
+                    <option value="Bebas Neue">Bebas Neue</option>
+                    <option value="Playfair Display">Playfair Display</option>
+                    <option value="Quicksand">Quicksand</option>
+                    <option value="Ubuntu">Ubuntu</option>
+                </select>
+                <input type="number" id="fontSize" value="18" style="width:45px" onchange="applySpanStyle('fontSize', this.value + 'px')">
+                <input type="color" id="fontColor" value="#000000" onchange="applySpanStyle('color', this.value)">
+            </div>
+            <div class="row">
+                <button class="secondary icon-btn" onclick="updateTextAlignment('left')" title="Align Left">←</button>
+                <button class="secondary icon-btn" onclick="updateTextAlignment('center')" title="Align Center">↔</button>
+                <button class="secondary icon-btn" onclick="updateTextAlignment('right')" title="Align Right">→</button>
+                <button class="secondary icon-btn" onclick="execTextCmd('bold')" title="Bold Style">B</button>
+                <button class="secondary icon-btn" style="font-style:italic;" onclick="execTextCmd('italic')" title="Italic Style">I</button>
+                <button class="secondary icon-btn" style="text-decoration:underline;" onclick="execTextCmd('underline')" title="Underline Text Profile">U</button>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>Image Mask Frames & Panning Toggle Suite</label>
+            <div class="row">
+                <button class="secondary" onclick="applyImageFrameShape('square')">Square</button>
+                <button class="secondary" onclick="applyImageFrameShape('rounded')">Rounded</button>
+                <button class="secondary" onclick="applyImageFrameShape('circle')">Circle</button>
+            </div>
+            <div class="row" style="margin-top: 2px; gap: 4px;">
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-size:9px; font-weight:bold; color:#64748b;">PAN X:</span>
+                    <input type="range" id="imgPanX" min="0" max="100" value="50" style="width:55px;" oninput="updateImagePanningCoords(); pushRealTimePreviewSync();" onchange="saveHistoryState()">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-size:9px; font-weight:bold; color:#64748b;">PAN Y:</span>
+                    <input type="range" id="imgPanY" min="0" max="100" value="50" style="width:55px;" oninput="updateImagePanningCoords(); pushRealTimePreviewSync();" onchange="saveHistoryState()">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-size:9px; font-weight:bold; color:#64748b;">OPACITY:</span>
+                    <input type="range" id="elOpacity" min="0" max="1" step="0.05" value="1" style="width:55px;" oninput="updateElementOpacity(this.value); pushRealTimePreviewSync();" onchange="saveHistoryState()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Alignment Toggle & Copy/Paste/Delete Section -->
+        <div class="tool-section">
+            <label>Element Controls</label>
+            <div class="row">
+                <button class="success" onclick="copyElement()" title="Copy selected element (Ctrl+C)">📄 Copy</button>
+                <button class="purple" onclick="pasteElement()" title="Paste copied element (Ctrl+V)">📋 Paste</button>
+                <button class="danger" onclick="deleteElement()" title="Delete selected element (Del)">🗑️ Delete</button>
+            </div>
+            <div class="row" style="margin-top: 4px; align-items: center;">
+                <label style="font-weight:normal; text-transform:none; margin: 0;">Smart Guides:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="alignmentToggle" checked onchange="toggleAlignmentGuides()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="tool-section">
+            <label>Production Output Channels</label>
+            <div class="row">
+                <button class="success" onclick="downloadHDCard()">Download HD PNG</button>
+                <button class="purple" onclick="printCard()">Print Workspace Layout</button>
+            </div>
+            <div class="row">
+                <button class="dark" onclick="toggleLayersDrawer()">Elements Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-area">
+        <div id="id-card">
+            <div id="id-card-bg"></div>
+            <!-- Alignment guides -->
+            <div id="align-guide-v-center" class="alignment-guide vertical"></div>
+            <div id="align-guide-h-center" class="alignment-guide horizontal"></div>
+            <div id="align-guide-v-left" class="alignment-guide vertical"></div>
+            <div id="align-guide-v-right" class="alignment-guide vertical"></div>
+            <div id="align-guide-h-top" class="alignment-guide horizontal"></div>
+            <div id="align-guide-h-bottom" class="alignment-guide horizontal"></div>
+        </div>
+    </div>
+
+    <div id="layers-drawer" class="drawer-panel">
+        <div class="drawer-header">
+            <h3>Canvas Elements Layer Monitor</h3>
+            <button class="close-btn" onclick="toggleLayersDrawer()">×</button>
+        </div>
+        <div id="layers-list-items" class="layers-list"></div>
+    </div>
+
+    <div class="templates-section">
+        <div class="templates-header-row">
+            <h2>Saved System Blueprints Dashboard Workspace</h2>
+            <div id="backend-status" class="backend-status-pill offline">
+                <span id="backend-status-dot">●</span> <span id="backend-status-text">Local Storage Mode</span>
+            </div>
+        </div>
+        <div id="templates-list" class="templates-grid"></div>
+        <div id="pagination-controls" class="pagination-container" style="display: none;">
+            <button id="btn-load-more" class="purple" onclick="loadMoreBackendTemplates()" style="padding: 10px 22px; font-weight: bold;">
+                🔄 Show More Blueprints
+            </button>
+        </div>
+    </div>
+
+    <input type="file" id="replaceLayerImgInput" hidden accept="image/*" onchange="handleLayerImageReplacement(event)">
+
+    <script>
+        // =========================================================================
+        // GOOGLE APPS SCRIPT BACKEND API CONFIGURATION
+        // Replace the URL string below with your published Apps Script Web App URL
+        // =========================================================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgMwi4Hx5nZ31gmw0yOmn5cPWpBoCJPkaPT-huEzIrTr2TilblI8ClwiRX2QiUlqFxIw/exec";
+
+        const card = document.getElementById('id-card');
+        const cardBg = document.getElementById('id-card-bg');
+        let selectedElement = null;
+        let imageReplacementIndexTarget = null;
+        
+        // Data Sync Tracking Matrices
+        let cardBgImageData = null;
+        let currentActiveTemplateUid = null;
+
+        // Undo Redo Data Layers Track Storage Pools
+        let undoStack = [];
+        let redoStack = [];
+
+        // Copy/Paste & Alignment System Variables
+        let copiedElementData = null;
+        let alignmentGuidesEnabled = true;
+
+        // Backend Sync & Pagination Tracking
+        let isBackendConnected = false;
+        let loadedBlueprintsStore = [];
+        let currentBackendOffset = 0;
+        const BACKEND_PAGE_LIMIT = 6;
+        let hasMoreBackendData = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            saveHistoryState(true);
+            initializeStorageBackend();
+            
+            // Native Hotkey Integration System Hook
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    saveActiveWorkspaceChanges();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+                    if (selectedElement && !isEditingText()) {
+                        e.preventDefault();
+                        copyElement();
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+                    if (!isEditingText()) {
+                        e.preventDefault();
+                        pasteElement();
+                    }
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (selectedElement && !isEditingText()) {
+                        e.preventDefault();
+                        deleteElement();
+                    }
+                }
+            });
+        });
+
+        // --- BACKEND API COMMUNICATION LAYER ---
+        async function callBackendApi(payload) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.trim() === "" || APPS_SCRIPT_URL.includes("YOUR_APPS_SCRIPT_WEB_APP_URL_HERE")) {
+                return null; // Fallback to LocalStorage
+            }
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Avoid CORS preflight on Google Apps Script
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) throw new Error("HTTP error " + response.status);
+                const json = await response.json();
+                return json;
+            } catch (err) {
+                console.warn("Backend API sync fallback to local storage:", err);
+                return null;
+            }
+        }
+
+        async function initializeStorageBackend() {
+            updateBackendStatusPill("Connecting to Backend...", false);
+            
+            const initRes = await callBackendApi({ action: 'init' });
+            if (initRes && initRes.success) {
+                isBackendConnected = true;
+                updateBackendStatusPill("Google Sheets Connected", true);
+                fetchTemplatesFromBackend(0, true);
+            } else {
+                isBackendConnected = false;
+                updateBackendStatusPill("Local Storage Mode", false);
+                renderTemplatesList();
+            }
+        }
+
+        function updateBackendStatusPill(label, isOnline) {
+            const statusBox = document.getElementById('backend-status');
+            const statusText = document.getElementById('backend-status-text');
+            statusText.innerText = label;
+            
+            if (isOnline) {
+                statusBox.className = "backend-status-pill online";
+            } else {
+                statusBox.className = "backend-status-pill offline";
+            }
+        }
+
+        async function fetchTemplatesFromBackend(offset = 0, resetList = false) {
+            showFeedbackNotice("Loading blueprints from backend...");
+            const res = await callBackendApi({
+                action: 'load',
+                offset: offset,
+                limit: BACKEND_PAGE_LIMIT
+            });
+
+            if (res && res.success) {
+                if (resetList) {
+                    loadedBlueprintsStore = res.templates;
+                } else {
+                    loadedBlueprintsStore = loadedBlueprintsStore.concat(res.templates);
+                }
+
+                currentBackendOffset = offset + res.templates.length;
+                hasMoreBackendData = res.hasMore;
+
+                renderTemplatesList();
+                showFeedbackNotice(`Loaded ${loadedBlueprintsStore.length} of ${res.total} templates`);
+            } else {
+                renderTemplatesList();
+            }
+        }
+
+        async function loadMoreBackendTemplates() {
+            if (!isBackendConnected || !hasMoreBackendData) return;
+            const btn = document.getElementById('btn-load-more');
+            btn.innerText = "⏳ Loading...";
+            btn.disabled = true;
+
+            await fetchTemplatesFromBackend(currentBackendOffset, false);
+
+            btn.innerText = "🔄 Show More Blueprints";
+            btn.disabled = false;
+        }
+
+        function isEditingText() {
+            const activeEl = document.activeElement;
+            return activeEl && (activeEl.getAttribute('contenteditable') === 'true' || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+        }
+
+        // --- Copy/Paste/Delete Functions ---
+        function copyElement() {
+            if (!selectedElement) {
+                showFeedbackNotice("No element selected to copy.");
+                return;
+            }
+
+            const imgNode = selectedElement.querySelector('img');
+            const isImgType = !!imgNode;
+            const style = window.getComputedStyle(selectedElement);
+
+            copiedElementData = {
+                type: isImgType ? 'image' : 'text',
+                innerPayload: isImgType ? imgNode.src : selectedElement.querySelector('.text-content').innerHTML,
+                left: selectedElement.style.left,
+                top: selectedElement.style.top,
+                width: selectedElement.style.width,
+                height: selectedElement.style.height,
+                baseFontFamily: style.fontFamily,
+                baseFontSize: style.fontSize,
+                baseColor: style.color,
+                opacity: selectedElement.style.opacity || '1',
+                borderRadius: selectedElement.style.borderRadius || '0px',
+                textAlign: selectedElement.style.textAlign || 'center',
+                shape: selectedElement.getAttribute('data-shape') || 'square',
+                panX: selectedElement.getAttribute('data-pan-x') || '50',
+                panY: selectedElement.getAttribute('data-pan-y') || '50'
+            };
+
+            showFeedbackNotice("Element copied to clipboard!");
+        }
+
+        function pasteElement() {
+            if (!copiedElementData) {
+                showFeedbackNotice("No element to paste. Copy an element first.");
+                return;
+            }
+
+            const el = document.createElement('div');
+            el.className = 'element';
+            el.style.left = copiedElementData.left;
+            el.style.top = copiedElementData.top;
+            if (copiedElementData.width) el.style.width = copiedElementData.width;
+            if (copiedElementData.height) el.style.height = copiedElementData.height;
+            el.style.opacity = copiedElementData.opacity;
+            el.style.borderRadius = copiedElementData.borderRadius;
+            el.style.textAlign = copiedElementData.textAlign;
+            el.setAttribute('data-shape', copiedElementData.shape);
+            el.setAttribute('data-pan-x', copiedElementData.panX);
+            el.setAttribute('data-pan-y', copiedElementData.panY);
+
+            if (copiedElementData.type === 'text') {
+                el.style.fontFamily = copiedElementData.baseFontFamily;
+                el.style.fontSize = copiedElementData.baseFontSize;
+                el.style.color = copiedElementData.baseColor;
+                el.innerHTML = `
+                    <div class="text-content" contenteditable="true" style="text-align: ${copiedElementData.textAlign};">${copiedElementData.innerPayload}</div>
+                    <div class="resize-handle"></div>
+                `;
+            } else {
+                el.classList.add('image-element');
+                el.innerHTML = `
+                    <img src="${copiedElementData.innerPayload}" style="border-radius:inherit; object-position: ${copiedElementData.panX}% ${copiedElementData.panY}%;" />
+                    <div class="resize-handle"></div>
+                `;
+            }
+
+            initElement(el);
+            card.appendChild(el);
+            selectElement(el);
+            refreshLayersListPanel();
+            saveHistoryState();
+            pushRealTimePreviewSync();
+            showFeedbackNotice("Element pasted successfully!");
+        }
+
+        // --- Alignment Guide Toggle ---
+        function toggleAlignmentGuides() {
+            alignmentGuidesEnabled = document.getElementById('alignmentToggle').checked;
+            if (!alignmentGuidesEnabled) {
+                hideAllAlignmentGuides();
+            }
+        }
+
+        function hideAllAlignmentGuides() {
+            document.getElementById('align-guide-v-center').style.display = 'none';
+            document.getElementById('align-guide-h-center').style.display = 'none';
+            document.getElementById('align-guide-v-left').style.display = 'none';
+            document.getElementById('align-guide-v-right').style.display = 'none';
+            document.getElementById('align-guide-h-top').style.display = 'none';
+            document.getElementById('align-guide-h-bottom').style.display = 'none';
+        }
+
+        // --- Advanced Alignment Detection System ---
+        function checkAlignmentGuides(draggedElement) {
+            if (!alignmentGuidesEnabled) {
+                hideAllAlignmentGuides();
+                return;
+            }
+
+            const snapThreshold = 6;
+            const cardWidth = card.offsetWidth;
+            const cardHeight = card.offsetHeight;
+
+            const draggedRect = {
+                left: draggedElement.offsetLeft,
+                top: draggedElement.offsetTop,
+                right: draggedElement.offsetLeft + draggedElement.offsetWidth,
+                bottom: draggedElement.offsetTop + draggedElement.offsetHeight,
+                centerX: draggedElement.offsetLeft + draggedElement.offsetWidth / 2,
+                centerY: draggedElement.offsetTop + draggedElement.offsetHeight / 2,
+                width: draggedElement.offsetWidth,
+                height: draggedElement.offsetHeight
+            };
+
+            const cardCenterX = cardWidth / 2;
+            const cardCenterY = cardHeight / 2;
+
+            let snappedX = null;
+            let snappedY = null;
+            let showVCenter = false, showHCenter = false;
+            let showVLeft = false, showVRight = false, showHTop = false, showHBottom = false;
+
+            if (Math.abs(draggedRect.centerX - cardCenterX) < snapThreshold) {
+                snappedX = cardCenterX - draggedElement.offsetWidth / 2;
+                showVCenter = true;
+            }
+            if (Math.abs(draggedRect.centerY - cardCenterY) < snapThreshold) {
+                snappedY = cardCenterY - draggedElement.offsetHeight / 2;
+                showHCenter = true;
+            }
+
+            const otherElements = Array.from(card.querySelectorAll('.element')).filter(el => el !== draggedElement);
+
+            otherElements.forEach(otherEl => {
+                const otherRect = {
+                    left: otherEl.offsetLeft,
+                    top: otherEl.offsetTop,
+                    right: otherEl.offsetLeft + otherEl.offsetWidth,
+                    bottom: otherEl.offsetTop + otherEl.offsetHeight,
+                    centerX: otherEl.offsetLeft + otherEl.offsetWidth / 2,
+                    centerY: otherEl.offsetTop + otherEl.offsetHeight / 2
+                };
+
+                if (Math.abs(draggedRect.left - otherRect.left) < snapThreshold) {
+                    snappedX = otherRect.left;
+                    showVLeft = true;
+                    document.getElementById('align-guide-v-left').style.left = otherRect.left + 'px';
+                }
+                if (Math.abs(draggedRect.right - otherRect.right) < snapThreshold) {
+                    snappedX = otherRect.right - draggedElement.offsetWidth;
+                    showVRight = true;
+                    document.getElementById('align-guide-v-right').style.left = otherRect.right + 'px';
+                }
+                if (Math.abs(draggedRect.centerX - otherRect.centerX) < snapThreshold) {
+                    snappedX = otherRect.centerX - draggedElement.offsetWidth / 2;
+                    showVCenter = true;
+                    document.getElementById('align-guide-v-center').style.left = otherRect.centerX + 'px';
+                }
+
+                if (Math.abs(draggedRect.top - otherRect.top) < snapThreshold) {
+                    snappedY = otherRect.top;
+                    showHTop = true;
+                    document.getElementById('align-guide-h-top').style.top = otherRect.top + 'px';
+                }
+                if (Math.abs(draggedRect.bottom - otherRect.bottom) < snapThreshold) {
+                    snappedY = otherRect.bottom - draggedElement.offsetHeight;
+                    showHBottom = true;
+                    document.getElementById('align-guide-h-bottom').style.top = otherRect.bottom + 'px';
+                }
+                if (Math.abs(draggedRect.centerY - otherRect.centerY) < snapThreshold) {
+                    snappedY = otherRect.centerY - draggedElement.offsetHeight / 2;
+                    showHCenter = true;
+                    document.getElementById('align-guide-h-center').style.top = otherRect.centerY + 'px';
+                }
+            });
+
+            if (snappedX !== null) draggedElement.style.left = snappedX + 'px';
+            if (snappedY !== null) draggedElement.style.top = snappedY + 'px';
+
+            document.getElementById('align-guide-v-center').style.display = showVCenter ? 'block' : 'none';
+            if (showVCenter && snappedX === null) document.getElementById('align-guide-v-center').style.left = cardCenterX + 'px';
+            
+            document.getElementById('align-guide-h-center').style.display = showHCenter ? 'block' : 'none';
+            if (showHCenter && snappedY === null) document.getElementById('align-guide-h-center').style.top = cardCenterY + 'px';
+            
+            document.getElementById('align-guide-v-left').style.display = showVLeft ? 'block' : 'none';
+            document.getElementById('align-guide-v-right').style.display = showVRight ? 'block' : 'none';
+            document.getElementById('align-guide-h-top').style.display = showHTop ? 'block' : 'none';
+            document.getElementById('align-guide-h-bottom').style.display = showHBottom ? 'block' : 'none';
+        }
+
+        // --- HTML to Formatted Text Segments Parser ---
+        function parseHTMLToSegments(htmlContent) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            
+            const segments = [];
+            
+            function traverse(node, inheritedStyles = {}) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    if (text) {
+                        segments.push({
+                            text: text,
+                            ...inheritedStyles
+                        });
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = node.tagName.toLowerCase();
+                    const newStyles = {...inheritedStyles};
+                    
+                    if (tagName === 'b' || tagName === 'strong') newStyles.bold = true;
+                    if (tagName === 'i' || tagName === 'em') newStyles.italic = true;
+                    if (tagName === 'u') newStyles.underline = true;
+                    
+                    const style = node.style;
+                    if (style) {
+                        if (style.fontWeight === 'bold') newStyles.bold = true;
+                        if (style.fontWeight === 'normal') newStyles.bold = false;
+                        if (style.fontStyle === 'italic') newStyles.italic = true;
+                        if (style.fontStyle === 'normal') newStyles.italic = false;
+                        if (style.textDecoration === 'underline') newStyles.underline = true;
+                        
+                        if (style.fontFamily) newStyles.fontFamily = style.fontFamily;
+                        if (style.fontSize) newStyles.fontSize = style.fontSize;
+                        if (style.color) newStyles.color = style.color;
+                    }
+                    
+                    if (tagName === 'br') {
+                        segments.push({ text: '\n' });
+                    } else {
+                        for (let child of node.childNodes) {
+                            traverse(child, newStyles);
+                        }
+                    }
+                }
+            }
+            
+            traverse(tempDiv);
+            return segments;
+        }
+
+        // --- Core Real-Time Preview Synchronization ---
+        function pushRealTimePreviewSync() {
+            if (currentActiveTemplateUid === null) return;
+            
+            let currentList = isBackendConnected ? loadedBlueprintsStore : JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+            const idx = currentList.findIndex(b => String(b.uid) === String(currentActiveTemplateUid));
+            
+            if (idx !== -1) {
+                currentList[idx].dimensions = {
+                    w: document.getElementById('cardW').value,
+                    h: document.getElementById('cardH').value
+                };
+                currentList[idx].backgroundStyles = {
+                    color: cardBg.style.backgroundColor || 'white',
+                    imageSource: cardBgImageData || 'none',
+                    opacity: cardBg.style.opacity || '1'
+                };
+                currentList[idx].elementsDataset = parseCanvasElementsToArray();
+                
+                if (!isBackendConnected) {
+                    localStorage.setItem('app_id_card_blueprints_v2', JSON.stringify(currentList));
+                }
+                
+                const targetPreviewBox = document.getElementById(`preview-box-container-${currentActiveTemplateUid}`);
+                if (targetPreviewBox) {
+                    injectLiveMirrorCloneToBox(targetPreviewBox, currentList[idx]);
+                }
+            }
+        }
+
+        function injectLiveMirrorCloneToBox(boxContainerNode, blueprintData) {
+            boxContainerNode.innerHTML = '';
+            
+            const fixedBoundWidth = 180;
+            const scaleDownRatio = fixedBoundWidth / parseFloat(blueprintData.dimensions.w);
+            const calculatedFrameHeight = parseFloat(blueprintData.dimensions.h) * scaleDownRatio;
+            
+            boxContainerNode.style.width = fixedBoundWidth + 'px';
+            boxContainerNode.style.height = calculatedFrameHeight + 'px';
+
+            const mirrorShell = document.createElement('div');
+            mirrorShell.className = 'preview-scaled-mirror-root';
+            mirrorShell.style.width = blueprintData.dimensions.w + 'px';
+            mirrorShell.style.height = blueprintData.dimensions.h + 'px';
+            mirrorShell.style.transform = `scale(${scaleDownRatio})`;
+            
+            const mirrorBg = document.createElement('div');
+            mirrorBg.style.position = 'absolute';
+            mirrorBg.style.top = '0';
+            mirrorBg.style.left = '0';
+            mirrorBg.style.right = '0';
+            mirrorBg.style.bottom = '0';
+            mirrorBg.style.backgroundColor = blueprintData.backgroundStyles.color;
+            if (blueprintData.backgroundStyles.imageSource !== 'none') {
+                mirrorBg.style.backgroundImage = `url('${blueprintData.backgroundStyles.imageSource}')`;
+                mirrorBg.style.backgroundSize = 'cover';
+                mirrorBg.style.backgroundPosition = 'center';
+            }
+            mirrorBg.style.opacity = blueprintData.backgroundStyles.opacity;
+            mirrorShell.appendChild(mirrorBg);
+
+            (blueprintData.elementsDataset || []).forEach(compData => {
+                const node = document.createElement('div');
+                node.className = 'element';
+                if (compData.type === 'image') {
+                    node.classList.add('image-element');
+                }
+                node.style.position = 'absolute';
+                node.style.left = compData.left;
+                node.style.top = compData.top;
+                if(compData.width) node.style.width = compData.width;
+                if(compData.height) node.style.height = compData.height;
+                node.style.opacity = compData.opacity;
+                node.style.borderRadius = compData.borderRadius || '0px';
+                node.style.textAlign = compData.textAlign || 'center';
+
+                if (compData.type === 'text') {
+                    node.style.fontSize = compData.baseFontSize || compData.fontSize;
+                    node.style.fontFamily = compData.baseFontFamily || compData.fontFamily;
+                    node.style.color = compData.baseColor || compData.color;
+                    node.innerHTML = `<div class="text-content" style="text-align: ${compData.textAlign || 'center'};">${compData.innerPayload}</div>`;
+                } else {
+                    node.innerHTML = `<img src="${compData.innerPayload}" style="width:100%; height:100%; border-radius:inherit; object-fit:cover; object-position: ${compData.panX || 50}% ${compData.panY || 50}%;" />`;
+                }
+                mirrorShell.appendChild(node);
+            });
+
+            boxContainerNode.appendChild(mirrorShell);
+        }
+
+        // --- High Definition Rendering System Engine ---
+        function generateHDCanvas(scaleFactor, callback) {
+            const priorSelectedElement = selectedElement;
+            if (selectedElement) selectedElement.classList.remove('active');
+
+            const origWidth = card.offsetWidth;
+            const origHeight = card.offsetHeight;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = origWidth * scaleFactor;
+            canvas.height = origHeight * scaleFactor;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scaleFactor, scaleFactor);
+
+            ctx.fillStyle = window.getComputedStyle(cardBg).backgroundColor || "#ffffff";
+            ctx.fillRect(0, 0, origWidth, origHeight);
+
+            const drawCardElements = () => {
+                const elements = card.querySelectorAll('.element');
+                let elementsToProcess = elements.length;
+
+                if (elementsToProcess === 0) {
+                    if (priorSelectedElement) priorSelectedElement.classList.add('active');
+                    callback(canvas);
+                    return;
+                }
+                
+                const onElementDrawn = () => {
+                    elementsToProcess--;
+                    if (elementsToProcess === 0) {
+                        if (priorSelectedElement) priorSelectedElement.classList.add('active');
+                        callback(canvas);
+                    }
+                }
+
+                elements.forEach(el => {
+                    ctx.save();
+                    ctx.globalAlpha = parseFloat(window.getComputedStyle(el).opacity || 1);
+
+                    const x = el.offsetLeft;
+                    const y = el.offsetTop;
+                    const w = el.offsetWidth;
+                    const h = el.offsetHeight;
+
+                    const imgNode = el.querySelector('img');
+                    if (imgNode) {
+                        const shape = el.getAttribute('data-shape') || 'square';
+                        const panX = parseFloat(el.getAttribute('data-pan-x') || 50);
+                        const panY = parseFloat(el.getAttribute('data-pan-y') || 50);
+                        
+                        const tempImg = new Image();
+                        tempImg.crossOrigin = "Anonymous";
+                        tempImg.onload = () => {
+                            ctx.save();
+                            ctx.beginPath();
+                            if (shape === 'circle') {
+                                ctx.arc(x + w/2, y + h/2, Math.min(w,h)/2, 0, Math.PI*2);
+                            } else if (shape === 'rounded') {
+                                const radius = parseFloat(window.getComputedStyle(el).borderRadius);
+                                ctx.moveTo(x + radius, y);
+                                ctx.lineTo(x + w - radius, y); ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+                                ctx.lineTo(x + w, y + h - radius); ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+                                ctx.lineTo(x + radius, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+                                ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y);
+                            } else {
+                                ctx.rect(x, y, w, h);
+                            }
+                            ctx.closePath();
+                            ctx.clip();
+
+                            const imgRatio = tempImg.width / tempImg.height;
+                            const elementRatio = w / h;
+                            let sX = 0, sY = 0, sW = tempImg.width, sH = tempImg.height;
+
+                            if (imgRatio > elementRatio) {
+                                sW = tempImg.height * elementRatio;
+                                sX = (tempImg.width - sW) * (panX / 100);
+                            } else {
+                                sH = tempImg.width / elementRatio;
+                                sY = (tempImg.height - sH) * (panY / 100);
+                            }
+
+                            ctx.drawImage(tempImg, sX, sY, sW, sH, x, y, w, h);
+                            ctx.restore();
+                            ctx.restore();
+                            onElementDrawn();
+                        };
+                        tempImg.onerror = () => {
+                           console.error("Could not load image for rendering:", imgNode.src);
+                           onElementDrawn();
+                        }
+                        tempImg.src = imgNode.src;
+                    } else {
+                        const textContentNode = el.querySelector('.text-content');
+                        const style = window.getComputedStyle(el);
+
+                        const baseFontFamily = style.fontFamily;
+                        const baseFontSize = parseInt(style.fontSize);
+                        const baseColor = style.color;
+                        
+                        const alignment = style.textAlign || "center";
+                        const paddingLeft = 6;
+                        const paddingRight = 6;
+                        const paddingTop = 6;
+                        
+                        const htmlContent = textContentNode.innerHTML;
+                        const sanitizedHtml = htmlContent.replace(/<div>/g, '<br>').replace(/<\/div>/g, '').replace(/<p>/g, '<br>').replace(/<\/p>/g, '');
+                        const lines = sanitizedHtml.split(/<br\s*\/?>/i);
+                        
+                        const computedLineHeightOffset = baseFontSize * 1.2;
+                        let ongoingYOffset = y + paddingTop;
+
+                        lines.forEach(lineHTML => {
+                            const segments = parseHTMLToSegments(lineHTML);
+                            if (segments.length === 0 && lineHTML === '') {
+                                ongoingYOffset += computedLineHeightOffset;
+                                return;
+                            }
+                            
+                            let totalLineWidth = 0;
+                            segments.forEach(seg => {
+                                ctx.save();
+                                const segFontSize = seg.fontSize ? parseInt(seg.fontSize) : baseFontSize;
+                                const segFontFamily = seg.fontFamily || baseFontFamily;
+                                const fontWeight = seg.bold ? 'bold' : 'normal';
+                                const fontStyle = seg.italic ? 'italic' : 'normal';
+                                ctx.font = `${fontStyle} ${fontWeight} ${segFontSize}px ${segFontFamily}`;
+                                totalLineWidth += ctx.measureText(seg.text).width;
+                                ctx.restore();
+                            });
+
+                            let currentX = x + paddingLeft;
+                            if (alignment === "center") {
+                                currentX = x + (w / 2) - (totalLineWidth / 2);
+                            } else if (alignment === "right") {
+                                currentX = x + w - paddingRight - totalLineWidth;
+                            }
+
+                            segments.forEach(seg => {
+                                ctx.save();
+                                
+                                const segFontSize = seg.fontSize ? parseInt(seg.fontSize) : baseFontSize;
+                                const segFontFamily = seg.fontFamily || baseFontFamily;
+                                const segColor = seg.color || baseColor;
+                                const fontWeight = seg.bold ? 'bold' : 'normal';
+                                const fontStyle = seg.italic ? 'italic' : 'normal';
+                                
+                                ctx.fillStyle = segColor;
+                                ctx.font = `${fontStyle} ${fontWeight} ${segFontSize}px ${segFontFamily}`;
+                                ctx.textBaseline = "top";
+                                ctx.textAlign = "left";
+                                
+                                ctx.fillText(seg.text, currentX, ongoingYOffset);
+                                
+                                if (seg.underline) {
+                                    const textMetrics = ctx.measureText(seg.text);
+                                    ctx.strokeStyle = segColor;
+                                    ctx.lineWidth = Math.max(1, segFontSize / 14);
+                                    ctx.beginPath();
+                                    const underlineY = ongoingYOffset + segFontSize;
+                                    ctx.moveTo(currentX, underlineY);
+                                    ctx.lineTo(currentX + textMetrics.width, underlineY);
+                                    ctx.stroke();
+                                }
+                                
+                                currentX += ctx.measureText(seg.text).width;
+                                ctx.restore();
+                            });
+
+                            ongoingYOffset += computedLineHeightOffset;
+                        });
+
+                        ctx.restore();
+                        onElementDrawn();
+                    }
+                });
+            };
+
+            if (cardBgImageData) {
+                const bgImg = new Image();
+                bgImg.crossOrigin = "Anonymous";
+                bgImg.onload = () => {
+                    ctx.save();
+                    ctx.globalAlpha = parseFloat(window.getComputedStyle(cardBg).opacity || 1);
+                    ctx.drawImage(bgImg, 0, 0, origWidth, origHeight);
+                    ctx.restore();
+                    drawCardElements();
+                };
+                bgImg.onerror = () => {
+                    console.error("Could not load background image for rendering:", cardBgImageData);
+                    drawCardElements();
+                };
+                bgImg.src = cardBgImageData;
+            } else {
+                drawCardElements();
+            }
+        }
+
+        function downloadHDCard() {
+            generateHDCanvas(4, (hdCanvas) => {
+                const link = document.createElement('a');
+                link.download = 'high-definition-identity-card.png';
+                link.href = hdCanvas.toDataURL('image/png', 1.0);
+                link.click();
+            });
+        }
+
+        // --- Save Operations Control Management Module ---
+        async function saveActiveWorkspaceChanges() {
+            if (currentActiveTemplateUid !== null) {
+                const activeLabel = getActiveTemplateLabel() || ("Template #" + currentActiveTemplateUid);
+                const templateObjectPayload = constructTemplateObject(currentActiveTemplateUid, activeLabel);
+
+                if (isBackendConnected) {
+                    showFeedbackNotice("Saving blueprint to backend...");
+                    const res = await callBackendApi({
+                        action: 'save',
+                        template: templateObjectPayload
+                    });
+
+                    if (res && res.success) {
+                        fetchTemplatesFromBackend(0, true);
+                        showFeedbackNotice("Blueprint updated in Apps Script backend!");
+                    } else {
+                        showFeedbackNotice("Failed to update backend. Saved locally.");
+                        saveToLocalStorage(templateObjectPayload);
+                    }
+                } else {
+                    saveToLocalStorage(templateObjectPayload);
+                    renderTemplatesList();
+                    showFeedbackNotice("Active workspace template saved locally.");
+                }
+            } else {
+                createNewTemplateBlueprint();
+            }
+        }
+
+        async function createNewTemplateBlueprint() {
+            const blueprintLabelInput = prompt("Enter a unique name designation for this new template blueprint:", "Custom Blueprint #" + Math.floor(100 + Math.random() * 900));
+            if (!blueprintLabelInput) return;
+
+            const freshlyGeneratedUid = Date.now();
+            const templateObjectPayload = constructTemplateObject(freshlyGeneratedUid, blueprintLabelInput);
+
+            currentActiveTemplateUid = freshlyGeneratedUid;
+
+            if (isBackendConnected) {
+                showFeedbackNotice("Saving new blueprint to Google Sheets...");
+                const res = await callBackendApi({
+                    action: 'save',
+                    template: templateObjectPayload
+                });
+
+                if (res && res.success) {
+                    fetchTemplatesFromBackend(0, true);
+                    showFeedbackNotice("New design saved to Google Sheets backend!");
+                } else {
+                    saveToLocalStorage(templateObjectPayload);
+                    renderTemplatesList();
+                    showFeedbackNotice("Saved blueprint to LocalStorage fallback.");
+                }
+            } else {
+                saveToLocalStorage(templateObjectPayload);
+                renderTemplatesList();
+                showFeedbackNotice("Successfully generated a fresh design blueprint!");
+            }
+        }
+
+        function constructTemplateObject(uid, label) {
+            return {
+                uid: uid,
+                label: label,
+                dimensions: {
+                    w: document.getElementById('cardW').value,
+                    h: document.getElementById('cardH').value
+                },
+                backgroundStyles: {
+                    color: cardBg.style.backgroundColor || 'white',
+                    imageSource: cardBgImageData || 'none',
+                    opacity: cardBg.style.opacity || '1'
+                },
+                elementsDataset: parseCanvasElementsToArray()
+            };
+        }
+
+        function getActiveTemplateLabel() {
+            const store = isBackendConnected ? loadedBlueprintsStore : JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+            const found = store.find(b => String(b.uid) === String(currentActiveTemplateUid));
+            return found ? found.label : null;
+        }
+
+        function saveToLocalStorage(templateObj) {
+            let localList = JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+            const idx = localList.findIndex(b => String(b.uid) === String(templateObj.uid));
+            if (idx !== -1) {
+                localList[idx] = templateObj;
+            } else {
+                localList.push(templateObj);
+            }
+            localStorage.setItem('app_id_card_blueprints_v2', JSON.stringify(localList));
+        }
+
+        function parseCanvasElementsToArray() {
+            const outputArray = [];
+            const elementNodes = card.querySelectorAll('.element');
+            
+            elementNodes.forEach(el => {
+                const imgNode = el.querySelector('img');
+                const isImgType = !!imgNode;
+
+                const style = window.getComputedStyle(el);
+                
+                outputArray.push({
+                    type: isImgType ? 'image' : 'text',
+                    innerPayload: isImgType ? imgNode.src : el.querySelector('.text-content').innerHTML,
+                    left: el.style.left,
+                    top: el.style.top,
+                    width: el.style.width,
+                    height: el.style.height,
+                    baseFontFamily: style.fontFamily,
+                    baseFontSize: style.fontSize,
+                    baseColor: style.color,
+                    opacity: el.style.opacity || '1',
+                    borderRadius: el.style.borderRadius || '0px',
+                    textAlign: el.style.textAlign || 'center',
+                    shape: el.getAttribute('data-shape') || 'square',
+                    panX: el.getAttribute('data-pan-x') || '50',
+                    panY: el.getAttribute('data-pan-y') || '50'
+                });
+            });
+            return outputArray;
+        }
+
+        function showFeedbackNotice(msg) {
+            const noticeBox = document.createElement('div');
+            noticeBox.innerText = msg;
+            noticeBox.style.position = 'fixed';
+            noticeBox.style.bottom = '25px';
+            noticeBox.style.left = '50%';
+            noticeBox.style.transform = 'translateX(-50%)';
+            noticeBox.style.background = '#0f172a';
+            noticeBox.style.color = '#ffffff';
+            noticeBox.style.padding = '14px 28px';
+            noticeBox.style.borderRadius = '8px';
+            noticeBox.style.fontSize = '13px';
+            noticeBox.style.fontWeight = '600';
+            noticeBox.style.zIndex = '999999';
+            noticeBox.style.boxShadow = '0 20px 25px -5px rgba(0,0,0,0.3)';
+            document.body.appendChild(noticeBox);
+            setTimeout(() => noticeBox.remove(), 2500);
+        }
+
+        // --- History Serialization Storage Pipelines ---
+        function compileCurrentStateBlueprint() {
+            return JSON.stringify({
+                dimensions: {
+                    w: document.getElementById('cardW').value,
+                    h: document.getElementById('cardH').value
+                },
+                backgroundStyles: {
+                    color: cardBg.style.backgroundColor || 'white',
+                    imageSource: cardBgImageData || 'none',
+                    opacity: cardBg.style.opacity || '1'
+                },
+                elementsDataset: parseCanvasElementsToArray()
+            });
+        }
+
+        function saveHistoryState(isInitRun = false) {
+            const snapshotStr = compileCurrentStateBlueprint();
+            if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snapshotStr) return; 
+            undoStack.push(snapshotStr);
+            if (undoStack.length > 40) undoStack.shift(); 
+            if (!isInitRun) redoStack = []; 
+        }
+
+        function undoWorkspaceAction() {
+            if (undoStack.length <= 1) return; 
+            const activeState = undoStack.pop();
+            redoStack.push(activeState);
+            applyStateBlueprintStr(undoStack[undoStack.length - 1]);
+            pushRealTimePreviewSync();
+        }
+
+        function redoWorkspaceAction() {
+            if (redoStack.length === 0) return;
+            const targetStateStr = redoStack.pop();
+            undoStack.push(targetStateStr);
+            applyStateBlueprintStr(targetStateStr);
+            pushRealTimePreviewSync();
+        }
+
+        function applyStateBlueprintStr(jsonStr) {
+            if (!jsonStr) return;
+            const blueprint = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+
+            document.getElementById('cardW').value = blueprint.dimensions.w;
+            document.getElementById('cardH').value = blueprint.dimensions.h;
+            updateCardSize();
+
+            cardBg.style.backgroundColor = blueprint.backgroundStyles.color;
+            cardBgImageData = blueprint.backgroundStyles.imageSource !== 'none' ? blueprint.backgroundStyles.imageSource : null;
+            cardBg.style.backgroundImage = cardBgImageData ? `url('${cardBgImageData}')` : 'none';
+            cardBg.style.opacity = blueprint.backgroundStyles.opacity;
+            document.getElementById('bgOpacity').value = blueprint.backgroundStyles.opacity;
+            
+            if (blueprint.backgroundStyles.color.startsWith('#')) {
+                document.getElementById('bgColor').value = blueprint.backgroundStyles.color;
+            }
+
+            card.querySelectorAll('.element').forEach(node => node.remove());
+            selectedElement = null;
+
+            (blueprint.elementsDataset || []).forEach(compData => {
+                const reconstructedNode = document.createElement('div');
+                reconstructedNode.className = 'element';
+                reconstructedNode.style.left = compData.left;
+                reconstructedNode.style.top = compData.top;
+                if (compData.width) reconstructedNode.style.width = compData.width;
+                if (compData.height) reconstructedNode.style.height = compData.height;
+                reconstructedNode.style.opacity = compData.opacity;
+                reconstructedNode.style.borderRadius = compData.borderRadius || '0px';
+                reconstructedNode.style.textAlign = compData.textAlign || 'center';
+                reconstructedNode.setAttribute('data-shape', compData.shape || 'square');
+                reconstructedNode.setAttribute('data-pan-x', compData.panX || '50');
+                reconstructedNode.setAttribute('data-pan-y', compData.panY || '50');
+
+                if (compData.type === 'text') {
+                    reconstructedNode.style.fontFamily = compData.baseFontFamily;
+                    reconstructedNode.style.fontSize = compData.baseFontSize;
+                    reconstructedNode.style.color = compData.baseColor;
+                    reconstructedNode.innerHTML = `
+                        <div class="text-content" contenteditable="true" style="text-align: ${compData.textAlign || 'center'};">${compData.innerPayload}</div>
+                        <div class="resize-handle"></div>
+                    `;
+                } else {
+                    reconstructedNode.classList.add('image-element');
+                    reconstructedNode.innerHTML = `
+                        <img src="${compData.innerPayload}" style="border-radius:inherit; object-position: ${compData.panX || 50}% ${compData.panY || 50}%;" />
+                        <div class="resize-handle"></div>
+                    `;
+                }
+
+                initElement(reconstructedNode);
+                card.appendChild(reconstructedNode);
+            });
+            refreshLayersListPanel();
+        }
+
+        // --- Display Orientation Configurations Matrix ---
+        function setOrientation(type) {
+            if (type === 'landscape') {
+                document.getElementById('cardW').value = 450;
+                document.getElementById('cardH').value = 280;
+            } else {
+                document.getElementById('cardW').value = 280;
+                document.getElementById('cardH').value = 450;
+            }
+            updateCardSize();
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function updateCardSize() {
+            card.style.width = document.getElementById('cardW').value + 'px';
+            card.style.height = document.getElementById('cardH').value + 'px';
+        }
+
+        // --- Background Handling ---
+        function handleBgUpload(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                cardBgImageData = e.target.result;
+                cardBg.style.backgroundImage = `url('${cardBgImageData}')`;
+                cardBg.style.backgroundColor = 'transparent';
+                saveHistoryState();
+                pushRealTimePreviewSync();
+            };
+            if(event.target.files[0]) reader.readAsDataURL(event.target.files[0]);
+        }
+
+        function updateBgColor(val) {
+            cardBgImageData = null;
+            cardBg.style.backgroundImage = 'none';
+            cardBg.style.backgroundColor = val;
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function removeBackground() {
+            cardBgImageData = null;
+            cardBg.style.backgroundImage = 'none';
+            cardBg.style.backgroundColor = '#ffffff';
+            document.getElementById('bgOpacity').value = 1;
+            cardBg.style.opacity = 1;
+            document.getElementById('bgColor').value = '#ffffff';
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function updateBgOpacity(val) { 
+            cardBg.style.opacity = val; 
+        }
+
+        // --- Canvas Element Population ---
+        function addText() {
+            const el = document.createElement('div');
+            el.className = 'element';
+            el.style.left = '30px';
+            el.style.top = '40px';
+            el.style.fontSize = '18px';
+            el.style.fontFamily = 'Arial';
+            el.style.color = '#000000';
+            el.style.opacity = '1';
+            el.style.textAlign = 'center';
+            el.setAttribute('data-shape', 'square');
+            el.innerHTML = `
+                <div class="text-content" contenteditable="true" style="text-align: center;">Click to Edit Text</div>
+                <div class="resize-handle"></div>
+            `;
+            initElement(el);
+            card.appendChild(el);
+            selectElement(el);
+            refreshLayersListPanel();
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function handleImageUpload(event) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const el = document.createElement('div');
+                el.className = 'element image-element';
+                el.style.width = '110px';
+                el.style.height = '110px';
+                el.style.left = '40px';
+                el.style.top = '40px';
+                el.style.opacity = '1';
+                el.setAttribute('data-shape', 'square');
+                el.setAttribute('data-pan-x', '50');
+                el.setAttribute('data-pan-y', '50');
+                el.innerHTML = `
+                    <img src="${e.target.result}" style="border-radius:inherit; object-position: 50% 50%;" />
+                    <div class="resize-handle"></div>
+                `;
+                initElement(el);
+                card.appendChild(el);
+                selectElement(el);
+                refreshLayersListPanel();
+                saveHistoryState();
+                pushRealTimePreviewSync();
+            };
+            if(event.target.files[0]) reader.readAsDataURL(event.target.files[0]);
+        }
+
+        // --- Interaction Drag/Drop & Real-Time Snapping ---
+        function initElement(el) {
+            let isDragging = false;
+            let isResizing = false;
+            let startX, startY, startW, startH, startLeft, startTop;
+
+            const textContentNode = el.querySelector('.text-content');
+            if (textContentNode) {
+                textContentNode.addEventListener('input', () => {
+                    pushRealTimePreviewSync();
+                });
+                textContentNode.addEventListener('blur', () => { saveHistoryState(); });
+            }
+
+            el.addEventListener('pointerdown', (e) => {
+                if (e.target.classList.contains('resize-handle')) {
+                    isResizing = true;
+                } else {
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    isDragging = true;
+                }
+                
+                selectElement(el);
+                startX = e.clientX;
+                startY = e.clientY;
+                startW = el.offsetWidth;
+                startH = el.offsetHeight;
+                startLeft = el.offsetLeft;
+                startTop = el.offsetTop;
+                
+                el.setPointerCapture(e.pointerId);
+                e.stopPropagation();
+            });
+
+            el.addEventListener('pointermove', (e) => {
+                if (!isDragging && !isResizing) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                if (isResizing) {
+                    el.style.width = Math.max(1, startW + dx) + 'px';
+                    el.style.height = Math.max(1, startH + dy) + 'px';
+                } else if (isDragging) {
+                    el.style.left = (startLeft + dx) + 'px';
+                    el.style.top = (startTop + dy) + 'px';
+                    checkAlignmentGuides(el);
+                }
+                
+                pushRealTimePreviewSync();
+            });
+
+            el.addEventListener('pointerup', (e) => {
+                if (isDragging || isResizing) {
+                    isDragging = false;
+                    isResizing = false;
+                    el.releasePointerCapture(e.pointerId);
+                    
+                    hideAllAlignmentGuides();
+                    refreshLayersListPanel();
+                    saveHistoryState();
+                    pushRealTimePreviewSync();
+                }
+            });
+        }
+
+        // --- Core Attributes Transformation Vectors ---
+        function selectElement(el) {
+            if (selectedElement) selectedElement.classList.remove('active');
+            selectedElement = el;
+            if(selectedElement) {
+                selectedElement.classList.add('active');
+
+                document.getElementById('elOpacity').value = selectedElement.style.opacity || 1;
+                
+                const imgNode = selectedElement.querySelector('img');
+                if (imgNode) {
+                    document.getElementById('imgPanX').value = selectedElement.getAttribute('data-pan-x') || 50;
+                    document.getElementById('imgPanY').value = selectedElement.getAttribute('data-pan-y') || 50;
+                } else {
+                    const style = window.getComputedStyle(selectedElement);
+                    document.getElementById('fontSize').value = parseInt(style.fontSize);
+                    document.getElementById('fontFamily').value = style.fontFamily.replace(/['"]/g, '').split(',')[0];
+                    
+                    let rgb = style.color;
+                    if(rgb.includes('rgb')) {
+                        let values = rgb.match(/\d+/g);
+                        let hex = "#" + ((1 << 24) + (parseInt(values[0]) << 16) + (parseInt(values[1]) << 8) + parseInt(values[2])).toString(16).slice(1);
+                        document.getElementById('fontColor').value = hex;
+                    }
+                }
+            }
+            highlightActiveLayerRow();
+        }
+
+        function applySpanStyle(styleProperty, styleValue) {
+            if (!selectedElement || selectedElement.querySelector('img')) return;
+
+            const editableNode = selectedElement.querySelector('.text-content');
+            if (editableNode) editableNode.focus();
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) {
+                selectedElement.style[styleProperty] = styleValue;
+                setTimeout(() => { saveHistoryState(); pushRealTimePreviewSync(); }, 100);
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.style[styleProperty] = styleValue;
+
+            try {
+                range.surroundContents(span);
+            } catch (e) {
+                document.execCommand('styleWithCSS', false, true);
+                if (styleProperty === 'fontFamily') document.execCommand('fontName', false, styleValue);
+                if (styleProperty === 'fontSize') document.execCommand('fontSize', false, 7);
+                if (styleProperty === 'color') document.execCommand('foreColor', false, styleValue);
+                if (styleProperty === 'fontSize') {
+                    const fontElements = editableNode.getElementsByTagName('font');
+                    for (let fontEl of fontElements) {
+                        if (fontEl.size === "7") {
+                            fontEl.removeAttribute("size");
+                            fontEl.style.fontSize = styleValue;
+                        }
+                    }
+                }
+            }
+            
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            setTimeout(() => { saveHistoryState(); pushRealTimePreviewSync(); }, 100);
+        }
+
+        function updateTextAlignment(alignValue) {
+            if (!selectedElement || selectedElement.querySelector('img')) return;
+            selectedElement.style.textAlign = alignValue;
+            const textContentNode = selectedElement.querySelector('.text-content');
+            if (textContentNode) textContentNode.style.textAlign = alignValue;
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function updateElementOpacity(val) {
+            if (!selectedElement) return;
+            selectedElement.style.opacity = val;
+        }
+
+        function applyImageFrameShape(shapeType) {
+            if (!selectedElement || !selectedElement.querySelector('img')) return;
+            selectedElement.setAttribute('data-shape', shapeType);
+
+            if (shapeType === 'circle') { selectedElement.style.borderRadius = '50%'; } 
+            else if (shapeType === 'rounded') { selectedElement.style.borderRadius = '12px'; } 
+            else { selectedElement.style.borderRadius = '0px'; }
+            saveHistoryState();
+            pushRealTimePreviewSync();
+        }
+
+        function updateImagePanningCoords() {
+            if (!selectedElement) return;
+            const imgNode = selectedElement.querySelector('img');
+            if (!imgNode) return;
+
+            const pxVal = document.getElementById('imgPanX').value;
+            const pyVal = document.getElementById('imgPanY').value;
+
+            selectedElement.setAttribute('data-pan-x', pxVal);
+            selectedElement.setAttribute('data-pan-y', pyVal);
+            imgNode.style.objectPosition = `${pxVal}% ${pyVal}%`;
+        }
+
+        function execTextCmd(cmdName, argumentVal = null) {
+            if (!selectedElement || selectedElement.querySelector('img')) return;
+            const editableNode = selectedElement.querySelector('.text-content');
+            if (editableNode) {
+                editableNode.focus();
+                document.execCommand(cmdName, false, argumentVal);
+                
+                setTimeout(() => {
+                    saveHistoryState();
+                    pushRealTimePreviewSync();
+                }, 100);
+            }
+        }
+
+        function deleteElement() {
+            if (selectedElement) {
+                selectedElement.remove();
+                selectElement(null);
+                refreshLayersListPanel();
+                saveHistoryState();
+                pushRealTimePreviewSync();
+            }
+        }
+
+        card.addEventListener('pointerdown', (e) => {
+            if (e.target === card || e.target === cardBg) {
+                if (selectedElement) selectedElement.classList.remove('active');
+                selectElement(null);
+            }
+        });
+
+        // --- Layers Panel Drawer Controllers ---
+        function toggleLayersDrawer() {
+            const drawerNode = document.getElementById('layers-drawer');
+            drawerNode.classList.toggle('open');
+            if(drawerNode.classList.contains('open')) refreshLayersListPanel();
+        }
+
+        function refreshLayersListPanel() {
+            const listWrapper = document.getElementById('layers-list-items');
+            listWrapper.innerHTML = '';
+            
+            const operationalElements = Array.from(card.querySelectorAll('.element'));
+            if(operationalElements.length === 0) {
+                listWrapper.innerHTML = `<p style="color:#64748b; font-style:italic; font-size:11px; text-align:center; margin-top:20px;">No custom layers rendered.</p>`;
+                return;
+            }
+
+            operationalElements.slice().reverse().forEach((nodeInstance, reverseIndex) => {
+                const originalIndex = operationalElements.length - 1 - reverseIndex;
+                const imageLayerChecker = nodeInstance.querySelector('img');
+                
+                const rowItemNode = document.createElement('div');
+                rowItemNode.className = 'layer-item';
+                if(nodeInstance === selectedElement) rowItemNode.classList.add('active-layer');
+
+                let content = '';
+                if (imageLayerChecker) {
+                    content = `
+                        <div class="layer-item-meta"><span style="font-weight:600; color:#334155;">[Image Layer]</span></div>
+                        <div class="layer-item-actions" style="margin-top: 4px;">
+                            <button class="purple" style="padding:4px 8px; font-size:11px; border-radius:4px; flex:1;" onclick="event.stopPropagation(); triggerLayerImageReplace(${originalIndex})">Replace Image</button>
+                            <button class="danger" style="padding:4px 8px; font-size:11px; border-radius:4px;" onclick="event.stopPropagation(); deleteTargetedLayer(${originalIndex})">Delete</button>
+                        </div>
+                    `;
+                } else {
+                    const txtContentNode = nodeInstance.querySelector('.text-content');
+                    const currentTextString = txtContentNode ? txtContentNode.innerText : '';
+                    content = `
+                        <div class="layer-item-meta"><span style="font-weight:600; color:#334155;">[Text Layer]</span></div>
+                        <div style="margin-top:4px; width:100%;" onclick="event.stopPropagation();">
+                            <input type="text" class="layer-edit-input" value="${currentTextString.replace(/"/g, '&quot;')}" oninput="updateTextFromLayerPanel(this, ${originalIndex})" onchange="saveHistoryState()" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" style="width:100%; font-size:12px; padding:5px; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:4px;" placeholder="Modify text content...">
+                        </div>
+                        <div class="layer-item-actions" style="margin-top: 2px;">
+                            <button class="danger" style="padding:3px 8px; font-size:11px; border-radius:4px;" onclick="event.stopPropagation(); deleteTargetedLayer(${originalIndex})">Delete</button>
+                        </div>
+                    `;
+                }
+                rowItemNode.innerHTML = content;
+                rowItemNode.onclick = () => selectElement(operationalElements[originalIndex]);
+                listWrapper.appendChild(rowItemNode);
+            });
+        }
+        
+        function updateTextFromLayerPanel(inputElement, index) {
+            const operationalElements = card.querySelectorAll('.element');
+            const targetEl = operationalElements[index];
+            if(targetEl) {
+                const canvasTextNode = targetEl.querySelector('.text-content');
+                if(canvasTextNode) canvasTextNode.innerText = inputElement.value;
+                pushRealTimePreviewSync();
+            }
+        }
+
+        function highlightActiveLayerRow() {
+            const listWrapper = document.getElementById('layers-list-items');
+            const visualRowItems = listWrapper.querySelectorAll('.layer-item');
+            const operationalElements = Array.from(card.querySelectorAll('.element'));
+            
+            visualRowItems.forEach(row => row.classList.remove('active-layer'));
+            if(!selectedElement) return;
+
+            const trackingIndex = operationalElements.indexOf(selectedElement);
+            if(trackingIndex !== -1) {
+                const targetReverseRowOffset = operationalElements.length - 1 - trackingIndex;
+                if(visualRowItems[targetReverseRowOffset]) visualRowItems[targetReverseRowOffset].classList.add('active-layer');
+            }
+        }
+
+        function triggerLayerImageReplace(idx) {
+            imageReplacementIndexTarget = idx;
+            document.getElementById('replaceLayerImgInput').click();
+        }
+
+        function handleLayerImageReplacement(event) {
+            if (imageReplacementIndexTarget === null) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const operationalElements = card.querySelectorAll('.element');
+                const targetEl = operationalElements[imageReplacementIndexTarget];
+                if (targetEl) {
+                    const imgNode = targetEl.querySelector('img');
+                    if (imgNode) {
+                        imgNode.src = e.target.result;
+                        saveHistoryState();
+                        pushRealTimePreviewSync();
+                    }
+                }
+                imageReplacementIndexTarget = null;
+            };
+            if(event.target.files[0]) reader.readAsDataURL(event.target.files[0]);
+        }
+
+        function deleteTargetedLayer(idx) {
+            const operationalElements = card.querySelectorAll('.element');
+            if(operationalElements[idx]) {
+                if(selectedElement === operationalElements[idx]) selectElement(null);
+                operationalElements[idx].remove();
+                refreshLayersListPanel();
+                saveHistoryState();
+                pushRealTimePreviewSync();
+            }
+        }
+
+        // --- Native Printing ---
+        function printCard() {
+            generateHDCanvas(2, (printCanvas) => {
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html><head><title>Print ID Card</title><style>
+                        body { margin: 0; display: flex; justify-content: center; align-items: center; }
+                        img { max-width: 100%; max-height: 100vh; }
+                        @page { size: auto; margin: 20px; }
+                    </style></head><body>
+                        <img src="${printCanvas.toDataURL('image/png')}" />
+                        <script>
+                            window.onload = () => { window.print(); window.close(); };
+                        <\/script>
+                    </body></html>`);
+                printWindow.document.close();
+            });
+        }
+
+        // --- Templates Sandbox Panel Renderer Dashboard ---
+        function renderTemplatesList() {
+            const listGridWrapperNode = document.getElementById('templates-list');
+            const paginationBox = document.getElementById('pagination-controls');
+            listGridWrapperNode.innerHTML = '';
+            
+            const blueprintsCacheList = isBackendConnected 
+                ? loadedBlueprintsStore 
+                : JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+
+            if (blueprintsCacheList.length === 0) {
+                listGridWrapperNode.innerHTML = '<p style="color: #64748b; font-style: italic; font-size: 13px; padding: 5px;">No saved blueprints. Create a design and click "Save As Template".</p>';
+                paginationBox.style.display = 'none';
+                return;
+            }
+
+            blueprintsCacheList.forEach(blueprint => {
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'template-item';
+                if (String(blueprint.uid) === String(currentActiveTemplateUid)) {
+                    itemContainer.style.borderColor = 'var(--primary)';
+                    itemContainer.style.background = '#eff6ff';
+                }
+                
+                const fixedBoundWidth = 180;
+                const scaleDownRatio = fixedBoundWidth / parseFloat(blueprint.dimensions.w);
+                const calculatedFrameHeight = parseFloat(blueprint.dimensions.h) * scaleDownRatio;
+
+                itemContainer.innerHTML = `
+                    <div id="preview-box-container-${blueprint.uid}" class="preview-container-box" style="width:${fixedBoundWidth}px; height:${calculatedFrameHeight}px;" onclick="loadTemplateBlueprint('${blueprint.uid}')"></div>
+                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; width:${fixedBoundWidth}px;">
+                        <span style="font-size:12px; font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${blueprint.label}">${blueprint.label}</span>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="loadTemplateBlueprint('${blueprint.uid}')" style="padding:4px 8px; font-size:11px; flex:1;">Load Design</button>
+                            <button class="danger" onclick="deleteTemplateBlueprint(event, '${blueprint.uid}')" style="padding:4px 8px; font-size:11px;">Discard</button>
+                        </div>
+                    </div>
+                `;
+                
+                listGridWrapperNode.appendChild(itemContainer);
+                
+                const generatedBox = document.getElementById(`preview-box-container-${blueprint.uid}`);
+                if (generatedBox) {
+                    injectLiveMirrorCloneToBox(generatedBox, blueprint);
+                }
+            });
+
+            // Handle Pagination Visibility
+            if (isBackendConnected && hasMoreBackendData) {
+                paginationBox.style.display = 'flex';
+            } else {
+                paginationBox.style.display = 'none';
+            }
+        }
+
+        function loadTemplateBlueprint(uid) {
+            const blueprintsCacheList = isBackendConnected 
+                ? loadedBlueprintsStore 
+                : JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+                
+            const targetingBlueprint = blueprintsCacheList.find(b => String(b.uid) === String(uid));
+            if (!targetingBlueprint) return;
+
+            currentActiveTemplateUid = targetingBlueprint.uid; 
+            applyStateBlueprintStr(targetingBlueprint);
+            
+            saveHistoryState(true);
+            renderTemplatesList();
+            showFeedbackNotice(`Template loaded: "${targetingBlueprint.label}"`);
+        }
+
+        async function deleteTemplateBlueprint(event, uid) {
+            event.stopPropagation(); 
+            if (!confirm("Are you sure you want to permanently discard this template blueprint?")) return;
+            
+            if (isBackendConnected) {
+                showFeedbackNotice("Deleting template from backend...");
+                const res = await callBackendApi({
+                    action: 'delete',
+                    uid: uid
+                });
+
+                if (res && res.success) {
+                    loadedBlueprintsStore = loadedBlueprintsStore.filter(b => String(b.uid) !== String(uid));
+                    if (String(currentActiveTemplateUid) === String(uid)) currentActiveTemplateUid = null;
+                    renderTemplatesList();
+                    showFeedbackNotice("Blueprint permanently deleted.");
+                } else {
+                    showFeedbackNotice("Failed to delete from backend.");
+                }
+            } else {
+                let blueprintsCacheList = JSON.parse(localStorage.getItem('app_id_card_blueprints_v2') || '[]');
+                blueprintsCacheList = blueprintsCacheList.filter(b => String(b.uid) !== String(uid));
+                localStorage.setItem('app_id_card_blueprints_v2', JSON.stringify(blueprintsCacheList));
+                
+                if (String(currentActiveTemplateUid) === String(uid)) currentActiveTemplateUid = null;
+                renderTemplatesList();
+                showFeedbackNotice("Local blueprint removed.");
+            }
+        }
+    </script>
+</body>
+</html>
