@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Interactive Quiz</title>
+    <style>
+        /* --- CSS VARIABLES & THEME --- */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #111827 50%, #1e1b4b 100%);
+            --card-bg: rgba(255, 255, 255, 0.06);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --text-gradient: linear-gradient(135deg, #ffffff 0%, #c084fc 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --correct-bg: rgba(16, 185, 129, 0.15);
+            --correct-border: #10b981;
+            --correct-text: #34d399;
+            --incorrect-bg: rgba(239, 68, 68, 0.15);
+            --incorrect-border: #ef4444;
+            --incorrect-text: #f87171;
+            --radius-lg: 24px;
+            --radius-sm: 50px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* --- APPLICATION OUTER WRAPPER --- */
+        .app-wrapper {
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* --- STYLISH TOP HEADING --- */
+        .app-header {
+            text-align: center;
+            padding: 8px 10px 4px;
+        }
+
+        .app-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            text-shadow: 0 10px 25px rgba(168, 85, 247, 0.2);
+        }
+
+        .app-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* --- MAIN QUIZ CARD --- */
+        .quiz-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--card-border);
+            width: 100%;
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        /* --- PROGRESS BAR & META --- */
+        .quiz-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-gradient);
+            border-radius: 10px;
+            transition: width 0.35s ease;
+        }
+
+        /* --- QUESTION & OPTIONS --- */
+        .question-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.45;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-chip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            font-size: 0.96rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option-chip:hover:not(.disabled) {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.4);
+            transform: translateX(4px);
+        }
+
+        .option-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-prefix {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Option Answer Feedback States */
+        .option-chip.correct {
+            background: var(--correct-bg) !important;
+            border-color: var(--correct-border) !important;
+            color: var(--correct-text) !important;
+            font-weight: 600;
+        }
+
+        .option-chip.correct .option-prefix {
+            background: var(--correct-border);
+            color: #fff;
+        }
+
+        .option-chip.incorrect {
+            background: var(--incorrect-bg) !important;
+            border-color: var(--incorrect-border) !important;
+            color: var(--incorrect-text) !important;
+        }
+
+        .option-chip.incorrect .option-prefix {
+            background: var(--incorrect-border);
+            color: #fff;
+        }
+
+        .option-chip.disabled {
+            cursor: default;
+        }
+
+        /* --- EXPLANATION CARD --- */
+        .explanation-card {
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 16px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            display: none;
+            animation: fadeIn 0.35s ease forwards;
+        }
+
+        .explanation-card.show {
+            display: block;
+        }
+
+        .explanation-header {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #c084fc;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .explanation-text {
+            font-size: 0.93rem;
+            line-height: 1.45;
+            color: #e2e8f0;
+        }
+
+        /* --- FOOTER & BUTTONS --- */
+        .quiz-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 26px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn {
+            padding: 12px 26px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* --- ENCOURAGING RESULT SCREEN --- */
+        .result-screen {
+            display: none;
+            text-align: center;
+            padding: 10px 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .badge-icon {
+            font-size: 3.2rem;
+            margin-bottom: 12px;
+            display: inline-block;
+            animation: bounce 1.2s infinite alternate;
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+        }
+
+        .score-number {
+            font-size: 2.3rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.85;
+        }
+
+        .result-title {
+            font-size: 1.7rem;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        .result-desc {
+            color: #cbd5e1;
+            font-size: 1rem;
+            line-height: 1.45;
+            margin-bottom: 24px;
+        }
+
+        .notice-card {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 22px;
+            color: #fbbf24;
+            font-size: 0.92rem;
+            line-height: 1.4;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* --- BOTTOM TRANSPARENT SUBJECT SCROLL CONTAINER --- */
+        .subject-nav-container {
+            background: transparent; /* Fully transparent */
+            border: none;
+            box-shadow: none;
+            padding: 5px 10px;
+            width: 100%;
+        }
+
+        .subject-nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        /* HIDE SCROLLBAR & ALLOW MANUAL/AUTO SCROLLING */
+        .chips-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 6px 0;
+            cursor: grab;
+            scroll-behavior: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .chips-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chips-scroll-container:active {
+            cursor: grabbing;
+        }
+
+        .chips-track {
+            display: inline-flex;
+            gap: 12px;
+            width: max-content;
+        }
+
+        /* BORDER-ONLY SUBJECT BUTTON CHIPS */
+        .subject-chip {
+            padding: 8px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: transparent; /* No background */
+            border: 1.5px solid rgba(255, 255, 255, 0.25); /* Border only */
+            color: var(--text-main);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .subject-chip:hover {
+            background: transparent;
+            border-color: #a855f7;
+            color: #a855f7; /* Text highlights on hover */
+            transform: translateY(-2px);
+        }
+
+        .subject-chip.active {
+            background: transparent;
+            border-color: #a855f7; /* Primary theme border */
+            color: #a855f7; /* Primary theme text */
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.2); /* Subtle glow for active */
+        }
+
+        .subject-chip.completed {
+            border-color: #10b981;
+            color: #34d399;
+        }
+
+        /* SPINNER */
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #a855f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+
+        @media (max-width: 480px) {
+            .app-title { font-size: 1.6rem; }
+            .quiz-card { padding: 24px 18px; }
+            .subject-nav-container { padding: 5px 4px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        
+        <!-- STYLISH HEADING -->
+        <header class="app-header">
+            <h1 class="app-title">ATTEMPT YOUR DAILY QUIZ 🚀</h1>
+            <p class="app-subtitle">Select a subject, answer questions & boost your knowledge!</p>
+        </header>
+
+        <!-- MAIN QUIZ CARD -->
+        <div class="quiz-card">
+            
+            <!-- ACTIVE QUIZ VIEW -->
+            <div id="quiz-view">
+                <div class="quiz-meta">
+                    <span id="current-subject-title">Subject: English</span>
+                    <span id="question-tracker">Question 1/5</span>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+
+                <div id="question-box">
+                    <h2 class="question-title" id="question-title">Loading Question...</h2>
+                    <div class="options-grid" id="options-grid"></div>
+                    
+                    <!-- Instant Explanation Card -->
+                    <div class="explanation-card" id="explanation-card">
+                        <div class="explanation-header">💡 Explanation</div>
+                        <div class="explanation-text" id="explanation-text"></div>
+                    </div>
+                </div>
+
+                <div class="quiz-footer">
+                    <button class="btn btn-secondary" id="prev-btn" onclick="navigateQuestion(-1)" disabled>Previous</button>
+                    <button class="btn btn-primary" id="next-btn" onclick="navigateQuestion(1)" disabled>Next Question</button>
+                </div>
+            </div>
+
+            <!-- ENCOURAGING RESULT SCREEN -->
+            <div class="result-screen" id="result-screen">
+                <div class="badge-icon" id="result-badge">✨</div>
+                <div class="score-circle">
+                    <span class="score-number" id="score-text">0/5</span>
+                    <span class="score-label">Final Score</span>
+                </div>
+                
+                <h2 class="result-title" id="result-title">Great Try!</h2>
+                <p class="result-desc" id="result-desc">Best of luck next time! Keep learning and expanding your knowledge.</p>
+
+                <div class="notice-card">
+                    <span style="font-size: 1.5rem;">📅</span>
+                    <div>
+                        <strong>Subject Completed For Today!</strong><br>
+                        You have finished your questions for this subject today. Try another subject below or visit tomorrow!
+                    </div>
+                </div>
+
+                <button class="btn btn-submit" style="width: 100%;" onclick="tryAnotherSubject()">
+                    Try Another Subject 🔄
+                </button>
+            </div>
+
+        </div>
+
+        <!-- SEPARATE BOTTOM TRANSPARENT AUTOMATIC SCROLLING CONTAINER -->
+        <div class="subject-nav-container">
+            <div class="subject-nav-header">
+                <span>Select Subject</span>
+                <span id="backend-status" style="font-size: 0.72rem; color: #c084fc; text-transform: none;">Syncing backend...</span>
+            </div>
+            
+            <!-- Hidden Scrollbar Container -->
+            <div class="chips-scroll-container" id="chips-container">
+                <div class="chips-track" id="chips-track">
+                    <!-- Subject Chips generated dynamically (duplicated for infinite seamless loop) -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =========================================================================
+        // ⚠️ REPLACE WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE:
+        // =========================================================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyVyb_Htk0wyvGoCgzLNoEqxpwMHanvGQOpEtNkmLb_Y9APY4nsr2ohCRvbo0xrq7YAQ/exec";
+
+        // 1. HARDCODED 5 DEFAULT ENGLISH QUESTIONS (INSTANT LOAD)
+        const defaultEnglishQuestions = [
+            {
+                question: "Which word is a synonym of 'Happy'?",
+                options: ["Joyful", "Sad", "Angry", "Tired"],
+                correct: 0,
+                explanation: "'Joyful' means feeling or expressing great happiness."
+            },
+            {
+                question: "Choose the correctly spelled word:",
+                options: ["Neccessary", "Necessary", "Necesary", "Neccesary"],
+                correct: 1,
+                explanation: "The correct spelling is 'Necessary' (one C, two S's)."
+            },
+            {
+                question: "What is the past tense of the verb 'Go'?",
+                options: ["Gone", "Going", "Went", "Goes"],
+                correct: 2,
+                explanation: "The simple past tense of 'go' is 'went'."
+            },
+            {
+                question: "Identify the adjective in: 'She wore a beautiful dress.'",
+                options: ["She", "Wore", "Beautiful", "Dress"],
+                correct: 2,
+                explanation: "'Beautiful' is an adjective modifying the noun 'dress'."
+            },
+            {
+                question: "Complete the sentence: 'Neither of the boys ___ present.'",
+                options: ["was", "were", "are", "have"],
+                correct: 0,
+                explanation: "'Neither' is singular and takes the singular verb 'was'."
+            }
+        ];
+
+        // State Variables
+        let currentSubject = "English";
+        let quizQuestions = [...defaultEnglishQuestions];
+        let currentQuestion = 0;
+        let userAnswers = new Array(defaultEnglishQuestions.length).fill(null);
+        let backendSubjects = [];
+
+        // Auto-scroll Animation Engine State
+        let isUserInteracting = false;
+
+        // DOM Elements
+        const chipsContainer = document.getElementById('chips-container');
+        const chipsTrack = document.getElementById('chips-track');
+        const quizView = document.getElementById('quiz-view');
+        const resultScreen = document.getElementById('result-screen');
+        const currentSubjectTitle = document.getElementById('current-subject-title');
+        const tracker = document.getElementById('question-tracker');
+        const progressBar = document.getElementById('progress-bar');
+        const questionTitle = document.getElementById('question-title');
+        const optionsGrid = document.getElementById('options-grid');
+        const explanationCard = document.getElementById('explanation-card');
+        const explanationText = document.getElementById('explanation-text');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const backendStatus = document.getElementById('backend-status');
+
+        // Check Daily Completion State
+        function isSubjectCompletedToday(subject) {
+            const today = new Date().toISOString().split('T')[0];
+            return localStorage.getItem(`quiz_completed_${subject}`) === today;
+        }
+
+        function setSubjectCompletedToday(subject) {
+            const today = new Date().toISOString().split('T')[0];
+            localStorage.setItem(`quiz_completed_${subject}`, today);
+        }
+
+        // Initialize App
+        function initApp() {
+            renderSubjectChips();
+            loadQuestion();
+            fetchBackendSubjects();
+            setupInfiniteScrollEngine();
+        }
+
+        // Render Subject Chips (Duplicated for seamless continuous loop)
+        function renderSubjectChips() {
+            const baseSubjects = ["English", ...backendSubjects];
+            chipsTrack.innerHTML = '';
+
+            // Duplicate array to enable true continuous seamless looping
+            const loopSubjects = [...baseSubjects, ...baseSubjects];
+
+            loopSubjects.forEach((subject) => {
+                const chip = document.createElement('div');
+                const isCompleted = isSubjectCompletedToday(subject);
+                const isActive = subject === currentSubject;
+
+                chip.className = `subject-chip ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+                chip.innerHTML = `${isCompleted ? '✔ ' : ''}${subject}`;
+                chip.onclick = (e) => {
+                    e.stopPropagation();
+                    selectSubject(subject);
+                };
+
+                chipsTrack.appendChild(chip);
+            });
+        }
+
+        // --- INFINITE CONTINUOUS SMOOTH SCROLL ENGINE ---
+        function setupInfiniteScrollEngine() {
+            const scrollSpeed = 0.5; // Slow, elegant speed
+
+            function scrollStep() {
+                if (!isUserInteracting && chipsContainer && chipsTrack.scrollWidth > 0) {
+                    chipsContainer.scrollLeft += scrollSpeed;
+
+                    // Halfway threshold: reset seamlessly back to start
+                    const halfWidth = chipsTrack.scrollWidth / 2;
+                    if (chipsContainer.scrollLeft >= halfWidth) {
+                        chipsContainer.scrollLeft -= halfWidth;
+                    }
+                }
+                requestAnimationFrame(scrollStep);
+            }
+
+            requestAnimationFrame(scrollStep);
+
+            // Pause scrolling on interaction
+            chipsContainer.addEventListener('mouseenter', () => isUserInteracting = true);
+            chipsContainer.addEventListener('mouseleave', () => isUserInteracting = false);
+            
+            chipsContainer.addEventListener('touchstart', () => isUserInteracting = true, { passive: true });
+            chipsContainer.addEventListener('touchend', () => {
+                setTimeout(() => isUserInteracting = false, 2000);
+            });
+
+            chipsContainer.addEventListener('wheel', () => {
+                isUserInteracting = true;
+                clearTimeout(chipsContainer.scrollTimer);
+                chipsContainer.scrollTimer = setTimeout(() => isUserInteracting = false, 2500);
+            }, { passive: true });
+        }
+
+        // Fetch Backend Subjects from Google Apps Script
+        async function fetchBackendSubjects() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getSubjects`);
+                const data = await response.json();
+
+                if (data.success && data.subjects.length > 0) {
+                    backendSubjects = data.subjects.filter(s => s !== "English");
+                    backendStatus.innerText = "Synced";
+                    renderSubjectChips();
+                } else {
+                    backendStatus.innerText = "Connected";
+                }
+            } catch (err) {
+                console.log("Backend offline or URL not configured yet:", err);
+                backendStatus.innerText = "Default Mode";
+            }
+        }
+
+        // Handle Subject Selection
+        async function selectSubject(subject) {
+            if (currentSubject === subject && quizView.style.display !== 'none') return;
+
+            if (isSubjectCompletedToday(subject)) {
+                alert(`You have completed today's questions for "${subject}". Please choose another subject!`);
+                return;
+            }
+
+            currentSubject = subject;
+            renderSubjectChips();
+            resultScreen.style.display = 'none';
+            quizView.style.display = 'block';
+
+            if (subject === "English") {
+                quizQuestions = [...defaultEnglishQuestions];
+                userAnswers = new Array(quizQuestions.length).fill(null);
+                currentQuestion = 0;
+                loadQuestion();
+            } else {
+                questionTitle.innerText = "LOADING...";
+                optionsGrid.innerHTML = '<div class="spinner"></div>';
+                explanationCard.classList.remove('show');
+
+                try {
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=getQuestions&subject=${encodeURIComponent(subject)}&count=10`);
+                    const data = await response.json();
+
+                    if (data.success && data.questions.length > 0) {
+                        quizQuestions = data.questions;
+                        userAnswers = new Array(quizQuestions.length).fill(null);
+                        currentQuestion = 0;
+                        loadQuestion();
+                    } else {
+                        questionTitle.innerText = `No questions found in tab "${subject}".`;
+                        optionsGrid.innerHTML = '';
+                    }
+                } catch (err) {
+                    console.error("Error fetching subject questions:", err);
+                    questionTitle.innerText = "Failed to load questions from backend.";
+                    optionsGrid.innerHTML = '';
+                }
+            }
+        }
+
+        // Load Active Question
+        function loadQuestion() {
+            const q = quizQuestions[currentQuestion];
+            const savedAns = userAnswers[currentQuestion];
+
+            currentSubjectTitle.innerText = `Subject: ${currentSubject}`;
+            tracker.innerText = `Question ${currentQuestion + 1}/${quizQuestions.length}`;
+            questionTitle.innerText = q.question;
+            progressBar.style.width = `${((currentQuestion + 1) / quizQuestions.length) * 100}%`;
+
+            optionsGrid.innerHTML = '';
+            explanationCard.classList.remove('show');
+
+            const prefixes = ['A', 'B', 'C', 'D'];
+
+            q.options.forEach((opt, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'option-chip';
+                chip.innerHTML = `
+                    <div class="option-content">
+                        <span class="option-prefix">${prefixes[idx]}</span>
+                        <span>${opt}</span>
+                    </div>
+                    <span class="status-icon"></span>
+                `;
+                chip.onclick = () => selectOption(idx);
+                optionsGrid.appendChild(chip);
+            });
+
+            if (savedAns !== null) {
+                applyAnswerUI(savedAns);
+            }
+
+            updateNavButtons();
+        }
+
+        // Handle Instant Option Selection
+        function selectOption(index) {
+            if (userAnswers[currentQuestion] !== null) return;
+
+            userAnswers[currentQuestion] = index;
+            applyAnswerUI(index);
+            updateNavButtons();
+        }
+
+        function applyAnswerUI(selectedIndex) {
+            const q = quizQuestions[currentQuestion];
+            const chips = optionsGrid.querySelectorAll('.option-chip');
+
+            chips.forEach((chip, idx) => {
+                chip.classList.add('disabled');
+
+                if (idx === q.correct) {
+                    chip.classList.add('correct');
+                    chip.querySelector('.status-icon').innerText = '✓';
+                }
+
+                if (idx === selectedIndex && selectedIndex !== q.correct) {
+                    chip.classList.add('incorrect');
+                    chip.querySelector('.status-icon').innerText = '✕';
+                }
+            });
+
+            explanationText.innerText = q.explanation;
+            explanationCard.classList.add('show');
+        }
+
+        function updateNavButtons() {
+            const isAnswered = userAnswers[currentQuestion] !== null;
+
+            prevBtn.disabled = currentQuestion === 0;
+
+            if (currentQuestion === quizQuestions.length - 1) {
+                nextBtn.innerText = "Submit Quiz";
+                nextBtn.className = "btn btn-submit";
+            } else {
+                nextBtn.innerText = "Next Question";
+                nextBtn.className = "btn btn-primary";
+            }
+
+            nextBtn.disabled = !isAnswered;
+        }
+
+        function navigateQuestion(step) {
+            if (step === 1 && currentQuestion === quizQuestions.length - 1) {
+                finishQuiz();
+                return;
+            }
+
+            currentQuestion += step;
+            loadQuestion();
+        }
+
+        // Finish Quiz
+        function finishQuiz() {
+            setSubjectCompletedToday(currentSubject);
+            renderSubjectChips();
+
+            let score = 0;
+            userAnswers.forEach((ans, idx) => {
+                if (ans === quizQuestions[idx].correct) score++;
+            });
+
+            quizView.style.display = 'none';
+            resultScreen.style.display = 'block';
+
+            document.getElementById('score-text').innerText = `${score}/${quizQuestions.length}`;
+
+            const badgeEl = document.getElementById('result-badge');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (score === quizQuestions.length) {
+                badgeEl.innerText = "🏆";
+                titleEl.innerText = "Perfect Score! Mastermind!";
+                descEl.innerText = "Outstanding! You answered every question correctly. Excellent job!";
+            } else if (score >= Math.ceil(quizQuestions.length * 0.7)) {
+                badgeEl.innerText = "🌟";
+                titleEl.innerText = "Great Try! Fantastic Score!";
+                descEl.innerText = "Awesome work! You possess great knowledge in this subject.";
+            } else if (score >= Math.ceil(quizQuestions.length * 0.4)) {
+                badgeEl.innerText = "👍";
+                titleEl.innerText = "Good Try! Solid Effort!";
+                descEl.innerText = "Nice attempt! Review the explanations above to sharpen your skills further.";
+            } else {
+                badgeEl.innerText = "💪";
+                titleEl.innerText = "Best of Luck Next Time!";
+                descEl.innerText = "Don't give up! Learning takes practice. Give another subject a try!";
+            }
+        }
+
+        // Try Another Subject Handler
+        function tryAnotherSubject() {
+            resultScreen.style.display = 'none';
+            
+            const allSubjects = ["English", ...backendSubjects];
+            const nextSubject = allSubjects.find(s => !isSubjectCompletedToday(s));
+
+            if (nextSubject) {
+                selectSubject(nextSubject);
+            } else {
+                alert("You have completed all available subjects for today! Please visit again tomorrow for fresh questions.");
+                quizView.style.display = 'block';
+            }
+        }
+
+        // Run application on load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
