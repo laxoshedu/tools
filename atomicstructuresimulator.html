@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>ATOMIC STRUCTURE SIMULATOR</title>
+<title>atomic sructure simulator</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -21,8 +21,8 @@
   }
 
   #appStage {
-    width: 1529px;
-    height: 860px;
+    width: 1458px;
+    height: 820px;
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%) scale(1);
@@ -201,7 +201,7 @@
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
-  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
   &lt;title&gt;Interactive Atomic Structure Simulator&lt;/title&gt;
   &lt;style&gt;
     :root {
@@ -221,6 +221,8 @@
       margin: 0;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
     body {
@@ -230,7 +232,9 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
+      touch-action: manipulation;
     }
 
     header {
@@ -338,12 +342,13 @@
       background: #1e293b;
       border: 1px solid #334155;
       color: var(--text);
-      padding: 4px 0;
+      padding: 6px 0;
       border-radius: 4px;
       cursor: pointer;
       font-size: 0.75rem;
       font-weight: 600;
       transition: all 0.15s;
+      touch-action: manipulation;
     }
 
     .btn-undo:hover {
@@ -431,6 +436,7 @@
       color: #64748b;
       cursor: pointer;
       transition: all 0.1s;
+      touch-action: manipulation;
     }
 
     .pt-cell:hover {
@@ -459,6 +465,7 @@
       align-items: center;
       background: radial-gradient(circle at center, #131c31 0%, #080c14 100%);
       overflow: hidden;
+      touch-action: none;
     }
 
     canvas {
@@ -467,6 +474,29 @@
       left: 0;
       width: 100%;
       height: 100%;
+      touch-action: none;
+    }
+
+    /* Floating Stage Instruction Note on the Side */
+    .stage-instruction-side {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px dashed var(--accent);
+      color: var(--accent);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      max-width: 220px;
+      line-height: 1.4;
+      pointer-events: none;
     }
 
     /* Stage Floating Controls (Zoom &amp; Reset) */
@@ -495,6 +525,7 @@
       font-size: 0.8rem;
       font-weight: 600;
       transition: all 0.2s;
+      touch-action: manipulation;
     }
 
     .btn:hover {
@@ -576,74 +607,69 @@
       box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
     }
 
-    /* Particle Drag Bottom Container */
+    /* Bottom Particle Deck */
     .particle-container-wrapper {
       background: var(--panel-bg);
       border-top: 1px solid var(--panel-border);
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      padding: 10px 20px 14px 20px;
-      gap: 10px;
+      padding: 12px 16px;
       z-index: 10;
-    }
-
-    /* Requested Subatomic Particles Note */
-    .particle-note {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      text-transform: uppercase;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px dashed var(--accent);
-      padding: 5px 16px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      touch-action: none;
     }
 
     .particle-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 40px;
+      gap: 24px;
+      flex-wrap: wrap;
     }
 
-    .particle-source-wrapper {
+    /* Particle Item Card with Big Node and Plus Button */
+    .particle-card {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      background: #0d1424;
+      border: 1px solid var(--panel-border);
+      padding: 6px 14px 6px 8px;
+      border-radius: 50px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      touch-action: none;
     }
 
     .particle-source {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
       cursor: grab;
+      touch-action: none;
     }
 
     .particle-source:active {
       cursor: grabbing;
     }
 
+    /* ENLARGED SUBATOMIC PARTICLES WITH TOUCH ACCELERATION */
     .particle-node {
-      width: 44px;
-      height: 44px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-weight: bold;
-      font-size: 1.1rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      transition: transform 0.15s ease;
+      font-weight: 800;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      touch-action: none;
     }
 
     .particle-source:hover .particle-node {
-      transform: scale(1.1);
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     }
 
     .proton-bg { background: radial-gradient(circle at 30% 30%, #f87171, #dc2626); color: white; }
@@ -651,9 +677,37 @@
     .electron-bg { background: radial-gradient(circle at 30% 30%, #67e8f9, #0891b2); color: white; }
 
     .source-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* PLUS (+) BUTTON BESIDE PARTICLES */
+    .btn-plus {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      font-size: 1.4rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn-plus:hover {
+      transform: scale(1.1);
+      background: #7dd3fc;
+    }
+
+    .btn-plus:active {
+      transform: scale(0.95);
     }
 
     .drag-ghost {
@@ -662,6 +716,7 @@
       z-index: 1000;
       transform: translate(-50%, -50%);
       opacity: 0.9;
+      touch-action: none;
     }
 
     .drop-hint {
@@ -677,13 +732,43 @@
       color: var(--accent);
       pointer-events: none;
     }
+
+    @media (max-width: 768px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .sidebar {
+        max-height: 180px;
+        border-right: none;
+        border-bottom: 1px solid var(--panel-border);
+      }
+      .stage-instruction-side {
+        font-size: 0.65rem;
+        padding: 6px 10px;
+        max-width: 150px;
+      }
+      .particle-container {
+        gap: 12px;
+      }
+      .particle-node {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+      }
+      .btn-plus {
+        width: 34px;
+        height: 34px;
+        font-size: 1.2rem;
+      }
+    }
   &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 
   &lt;header&gt;
     &lt;h1&gt;Atomic Structure Simulator&lt;/h1&gt;
-    &lt;div style=&quot;font-size: 0.8rem; color: var(--text-muted);&quot;&gt;Drag particles to build atoms up to Element 118&lt;/div&gt;
+    &lt;div style=&quot;font-size: 0.8rem; color: var(--text-muted);&quot;&gt;Drag particles or tap (+) to build atoms&lt;/div&gt;
   &lt;/header&gt;
 
   &lt;div class=&quot;main-layout&quot;&gt;
@@ -751,6 +836,11 @@
     &lt;div class=&quot;stage&quot; id=&quot;stage-container&quot;&gt;
       &lt;canvas id=&quot;atomCanvas&quot;&gt;&lt;/canvas&gt;
 
+      &lt;!-- Instruction Note Placed on the Side --&gt;
+      &lt;div class=&quot;stage-instruction-side&quot;&gt;
+        ✋ DRAG PARTICLES &amp; LEAVE INTO THE ATOM
+      &lt;/div&gt;
+
       &lt;!-- Charge Status Overlay directly on top of Atomic Structure --&gt;
       &lt;div class=&quot;canvas-charge-overlay&quot;&gt;
         &lt;div class=&quot;charge-title&quot;&gt;Atomic Charge Status&lt;/div&gt;
@@ -766,38 +856,41 @@
         &lt;button class=&quot;btn&quot; onclick=&quot;resetAtom()&quot;&gt;Reset All&lt;/button&gt;
       &lt;/div&gt;
 
-      &lt;div class=&quot;drop-hint&quot;&gt;Drag Protons/Neutrons to Center Nucleus &amp;bull; Electrons to Shells&lt;/div&gt;
+      &lt;div class=&quot;drop-hint&quot;&gt;Protons/Neutrons build Nucleus &amp;bull; Electrons enter Shells&lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
 
-  &lt;!-- Bottom Particle Container with Note --&gt;
+  &lt;!-- Bottom Subatomic Particles Deck --&gt;
   &lt;div class=&quot;particle-container-wrapper&quot;&gt;
-    &lt;!-- Requested Note --&gt;
-    &lt;div class=&quot;particle-note&quot;&gt;
-      &lt;span&gt;✋ DRAG THE PARTICLES AND LEAVE INTO THE ATOM&lt;/span&gt;
-    &lt;/div&gt;
-
     &lt;div class=&quot;particle-container&quot;&gt;
-      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+      
+      &lt;!-- Proton Card --&gt;
+      &lt;div class=&quot;particle-card&quot;&gt;
         &lt;div class=&quot;particle-source&quot; data-type=&quot;proton&quot;&gt;
           &lt;div class=&quot;particle-node proton-bg&quot;&gt;+&lt;/div&gt;
           &lt;span class=&quot;source-label&quot;&gt;Proton (+1)&lt;/span&gt;
         &lt;/div&gt;
+        &lt;button class=&quot;btn-plus&quot; onclick=&quot;addParticle(&#39;proton&#39;)&quot; title=&quot;Add Proton&quot;&gt;+&lt;/button&gt;
       &lt;/div&gt;
 
-      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+      &lt;!-- Neutron Card --&gt;
+      &lt;div class=&quot;particle-card&quot;&gt;
         &lt;div class=&quot;particle-source&quot; data-type=&quot;neutron&quot;&gt;
           &lt;div class=&quot;particle-node neutron-bg&quot;&gt;0&lt;/div&gt;
           &lt;span class=&quot;source-label&quot;&gt;Neutron (0)&lt;/span&gt;
         &lt;/div&gt;
+        &lt;button class=&quot;btn-plus&quot; onclick=&quot;addParticle(&#39;neutron&#39;)&quot; title=&quot;Add Neutron&quot;&gt;+&lt;/button&gt;
       &lt;/div&gt;
 
-      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+      &lt;!-- Electron Card --&gt;
+      &lt;div class=&quot;particle-card&quot;&gt;
         &lt;div class=&quot;particle-source&quot; data-type=&quot;electron&quot;&gt;
           &lt;div class=&quot;particle-node electron-bg&quot;&gt;&amp;minus;&lt;/div&gt;
           &lt;span class=&quot;source-label&quot;&gt;Electron (-1)&lt;/span&gt;
         &lt;/div&gt;
+        &lt;button class=&quot;btn-plus&quot; onclick=&quot;addParticle(&#39;electron&#39;)&quot; title=&quot;Add Electron&quot;&gt;+&lt;/button&gt;
       &lt;/div&gt;
+
     &lt;/div&gt;
   &lt;/div&gt;
 
@@ -828,7 +921,6 @@
       electronAngleOffset: 0
     };
 
-    // Zoom State
     let zoomLevel = 1.0;
 
     const canvas = document.getElementById(&#39;atomCanvas&#39;);
@@ -866,14 +958,13 @@
       document.getElementById(&#39;zoom-text&#39;).textContent = `${Math.round(zoomLevel * 100)}%`;
     }
 
-    // Wheel Zoom on Canvas
     canvas.addEventListener(&#39;wheel&#39;, (e) =&gt; {
       e.preventDefault();
       if (e.deltaY &lt; 0) zoomIn();
       else zoomOut();
     }, { passive: false });
 
-    // Generate Mini Periodic Table Grid
+    // Mini Periodic Table Grid
     function initMiniPTable() {
       const grid = document.getElementById(&#39;mini-ptable&#39;);
       grid.innerHTML = &#39;&#39;;
@@ -929,46 +1020,82 @@
       }
     }
 
-    // Drag and Drop Logic
+    // Touch &amp; Pointer Drag and Drop System for Mobile/Desktop
     let activeDrag = null;
     const ghost = document.getElementById(&#39;drag-ghost&#39;);
 
+    function startDrag(type, clientX, clientY) {
+      activeDrag = type;
+      ghost.className = `particle-node drag-ghost ${type}-bg`;
+      ghost.textContent = type === &#39;proton&#39; ? &#39;+&#39; : type === &#39;neutron&#39; ? &#39;0&#39; : &#39;−&#39;;
+      ghost.style.display = &#39;flex&#39;;
+      ghost.style.left = `${clientX}px`;
+      ghost.style.top = `${clientY}px`;
+    }
+
+    function moveDrag(clientX, clientY) {
+      if (!activeDrag) return;
+      ghost.style.left = `${clientX}px`;
+      ghost.style.top = `${clientY}px`;
+    }
+
+    function endDrag(clientX, clientY) {
+      if (!activeDrag) return;
+
+      const stageRect = stageContainer.getBoundingClientRect();
+      if (
+        clientX &gt;= stageRect.left &amp;&amp;
+        clientX &lt;= stageRect.right &amp;&amp;
+        clientY &gt;= stageRect.top &amp;&amp;
+        clientY &lt;= stageRect.bottom
+      ) {
+        addParticle(activeDrag);
+      }
+
+      activeDrag = null;
+      ghost.style.display = &#39;none&#39;;
+    }
+
+    // Pointer Events with Full Mobile Touch Fallback
     document.querySelectorAll(&#39;.particle-source&#39;).forEach(source =&gt; {
       source.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+        e.preventDefault();
         const type = source.dataset.type;
-        activeDrag = type;
-
-        ghost.className = `particle-node drag-ghost ${type}-bg`;
-        ghost.textContent = type === &#39;proton&#39; ? &#39;+&#39; : type === &#39;neutron&#39; ? &#39;0&#39; : &#39;−&#39;;
-        ghost.style.display = &#39;flex&#39;;
-        ghost.style.left = `${e.clientX}px`;
-        ghost.style.top = `${e.clientY}px`;
-
+        startDrag(type, e.clientX, e.clientY);
         source.setPointerCapture(e.pointerId);
       });
 
       source.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
-        if (!activeDrag) return;
-        ghost.style.left = `${e.clientX}px`;
-        ghost.style.top = `${e.clientY}px`;
-      });
-
-      source.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
-        if (!activeDrag) return;
-
-        const stageRect = stageContainer.getBoundingClientRect();
-        if (
-          e.clientX &gt;= stageRect.left &amp;&amp;
-          e.clientX &lt;= stageRect.right &amp;&amp;
-          e.clientY &gt;= stageRect.top &amp;&amp;
-          e.clientY &lt;= stageRect.bottom
-        ) {
-          addParticle(activeDrag);
+        if (activeDrag) {
+          e.preventDefault();
+          moveDrag(e.clientX, e.clientY);
         }
-
-        activeDrag = null;
-        ghost.style.display = &#39;none&#39;;
       });
+
+      const handlePointerEnd = (e) =&gt; {
+        if (activeDrag) {
+          e.preventDefault();
+          endDrag(e.clientX, e.clientY);
+          try { source.releasePointerCapture(e.pointerId); } catch(err) {}
+        }
+      };
+
+      source.addEventListener(&#39;pointerup&#39;, handlePointerEnd);
+      source.addEventListener(&#39;pointercancel&#39;, handlePointerEnd);
+    });
+
+    // Touch Event explicit overrides to guarantee zero mobile scroll conflicts during particle drag
+    window.addEventListener(&#39;touchmove&#39;, (e) =&gt; {
+      if (activeDrag &amp;&amp; e.touches.length &gt; 0) {
+        e.preventDefault();
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener(&#39;touchend&#39;, (e) =&gt; {
+      if (activeDrag &amp;&amp; e.changedTouches.length &gt; 0) {
+        endDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      }
     });
 
     function addParticle(type) {
@@ -1235,8 +1362,8 @@
 </div>
 
 <script>
-  const STAGE_W = 1529;
-  const STAGE_H = 860;
+  const STAGE_W = 1458;
+  const STAGE_H = 820;
   const IS_CUSTOM_SCALE = false;
   const CUSTOM_SCALE_VAL = 51.8;
   const REQUIRE_LANDSCAPE = true;
