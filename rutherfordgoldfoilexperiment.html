@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Rutherford Gold Foil Experiment</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1529px;
+    height: 860px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Rutherford Gold Foil Experiment&lt;/title&gt;
+    &lt;style&gt;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0b0f19;
+            color: #e0e6ed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4da6ff;
+            margin-bottom: 4px;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .simulation-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .view-panel {
+            background: #050811;
+            border: 2px solid #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        /* Class to hide the Microscopic View when toggle is unchecked */
+        .view-panel.hidden {
+            display: none !important;
+        }
+
+        .panel-header {
+            width: 100%;
+            background: #111827;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #38bdf8;
+            border-bottom: 1px solid #1f293d;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        canvas {
+            display: block;
+            background: #050811;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #111827;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #1f293d;
+            max-width: 1100px;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        input[type=&quot;range&quot;], input[type=&quot;checkbox&quot;] {
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.reset {
+            background: #475569;
+        }
+
+        button.reset:hover {
+            background: #334155;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            max-width: 1100px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: #111827;
+            border: 1px solid #1f293d;
+            border-radius: 8px;
+            padding: 10px 15px;
+            text-align: center;
+        }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #38bdf8;
+            margin-top: 4px;
+        }
+
+        .stat-card.glow .value {
+            color: #4ade80;
+        }
+
+        .stat-card.scatter .value {
+            color: #facc15;
+        }
+
+        .stat-card.back .value {
+            color: #f87171;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;h1&gt;Rutherford Gold Foil Experiment&lt;/h1&gt;
+    &lt;p class=&quot;subtitle&quot;&gt;Alpha particle source, circular ZnS scintillation screen, and optional microscopic atomic scattering mode.&lt;/p&gt;
+
+    &lt;div class=&quot;simulation-grid&quot;&gt;
+        &lt;!-- MACROSCOPIC VIEW --&gt;
+        &lt;div class=&quot;view-panel&quot; id=&quot;macroPanel&quot;&gt;
+            &lt;div class=&quot;panel-header&quot;&gt;MACROSCOPIC VIEW (LABORATORY SETUP)&lt;/div&gt;
+            &lt;canvas id=&quot;macroCanvas&quot; width=&quot;520&quot; height=&quot;500&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+
+        &lt;!-- MICROSCOPIC VIEW (Togglable) --&gt;
+        &lt;div class=&quot;view-panel hidden&quot; id=&quot;microPanel&quot;&gt;
+            &lt;div class=&quot;panel-header&quot;&gt;MICROSCOPIC VIEW (ATOMIC LATTICE SCATTERING)&lt;/div&gt;
+            &lt;canvas id=&quot;microCanvas&quot; width=&quot;520&quot; height=&quot;500&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;controls&quot;&gt;
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;button id=&quot;btnPlayPause&quot;&gt;Pause&lt;/button&gt;
+            &lt;button id=&quot;btnReset&quot; class=&quot;reset&quot;&gt;Reset Counters&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label for=&quot;emissionRate&quot;&gt;Emission Speed:&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;emissionRate&quot; min=&quot;1&quot; max=&quot;10&quot; value=&quot;4&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label for=&quot;repulsionForce&quot;&gt;Nuclear Charge / Repulsion:&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;repulsionForce&quot; min=&quot;500&quot; max=&quot;3000&quot; value=&quot;1600&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;showAtoms&quot; checked&gt;
+            &lt;label for=&quot;showAtoms&quot;&gt;Show Atom Grid&lt;/label&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;toggleMicroView&quot;&gt;
+            &lt;label for=&quot;toggleMicroView&quot; style=&quot;color: #38bdf8; font-weight: bold;&quot;&gt;Enable Microscopic View&lt;/label&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;stats-panel&quot;&gt;
+        &lt;div class=&quot;stat-card&quot;&gt;
+            &lt;div class=&quot;label&quot;&gt;Total Emitted&lt;/div&gt;
+            &lt;div class=&quot;value&quot; id=&quot;statTotal&quot;&gt;0&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;stat-card glow&quot;&gt;
+            &lt;div class=&quot;label&quot;&gt;Un-deflected (&amp;lt;5°)&lt;/div&gt;
+            &lt;div class=&quot;value&quot; id=&quot;statPassed&quot;&gt;0&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;stat-card scatter&quot;&gt;
+            &lt;div class=&quot;label&quot;&gt;Scattered (5°-90°)&lt;/div&gt;
+            &lt;div class=&quot;value&quot; id=&quot;statScattered&quot;&gt;0&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;stat-card back&quot;&gt;
+            &lt;div class=&quot;label&quot;&gt;Backscattered (&amp;gt;90°)&lt;/div&gt;
+            &lt;div class=&quot;value&quot; id=&quot;statBackscattered&quot;&gt;0&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // Canvases &amp; Contexts
+        const macroCanvas = document.getElementById(&#39;macroCanvas&#39;);
+        const macroCtx = macroCanvas.getContext(&#39;2d&#39;);
+        const microCanvas = document.getElementById(&#39;microCanvas&#39;);
+        const microCtx = microCanvas.getContext(&#39;2d&#39;);
+
+        // Panels
+        const microPanel = document.getElementById(&#39;microPanel&#39;);
+
+        // UI Controls
+        const btnPlayPause = document.getElementById(&#39;btnPlayPause&#39;);
+        const btnReset = document.getElementById(&#39;btnReset&#39;);
+        const sliderEmission = document.getElementById(&#39;emissionRate&#39;);
+        const sliderForce = document.getElementById(&#39;repulsionForce&#39;);
+        const chkShowAtoms = document.getElementById(&#39;showAtoms&#39;);
+        const toggleMicroView = document.getElementById(&#39;toggleMicroView&#39;);
+
+        // Stats UI
+        const statTotal = document.getElementById(&#39;statTotal&#39;);
+        const statPassed = document.getElementById(&#39;statPassed&#39;);
+        const statScattered = document.getElementById(&#39;statScattered&#39;);
+        const statBackscattered = document.getElementById(&#39;statBackscattered&#39;);
+
+        // Geometry Constants - Macro Canvas
+        const MCX = macroCanvas.width / 2;
+        const MCY = macroCanvas.height / 2;
+        const SCREEN_RADIUS = 210;
+        const GAP_ANGLE = Math.PI / 6; // Opening at source
+        const SOURCE_X = MCX - SCREEN_RADIUS + 8;
+        const SOURCE_Y = MCY;
+
+        // Geometry Constants - Micro Canvas
+        const UCX = microCanvas.width / 2;
+        const UCY = microCanvas.height / 2;
+
+        // Macro Gold Foil Atoms Grid
+        const macroGoldAtoms = [];
+        const atomRows = 5;
+        const atomSpacing = 22;
+        for (let r = -Math.floor(atomRows/2); r &lt;= Math.floor(atomRows/2); r++) {
+            macroGoldAtoms.push({ x: MCX, y: MCY + r * atomSpacing });
+        }
+
+        // Micro Gold Foil Lattice (Multiple Gold Atoms in Microscopic View)
+        const microGoldAtoms = [
+            { x: UCX - 30, y: UCY - 140, radius: 65, nucleusRadius: 8 },
+            { x: UCX - 30, y: UCY,      radius: 65, nucleusRadius: 8 },
+            { x: UCX - 30, y: UCY + 140, radius: 65, nucleusRadius: 8 },
+            { x: UCX + 45, y: UCY - 70,  radius: 65, nucleusRadius: 8 },
+            { x: UCX + 45, y: UCY + 70,  radius: 65, nucleusRadius: 8 }
+        ];
+
+        // Global State
+        let macroParticles = [];
+        let microParticles = [];
+        let scintillations = [];
+        let isRunning = true;
+        let frameCount = 0;
+
+        // Counter Variables
+        let countTotal = 0;
+        let countPassed = 0;
+        let countScattered = 0;
+        let countBackscattered = 0;
+
+        // --- MACRO ALPHA PARTICLE CLASS ---
+        class MacroParticle {
+            constructor() {
+                this.x = SOURCE_X + 25;
+                this.y = SOURCE_Y + (Math.random() - 0.5) * 12;
+                this.vx = 3.8;
+                this.vy = (Math.random() - 0.5) * 0.05;
+                this.radius = 2.5;
+            }
+
+            update() {
+                const forceStrength = parseFloat(sliderForce.value);
+
+                // Deflection off gold nuclei
+                for (let atom of macroGoldAtoms) {
+                    let dx = this.x - atom.x;
+                    let dy = this.y - atom.y;
+                    let distSq = dx * dx + dy * dy;
+                    let dist = Math.sqrt(distSq);
+
+                    if (dist &lt; 140) {
+                        let force = forceStrength / Math.max(distSq, 25);
+                        this.vx += (dx / dist) * force * 0.016;
+                        this.vy += (dy / dist) * force * 0.016;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Check Zinc Sulfide Screen Collision
+                let dxCenter = this.x - MCX;
+                let dyCenter = this.y - MCY;
+                let distFromCenter = Math.sqrt(dxCenter * dxCenter + dyCenter * dyCenter);
+
+                if (distFromCenter &gt;= SCREEN_RADIUS) {
+                    let hitAngle = Math.atan2(dyCenter, dxCenter);
+                    let angleFromLeft = Math.abs(Math.abs(hitAngle) - Math.PI);
+
+                    if (angleFromLeft &gt; GAP_ANGLE / 2) {
+                        // Hit ZnS Screen -&gt; Flash &amp; Disappear
+                        this.onHitScreen(hitAngle);
+                        return false;
+                    }
+                }
+
+                if (this.x &lt; 0 || this.x &gt; macroCanvas.width || this.y &lt; 0 || this.y &gt; macroCanvas.height) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            onHitScreen(hitAngle) {
+                let currentAngle = Math.atan2(this.vy, this.vx);
+                let deflectionDegrees = Math.abs(currentAngle) * (180 / Math.PI);
+
+                // Create green flash (scintillation)
+                scintillations.push({
+                    x: MCX + Math.cos(hitAngle) * SCREEN_RADIUS,
+                    y: MCY + Math.sin(hitAngle) * SCREEN_RADIUS,
+                    alpha: 1.0,
+                    radius: 5.5
+                });
+
+                // Update Stats
+                countTotal++;
+                if (deflectionDegrees &lt; 5) countPassed++;
+                else if (deflectionDegrees &lt;= 90) countScattered++;
+                else countBackscattered++;
+
+                updateStatsUI();
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = &#39;#60a5fa&#39;;
+                ctx.shadowColor = &#39;#3b82f6&#39;;
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // --- MICRO ALPHA PARTICLE CLASS ---
+        class MicroParticle {
+            constructor() {
+                this.x = 10;
+                this.y = UCY + (Math.random() - 0.5) * 380; 
+                this.vx = 4.0;
+                this.vy = 0;
+                this.radius = 3.5;
+                this.trail = [];
+            }
+
+            update() {
+                const forceStrength = parseFloat(sliderForce.value) * 1.8;
+
+                for (let atom of microGoldAtoms) {
+                    let dx = this.x - atom.x;
+                    let dy = this.y - atom.y;
+                    let distSq = dx * dx + dy * dy;
+                    let dist = Math.sqrt(distSq);
+
+                    if (dist &lt; 180) {
+                        let force = forceStrength / Math.max(distSq, 35);
+                        this.vx += (dx / dist) * force * 0.018;
+                        this.vy += (dy / dist) * force * 0.018;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length &gt; 22) this.trail.shift();
+
+                if (this.x &lt; -20 || this.x &gt; microCanvas.width + 20 || 
+                    this.y &lt; -20 || this.y &gt; microCanvas.height + 20) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            draw(ctx) {
+                if (this.trail.length &gt; 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                    for (let p of this.trail) {
+                        ctx.lineTo(p.x, p.y);
+                    }
+                    ctx.strokeStyle = &#39;rgba(96, 165, 250, 0.45)&#39;;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = &#39;#38bdf8&#39;;
+                ctx.shadowColor = &#39;#0284c7&#39;;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // --- RENDER FUNCTIONS: MACRO VIEW ---
+        function drawMacroScreen() {
+            macroCtx.save();
+            
+            macroCtx.lineWidth = 10;
+            macroCtx.strokeStyle = &#39;#14532d&#39;;
+            macroCtx.beginPath();
+            let startAngle = -Math.PI + GAP_ANGLE / 2;
+            let endAngle = Math.PI - GAP_ANGLE / 2;
+            macroCtx.arc(MCX, MCY, SCREEN_RADIUS, startAngle, endAngle, false);
+            macroCtx.stroke();
+
+            macroCtx.lineWidth = 3;
+            macroCtx.strokeStyle = &#39;#22c55e&#39;;
+            macroCtx.shadowColor = &#39;#4ade80&#39;;
+            macroCtx.shadowBlur = 8;
+            macroCtx.stroke();
+
+            macroCtx.restore();
+        }
+
+        function drawMacroSource() {
+            macroCtx.save();
+            macroCtx.fillStyle = &#39;#334155&#39;;
+            macroCtx.strokeStyle = &#39;#64748b&#39;;
+            macroCtx.lineWidth = 2;
+            macroCtx.fillRect(SOURCE_X - 40, SOURCE_Y - 20, 42, 40);
+            macroCtx.strokeRect(SOURCE_X - 40, SOURCE_Y - 20, 42, 40);
+
+            macroCtx.fillStyle = &#39;#020617&#39;;
+            macroCtx.fillRect(SOURCE_X, SOURCE_Y - 6, 8, 12);
+
+            macroCtx.fillStyle = &#39;#fbbf24&#39;;
+            macroCtx.font = &#39;10px sans-serif&#39;;
+            macroCtx.fillText(&#39;α-Source&#39;, SOURCE_X - 38, SOURCE_Y + 32);
+            macroCtx.restore();
+        }
+
+        function drawMacroFoil() {
+            macroCtx.save();
+            macroCtx.strokeStyle = &#39;rgba(234, 179, 8, 0.35)&#39;;
+            macroCtx.lineWidth = 26;
+            macroCtx.beginPath();
+            macroCtx.moveTo(MCX, MCY - 60);
+            macroCtx.lineTo(MCX, MCY + 60);
+            macroCtx.stroke();
+
+            if (chkShowAtoms.checked) {
+                for (let atom of macroGoldAtoms) {
+                    macroCtx.beginPath();
+                    macroCtx.arc(atom.x, atom.y, 3.5, 0, Math.PI * 2);
+                    macroCtx.fillStyle = &#39;#f59e0b&#39;;
+                    macroCtx.shadowColor = &#39;#fbbf24&#39;;
+                    macroCtx.shadowBlur = 4;
+                    macroCtx.fill();
+                    macroCtx.shadowBlur = 0;
+                }
+            }
+
+            macroCtx.fillStyle = &#39;#eab308&#39;;
+            macroCtx.font = &#39;bold 11px sans-serif&#39;;
+            macroCtx.fillText(&#39;Gold Foil&#39;, MCX - 22, MCY - 70);
+            macroCtx.restore();
+        }
+
+        function drawScintillations() {
+            macroCtx.save();
+            for (let i = scintillations.length - 1; i &gt;= 0; i--) {
+                let s = scintillations[i];
+
+                macroCtx.beginPath();
+                macroCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                macroCtx.fillStyle = `rgba(74, 222, 128, ${s.alpha})`;
+                macroCtx.shadowColor = &#39;#22c55e&#39;;
+                macroCtx.shadowBlur = 10;
+                macroCtx.fill();
+
+                s.alpha -= 0.035;
+                s.radius += 0.08;
+
+                if (s.alpha &lt;= 0) scintillations.splice(i, 1);
+            }
+            macroCtx.restore();
+        }
+
+        // --- RENDER FUNCTIONS: MICRO VIEW ---
+        function drawMicroView() {
+            microCtx.save();
+
+            for (let atom of microGoldAtoms) {
+                microCtx.beginPath();
+                microCtx.arc(atom.x, atom.y, atom.radius, 0, Math.PI * 2);
+                microCtx.strokeStyle = &#39;rgba(234, 179, 8, 0.18)&#39;;
+                microCtx.lineWidth = 1.2;
+                microCtx.setLineDash([4, 4]);
+                microCtx.stroke();
+                microCtx.setLineDash([]);
+
+                let glow = microCtx.createRadialGradient(atom.x, atom.y, 1, atom.x, atom.y, 24);
+                glow.addColorStop(0, &#39;rgba(251, 191, 36, 1)&#39;);
+                glow.addColorStop(0.5, &#39;rgba(245, 158, 11, 0.4)&#39;);
+                glow.addColorStop(1, &#39;rgba(245, 158, 11, 0)&#39;);
+
+                microCtx.beginPath();
+                microCtx.arc(atom.x, atom.y, 24, 0, Math.PI * 2);
+                microCtx.fillStyle = glow;
+                microCtx.fill();
+
+                microCtx.beginPath();
+                microCtx.arc(atom.x, atom.y, atom.nucleusRadius, 0, Math.PI * 2);
+                microCtx.fillStyle = &#39;#f59e0b&#39;;
+                microCtx.shadowColor = &#39;#fbbf24&#39;;
+                microCtx.shadowBlur = 8;
+                microCtx.fill();
+                microCtx.shadowBlur = 0;
+            }
+
+            microCtx.fillStyle = &#39;#fef08a&#39;;
+            microCtx.font = &#39;bold 11px sans-serif&#39;;
+            microCtx.fillText(&#39;Gold Nuclei (+79e Lattice)&#39;, 15, 25);
+
+            microCtx.fillStyle = &#39;#64748b&#39;;
+            microCtx.font = &#39;10px sans-serif&#39;;
+            microCtx.fillText(&#39;Empty Space Between Nuclei ≈ 10,000x Nucleus Diameter&#39;, 15, 485);
+
+            microCtx.restore();
+        }
+
+        function updateStatsUI() {
+            statTotal.innerText = countTotal;
+            statPassed.innerText = countPassed;
+            statScattered.innerText = countScattered;
+            statBackscattered.innerText = countBackscattered;
+        }
+
+        function resetStats() {
+            countTotal = 0;
+            countPassed = 0;
+            countScattered = 0;
+            countBackscattered = 0;
+            macroParticles = [];
+            microParticles = [];
+            scintillations = [];
+            updateStatsUI();
+        }
+
+        // --- MAIN ANIMATION LOOP ---
+        function animate() {
+            if (isRunning) {
+                // Clear Macro Canvas
+                macroCtx.fillStyle = &#39;#050811&#39;;
+                macroCtx.fillRect(0, 0, macroCanvas.width, macroCanvas.height);
+
+                drawMacroScreen();
+                drawMacroFoil();
+                drawMacroSource();
+
+                // Check if Microscopic view toggle is enabled
+                const isMicroActive = toggleMicroView.checked;
+
+                if (isMicroActive) {
+                    microCtx.fillStyle = &#39;#050811&#39;;
+                    microCtx.fillRect(0, 0, microCanvas.width, microCanvas.height);
+                    drawMicroView();
+                }
+
+                // Continuous Alpha Emission
+                frameCount++;
+                let interval = Math.max(1, 12 - parseInt(sliderEmission.value));
+                if (frameCount % interval === 0) {
+                    macroParticles.push(new MacroParticle());
+                    if (isMicroActive) {
+                        microParticles.push(new MicroParticle());
+                    }
+                }
+
+                // Update &amp; Render Macro Particles
+                for (let i = macroParticles.length - 1; i &gt;= 0; i--) {
+                    let p = macroParticles[i];
+                    if (p.update()) {
+                        p.draw(macroCtx);
+                    } else {
+                        macroParticles.splice(i, 1);
+                    }
+                }
+
+                drawScintillations();
+
+                // Update &amp; Render Micro Particles (if active)
+                if (isMicroActive) {
+                    for (let i = microParticles.length - 1; i &gt;= 0; i--) {
+                        let mp = microParticles[i];
+                        if (mp.update()) {
+                            mp.draw(microCtx);
+                        } else {
+                            microParticles.splice(i, 1);
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event Listeners
+        btnPlayPause.addEventListener(&#39;click&#39;, () =&gt; {
+            isRunning = !isRunning;
+            btnPlayPause.innerText = isRunning ? &#39;Pause&#39; : &#39;Resume&#39;;
+        });
+
+        btnReset.addEventListener(&#39;click&#39;, resetStats);
+
+        // Toggle Microscopic View tab panel
+        toggleMicroView.addEventListener(&#39;change&#39;, (e) =&gt; {
+            if (e.target.checked) {
+                microPanel.classList.remove(&#39;hidden&#39;);
+            } else {
+                microPanel.classList.add(&#39;hidden&#39;);
+                microParticles = []; // Clear micro particles when hidden
+            }
+        });
+
+        // Start Animation
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1529;
+  const STAGE_H = 860;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
