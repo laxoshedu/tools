@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>ATOMIC STRUCTURE SIMULATOR</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1529px;
+    height: 860px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+  &lt;title&gt;Interactive Atomic Structure Simulator&lt;/title&gt;
+  &lt;style&gt;
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: #151d30;
+      --panel-border: #243049;
+      --accent: #38bdf8;
+      --proton-color: #ef4444;
+      --neutron-color: #94a3b8;
+      --electron-color: #06b6d4;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 10px 20px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sidebar {
+      background: var(--panel-bg);
+      border-right: 1px solid var(--panel-border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      z-index: 5;
+    }
+
+    /* Element Display Card */
+    .element-card {
+      background: #0d1424;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      position: relative;
+    }
+
+    .elem-number {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    .elem-symbol {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent);
+      margin: 4px 0;
+    }
+
+    .elem-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Stats Grid &amp; Undo Controls */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .particle-control-box {
+      background: #0d1424;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .control-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .control-val {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .btn-undo {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text);
+      padding: 4px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .btn-undo:hover {
+      background: #334155;
+      border-color: var(--accent);
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: #0d1424;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .stat-card .label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .stat-card .val {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .badge-neutral { background: #334155; color: #f8fafc; }
+    .badge-cation { background: #7f1d1d; color: #fca5a5; }
+    .badge-anion { background: #1e3a8a; color: #bfdbfe; }
+    .badge-stable { background: #14532d; color: #86efac; }
+    .badge-unstable { background: #713f12; color: #fef08a; }
+
+    /* Mini Periodic Table Widget */
+    .mini-ptable-container {
+      background: #0d1424;
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ptable-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ptable-grid {
+      display: grid;
+      grid-template-columns: repeat(18, 1fr);
+      gap: 1.5px;
+      width: 100%;
+    }
+
+    .pt-cell {
+      aspect-ratio: 1;
+      background: #1e293b;
+      border-radius: 1.5px;
+      font-size: 0.45rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .pt-cell:hover {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .pt-cell.active {
+      background: var(--accent) !important;
+      color: #0f172a !important;
+      font-size: 0.55rem;
+      box-shadow: 0 0 6px var(--accent);
+      z-index: 2;
+    }
+
+    .pt-empty {
+      background: transparent;
+      pointer-events: none;
+    }
+
+    /* Simulation Stage */
+    .stage {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at center, #131c31 0%, #080c14 100%);
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Stage Floating Controls (Zoom &amp; Reset) */
+    .stage-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+      background: rgba(21, 29, 48, 0.85);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(6px);
+    }
+
+    .btn {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #243049;
+      border-color: var(--accent);
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      padding: 0;
+    }
+
+    .zoom-level-text {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: var(--accent);
+      padding: 0 6px;
+      min-width: 45px;
+      text-align: center;
+    }
+
+    /* Floating Canvas Charge Indicator Overlay */
+    .canvas-charge-overlay {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .charge-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .charge-badge-large {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border: 1px solid transparent;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+
+    .charge-badge-large.neutral {
+      background: rgba(30, 41, 59, 0.85);
+      border-color: #475569;
+      color: #f8fafc;
+    }
+
+    .charge-badge-large.positive {
+      background: rgba(127, 29, 29, 0.85);
+      border-color: #ef4444;
+      color: #fca5a5;
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+    }
+
+    .charge-badge-large.negative {
+      background: rgba(30, 58, 138, 0.85);
+      border-color: #06b6d4;
+      color: #a5f3fc;
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
+    }
+
+    /* Particle Drag Bottom Container */
+    .particle-container-wrapper {
+      background: var(--panel-bg);
+      border-top: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 20px 14px 20px;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    /* Requested Subatomic Particles Note */
+    .particle-note {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      text-transform: uppercase;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px dashed var(--accent);
+      padding: 5px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .particle-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .particle-source-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .particle-source {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: grab;
+    }
+
+    .particle-source:active {
+      cursor: grabbing;
+    }
+
+    .particle-node {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: transform 0.15s ease;
+    }
+
+    .particle-source:hover .particle-node {
+      transform: scale(1.1);
+    }
+
+    .proton-bg { background: radial-gradient(circle at 30% 30%, #f87171, #dc2626); color: white; }
+    .neutron-bg { background: radial-gradient(circle at 30% 30%, #cbd5e1, #64748b); color: white; }
+    .electron-bg { background: radial-gradient(circle at 30% 30%, #67e8f9, #0891b2); color: white; }
+
+    .source-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      transform: translate(-50%, -50%);
+      opacity: 0.9;
+    }
+
+    .drop-hint {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(11, 15, 25, 0.85);
+      border: 1px dashed var(--accent);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--accent);
+      pointer-events: none;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;header&gt;
+    &lt;h1&gt;Atomic Structure Simulator&lt;/h1&gt;
+    &lt;div style=&quot;font-size: 0.8rem; color: var(--text-muted);&quot;&gt;Drag particles to build atoms up to Element 118&lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;div class=&quot;main-layout&quot;&gt;
+    &lt;div class=&quot;sidebar&quot;&gt;
+      &lt;!-- Element Card --&gt;
+      &lt;div class=&quot;element-card&quot;&gt;
+        &lt;div class=&quot;elem-number&quot; id=&quot;elem-z&quot;&gt;Z = 0&lt;/div&gt;
+        &lt;div class=&quot;elem-symbol&quot; id=&quot;elem-symbol&quot;&gt;--&lt;/div&gt;
+        &lt;div class=&quot;elem-name&quot; id=&quot;elem-name&quot;&gt;Empty Atom&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Individual Undo &amp; Particle Controls --&gt;
+      &lt;div class=&quot;controls-grid&quot;&gt;
+        &lt;div class=&quot;particle-control-box&quot;&gt;
+          &lt;span class=&quot;control-title&quot;&gt;Protons&lt;/span&gt;
+          &lt;span class=&quot;control-val&quot; id=&quot;count-p&quot; style=&quot;color: #ef4444;&quot;&gt;0&lt;/span&gt;
+          &lt;button class=&quot;btn-undo&quot; onclick=&quot;removeParticle(&#39;proton&#39;)&quot;&gt;Undo -1&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;particle-control-box&quot;&gt;
+          &lt;span class=&quot;control-title&quot;&gt;Neutrons&lt;/span&gt;
+          &lt;span class=&quot;control-val&quot; id=&quot;count-n&quot; style=&quot;color: #94a3b8;&quot;&gt;0&lt;/span&gt;
+          &lt;button class=&quot;btn-undo&quot; onclick=&quot;removeParticle(&#39;neutron&#39;)&quot;&gt;Undo -1&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;particle-control-box&quot;&gt;
+          &lt;span class=&quot;control-title&quot;&gt;Electrons&lt;/span&gt;
+          &lt;span class=&quot;control-val&quot; id=&quot;count-e&quot; style=&quot;color: #06b6d4;&quot;&gt;0&lt;/span&gt;
+          &lt;button class=&quot;btn-undo&quot; onclick=&quot;removeParticle(&#39;electron&#39;)&quot;&gt;Undo -1&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Stats Summary --&gt;
+      &lt;div class=&quot;stat-row&quot;&gt;
+        &lt;div class=&quot;stat-card&quot;&gt;
+          &lt;div class=&quot;label&quot;&gt;Mass Number (A)&lt;/div&gt;
+          &lt;div class=&quot;val&quot; id=&quot;count-a&quot;&gt;0&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;stat-card&quot;&gt;
+          &lt;div class=&quot;label&quot;&gt;Net Charge&lt;/div&gt;
+          &lt;div class=&quot;val&quot; id=&quot;net-charge&quot;&gt;0&lt;/div&gt;
+          &lt;div id=&quot;ion-badge&quot; class=&quot;badge badge-neutral&quot;&gt;Neutral&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;stat-card&quot;&gt;
+        &lt;div class=&quot;label&quot;&gt;Nuclear Stability&lt;/div&gt;
+        &lt;div id=&quot;stability-badge&quot; class=&quot;badge badge-neutral&quot;&gt;Empty&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;stat-card&quot;&gt;
+        &lt;div class=&quot;label&quot;&gt;Electron Shell Config&lt;/div&gt;
+        &lt;div class=&quot;val&quot; id=&quot;shell-config&quot; style=&quot;font-size: 0.85rem; font-family: monospace;&quot;&gt;-&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Mini Periodic Table --&gt;
+      &lt;div class=&quot;mini-ptable-container&quot;&gt;
+        &lt;div class=&quot;ptable-title&quot;&gt;
+          &lt;span&gt;Periodic Table&lt;/span&gt;
+          &lt;span id=&quot;ptable-active-label&quot; style=&quot;color: var(--accent);&quot;&gt;--&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;ptable-grid&quot; id=&quot;mini-ptable&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Canvas Simulation Stage --&gt;
+    &lt;div class=&quot;stage&quot; id=&quot;stage-container&quot;&gt;
+      &lt;canvas id=&quot;atomCanvas&quot;&gt;&lt;/canvas&gt;
+
+      &lt;!-- Charge Status Overlay directly on top of Atomic Structure --&gt;
+      &lt;div class=&quot;canvas-charge-overlay&quot;&gt;
+        &lt;div class=&quot;charge-title&quot;&gt;Atomic Charge Status&lt;/div&gt;
+        &lt;div id=&quot;canvas-charge-badge&quot; class=&quot;charge-badge-large neutral&quot;&gt;NEUTRAL ATOM (0)&lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Zoom and Stage Control Buttons --&gt;
+      &lt;div class=&quot;stage-controls&quot;&gt;
+        &lt;button class=&quot;btn btn-icon&quot; onclick=&quot;zoomIn()&quot; title=&quot;Zoom In&quot;&gt;+&lt;/button&gt;
+        &lt;span class=&quot;zoom-level-text&quot; id=&quot;zoom-text&quot;&gt;100%&lt;/span&gt;
+        &lt;button class=&quot;btn btn-icon&quot; onclick=&quot;zoomOut()&quot; title=&quot;Zoom Out&quot;&gt;−&lt;/button&gt;
+        &lt;button class=&quot;btn&quot; onclick=&quot;resetZoom()&quot; title=&quot;Reset Zoom&quot;&gt;Reset Zoom&lt;/button&gt;
+        &lt;button class=&quot;btn&quot; onclick=&quot;resetAtom()&quot;&gt;Reset All&lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;drop-hint&quot;&gt;Drag Protons/Neutrons to Center Nucleus &amp;bull; Electrons to Shells&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Bottom Particle Container with Note --&gt;
+  &lt;div class=&quot;particle-container-wrapper&quot;&gt;
+    &lt;!-- Requested Note --&gt;
+    &lt;div class=&quot;particle-note&quot;&gt;
+      &lt;span&gt;✋ DRAG THE PARTICLES AND LEAVE INTO THE ATOM&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;particle-container&quot;&gt;
+      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+        &lt;div class=&quot;particle-source&quot; data-type=&quot;proton&quot;&gt;
+          &lt;div class=&quot;particle-node proton-bg&quot;&gt;+&lt;/div&gt;
+          &lt;span class=&quot;source-label&quot;&gt;Proton (+1)&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+        &lt;div class=&quot;particle-source&quot; data-type=&quot;neutron&quot;&gt;
+          &lt;div class=&quot;particle-node neutron-bg&quot;&gt;0&lt;/div&gt;
+          &lt;span class=&quot;source-label&quot;&gt;Neutron (0)&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;particle-source-wrapper&quot;&gt;
+        &lt;div class=&quot;particle-source&quot; data-type=&quot;electron&quot;&gt;
+          &lt;div class=&quot;particle-node electron-bg&quot;&gt;&amp;minus;&lt;/div&gt;
+          &lt;span class=&quot;source-label&quot;&gt;Electron (-1)&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Drag Ghost --&gt;
+  &lt;div id=&quot;drag-ghost&quot; class=&quot;particle-node drag-ghost&quot; style=&quot;display: none;&quot;&gt;&lt;/div&gt;
+
+  &lt;script&gt;
+    // FULL 118 ELEMENTS DATASET
+    const ELEMENTS = [
+      { z: 0, symbol: &quot;--&quot;, name: &quot;Empty Atom&quot; },
+      { z: 1, symbol: &quot;H&quot;, name: &quot;Hydrogen&quot; }, { z: 2, symbol: &quot;He&quot;, name: &quot;Helium&quot; },
+      { z: 3, symbol: &quot;Li&quot;, name: &quot;Lithium&quot; }, { z: 4, symbol: &quot;Be&quot;, name: &quot;Beryllium&quot; }, { z: 5, symbol: &quot;B&quot;, name: &quot;Boron&quot; }, { z: 6, symbol: &quot;C&quot;, name: &quot;Carbon&quot; }, { z: 7, symbol: &quot;N&quot;, name: &quot;Nitrogen&quot; }, { z: 8, symbol: &quot;O&quot;, name: &quot;Oxygen&quot; }, { z: 9, symbol: &quot;F&quot;, name: &quot;Fluorine&quot; }, { z: 10, symbol: &quot;Ne&quot;, name: &quot;Neon&quot; },
+      { z: 11, symbol: &quot;Na&quot;, name: &quot;Sodium&quot; }, { z: 12, symbol: &quot;Mg&quot;, name: &quot;Magnesium&quot; }, { z: 13, symbol: &quot;Al&quot;, name: &quot;Aluminum&quot; }, { z: 14, symbol: &quot;Si&quot;, name: &quot;Silicon&quot; }, { z: 15, symbol: &quot;P&quot;, name: &quot;Phosphorus&quot; }, { z: 16, symbol: &quot;S&quot;, name: &quot;Sulfur&quot; }, { z: 17, symbol: &quot;Cl&quot;, name: &quot;Chlorine&quot; }, { z: 18, symbol: &quot;Ar&quot;, name: &quot;Argon&quot; },
+      { z: 19, symbol: &quot;K&quot;, name: &quot;Potassium&quot; }, { z: 20, symbol: &quot;Ca&quot;, name: &quot;Calcium&quot; }, { z: 21, symbol: &quot;Sc&quot;, name: &quot;Scandium&quot; }, { z: 22, symbol: &quot;Ti&quot;, name: &quot;Titanium&quot; }, { z: 23, symbol: &quot;V&quot;, name: &quot;Vanadium&quot; }, { z: 24, symbol: &quot;Cr&quot;, name: &quot;Chromium&quot; }, { z: 25, symbol: &quot;Mn&quot;, name: &quot;Manganese&quot; }, { z: 26, symbol: &quot;Fe&quot;, name: &quot;Iron&quot; }, { z: 27, symbol: &quot;Co&quot;, name: &quot;Cobalt&quot; }, { z: 28, symbol: &quot;Ni&quot;, name: &quot;Nickel&quot; }, { z: 29, symbol: &quot;Cu&quot;, name: &quot;Copper&quot; }, { z: 30, symbol: &quot;Zn&quot;, name: &quot;Zinc&quot; }, { z: 31, symbol: &quot;Ga&quot;, name: &quot;Gallium&quot; }, { z: 32, symbol: &quot;Ge&quot;, name: &quot;Germanium&quot; }, { z: 33, symbol: &quot;As&quot;, name: &quot;Arsenic&quot; }, { z: 34, symbol: &quot;Se&quot;, name: &quot;Selenium&quot; }, { z: 35, symbol: &quot;Br&quot;, name: &quot;Bromine&quot; }, { z: 36, symbol: &quot;Kr&quot;, name: &quot;Krypton&quot; },
+      { z: 37, symbol: &quot;Rb&quot;, name: &quot;Rubidium&quot; }, { z: 38, symbol: &quot;Sr&quot;, name: &quot;Strontium&quot; }, { z: 39, symbol: &quot;Y&quot;, name: &quot;Yttrium&quot; }, { z: 40, symbol: &quot;Zr&quot;, name: &quot;Zirconium&quot; }, { z: 41, symbol: &quot;Nb&quot;, name: &quot;Niobium&quot; }, { z: 42, symbol: &quot;Mo&quot;, name: &quot;Molybdenum&quot; }, { z: 43, symbol: &quot;Tc&quot;, name: &quot;Technetium&quot; }, { z: 44, symbol: &quot;Ru&quot;, name: &quot;Ruthenium&quot; }, { z: 45, symbol: &quot;Rh&quot;, name: &quot;Rhodium&quot; }, { z: 46, symbol: &quot;Pd&quot;, name: &quot;Palladium&quot; }, { z: 47, symbol: &quot;Ag&quot;, name: &quot;Silver&quot; }, { z: 48, symbol: &quot;Cd&quot;, name: &quot;Cadmium&quot; }, { z: 49, symbol: &quot;In&quot;, name: &quot;Indium&quot; }, { z: 50, symbol: &quot;Sn&quot;, name: &quot;Tin&quot; }, { z: 51, symbol: &quot;Sb&quot;, name: &quot;Antimony&quot; }, { z: 52, symbol: &quot;Te&quot;, name: &quot;Tellurium&quot; }, { z: 53, symbol: &quot;I&quot;, name: &quot;Iodine&quot; }, { z: 54, symbol: &quot;Xe&quot;, name: &quot;Xenon&quot; },
+      { z: 55, symbol: &quot;Cs&quot;, name: &quot;Cesium&quot; }, { z: 56, symbol: &quot;Ba&quot;, name: &quot;Barium&quot; }, { z: 57, symbol: &quot;La&quot;, name: &quot;Lanthanum&quot; }, { z: 58, symbol: &quot;Ce&quot;, name: &quot;Cerium&quot; }, { z: 59, symbol: &quot;Pr&quot;, name: &quot;Praseodymium&quot; }, { z: 60, symbol: &quot;Nd&quot;, name: &quot;Neodymium&quot; }, { z: 61, symbol: &quot;Pm&quot;, name: &quot;Promethium&quot; }, { z: 62, symbol: &quot;Sm&quot;, name: &quot;Samarium&quot; }, { z: 63, symbol: &quot;Eu&quot;, name: &quot;Europium&quot; }, { z: 64, symbol: &quot;Gd&quot;, name: &quot;Gadolinium&quot; }, { z: 65, symbol: &quot;Tb&quot;, name: &quot;Terbium&quot; }, { z: 66, symbol: &quot;Dy&quot;, name: &quot;Dysprosium&quot; }, { z: 67, symbol: &quot;Ho&quot;, name: &quot;Holmium&quot; }, { z: 68, symbol: &quot;Er&quot;, name: &quot;Erbium&quot; }, { z: 69, symbol: &quot;Tm&quot;, name: &quot;Thulium&quot; }, { z: 70, symbol: &quot;Yb&quot;, name: &quot;Ytterbium&quot; }, { z: 71, symbol: &quot;Lu&quot;, name: &quot;Lutetium&quot; },
+      { z: 72, symbol: &quot;Hf&quot;, name: &quot;Hafnium&quot; }, { z: 73, symbol: &quot;Ta&quot;, name: &quot;Tantalum&quot; }, { z: 74, symbol: &quot;W&quot;, name: &quot;Tungsten&quot; }, { z: 75, symbol: &quot;Re&quot;, name: &quot;Rhenium&quot; }, { z: 76, symbol: &quot;Os&quot;, name: &quot;Osmium&quot; }, { z: 77, symbol: &quot;Ir&quot;, name: &quot;Iridium&quot; }, { z: 78, symbol: &quot;Pt&quot;, name: &quot;Platinum&quot; }, { z: 79, symbol: &quot;Au&quot;, name: &quot;Gold&quot; }, { z: 80, symbol: &quot;Hg&quot;, name: &quot;Mercury&quot; }, { z: 81, symbol: &quot;Tl&quot;, name: &quot;Thallium&quot; }, { z: 82, symbol: &quot;Pb&quot;, name: &quot;Lead&quot; }, { z: 83, symbol: &quot;Bi&quot;, name: &quot;Bismuth&quot; }, { z: 84, symbol: &quot;Po&quot;, name: &quot;Polonium&quot; }, { z: 85, symbol: &quot;At&quot;, name: &quot;Astatine&quot; }, { z: 86, symbol: &quot;Rn&quot;, name: &quot;Radon&quot; },
+      { z: 87, symbol: &quot;Fr&quot;, name: &quot;Francium&quot; }, { z: 88, symbol: &quot;Ra&quot;, name: &quot;Radium&quot; }, { z: 89, symbol: &quot;Ac&quot;, name: &quot;Actinium&quot; }, { z: 90, symbol: &quot;Th&quot;, name: &quot;Thorium&quot; }, { z: 91, symbol: &quot;Pa&quot;, name: &quot;Protactinium&quot; }, { z: 92, symbol: &quot;U&quot;, name: &quot;Uranium&quot; }, { z: 93, symbol: &quot;Np&quot;, name: &quot;Neptunium&quot; }, { z: 94, symbol: &quot;Pu&quot;, name: &quot;Plutonium&quot; }, { z: 95, symbol: &quot;Am&quot;, name: &quot;Americium&quot; }, { z: 96, symbol: &quot;Cm&quot;, name: &quot;Curium&quot; }, { z: 97, symbol: &quot;Bk&quot;, name: &quot;Berkelium&quot; }, { z: 98, symbol: &quot;Cf&quot;, name: &quot;Californium&quot; }, { z: 99, symbol: &quot;Es&quot;, name: &quot;Einsteinium&quot; }, { z: 100, symbol: &quot;Fm&quot;, name: &quot;Fermium&quot; }, { z: 101, symbol: &quot;Md&quot;, name: &quot;Mendelevium&quot; }, { z: 102, symbol: &quot;No&quot;, name: &quot;Nobelium&quot; }, { z: 103, symbol: &quot;Lr&quot;, name: &quot;Lawrencium&quot; }, { z: 104, symbol: &quot;Rf&quot;, name: &quot;Rutherfordium&quot; }, { z: 105, symbol: &quot;Db&quot;, name: &quot;Dubnium&quot; }, { z: 106, symbol: &quot;Sg&quot;, name: &quot;Seaborgium&quot; }, { z: 107, symbol: &quot;Bh&quot;, name: &quot;Bohrium&quot; }, { z: 108, symbol: &quot;Hs&quot;, name: &quot;Hassium&quot; }, { z: 109, symbol: &quot;Mt&quot;, name: &quot;Meitnerium&quot; }, { z: 110, symbol: &quot;Ds&quot;, name: &quot;Darmstadtium&quot; }, { z: 111, symbol: &quot;Rg&quot;, name: &quot;Roentgenium&quot; }, { z: 112, symbol: &quot;Cn&quot;, name: &quot;Copernicium&quot; }, { z: 113, symbol: &quot;Nh&quot;, name: &quot;Nihonium&quot; }, { z: 114, symbol: &quot;Fl&quot;, name: &quot;Flerovium&quot; }, { z: 115, symbol: &quot;Mc&quot;, name: &quot;Moscovium&quot; }, { z: 116, symbol: &quot;Lv&quot;, name: &quot;Livermorium&quot; }, { z: 117, symbol: &quot;Ts&quot;, name: &quot;Tennessine&quot; }, { z: 118, symbol: &quot;Og&quot;, name: &quot;Oganesson&quot; }
+    ];
+
+    const SHELL_CAPACITIES = [2, 8, 18, 32, 32, 18, 8];
+
+    let state = {
+      protons: 0,
+      neutrons: 0,
+      electrons: 0,
+      nucleusParticles: [], // { type, x, y, targetX, targetY }
+      electronAngleOffset: 0
+    };
+
+    // Zoom State
+    let zoomLevel = 1.0;
+
+    const canvas = document.getElementById(&#39;atomCanvas&#39;);
+    const ctx = canvas.getContext(&#39;2d&#39;);
+    const stageContainer = document.getElementById(&#39;stage-container&#39;);
+
+    function resizeCanvas() {
+      canvas.width = stageContainer.clientWidth;
+      canvas.height = stageContainer.clientHeight;
+    }
+    window.addEventListener(&#39;resize&#39;, resizeCanvas);
+    resizeCanvas();
+
+    // Zoom Functions
+    function zoomIn() {
+      if (zoomLevel &lt; 3.0) {
+        zoomLevel += 0.2;
+        updateZoomUI();
+      }
+    }
+
+    function zoomOut() {
+      if (zoomLevel &gt; 0.4) {
+        zoomLevel -= 0.2;
+        updateZoomUI();
+      }
+    }
+
+    function resetZoom() {
+      zoomLevel = 1.0;
+      updateZoomUI();
+    }
+
+    function updateZoomUI() {
+      document.getElementById(&#39;zoom-text&#39;).textContent = `${Math.round(zoomLevel * 100)}%`;
+    }
+
+    // Wheel Zoom on Canvas
+    canvas.addEventListener(&#39;wheel&#39;, (e) =&gt; {
+      e.preventDefault();
+      if (e.deltaY &lt; 0) zoomIn();
+      else zoomOut();
+    }, { passive: false });
+
+    // Generate Mini Periodic Table Grid
+    function initMiniPTable() {
+      const grid = document.getElementById(&#39;mini-ptable&#39;);
+      grid.innerHTML = &#39;&#39;;
+
+      const layout = {};
+      for (let z = 1; z &lt;= 118; z++) {
+        let r, c;
+        if (z === 1) { r = 1; c = 1; }
+        else if (z === 2) { r = 1; c = 18; }
+        else if (z &gt;= 3 &amp;&amp; z &lt;= 4) { r = 2; c = z - 2; }
+        else if (z &gt;= 5 &amp;&amp; z &lt;= 10) { r = 2; c = z + 8; }
+        else if (z &gt;= 11 &amp;&amp; z &lt;= 12) { r = 3; c = z - 10; }
+        else if (z &gt;= 13 &amp;&amp; z &lt;= 18) { r = 3; c = z; }
+        else if (z &gt;= 19 &amp;&amp; z &lt;= 36) { r = 4; c = z - 18; }
+        else if (z &gt;= 37 &amp;&amp; z &lt;= 54) { r = 5; c = z - 36; }
+        else if (z &gt;= 55 &amp;&amp; z &lt;= 56) { r = 6; c = z - 54; }
+        else if (z &gt;= 57 &amp;&amp; z &lt;= 71) { r = 9; c = z - 57 + 3; }
+        else if (z &gt;= 72 &amp;&amp; z &lt;= 86) { r = 6; c = z - 72 + 4; }
+        else if (z &gt;= 87 &amp;&amp; z &lt;= 88) { r = 7; c = z - 86; }
+        else if (z &gt;= 89 &amp;&amp; z &lt;= 103) { r = 10; c = z - 89 + 3; }
+        else if (z &gt;= 104 &amp;&amp; z &lt;= 118) { r = 7; c = z - 104 + 4; }
+
+        layout[`${r}_${c}`] = z;
+      }
+
+      for (let r = 1; r &lt;= 10; r++) {
+        for (let c = 1; c &lt;= 18; c++) {
+          const cell = document.createElement(&#39;div&#39;);
+          const z = layout[`${r}_${c}`];
+          if (z) {
+            cell.className = &#39;pt-cell&#39;;
+            cell.id = `pt-cell-${z}`;
+            cell.textContent = ELEMENTS[z].symbol;
+            cell.title = `${z}. ${ELEMENTS[z].name}`;
+            cell.onclick = () =&gt; loadElementByZ(z);
+          } else {
+            cell.className = &#39;pt-cell pt-empty&#39;;
+          }
+          grid.appendChild(cell);
+        }
+      }
+    }
+    initMiniPTable();
+
+    function loadElementByZ(z) {
+      resetAtom();
+      for (let i = 0; i &lt; z; i++) {
+        addParticle(&#39;proton&#39;);
+        addParticle(&#39;electron&#39;);
+        if (z === 1) { /* H0 */ }
+        else if (z &lt;= 20) { addParticle(&#39;neutron&#39;); }
+        else { addParticle(&#39;neutron&#39;); if (i % 2 === 0) addParticle(&#39;neutron&#39;); }
+      }
+    }
+
+    // Drag and Drop Logic
+    let activeDrag = null;
+    const ghost = document.getElementById(&#39;drag-ghost&#39;);
+
+    document.querySelectorAll(&#39;.particle-source&#39;).forEach(source =&gt; {
+      source.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+        const type = source.dataset.type;
+        activeDrag = type;
+
+        ghost.className = `particle-node drag-ghost ${type}-bg`;
+        ghost.textContent = type === &#39;proton&#39; ? &#39;+&#39; : type === &#39;neutron&#39; ? &#39;0&#39; : &#39;−&#39;;
+        ghost.style.display = &#39;flex&#39;;
+        ghost.style.left = `${e.clientX}px`;
+        ghost.style.top = `${e.clientY}px`;
+
+        source.setPointerCapture(e.pointerId);
+      });
+
+      source.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+        if (!activeDrag) return;
+        ghost.style.left = `${e.clientX}px`;
+        ghost.style.top = `${e.clientY}px`;
+      });
+
+      source.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
+        if (!activeDrag) return;
+
+        const stageRect = stageContainer.getBoundingClientRect();
+        if (
+          e.clientX &gt;= stageRect.left &amp;&amp;
+          e.clientX &lt;= stageRect.right &amp;&amp;
+          e.clientY &gt;= stageRect.top &amp;&amp;
+          e.clientY &lt;= stageRect.bottom
+        ) {
+          addParticle(activeDrag);
+        }
+
+        activeDrag = null;
+        ghost.style.display = &#39;none&#39;;
+      });
+    });
+
+    function addParticle(type) {
+      if (type === &#39;proton&#39;) {
+        if (state.protons &gt;= 118) return;
+        state.protons++;
+        addNucleusNode(&#39;proton&#39;);
+      } else if (type === &#39;neutron&#39;) {
+        if (state.neutrons &gt;= 177) return;
+        state.neutrons++;
+        addNucleusNode(&#39;neutron&#39;);
+      } else if (type === &#39;electron&#39;) {
+        if (state.electrons &gt;= 118) return;
+        state.electrons++;
+      }
+      updateUI();
+    }
+
+    function removeParticle(type) {
+      if (type === &#39;proton&#39; &amp;&amp; state.protons &gt; 0) {
+        state.protons--;
+        removeNucleusNode(&#39;proton&#39;);
+      } else if (type === &#39;neutron&#39; &amp;&amp; state.neutrons &gt; 0) {
+        state.neutrons--;
+        removeNucleusNode(&#39;neutron&#39;);
+      } else if (type === &#39;electron&#39; &amp;&amp; state.electrons &gt; 0) {
+        state.electrons--;
+      }
+      updateUI();
+    }
+
+    function resetAtom() {
+      state.protons = 0;
+      state.neutrons = 0;
+      state.electrons = 0;
+      state.nucleusParticles = [];
+      updateUI();
+    }
+
+    function addNucleusNode(type) {
+      const index = state.nucleusParticles.length;
+      const phi = Math.acos(-1 + (2 * index + 1) / 120);
+      const theta = Math.sqrt(120 * Math.PI) * phi;
+      const radius = Math.pow(index + 1, 0.48) * 6;
+
+      const targetX = Math.cos(theta) * radius;
+      const targetY = Math.sin(theta) * radius;
+
+      state.nucleusParticles.push({
+        type,
+        x: (Math.random() - 0.5) * 80,
+        y: (Math.random() - 0.5) * 80,
+        targetX,
+        targetY
+      });
+    }
+
+    function removeNucleusNode(type) {
+      for (let i = state.nucleusParticles.length - 1; i &gt;= 0; i--) {
+        if (state.nucleusParticles[i].type === type) {
+          state.nucleusParticles.splice(i, 1);
+          break;
+        }
+      }
+    }
+
+    function updateUI() {
+      const p = state.protons;
+      const n = state.neutrons;
+      const e = state.electrons;
+      const a = p + n;
+      const charge = p - e;
+
+      // Update Element Card
+      const elem = ELEMENTS[p] || { symbol: `Z=${p}`, name: `Superheavy (${p})` };
+      document.getElementById(&#39;elem-z&#39;).textContent = `Z = ${p}`;
+      document.getElementById(&#39;elem-symbol&#39;).textContent = elem.symbol;
+      document.getElementById(&#39;elem-name&#39;).textContent = elem.name;
+
+      document.getElementById(&#39;count-p&#39;).textContent = p;
+      document.getElementById(&#39;count-n&#39;).textContent = n;
+      document.getElementById(&#39;count-e&#39;).textContent = e;
+      document.getElementById(&#39;count-a&#39;).textContent = a;
+
+      // Net Charge &amp; Badges
+      const chargeText = charge &gt; 0 ? `+${charge}` : `${charge}`;
+      document.getElementById(&#39;net-charge&#39;).textContent = chargeText;
+
+      const ionBadge = document.getElementById(&#39;ion-badge&#39;);
+      const canvasChargeBadge = document.getElementById(&#39;canvas-charge-badge&#39;);
+
+      if (charge === 0) {
+        ionBadge.className = &#39;badge badge-neutral&#39;;
+        ionBadge.textContent = &#39;Neutral Atom&#39;;
+
+        canvasChargeBadge.className = &#39;charge-badge-large neutral&#39;;
+        canvasChargeBadge.textContent = p === 0 ? &#39;EMPTY ATOM&#39; : &#39;NEUTRAL ATOM (0)&#39;;
+      } else if (charge &gt; 0) {
+        ionBadge.className = &#39;badge badge-cation&#39;;
+        ionBadge.textContent = `Cation (+${charge})`;
+
+        canvasChargeBadge.className = &#39;charge-badge-large positive&#39;;
+        canvasChargeBadge.textContent = `POSITIVE CHARGE (+${charge})`;
+      } else {
+        ionBadge.className = &#39;badge badge-anion&#39;;
+        ionBadge.textContent = `Anion (${charge})`;
+
+        canvasChargeBadge.className = &#39;charge-badge-large negative&#39;;
+        canvasChargeBadge.textContent = `NEGATIVE CHARGE (${charge})`;
+      }
+
+      // Stability logic
+      const stabilityBadge = document.getElementById(&#39;stability-badge&#39;);
+      if (p === 0) {
+        stabilityBadge.className = &#39;badge badge-neutral&#39;;
+        stabilityBadge.textContent = &#39;Empty&#39;;
+      } else {
+        const ratio = n / p;
+        const isStable = (p &lt;= 2 &amp;&amp; Math.abs(p - n) &lt;= 1) || (p &gt; 2 &amp;&amp; p &lt;= 20 &amp;&amp; ratio &gt;= 0.9 &amp;&amp; ratio &lt;= 1.3) || (p &gt; 20 &amp;&amp; ratio &gt;= 1.2 &amp;&amp; ratio &lt;= 1.6);
+        if (isStable) {
+          stabilityBadge.className = &#39;badge badge-stable&#39;;
+          stabilityBadge.textContent = &#39;Stable Isotope&#39;;
+        } else {
+          stabilityBadge.className = &#39;badge badge-unstable&#39;;
+          stabilityBadge.textContent = &#39;Unstable / Radioactive&#39;;
+        }
+      }
+
+      // Shell Configuration
+      let remaining = e;
+      const shells = [];
+      for (let cap of SHELL_CAPACITIES) {
+        if (remaining &lt;= 0) break;
+        const count = Math.min(remaining, cap);
+        shells.push(count);
+        remaining -= count;
+      }
+      document.getElementById(&#39;shell-config&#39;).textContent = shells.length ? shells.join(&#39; , &#39;) : &#39;0&#39;;
+
+      // Update Mini Periodic Table Selection
+      document.querySelectorAll(&#39;.pt-cell&#39;).forEach(c =&gt; c.classList.remove(&#39;active&#39;));
+      if (p &gt;= 1 &amp;&amp; p &lt;= 118) {
+        const activeCell = document.getElementById(`pt-cell-${p}`);
+        if (activeCell) activeCell.classList.add(&#39;active&#39;);
+        document.getElementById(&#39;ptable-active-label&#39;).textContent = `${p}. ${elem.symbol}`;
+      } else {
+        document.getElementById(&#39;ptable-active-label&#39;).textContent = &#39;--&#39;;
+      }
+    }
+
+    // Render Canvas Frame
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const charge = state.protons - state.electrons;
+
+      // Apply Zoom Matrix Transformation centered on Stage
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.scale(zoomLevel, zoomLevel);
+      ctx.translate(-centerX, -centerY);
+
+      // 1. Draw Charge Field Atmosphere/Aura around Atom
+      if (state.protons &gt; 0 || state.electrons &gt; 0) {
+        const gradRadius = Math.max(160, state.electrons * 2 + 100);
+        const radialGrad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, gradRadius);
+
+        if (charge &gt; 0) {
+          radialGrad.addColorStop(0, &#39;rgba(239, 68, 68, 0.22)&#39;);
+          radialGrad.addColorStop(0.7, &#39;rgba(239, 68, 68, 0.05)&#39;);
+          radialGrad.addColorStop(1, &#39;rgba(239, 68, 68, 0)&#39;);
+        } else if (charge &lt; 0) {
+          radialGrad.addColorStop(0, &#39;rgba(6, 182, 212, 0.22)&#39;);
+          radialGrad.addColorStop(0.7, &#39;rgba(6, 182, 212, 0.05)&#39;);
+          radialGrad.addColorStop(1, &#39;rgba(6, 182, 212, 0)&#39;);
+        } else {
+          radialGrad.addColorStop(0, &#39;rgba(56, 189, 248, 0.12)&#39;);
+          radialGrad.addColorStop(1, &#39;rgba(56, 189, 248, 0)&#39;);
+        }
+
+        ctx.fillStyle = radialGrad;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, gradRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 2. Draw Electron Shells &amp; Electrons
+      let totalElectrons = state.electrons;
+      const shellRadii = [60, 95, 130, 165, 200, 235, 270];
+
+      for (let s = 0; s &lt; SHELL_CAPACITIES.length; s++) {
+        const capacity = SHELL_CAPACITIES[s];
+        const countInShell = Math.min(totalElectrons, capacity);
+        totalElectrons -= countInShell;
+
+        const radius = shellRadii[s];
+
+        // Draw Orbit Circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = &#39;rgba(56, 189, 248, 0.2)&#39;;
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw Electrons on Orbit
+        for (let i = 0; i &lt; countInShell; i++) {
+          const angle = (i / countInShell) * Math.PI * 2 + state.electronAngleOffset * (s % 2 === 0 ? 1 : -1);
+          const ex = centerX + Math.cos(angle) * radius;
+          const ey = centerY + Math.sin(angle) * radius;
+
+          // Electron Glow
+          ctx.beginPath();
+          ctx.arc(ex, ey, 6, 0, Math.PI * 2);
+          ctx.fillStyle = &#39;rgba(6, 182, 212, 0.4)&#39;;
+          ctx.fill();
+
+          // Electron Core
+          ctx.beginPath();
+          ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+          ctx.fillStyle = &#39;#06b6d4&#39;;
+          ctx.fill();
+        }
+
+        if (totalElectrons &lt;= 0) break;
+      }
+
+      // 3. Draw Nucleus Particles (Protons &amp; Neutrons)
+      state.nucleusParticles.forEach(p =&gt; {
+        p.x += (p.targetX - p.x) * 0.1;
+        p.y += (p.targetY - p.y) * 0.1;
+
+        const px = centerX + p.x;
+        const py = centerY + p.y;
+
+        ctx.beginPath();
+        ctx.arc(px, py, 6.5, 0, Math.PI * 2);
+        if (p.type === &#39;proton&#39;) {
+          ctx.fillStyle = &#39;#ef4444&#39;;
+        } else {
+          ctx.fillStyle = &#39;#94a3b8&#39;;
+        }
+        ctx.fill();
+        ctx.strokeStyle = &#39;#080c14&#39;;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+
+      ctx.restore();
+
+      state.electronAngleOffset += 0.012;
+      requestAnimationFrame(render);
+    }
+
+    updateUI();
+    render();
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1529;
+  const STAGE_H = 860;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
