@@ -42,7 +42,6 @@
             padding: 20px;
         }
 
-        /* --- APPLICATION OUTER WRAPPER --- */
         .app-wrapper {
             width: 100%;
             max-width: 680px;
@@ -51,7 +50,6 @@
             gap: 18px;
         }
 
-        /* --- STYLISH TOP HEADING --- */
         .app-header {
             text-align: center;
             padding: 8px 10px 4px;
@@ -74,6 +72,79 @@
             font-weight: 500;
         }
 
+        /* --- COMPACT LEADERBOARD BANNER --- */
+        .rank-banner {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 14px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .rank-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+            white-space: nowrap;
+            flex-grow: 1;
+            font-size: 0.82rem;
+        }
+
+        .rank-label {
+            font-weight: 700;
+            color: #c084fc;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .rank-ticker-container {
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        .rank-ticker-track {
+            display: inline-flex;
+            gap: 14px;
+            white-space: nowrap;
+            animation: tickerScroll 18s linear infinite;
+        }
+
+        .rank-pill {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .btn-rank-sm {
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            border-radius: 20px;
+            background: var(--primary-gradient);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+            transition: var(--transition);
+        }
+
+        .btn-rank-sm:hover {
+            transform: scale(1.04);
+        }
+
         /* --- MAIN QUIZ CARD --- */
         .quiz-card {
             background: var(--card-bg);
@@ -82,12 +153,11 @@
             border: 1px solid var(--card-border);
             width: 100%;
             border-radius: var(--radius-lg);
-            padding: 32px;
+            padding: 28px 32px 32px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
             position: relative;
         }
 
-        /* --- PROGRESS BAR & META --- */
         .quiz-meta {
             display: flex;
             justify-content: space-between;
@@ -115,7 +185,6 @@
             transition: width 0.35s ease;
         }
 
-        /* --- QUESTION & OPTIONS --- */
         .question-title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -169,7 +238,6 @@
             flex-shrink: 0;
         }
 
-        /* Option Answer Feedback States */
         .option-chip.correct {
             background: var(--correct-bg) !important;
             border-color: var(--correct-border) !important;
@@ -197,7 +265,6 @@
             cursor: default;
         }
 
-        /* --- EXPLANATION CARD --- */
         .explanation-card {
             margin-top: 20px;
             padding: 16px 20px;
@@ -226,7 +293,6 @@
             color: #e2e8f0;
         }
 
-        /* --- FOOTER & BUTTONS --- */
         .quiz-footer {
             display: flex;
             justify-content: space-between;
@@ -290,7 +356,7 @@
             transform: none !important;
         }
 
-        /* --- ENCOURAGING RESULT SCREEN --- */
+        /* --- RESULT & ALREADY COMPLETED SCREENS --- */
         .result-screen {
             display: none;
             text-align: center;
@@ -359,9 +425,9 @@
             gap: 12px;
         }
 
-        /* --- BOTTOM TRANSPARENT SUBJECT SCROLL CONTAINER --- */
+        /* --- SUBJECT SCROLL CONTAINER --- */
         .subject-nav-container {
-            background: transparent; /* Fully transparent */
+            background: transparent;
             border: none;
             box-shadow: none;
             padding: 5px 10px;
@@ -380,7 +446,6 @@
             font-weight: 700;
         }
 
-        /* HIDE SCROLLBAR & ALLOW MANUAL/AUTO SCROLLING */
         .chips-scroll-container {
             width: 100%;
             overflow-x: auto;
@@ -397,24 +462,19 @@
             display: none;
         }
 
-        .chips-scroll-container:active {
-            cursor: grabbing;
-        }
-
         .chips-track {
             display: inline-flex;
             gap: 12px;
             width: max-content;
         }
 
-        /* BORDER-ONLY SUBJECT BUTTON CHIPS */
         .subject-chip {
             padding: 8px 20px;
             border-radius: var(--radius-sm);
             font-size: 0.85rem;
             font-weight: 600;
-            background: transparent; /* No background */
-            border: 1.5px solid rgba(255, 255, 255, 0.25); /* Border only */
+            background: transparent;
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
             color: var(--text-main);
             white-space: nowrap;
             cursor: pointer;
@@ -427,17 +487,15 @@
         }
 
         .subject-chip:hover {
-            background: transparent;
             border-color: #a855f7;
-            color: #a855f7; /* Text highlights on hover */
+            color: #a855f7;
             transform: translateY(-2px);
         }
 
         .subject-chip.active {
-            background: transparent;
-            border-color: #a855f7; /* Primary theme border */
-            color: #a855f7; /* Primary theme text */
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.2); /* Subtle glow for active */
+            border-color: #a855f7;
+            color: #a855f7;
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
         }
 
         .subject-chip.completed {
@@ -445,7 +503,82 @@
             color: #34d399;
         }
 
-        /* SPINNER */
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-card {
+            background: #111827;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 460px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f8fafc;
+        }
+
+        .modal-desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 0.95rem;
+            margin-bottom: 18px;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: #a855f7;
+        }
+
+        .rank-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.88rem;
+        }
+
+        .rank-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: #c084fc;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .rank-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #e2e8f0;
+        }
+
         .spinner {
             width: 32px;
             height: 32px;
@@ -454,6 +587,11 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin: 20px auto;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         @keyframes fadeIn {
@@ -466,7 +604,7 @@
 
         @media (max-width: 480px) {
             .app-title { font-size: 1.6rem; }
-            .quiz-card { padding: 24px 18px; }
+            .quiz-card { padding: 20px 18px; }
             .subject-nav-container { padding: 5px 4px; }
         }
     </style>
@@ -475,14 +613,25 @@
 
     <div class="app-wrapper">
         
-        <!-- STYLISH HEADING -->
         <header class="app-header">
             <h1 class="app-title">ATTEMPT YOUR DAILY QUIZ 🚀</h1>
             <p class="app-subtitle">Select a subject, answer questions & boost your knowledge!</p>
         </header>
 
-        <!-- MAIN QUIZ CARD -->
         <div class="quiz-card">
+
+            <!-- COMPACT LEADERBOARD BANNER ABOVE TITLE -->
+            <div class="rank-banner">
+                <div class="rank-content">
+                    <span class="rank-label">🏆 Today's Ranks:</span>
+                    <div class="rank-ticker-container">
+                        <div class="rank-ticker-track" id="rank-ticker-track">
+                            <span class="rank-pill">Loading ranks...</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-rank-sm" onclick="openRankModal()">Show Ranks</button>
+            </div>
             
             <!-- ACTIVE QUIZ VIEW -->
             <div id="quiz-view">
@@ -499,7 +648,6 @@
                     <h2 class="question-title" id="question-title">Loading Question...</h2>
                     <div class="options-grid" id="options-grid"></div>
                     
-                    <!-- Instant Explanation Card -->
                     <div class="explanation-card" id="explanation-card">
                         <div class="explanation-header">💡 Explanation</div>
                         <div class="explanation-text" id="explanation-text"></div>
@@ -512,7 +660,7 @@
                 </div>
             </div>
 
-            <!-- ENCOURAGING RESULT SCREEN -->
+            <!-- RESULT SCREEN (JUST COMPLETED) -->
             <div class="result-screen" id="result-screen">
                 <div class="badge-icon" id="result-badge">✨</div>
                 <div class="score-circle">
@@ -536,32 +684,91 @@
                 </button>
             </div>
 
+            <!-- IN-CARD COMPLETED SUBJECT SCREEN -->
+            <div class="result-screen" id="already-completed-screen">
+                <div class="badge-icon">🌟</div>
+                <h2 class="result-title" id="completed-subject-header">Subject Completed!</h2>
+                <p class="result-desc">You have already completed the quiz for this subject today!</p>
+
+                <div class="notice-card">
+                    <span style="font-size: 1.5rem;">📅</span>
+                    <div>
+                        <strong>Visit Next Day Or Try Another Subject!</strong><br>
+                        Please visit next day for new questions or try another subject below. You can also check your rank in the leaderboard.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" style="flex: 1; min-width: 140px;" onclick="openRankModal()">
+                        🏆 View Rank List
+                    </button>
+                    <button class="btn btn-submit" style="flex: 1; min-width: 140px;" onclick="tryAnotherSubject()">
+                        🔄 Try Another Subject
+                    </button>
+                </div>
+            </div>
+
         </div>
 
-        <!-- SEPARATE BOTTOM TRANSPARENT AUTOMATIC SCROLLING CONTAINER -->
+        <!-- SUBJECT SELECTION SCROLL -->
         <div class="subject-nav-container">
             <div class="subject-nav-header">
                 <span>Select Subject</span>
                 <span id="backend-status" style="font-size: 0.72rem; color: #c084fc; text-transform: none;">Syncing backend...</span>
             </div>
             
-            <!-- Hidden Scrollbar Container -->
             <div class="chips-scroll-container" id="chips-container">
-                <div class="chips-track" id="chips-track">
-                    <!-- Subject Chips generated dynamically (duplicated for infinite seamless loop) -->
-                </div>
+                <div class="chips-track" id="chips-track"></div>
             </div>
         </div>
 
+    </div>
+
+    <!-- MANDATORY NAME INPUT MODAL -->
+    <div class="modal-overlay" id="name-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Welcome Participant! 👋</h3>
+            <p class="modal-desc">Please enter your name to track your performance and show your daily rank on the leaderboard.</p>
+            <input type="text" id="user-name-input" class="modal-input" placeholder="Enter your full name..." maxlength="25">
+            <button class="btn btn-primary" style="width: 100%;" onclick="saveUserName()">Start Quiz 🚀</button>
+        </div>
+    </div>
+
+    <!-- FULL LEADERBOARD MODAL -->
+    <div class="modal-overlay" id="rank-modal">
+        <div class="modal-card" style="max-width: 520px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 class="modal-title" id="rank-modal-title">🏆 Today's Leaderboard</h3>
+                <button onclick="closeRankModal()" style="background:none; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;">✕</button>
+            </div>
+            <p class="modal-desc" style="margin-bottom: 10px;">Day-wise rank list based on highest score & fastest completion time.</p>
+            
+            <div style="max-height: 280px; overflow-y: auto;">
+                <table class="rank-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Participant</th>
+                            <th>Score</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rank-table-body">
+                        <tr><td colspan="4" style="text-align:center;">Loading ranks...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button class="btn btn-secondary" style="width: 100%; margin-top: 16px;" onclick="closeRankModal()">Close</button>
+        </div>
     </div>
 
     <script>
         // =========================================================================
         // ⚠️ REPLACE WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL HERE:
         // =========================================================================
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyVyb_Htk0wyvGoCgzLNoEqxpwMHanvGQOpEtNkmLb_Y9APY4nsr2ohCRvbo0xrq7YAQ/exec";
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz1_5PZkKCcd8poujLOOfNKi2YmMI0ipkXKEbIaC2yBdxomHBtUmHPlRUSA9MqpEuUE/exec";
 
-        // 1. HARDCODED 5 DEFAULT ENGLISH QUESTIONS (INSTANT LOAD)
         const defaultEnglishQuestions = [
             {
                 question: "Which word is a synonym of 'Happy'?",
@@ -601,8 +808,13 @@
         let currentQuestion = 0;
         let userAnswers = new Array(defaultEnglishQuestions.length).fill(null);
         let backendSubjects = [];
+        let todayLeaderboard = [];
 
-        // Auto-scroll Animation Engine State
+        // Time Tracking & User State
+        let quizStartTime = null;
+        let pendingAction = null;
+
+        // Auto-scroll State
         let isUserInteracting = false;
 
         // DOM Elements
@@ -610,6 +822,8 @@
         const chipsTrack = document.getElementById('chips-track');
         const quizView = document.getElementById('quiz-view');
         const resultScreen = document.getElementById('result-screen');
+        const alreadyCompletedScreen = document.getElementById('already-completed-screen');
+        const completedSubjectHeader = document.getElementById('completed-subject-header');
         const currentSubjectTitle = document.getElementById('current-subject-title');
         const tracker = document.getElementById('question-tracker');
         const progressBar = document.getElementById('progress-bar');
@@ -620,32 +834,92 @@
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
         const backendStatus = document.getElementById('backend-status');
+        const rankTickerTrack = document.getElementById('rank-ticker-track');
 
-        // Check Daily Completion State
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
         function isSubjectCompletedToday(subject) {
-            const today = new Date().toISOString().split('T')[0];
-            return localStorage.getItem(`quiz_completed_${subject}`) === today;
+            return localStorage.getItem(`quiz_completed_${subject}`) === getTodayString();
         }
 
         function setSubjectCompletedToday(subject) {
-            const today = new Date().toISOString().split('T')[0];
-            localStorage.setItem(`quiz_completed_${subject}`, today);
+            localStorage.setItem(`quiz_completed_${subject}`, getTodayString());
         }
 
-        // Initialize App
+        function getUserName() {
+            return localStorage.getItem('quiz_user_name');
+        }
+
+        function promptUserName(onComplete) {
+            pendingAction = onComplete;
+            document.getElementById('name-modal').style.display = 'flex';
+        }
+
+        function saveUserName() {
+            const val = document.getElementById('user-name-input').value.trim();
+            if (!val) {
+                alert("Please enter your name to proceed!");
+                return;
+            }
+            localStorage.setItem('quiz_user_name', val);
+            document.getElementById('name-modal').style.display = 'none';
+            if (pendingAction) {
+                pendingAction();
+                pendingAction = null;
+            }
+        }
+
         function initApp() {
+            const firstVisitDate = localStorage.getItem('quiz_first_visit_date');
+            const lastVisitDate = localStorage.getItem('quiz_last_visit_date');
+            const today = getTodayString();
+
+            localStorage.setItem('quiz_last_visit_date', today);
+
+            if (!firstVisitDate) {
+                localStorage.setItem('quiz_first_visit_date', today);
+                currentSubject = "English";
+            }
+
             renderSubjectChips();
-            loadQuestion();
-            fetchBackendSubjects();
+            selectSubject(currentSubject);
+            fetchBackendSubjects(lastVisitDate !== today && firstVisitDate !== null);
             setupInfiniteScrollEngine();
         }
 
-        // Render Subject Chips (Duplicated for seamless continuous loop)
+        async function fetchBackendSubjects(isNextDay) {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getSubjects`);
+                const data = await response.json();
+
+                if (data.success && data.subjects.length > 0) {
+                    backendSubjects = data.subjects.filter(s => s !== "English");
+                    backendStatus.innerText = "Synced";
+
+                    if (isNextDay) {
+                        const allAvailable = [...data.subjects];
+                        const nextUncompleted = allAvailable.find(s => !isSubjectCompletedToday(s)) || data.subjects[0];
+                        if (nextUncompleted && nextUncompleted !== currentSubject) {
+                            selectSubject(nextUncompleted);
+                            return;
+                        }
+                    }
+                    renderSubjectChips();
+                } else {
+                    backendStatus.innerText = "Connected";
+                }
+            } catch (err) {
+                console.log("Backend offline or URL not configured yet:", err);
+                backendStatus.innerText = "Default Mode";
+            }
+        }
+
         function renderSubjectChips() {
             const baseSubjects = ["English", ...backendSubjects];
             chipsTrack.innerHTML = '';
 
-            // Duplicate array to enable true continuous seamless looping
             const loopSubjects = [...baseSubjects, ...baseSubjects];
 
             loopSubjects.forEach((subject) => {
@@ -664,15 +938,12 @@
             });
         }
 
-        // --- INFINITE CONTINUOUS SMOOTH SCROLL ENGINE ---
         function setupInfiniteScrollEngine() {
-            const scrollSpeed = 0.5; // Slow, elegant speed
+            const scrollSpeed = 0.5;
 
             function scrollStep() {
                 if (!isUserInteracting && chipsContainer && chipsTrack.scrollWidth > 0) {
                     chipsContainer.scrollLeft += scrollSpeed;
-
-                    // Halfway threshold: reset seamlessly back to start
                     const halfWidth = chipsTrack.scrollWidth / 2;
                     if (chipsContainer.scrollLeft >= halfWidth) {
                         chipsContainer.scrollLeft -= halfWidth;
@@ -683,52 +954,36 @@
 
             requestAnimationFrame(scrollStep);
 
-            // Pause scrolling on interaction
             chipsContainer.addEventListener('mouseenter', () => isUserInteracting = true);
             chipsContainer.addEventListener('mouseleave', () => isUserInteracting = false);
-            
             chipsContainer.addEventListener('touchstart', () => isUserInteracting = true, { passive: true });
             chipsContainer.addEventListener('touchend', () => {
                 setTimeout(() => isUserInteracting = false, 2000);
             });
-
-            chipsContainer.addEventListener('wheel', () => {
-                isUserInteracting = true;
-                clearTimeout(chipsContainer.scrollTimer);
-                chipsContainer.scrollTimer = setTimeout(() => isUserInteracting = false, 2500);
-            }, { passive: true });
-        }
-
-        // Fetch Backend Subjects from Google Apps Script
-        async function fetchBackendSubjects() {
-            try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=getSubjects`);
-                const data = await response.json();
-
-                if (data.success && data.subjects.length > 0) {
-                    backendSubjects = data.subjects.filter(s => s !== "English");
-                    backendStatus.innerText = "Synced";
-                    renderSubjectChips();
-                } else {
-                    backendStatus.innerText = "Connected";
-                }
-            } catch (err) {
-                console.log("Backend offline or URL not configured yet:", err);
-                backendStatus.innerText = "Default Mode";
-            }
         }
 
         // Handle Subject Selection
         async function selectSubject(subject) {
-            if (currentSubject === subject && quizView.style.display !== 'none') return;
+            currentSubject = subject;
 
+            // Instantly clear old leaderboard data to avoid cross-subject leaks
+            todayLeaderboard = [];
+            renderLeaderboardUI();
+
+            renderSubjectChips();
+            fetchLeaderboard(currentSubject);
+
+            // In-card notice if already completed today
             if (isSubjectCompletedToday(subject)) {
-                alert(`You have completed today's questions for "${subject}". Please choose another subject!`);
+                quizView.style.display = 'none';
+                resultScreen.style.display = 'none';
+                completedSubjectHeader.innerText = `${subject} - Completed Today!`;
+                alreadyCompletedScreen.style.display = 'block';
                 return;
             }
 
-            currentSubject = subject;
-            renderSubjectChips();
+            // Normal Quiz Mode
+            alreadyCompletedScreen.style.display = 'none';
             resultScreen.style.display = 'none';
             quizView.style.display = 'block';
 
@@ -736,6 +991,7 @@
                 quizQuestions = [...defaultEnglishQuestions];
                 userAnswers = new Array(quizQuestions.length).fill(null);
                 currentQuestion = 0;
+                quizStartTime = Date.now();
                 loadQuestion();
             } else {
                 questionTitle.innerText = "LOADING...";
@@ -750,6 +1006,7 @@
                         quizQuestions = data.questions;
                         userAnswers = new Array(quizQuestions.length).fill(null);
                         currentQuestion = 0;
+                        quizStartTime = Date.now();
                         loadQuestion();
                     } else {
                         questionTitle.innerText = `No questions found in tab "${subject}".`;
@@ -763,8 +1020,9 @@
             }
         }
 
-        // Load Active Question
         function loadQuestion() {
+            if (!quizStartTime) quizStartTime = Date.now();
+
             const q = quizQuestions[currentQuestion];
             const savedAns = userAnswers[currentQuestion];
 
@@ -788,7 +1046,7 @@
                     </div>
                     <span class="status-icon"></span>
                 `;
-                chip.onclick = () => selectOption(idx);
+                chip.onclick = () => handleOptionClick(idx);
                 optionsGrid.appendChild(chip);
             });
 
@@ -799,7 +1057,14 @@
             updateNavButtons();
         }
 
-        // Handle Instant Option Selection
+        function handleOptionClick(index) {
+            if (!getUserName()) {
+                promptUserName(() => selectOption(index));
+                return;
+            }
+            selectOption(index);
+        }
+
         function selectOption(index) {
             if (userAnswers[currentQuestion] !== null) return;
 
@@ -856,8 +1121,7 @@
             loadQuestion();
         }
 
-        // Finish Quiz
-        function finishQuiz() {
+        async function finishQuiz() {
             setSubjectCompletedToday(currentSubject);
             renderSubjectChips();
 
@@ -866,9 +1130,11 @@
                 if (ans === quizQuestions[idx].correct) score++;
             });
 
+            const totalTimeSec = Math.max(1, Math.floor((Date.now() - quizStartTime) / 1000));
+            const userName = getUserName() || "Participant";
+
             quizView.style.display = 'none';
             resultScreen.style.display = 'block';
-
             document.getElementById('score-text').innerText = `${score}/${quizQuestions.length}`;
 
             const badgeEl = document.getElementById('result-badge');
@@ -878,25 +1144,102 @@
             if (score === quizQuestions.length) {
                 badgeEl.innerText = "🏆";
                 titleEl.innerText = "Perfect Score! Mastermind!";
-                descEl.innerText = "Outstanding! You answered every question correctly. Excellent job!";
+                descEl.innerText = "Outstanding! You answered every question correctly.";
             } else if (score >= Math.ceil(quizQuestions.length * 0.7)) {
                 badgeEl.innerText = "🌟";
                 titleEl.innerText = "Great Try! Fantastic Score!";
                 descEl.innerText = "Awesome work! You possess great knowledge in this subject.";
-            } else if (score >= Math.ceil(quizQuestions.length * 0.4)) {
-                badgeEl.innerText = "👍";
-                titleEl.innerText = "Good Try! Solid Effort!";
-                descEl.innerText = "Nice attempt! Review the explanations above to sharpen your skills further.";
             } else {
                 badgeEl.innerText = "💪";
-                titleEl.innerText = "Best of Luck Next Time!";
-                descEl.innerText = "Don't give up! Learning takes practice. Give another subject a try!";
+                titleEl.innerText = "Good Effort!";
+                descEl.innerText = "Keep practicing! Review explanations and try another subject.";
+            }
+
+            await submitScoreToBackend(userName, score, quizQuestions.length, totalTimeSec);
+        }
+
+        async function submitScoreToBackend(name, score, total, timeTakenSec) {
+            try {
+                const activeSub = currentSubject;
+                const url = `${APPS_SCRIPT_URL}?action=submitScore&subject=${encodeURIComponent(activeSub)}&name=${encodeURIComponent(name)}&score=${score}&total=${total}&timeTaken=${timeTakenSec}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.success && data.subject && data.subject.toLowerCase() === currentSubject.toLowerCase() && data.leaderboard) {
+                    todayLeaderboard = data.leaderboard;
+                    renderLeaderboardUI();
+                }
+            } catch (err) {
+                console.error("Error submitting score:", err);
             }
         }
 
-        // Try Another Subject Handler
+        async function fetchLeaderboard(subject) {
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=getLeaderboard&subject=${encodeURIComponent(subject)}`);
+                const data = await res.json();
+                
+                // Guard: Only update if returned subject matches currently selected subject
+                if (data.success && data.subject && data.subject.toLowerCase() === currentSubject.toLowerCase() && Array.isArray(data.leaderboard)) {
+                    todayLeaderboard = data.leaderboard;
+                    renderLeaderboardUI();
+                }
+            } catch (err) {
+                console.error("Error fetching leaderboard:", err);
+            }
+        }
+
+        function renderLeaderboardUI() {
+            const tbody = document.getElementById('rank-table-body');
+
+            if (!todayLeaderboard || todayLeaderboard.length === 0) {
+                rankTickerTrack.innerHTML = `<span class="rank-pill">No attempts today yet for ${currentSubject}. Be the first!</span>`;
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px; color:#94a3b8;">No attempts today for ${currentSubject} yet. Be the first!</td></tr>`;
+                }
+                return;
+            }
+
+            const badges = ["🥇", "🥈", "🥉"];
+            let tickerItems = [];
+
+            const loopLeaderboard = todayLeaderboard.length > 3 ? [...todayLeaderboard, ...todayLeaderboard] : todayLeaderboard;
+
+            loopLeaderboard.forEach((item) => {
+                const icon = badges[item.rank - 1] || `#${item.rank}`;
+                tickerItems.push(`<span class="rank-pill">${icon} ${item.name} (${item.score}/${item.total} • ${item.timeTakenFormatted})</span>`);
+            });
+
+            rankTickerTrack.innerHTML = tickerItems.join('');
+
+            if (tbody) {
+                tbody.innerHTML = '';
+                todayLeaderboard.forEach((item) => {
+                    const icon = badges[item.rank - 1] || item.rank;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="font-weight:700;">${icon}</td>
+                        <td>${item.name}</td>
+                        <td><strong style="color:#34d399;">${item.score}</strong>/${item.total}</td>
+                        <td style="color:#cbd5e1;">${item.timeTakenFormatted}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        function openRankModal() {
+            document.getElementById('rank-modal-title').innerText = `🏆 Today's Leaderboard (${currentSubject})`;
+            document.getElementById('rank-modal').style.display = 'flex';
+        }
+
+        function closeRankModal() {
+            document.getElementById('rank-modal').style.display = 'none';
+        }
+
         function tryAnotherSubject() {
             resultScreen.style.display = 'none';
+            alreadyCompletedScreen.style.display = 'none';
             
             const allSubjects = ["English", ...backendSubjects];
             const nextSubject = allSubjects.find(s => !isSubjectCompletedToday(s));
@@ -909,7 +1252,6 @@
             }
         }
 
-        // Run application on load
         window.onload = initApp;
     </script>
 </body>
