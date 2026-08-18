@@ -1,0 +1,3189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Thermal Equilibrium Simulation</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1.0&quot;&gt;
+
+&lt;title&gt;Thermal Equilibrium Simulation | LAXOSH&lt;/title&gt;
+
+&lt;style&gt;
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Poppins,Arial,sans-serif;
+    background:
+    radial-gradient(circle at top,#40106b,#120019 60%,#050007);
+    color:white;
+}
+
+header{
+    text-align:center;
+    padding:22px 15px;
+    background:rgba(0,0,0,.35);
+    border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+header h1{
+    margin:0;
+    font-size:28px;
+}
+
+header p{
+    margin:7px 0 0;
+    color:#d0c1da;
+}
+
+.container{
+    width:min(1250px,94%);
+    margin:auto;
+    padding:20px 0 40px;
+}
+
+.layout{
+    display:grid;
+    grid-template-columns:1fr 350px;
+    gap:20px;
+}
+
+.card{
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:20px;
+    padding:18px;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+}
+
+canvas{
+    width:100%;
+    display:block;
+    background:#070a13;
+    border-radius:15px;
+}
+
+.control{
+    margin-bottom:16px;
+}
+
+.control label{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:7px;
+    font-size:14px;
+}
+
+.value{
+    color:#ffb15c;
+    font-weight:bold;
+}
+
+input[type=range]{
+    width:100%;
+    accent-color:#9d4edd;
+}
+
+select{
+    width:100%;
+    padding:11px;
+    border-radius:10px;
+    background:#170c20;
+    color:white;
+    border:1px solid #674587;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    border:0;
+    border-radius:11px;
+    margin-top:7px;
+    background:#7435a8;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button.primary{
+    background:#ff7518;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+    margin-top:16px;
+}
+
+.stat{
+    background:rgba(0,0,0,.25);
+    padding:11px;
+    border-radius:11px;
+}
+
+.stat small{
+    color:#b9a7c4;
+}
+
+.stat strong{
+    display:block;
+    margin-top:4px;
+}
+
+.result{
+    margin-top:15px;
+    padding:14px;
+    border-radius:12px;
+    background:rgba(157,78,221,.15);
+    line-height:1.6;
+}
+
+.flow{
+    text-align:center;
+    margin-top:12px;
+    padding:12px;
+    border-radius:12px;
+    background:rgba(255,150,40,.08);
+    color:#ffb15c;
+    font-weight:bold;
+}
+
+.arrow{
+    display:inline-block;
+    font-size:25px;
+}
+
+.arrow.active{
+    animation:moveArrow .7s infinite alternate;
+}
+
+@keyframes moveArrow{
+    from{
+        transform:translateX(-8px);
+        opacity:.4;
+    }
+    to{
+        transform:translateX(8px);
+        opacity:1;
+    }
+}
+
+.equilibrium{
+    display:none;
+    margin-top:12px;
+    padding:13px;
+    text-align:center;
+    border-radius:11px;
+    background:rgba(80,230,160,.12);
+    color:#7df0b3;
+    font-weight:bold;
+}
+
+.info{
+    margin-top:20px;
+}
+
+.infoGrid{
+    display:grid;
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+    gap:12px;
+}
+
+.infoBox{
+    padding:15px;
+    border-radius:13px;
+    background:rgba(0,0,0,.2);
+}
+
+.infoBox h3{
+    color:#ffad55;
+    margin-top:0;
+}
+
+.formula{
+    margin-top:15px;
+    padding:15px;
+    border-radius:12px;
+    background:rgba(255,120,30,.1);
+    line-height:1.8;
+}
+
+.substanceInfo{
+    padding:10px;
+    margin-top:8px;
+    border-radius:9px;
+    background:rgba(255,255,255,.05);
+    font-size:12px;
+    color:#cfc1d7;
+}
+
+@media(max-width:850px){
+
+    .layout{
+        grid-template-columns:1fr;
+    }
+
+    header h1{
+        font-size:23px;
+    }
+
+}
+
+&lt;/style&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+
+&lt;header&gt;
+
+&lt;h1&gt;🌡️ Thermal Equilibrium Simulation&lt;/h1&gt;
+
+&lt;p&gt;
+Solids • Liquids • Gases • Positive &amp; Negative Temperatures
+&lt;/p&gt;
+
+&lt;/header&gt;
+
+
+&lt;div class=&quot;container&quot;&gt;
+
+&lt;div class=&quot;layout&quot;&gt;
+
+
+&lt;!-- ================================
+     SIMULATION
+================================ --&gt;
+
+&lt;div&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+
+&lt;h2&gt;🔥 Thermal Equilibrium Chamber&lt;/h2&gt;
+
+&lt;canvas
+id=&quot;canvas&quot;
+width=&quot;900&quot;
+height=&quot;560&quot;&gt;
+&lt;/canvas&gt;
+
+
+&lt;div class=&quot;flow&quot;&gt;
+
+&lt;span id=&quot;flowText&quot;&gt;
+NO NET HEAT FLOW
+&lt;/span&gt;
+
+&lt;br&gt;
+
+&lt;span id=&quot;flowArrow&quot; class=&quot;arrow&quot;&gt;
+•
+&lt;/span&gt;
+
+&lt;/div&gt;
+
+
+&lt;div id=&quot;direction&quot;
+style=&quot;
+text-align:center;
+margin-top:10px;
+padding:10px;
+border-radius:10px;
+background:rgba(255,255,255,.05);
+&quot;&gt;
+
+Set the temperatures and start the experiment.
+
+&lt;/div&gt;
+
+
+&lt;div id=&quot;equilibrium&quot;
+class=&quot;equilibrium&quot;&gt;
+
+⚖️ THERMAL EQUILIBRIUM REACHED
+
+&lt;br&gt;
+
+Both substances have reached the same temperature.
+
+&lt;br&gt;
+
+There is no net heat transfer.
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- ================================
+     INFORMATION
+================================ --&gt;
+
+&lt;div class=&quot;card info&quot;&gt;
+
+&lt;h2&gt;🧠 What is happening?&lt;/h2&gt;
+
+&lt;div class=&quot;infoGrid&quot;&gt;
+
+&lt;div class=&quot;infoBox&quot;&gt;
+
+&lt;h3&gt;🔥 Hotter Substance&lt;/h3&gt;
+
+&lt;p&gt;
+The substance having the higher temperature
+loses thermal energy.
+&lt;/p&gt;
+
+&lt;/div&gt;
+
+&lt;div class=&quot;infoBox&quot;&gt;
+
+&lt;h3&gt;❄️ Colder Substance&lt;/h3&gt;
+
+&lt;p&gt;
+The substance having the lower temperature
+gains thermal energy.
+&lt;/p&gt;
+
+&lt;/div&gt;
+
+&lt;div class=&quot;infoBox&quot;&gt;
+
+&lt;h3&gt;🌡️ Negative Temperature&lt;/h3&gt;
+
+&lt;p&gt;
+Temperatures below 0°C are allowed.
+For example, −80°C is colder than −10°C.
+&lt;/p&gt;
+
+&lt;/div&gt;
+
+&lt;div class=&quot;infoBox&quot;&gt;
+
+&lt;h3&gt;⚖️ Equilibrium&lt;/h3&gt;
+
+&lt;p&gt;
+When both substances reach the same
+temperature, there is no net heat transfer.
+&lt;/p&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;formula&quot;&gt;
+
+&lt;strong&gt;Heat equation&lt;/strong&gt;
+
+&lt;br&gt;
+
+Q = m × c × ΔT
+
+&lt;br&gt;&lt;br&gt;
+
+&lt;strong&gt;Thermal equilibrium&lt;/strong&gt;
+
+&lt;br&gt;
+
+m₁c₁(T₁ − Tₑ)
++
+m₂c₂(T₂ − Tₑ)
+= 0
+
+&lt;br&gt;&lt;br&gt;
+
+Therefore:
+
+&lt;br&gt;
+
+&lt;strong&gt;
+Tₑ =
+(m₁c₁T₁ + m₂c₂T₂)
+/
+(m₁c₁ + m₂c₂)
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- ================================
+     CONTROLS
+================================ --&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+
+&lt;h2&gt;⚙️ Experiment Setup&lt;/h2&gt;
+
+
+&lt;!-- LEFT SUBSTANCE --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;Left Substance&lt;/label&gt;
+
+&lt;select id=&quot;leftSubstance&quot;&gt;
+
+&lt;optgroup label=&quot;🧊 Solids&quot;&gt;
+
+&lt;option value=&quot;ice&quot;&gt;
+Ice
+&lt;/option&gt;
+
+&lt;option value=&quot;aluminium&quot;&gt;
+Aluminium
+&lt;/option&gt;
+
+&lt;option value=&quot;copper&quot;&gt;
+Copper
+&lt;/option&gt;
+
+&lt;option value=&quot;iron&quot;&gt;
+Iron
+&lt;/option&gt;
+
+&lt;option value=&quot;glass&quot;&gt;
+Glass
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+
+&lt;optgroup label=&quot;💧 Liquids&quot;&gt;
+
+&lt;option value=&quot;water&quot; selected&gt;
+Water
+&lt;/option&gt;
+
+&lt;option value=&quot;ethanol&quot;&gt;
+Ethanol
+&lt;/option&gt;
+
+&lt;option value=&quot;mercury&quot;&gt;
+Mercury
+&lt;/option&gt;
+
+&lt;option value=&quot;oil&quot;&gt;
+Oil
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+
+&lt;optgroup label=&quot;💨 Gases&quot;&gt;
+
+&lt;option value=&quot;air&quot;&gt;
+Air
+&lt;/option&gt;
+
+&lt;option value=&quot;oxygen&quot;&gt;
+Oxygen
+&lt;/option&gt;
+
+&lt;option value=&quot;nitrogen&quot;&gt;
+Nitrogen
+&lt;/option&gt;
+
+&lt;option value=&quot;carbonDioxide&quot;&gt;
+Carbon dioxide
+&lt;/option&gt;
+
+&lt;option value=&quot;hydrogen&quot;&gt;
+Hydrogen
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+&lt;/select&gt;
+
+&lt;div
+id=&quot;leftInfo&quot;
+class=&quot;substanceInfo&quot;&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- RIGHT SUBSTANCE --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;Right Substance&lt;/label&gt;
+
+&lt;select id=&quot;rightSubstance&quot;&gt;
+
+&lt;optgroup label=&quot;🧊 Solids&quot;&gt;
+
+&lt;option value=&quot;ice&quot;&gt;
+Ice
+&lt;/option&gt;
+
+&lt;option value=&quot;aluminium&quot;&gt;
+Aluminium
+&lt;/option&gt;
+
+&lt;option value=&quot;copper&quot;&gt;
+Copper
+&lt;/option&gt;
+
+&lt;option value=&quot;iron&quot;&gt;
+Iron
+&lt;/option&gt;
+
+&lt;option value=&quot;glass&quot;&gt;
+Glass
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+
+&lt;optgroup label=&quot;💧 Liquids&quot;&gt;
+
+&lt;option value=&quot;water&quot;&gt;
+Water
+&lt;/option&gt;
+
+&lt;option value=&quot;ethanol&quot;&gt;
+Ethanol
+&lt;/option&gt;
+
+&lt;option value=&quot;mercury&quot;&gt;
+Mercury
+&lt;/option&gt;
+
+&lt;option value=&quot;oil&quot;&gt;
+Oil
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+
+&lt;optgroup label=&quot;💨 Gases&quot;&gt;
+
+&lt;option value=&quot;air&quot; selected&gt;
+Air
+&lt;/option&gt;
+
+&lt;option value=&quot;oxygen&quot;&gt;
+Oxygen
+&lt;/option&gt;
+
+&lt;option value=&quot;nitrogen&quot;&gt;
+Nitrogen
+&lt;/option&gt;
+
+&lt;option value=&quot;carbonDioxide&quot;&gt;
+Carbon dioxide
+&lt;/option&gt;
+
+&lt;option value=&quot;hydrogen&quot;&gt;
+Hydrogen
+&lt;/option&gt;
+
+&lt;/optgroup&gt;
+
+&lt;/select&gt;
+
+&lt;div
+id=&quot;rightInfo&quot;
+class=&quot;substanceInfo&quot;&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- LEFT MASS --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;
+
+Left Mass
+
+&lt;span class=&quot;value&quot;&gt;
+
+&lt;span id=&quot;leftMassValue&quot;&gt;
+100
+&lt;/span&gt;
+g
+
+&lt;/span&gt;
+
+&lt;/label&gt;
+
+&lt;input
+id=&quot;leftMass&quot;
+type=&quot;range&quot;
+min=&quot;10&quot;
+max=&quot;500&quot;
+value=&quot;100&quot;&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- RIGHT MASS --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;
+
+Right Mass
+
+&lt;span class=&quot;value&quot;&gt;
+
+&lt;span id=&quot;rightMassValue&quot;&gt;
+100
+&lt;/span&gt;
+g
+
+&lt;/span&gt;
+
+&lt;/label&gt;
+
+&lt;input
+id=&quot;rightMass&quot;
+type=&quot;range&quot;
+min=&quot;10&quot;
+max=&quot;500&quot;
+value=&quot;100&quot;&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- LEFT TEMP --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;
+
+Left Temperature
+
+&lt;span class=&quot;value&quot;&gt;
+
+&lt;span id=&quot;leftTempValue&quot;&gt;
+-20
+&lt;/span&gt; °C
+
+&lt;/span&gt;
+
+&lt;/label&gt;
+
+&lt;input
+id=&quot;leftTemp&quot;
+type=&quot;range&quot;
+min=&quot;-200&quot;
+max=&quot;500&quot;
+value=&quot;-20&quot;&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- RIGHT TEMP --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;
+
+Right Temperature
+
+&lt;span class=&quot;value&quot;&gt;
+
+&lt;span id=&quot;rightTempValue&quot;&gt;
+80
+&lt;/span&gt; °C
+
+&lt;/span&gt;
+
+&lt;/label&gt;
+
+&lt;input
+id=&quot;rightTemp&quot;
+type=&quot;range&quot;
+min=&quot;-200&quot;
+max=&quot;500&quot;
+value=&quot;80&quot;&gt;
+
+&lt;/div&gt;
+
+
+&lt;!-- SPEED --&gt;
+
+&lt;div class=&quot;control&quot;&gt;
+
+&lt;label&gt;
+
+Simulation Speed
+
+&lt;span class=&quot;value&quot;&gt;
+
+&lt;span id=&quot;speedValue&quot;&gt;
+1.0×
+
+&lt;/span&gt;
+
+&lt;/label&gt;
+
+&lt;input
+id=&quot;speed&quot;
+type=&quot;range&quot;
+min=&quot;.2&quot;
+max=&quot;3&quot;
+step=&quot;.1&quot;
+value=&quot;1&quot;&gt;
+
+&lt;/div&gt;
+
+
+&lt;button
+class=&quot;primary&quot;
+onclick=&quot;startSimulation()&quot;&gt;
+
+🔥 Start Heat Transfer
+
+&lt;/button&gt;
+
+
+&lt;button
+onclick=&quot;pauseSimulation()&quot;
+id=&quot;pauseButton&quot;&gt;
+
+⏸ Pause
+
+&lt;/button&gt;
+
+
+&lt;button
+onclick=&quot;resetSimulation()&quot;&gt;
+
+↻ Reset
+
+&lt;/button&gt;
+
+
+&lt;!-- ================================
+     STATS
+================================ --&gt;
+
+&lt;div class=&quot;stats&quot;&gt;
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Left Temperature&lt;/small&gt;
+
+&lt;strong id=&quot;leftTempStat&quot;&gt;
+-20 °C
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Right Temperature&lt;/small&gt;
+
+&lt;strong id=&quot;rightTempStat&quot;&gt;
+80 °C
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Equilibrium Temperature&lt;/small&gt;
+
+&lt;strong id=&quot;equilibriumTemp&quot;&gt;
+-- °C
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Heat Transferred&lt;/small&gt;
+
+&lt;strong id=&quot;heatTransferred&quot;&gt;
+0 J
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Left Substance&lt;/small&gt;
+
+&lt;strong id=&quot;leftName&quot;&gt;
+Water
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+
+&lt;div class=&quot;stat&quot;&gt;
+
+&lt;small&gt;Right Substance&lt;/small&gt;
+
+&lt;strong id=&quot;rightName&quot;&gt;
+Air
+&lt;/strong&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;div
+id=&quot;result&quot;
+class=&quot;result&quot;&gt;
+
+Set the temperatures and press
+&lt;strong&gt;Start Heat Transfer&lt;/strong&gt;.
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+&lt;script&gt;
+
+/* =====================================================
+   SUBSTANCE DATABASE
+
+   Specific heat values approximately in J/g°C
+
+===================================================== */
+
+const substances={
+
+ice:{
+name:&quot;Ice&quot;,
+state:&quot;solid&quot;,
+c:2.09,
+emoji:&quot;🧊&quot;
+},
+
+aluminium:{
+name:&quot;Aluminium&quot;,
+state:&quot;solid&quot;,
+c:0.897,
+emoji:&quot;⬜&quot;
+},
+
+copper:{
+name:&quot;Copper&quot;,
+state:&quot;solid&quot;,
+c:0.385,
+emoji:&quot;🟤&quot;
+},
+
+iron:{
+name:&quot;Iron&quot;,
+state:&quot;solid&quot;,
+c:0.449,
+emoji:&quot;⚙️&quot;
+},
+
+glass:{
+name:&quot;Glass&quot;,
+state:&quot;solid&quot;,
+c:0.84,
+emoji:&quot;🔷&quot;
+},
+
+water:{
+name:&quot;Water&quot;,
+state:&quot;liquid&quot;,
+c:4.18,
+emoji:&quot;💧&quot;
+},
+
+ethanol:{
+name:&quot;Ethanol&quot;,
+state:&quot;liquid&quot;,
+c:2.44,
+emoji:&quot;💧&quot;
+},
+
+mercury:{
+name:&quot;Mercury&quot;,
+state:&quot;liquid&quot;,
+c:0.140,
+emoji:&quot;⚪&quot;
+},
+
+oil:{
+name:&quot;Oil&quot;,
+state:&quot;liquid&quot;,
+c:2.0,
+emoji:&quot;🟡&quot;
+},
+
+air:{
+name:&quot;Air&quot;,
+state:&quot;gas&quot;,
+c:1.005,
+emoji:&quot;💨&quot;
+},
+
+oxygen:{
+name:&quot;Oxygen&quot;,
+state:&quot;gas&quot;,
+c:0.918,
+emoji:&quot;💨&quot;
+},
+
+nitrogen:{
+name:&quot;Nitrogen&quot;,
+state:&quot;gas&quot;,
+c:1.040,
+emoji:&quot;💨&quot;
+},
+
+carbonDioxide:{
+name:&quot;Carbon dioxide&quot;,
+state:&quot;gas&quot;,
+c:0.839,
+emoji:&quot;💨&quot;
+},
+
+hydrogen:{
+name:&quot;Hydrogen&quot;,
+state:&quot;gas&quot;,
+c:14.30,
+emoji:&quot;💨&quot;
+}
+
+};
+
+
+/* =====================================================
+   VARIABLES
+===================================================== */
+
+const canvas=
+document.getElementById(&quot;canvas&quot;);
+
+const ctx=
+canvas.getContext(&quot;2d&quot;);
+
+let leftTemp=-20;
+let rightTemp=80;
+
+let leftMass=100;
+let rightMass=100;
+
+let leftSub=&quot;water&quot;;
+let rightSub=&quot;air&quot;;
+
+let speed=1;
+
+let running=false;
+let paused=false;
+
+let equilibriumReached=false;
+
+let leftParticles=[];
+let rightParticles=[];
+let heatParticles=[];
+
+let initialLeftTemp=-20;
+let initialRightTemp=80;
+
+
+/* =====================================================
+   GET DATA
+===================================================== */
+
+function getLeft(){
+
+    return substances[leftSub];
+
+}
+
+function getRight(){
+
+    return substances[rightSub];
+
+}
+
+
+/* =====================================================
+   EQUILIBRIUM
+
+   Te =
+   (m1 c1 T1 + m2 c2 T2)
+   /
+   (m1 c1 + m2 c2)
+
+===================================================== */
+
+function calculateEquilibrium(){
+
+    const L=getLeft();
+    const R=getRight();
+
+    return (
+
+        leftMass*
+        L.c*
+        leftTemp
+
+        +
+
+        rightMass*
+        R.c*
+        rightTemp
+
+    )
+    /
+
+    (
+
+        leftMass*L.c
+        +
+        rightMass*R.c
+
+    );
+
+}
+
+
+/* =====================================================
+   HEAT DIRECTION
+===================================================== */
+
+function getDirection(){
+
+    if(
+        Math.abs(
+            leftTemp-rightTemp
+        )&lt;0.02
+    ){
+
+        return &quot;equilibrium&quot;;
+
+    }
+
+    if(leftTemp&gt;rightTemp){
+
+        return &quot;left-right&quot;;
+
+    }
+
+    return &quot;right-left&quot;;
+
+}
+
+
+/* =====================================================
+   PARTICLES
+===================================================== */
+
+function createParticles(){
+
+    leftParticles=[];
+    rightParticles=[];
+    heatParticles=[];
+
+
+    for(let i=0;i&lt;65;i++){
+
+        leftParticles.push({
+
+            x:130+
+            Math.random()*230,
+
+            y:145+
+            Math.random()*270,
+
+            vx:
+            Math.random()-.5,
+
+            vy:
+            Math.random()-.5
+
+        });
+
+
+        rightParticles.push({
+
+            x:500+
+            Math.random()*230,
+
+            y:145+
+            Math.random()*270,
+
+            vx:
+            Math.random()-.5,
+
+            vy:
+            Math.random()-.5
+
+        });
+
+    }
+
+}
+
+
+createParticles();
+
+
+/* =====================================================
+   PARTICLE SPEED
+===================================================== */
+
+function particleSpeed(
+    state,
+    temperature
+){
+
+    const normalized=
+    Math.max(
+        0,
+        Math.min(
+            1,
+            (temperature+200)/700
+        )
+    );
+
+
+    if(state===&quot;solid&quot;){
+
+        return .25+
+        normalized*.25;
+
+    }
+
+    if(state===&quot;liquid&quot;){
+
+        return .7+
+        normalized*.8;
+
+    }
+
+    return 1.8+
+    normalized*2.5;
+
+}
+
+
+/* =====================================================
+   UPDATE PARTICLES
+===================================================== */
+
+function updateParticles(
+    particles,
+    substance,
+    minX,
+    maxX,
+    temperature
+){
+
+    const state=
+    substance.state;
+
+
+    if(state===&quot;solid&quot;){
+
+        particles.forEach(
+            (p,i)=&gt;{
+
+                const col=i%7;
+
+                const row=
+                Math.floor(i/7);
+
+                const targetX=
+                minX+20+
+                col*35;
+
+                const targetY=
+                165+
+                row*31;
+
+
+                p.x+=
+                (targetX-p.x)*.12;
+
+                p.y+=
+                (targetY-p.y)*.12;
+
+
+                p.x+=
+                (Math.random()-.5)
+                *.7;
+
+                p.y+=
+                (Math.random()-.5)
+                *.7;
+
+            }
+        );
+
+        return;
+
+    }
+
+
+    const maxSpeed=
+    particleSpeed(
+        state,
+        temperature
+    );
+
+
+    particles.forEach(
+        p=&gt;{
+
+            p.vx+=
+            (Math.random()-.5)
+            *.18;
+
+            p.vy+=
+            (Math.random()-.5)
+            *.18;
+
+
+            const current=
+            Math.sqrt(
+                p.vx*p.vx+
+                p.vy*p.vy
+            );
+
+
+            if(current&gt;maxSpeed){
+
+                p.vx=
+                p.vx/current*
+                maxSpeed;
+
+                p.vy=
+                p.vy/current*
+                maxSpeed;
+
+            }
+
+
+            p.x+=
+            p.vx*speed;
+
+            p.y+=
+            p.vy*speed;
+
+
+            if(p.x&lt;minX){
+
+                p.x=minX;
+                p.vx=Math.abs(p.vx);
+
+            }
+
+
+            if(p.x&gt;maxX){
+
+                p.x=maxX;
+                p.vx=-Math.abs(p.vx);
+
+            }
+
+
+            if(p.y&lt;125){
+
+                p.y=125;
+                p.vy=Math.abs(p.vy);
+
+            }
+
+
+            if(p.y&gt;420){
+
+                p.y=420;
+                p.vy=-Math.abs(p.vy);
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   TEMPERATURE → COLOR
+
+   -200 = very cold
+   0 = blue
+   positive = warmer
+===================================================== */
+
+function temperatureColor(
+    temperature
+){
+
+    if(equilibriumReached){
+
+        return &quot;#b46cff&quot;;
+
+    }
+
+
+    /*
+       Cold range:
+       -200°C → deep blue
+       0°C → cyan
+
+       Warm range:
+       0°C → orange
+       500°C → red
+    */
+
+    if(temperature&lt;0){
+
+        const ratio=
+        Math.min(
+            1,
+            Math.abs(temperature)/200
+        );
+
+
+        const r=
+        Math.round(
+            50+
+            (1-ratio)*20
+        );
+
+
+        const g=
+        Math.round(
+            220-
+            ratio*100
+        );
+
+
+        const b=255;
+
+
+        return `rgb(${r},${g},${b})`;
+
+    }
+
+
+    const ratio=
+    Math.min(
+        1,
+        temperature/500
+    );
+
+
+    const r=255;
+
+    const g=
+    Math.round(
+        220-
+        ratio*190
+    );
+
+    const b=
+    Math.round(
+        255-
+        ratio*255
+    );
+
+
+    return `rgb(${r},${g},${b})`;
+
+}
+
+
+/* =====================================================
+   PARTICLE DRAW
+===================================================== */
+
+function drawParticle(
+    p,
+    color
+){
+
+    ctx.beginPath();
+
+    ctx.arc(
+        p.x,
+        p.y,
+        5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fillStyle=color;
+
+    ctx.shadowBlur=10;
+
+    ctx.shadowColor=color;
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+
+}
+
+
+/* =====================================================
+   THERMOMETER
+
+   Supports -200°C to +500°C
+===================================================== */
+
+function drawThermometer(
+    x,
+    y,
+    temperature,
+    color
+){
+
+    const min=-200;
+    const max=500;
+
+    const height=250;
+
+    const ratio=
+    (
+        temperature-min
+    )/
+    (
+        max-min
+    );
+
+
+    const mercury=
+    Math.max(
+        0,
+        Math.min(
+            1,
+            ratio
+        )
+    )*height;
+
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x,
+        y,
+        24,
+        height,
+        12
+    );
+
+    ctx.fillStyle=
+    &quot;rgba(255,255,255,.1)&quot;;
+
+    ctx.fill();
+
+    ctx.strokeStyle=
+    &quot;rgba(255,255,255,.7)&quot;;
+
+    ctx.lineWidth=2;
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x+6,
+        y+
+        height-
+        mercury,
+        12,
+        mercury,
+        6
+    );
+
+    ctx.fillStyle=color;
+
+    ctx.shadowBlur=15;
+
+    ctx.shadowColor=color;
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+
+
+    /* BULB */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+12,
+        y+height+14,
+        18,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fillStyle=color;
+
+    ctx.fill();
+
+
+    /* SCALE */
+
+    ctx.font=&quot;10px Arial&quot;;
+
+    ctx.fillStyle=&quot;white&quot;;
+
+
+    const marks=[
+        500,
+        300,
+        100,
+        0,
+        -100,
+        -200
+    ];
+
+
+    marks.forEach(
+        value=&gt;{
+
+            const r=
+            (
+                value-min
+            )/
+            (
+                max-min
+            );
+
+
+            const yy=
+            y+
+            height-
+            r*height;
+
+
+            ctx.fillText(
+                value+&quot;°&quot;,
+                x+32,
+                yy+4
+            );
+
+        }
+    );
+
+
+    ctx.font=
+    &quot;bold 14px Arial&quot;;
+
+    ctx.fillStyle=color;
+
+    ctx.fillText(
+        formatTemp(temperature),
+        x-15,
+        y-15
+    );
+
+}
+
+
+/* =====================================================
+   TEMPERATURE FORMAT
+===================================================== */
+
+function formatTemp(t){
+
+    const rounded=
+    Math.round(t*10)/10;
+
+    return (
+        rounded+
+        &quot;°C&quot;
+    );
+
+}
+
+
+/* =====================================================
+   CONTAINERS
+===================================================== */
+
+function drawContainers(){
+
+    const leftColor=
+    temperatureColor(
+        leftTemp
+    );
+
+    const rightColor=
+    temperatureColor(
+        rightTemp
+    );
+
+
+    /* LEFT */
+
+    ctx.fillStyle=
+    leftColor
+    .replace(&quot;rgb&quot;,&quot;rgba&quot;)
+    .replace(&quot;)&quot;,&quot;,0.10)&quot;);
+
+    ctx.fillRect(
+        70,100,330,340
+    );
+
+
+    ctx.strokeStyle=
+    leftColor;
+
+    ctx.lineWidth=3;
+
+    ctx.strokeRect(
+        70,100,330,340
+    );
+
+
+    /* RIGHT */
+
+    ctx.fillStyle=
+    rightColor
+    .replace(&quot;rgb&quot;,&quot;rgba&quot;)
+    .replace(&quot;)&quot;,&quot;,0.10)&quot;);
+
+    ctx.fillRect(
+        500,100,330,340
+    );
+
+
+    ctx.strokeStyle=
+    rightColor;
+
+    ctx.strokeRect(
+        500,100,330,340
+    );
+
+
+    /* LABELS */
+
+    ctx.font=
+    &quot;bold 17px Arial&quot;;
+
+
+    ctx.fillStyle=
+    leftColor;
+
+    ctx.fillText(
+        getLeft().emoji+
+        &quot; &quot;+
+        getLeft().name,
+        160,
+        75
+    );
+
+
+    ctx.fillStyle=
+    rightColor;
+
+    ctx.fillText(
+        getRight().emoji+
+        &quot; &quot;+
+        getRight().name,
+        585,
+        75
+    );
+
+
+    /* TEMPERATURE LABEL */
+
+    ctx.font=
+    &quot;bold 16px Arial&quot;;
+
+    ctx.fillStyle=&quot;white&quot;;
+
+    ctx.fillText(
+        formatTemp(leftTemp),
+        210,
+        465
+    );
+
+
+    ctx.fillText(
+        formatTemp(rightTemp),
+        640,
+        465
+    );
+
+
+    /* STATE */
+
+    ctx.font=
+    &quot;13px Arial&quot;;
+
+    ctx.fillStyle=&quot;#cfc6d5&quot;;
+
+    ctx.fillText(
+        capitalize(
+            getLeft().state
+        ),
+        220,
+        487
+    );
+
+
+    ctx.fillText(
+        capitalize(
+            getRight().state
+        ),
+        650,
+        487
+    );
+
+
+    /* CENTRAL HEAT ZONE */
+
+    ctx.fillStyle=
+    &quot;rgba(255,180,60,.07)&quot;;
+
+    ctx.fillRect(
+        400,
+        100,
+        100,
+        340
+    );
+
+
+    if(
+        running &amp;&amp;
+        !equilibriumReached
+    ){
+
+        ctx.font=
+        &quot;bold 38px Arial&quot;;
+
+        ctx.fillStyle=&quot;#ffd166&quot;;
+
+
+        if(
+            leftTemp&gt;rightTemp
+        ){
+
+            ctx.fillText(
+                &quot;→&quot;,
+                430,
+                215
+            );
+
+            ctx.fillText(
+                &quot;→&quot;,
+                430,
+                285
+            );
+
+            ctx.fillText(
+                &quot;→&quot;,
+                430,
+                355
+            );
+
+        }
+
+        else{
+
+            ctx.fillText(
+                &quot;←&quot;,
+                430,
+                215
+            );
+
+            ctx.fillText(
+                &quot;←&quot;,
+                430,
+                285
+            );
+
+            ctx.fillText(
+                &quot;←&quot;,
+                430,
+                355
+            );
+
+        }
+
+    }
+
+
+    /* THERMOMETERS */
+
+    drawThermometer(
+        95,
+        135,
+        leftTemp,
+        leftColor
+    );
+
+
+    drawThermometer(
+        525,
+        135,
+        rightTemp,
+        rightColor
+    );
+
+}
+
+
+/* =====================================================
+   HEAT PARTICLES
+===================================================== */
+
+function createHeatParticle(){
+
+    if(
+        !running ||
+        equilibriumReached
+    )
+        return;
+
+
+    if(
+        leftTemp&gt;
+        rightTemp
+    ){
+
+        heatParticles.push({
+
+            x:395,
+
+            y:
+            190+
+            Math.random()*180,
+
+            vx:
+            2+
+            Math.random()*2
+
+        });
+
+    }
+
+    else{
+
+        heatParticles.push({
+
+            x:505,
+
+            y:
+            190+
+            Math.random()*180,
+
+            vx:
+            -(
+                2+
+                Math.random()*2
+            )
+
+        });
+
+    }
+
+}
+
+
+function updateHeatParticles(){
+
+    if(
+        running &amp;&amp;
+        Math.random()&lt;.35
+    ){
+
+        createHeatParticle();
+
+    }
+
+
+    heatParticles.forEach(
+        p=&gt;{
+            p.x+=p.vx*speed;
+        }
+    );
+
+
+    heatParticles=
+    heatParticles.filter(
+        p=&gt;
+        p.x&gt;390 &amp;&amp;
+        p.x&lt;510
+    );
+
+}
+
+
+function drawHeatParticles(){
+
+    heatParticles.forEach(
+        p=&gt;{
+
+            ctx.beginPath();
+
+            ctx.arc(
+                p.x,
+                p.y,
+                4,
+                0,
+                Math.PI*2
+            );
+
+            ctx.fillStyle=&quot;#ffd166&quot;;
+
+            ctx.shadowBlur=14;
+
+            ctx.shadowColor=&quot;#ff9f1c&quot;;
+
+            ctx.fill();
+
+            ctx.shadowBlur=0;
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   THERMAL TRANSFER
+
+   IMPORTANT:
+   Works for both positive and
+   negative Celsius temperatures.
+
+===================================================== */
+
+function updateThermalTransfer(){
+
+    if(
+        !running ||
+        paused
+    )
+        return;
+
+
+    const difference=
+    leftTemp-rightTemp;
+
+
+    if(
+        Math.abs(difference)&lt;0.02
+    ){
+
+        const finalT=
+        calculateEquilibrium();
+
+
+        leftTemp=finalT;
+        rightTemp=finalT;
+
+
+        running=false;
+        equilibriumReached=true;
+
+
+        heatParticles=[];
+
+
+        document.getElementById(
+            &quot;equilibrium&quot;
+        ).style.display=&quot;block&quot;;
+
+
+        document.getElementById(
+            &quot;result&quot;
+        ).innerHTML=
+
+        &quot;⚖️ &lt;strong&gt;Thermal equilibrium reached.&lt;/strong&gt;&lt;br&gt;&lt;br&gt;&quot;+
+
+        &quot;Final temperature: &lt;strong&gt;&quot;+
+
+        formatTemp(finalT)+
+
+        &quot;&lt;/strong&gt;&lt;br&gt;&lt;br&gt;&quot;+
+
+        &quot;Both substances now have the same temperature, so there is no net heat transfer.&quot;;
+
+
+        return;
+
+    }
+
+
+    /*
+       Heat capacity
+
+       C = m × c
+    */
+
+    const CL=
+    leftMass*
+    getLeft().c;
+
+
+    const CR=
+    rightMass*
+    getRight().c;
+
+
+    /*
+       Small temperature approach step
+
+       The larger the temperature difference,
+       the faster the initial transfer.
+    */
+
+    const rate=
+    Math.abs(difference)
+    *
+    0.0025
+    *
+    speed;
+
+
+    /*
+       LEFT HOTTER
+    */
+
+    if(difference&gt;0){
+
+        const dQL=
+        rate*
+        CL;
+
+
+        leftTemp-=
+        dQL/CL;
+
+
+        rightTemp+=
+        dQL/CR;
+
+    }
+
+
+    /*
+       RIGHT HOTTER
+    */
+
+    else{
+
+        const dQR=
+        rate*
+        CR;
+
+
+        rightTemp-=
+        dQR/CR;
+
+
+        leftTemp+=
+        dQR/CL;
+
+    }
+
+
+    /*
+       Prevent crossing equilibrium.
+    */
+
+    const equilibrium=
+    calculateEquilibrium();
+
+
+    if(difference&gt;0){
+
+        if(
+            rightTemp&gt;
+            equilibrium
+        ){
+
+            rightTemp=
+            equilibrium;
+
+        }
+
+        if(
+            leftTemp&lt;
+            equilibrium
+        ){
+
+            leftTemp=
+            equilibrium;
+
+        }
+
+    }
+
+    else{
+
+        if(
+            leftTemp&gt;
+            equilibrium
+        ){
+
+            leftTemp=
+            equilibrium;
+
+        }
+
+        if(
+            rightTemp&lt;
+            equilibrium
+        ){
+
+            rightTemp=
+            equilibrium;
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   INTERFACE
+===================================================== */
+
+function updateInterface(){
+
+    const equilibrium=
+    calculateEquilibrium();
+
+
+    document.getElementById(
+        &quot;leftTempStat&quot;
+    ).textContent=
+    formatTemp(leftTemp);
+
+
+    document.getElementById(
+        &quot;rightTempStat&quot;
+    ).textContent=
+    formatTemp(rightTemp);
+
+
+    document.getElementById(
+        &quot;equilibriumTemp&quot;
+    ).textContent=
+    formatTemp(equilibrium);
+
+
+    document.getElementById(
+        &quot;leftName&quot;
+    ).textContent=
+    getLeft().name;
+
+
+    document.getElementById(
+        &quot;rightName&quot;
+    ).textContent=
+    getRight().name;
+
+
+    /*
+       Heat transferred
+    */
+
+    const qLeft=
+    Math.abs(
+        leftMass*
+        getLeft().c*
+        (
+            leftTemp-
+            initialLeftTemp
+        )
+    );
+
+
+    const qRight=
+    Math.abs(
+        rightMass*
+        getRight().c*
+        (
+            rightTemp-
+            initialRightTemp
+        )
+    );
+
+
+    const q=
+    Math.max(
+        qLeft,
+        qRight
+    );
+
+
+    document.getElementById(
+        &quot;heatTransferred&quot;
+    ).textContent=
+    q.toFixed(1)+&quot; J&quot;;
+
+
+    const direction=
+    getDirection();
+
+
+    const flowText=
+    document.getElementById(
+        &quot;flowText&quot;
+    );
+
+
+    const arrow=
+    document.getElementById(
+        &quot;flowArrow&quot;
+    );
+
+
+    arrow.classList.remove(
+        &quot;active&quot;
+    );
+
+
+    if(
+        direction===&quot;left-right&quot;
+    ){
+
+        flowText.textContent=
+        &quot;🔥 HEAT: LEFT → RIGHT&quot;;
+
+        arrow.textContent=&quot;→&quot;;
+
+        arrow.classList.add(
+            &quot;active&quot;
+        );
+
+
+        document.getElementById(
+            &quot;direction&quot;
+        ).textContent=
+
+        &quot;🔥 The LEFT substance is hotter. Heat is transferred from LEFT → RIGHT.&quot;;
+
+
+    }
+
+    else if(
+        direction===&quot;right-left&quot;
+    ){
+
+        flowText.textContent=
+        &quot;🔥 HEAT: RIGHT → LEFT&quot;;
+
+        arrow.textContent=&quot;←&quot;;
+
+        arrow.classList.add(
+            &quot;active&quot;
+        );
+
+
+        document.getElementById(
+            &quot;direction&quot;
+        ).textContent=
+
+        &quot;🔥 The RIGHT substance is hotter. Heat is transferred from RIGHT → LEFT.&quot;;
+
+
+    }
+
+    else{
+
+        flowText.textContent=
+        &quot;⚖️ NO NET HEAT FLOW&quot;;
+
+        arrow.textContent=&quot;•&quot;;
+
+
+        document.getElementById(
+            &quot;direction&quot;
+        ).textContent=
+
+        &quot;⚖️ Both substances have the same temperature. There is no net heat transfer.&quot;;
+
+    }
+
+}
+
+
+/* =====================================================
+   SUBSTANCE INFORMATION
+===================================================== */
+
+function updateSubstanceInfo(){
+
+    const L=getLeft();
+    const R=getRight();
+
+
+    document.getElementById(
+        &quot;leftInfo&quot;
+    ).innerHTML=
+
+    L.emoji+
+    &quot; &lt;strong&gt;&quot;+
+    L.name+
+    &quot;&lt;/strong&gt;&lt;br&gt;&quot;+
+    &quot;State: &quot;+
+    capitalize(L.state)+
+    &quot;&lt;br&gt;&quot;+
+    &quot;Specific heat: &quot;+
+    L.c+
+    &quot; J/g°C&quot;;
+
+
+    document.getElementById(
+        &quot;rightInfo&quot;
+    ).innerHTML=
+
+    R.emoji+
+    &quot; &lt;strong&gt;&quot;+
+    R.name+
+    &quot;&lt;/strong&gt;&lt;br&gt;&quot;+
+    &quot;State: &quot;+
+    capitalize(R.state)+
+    &quot;&lt;br&gt;&quot;+
+    &quot;Specific heat: &quot;+
+    R.c+
+    &quot; J/g°C&quot;;
+
+}
+
+
+/* =====================================================
+   ANIMATION
+===================================================== */
+
+function animate(){
+
+    if(!paused){
+
+        updateParticles(
+            leftParticles,
+            getLeft(),
+            125,
+            380,
+            leftTemp
+        );
+
+
+        updateParticles(
+            rightParticles,
+            getRight(),
+            555,
+            810,
+            rightTemp
+        );
+
+
+        updateThermalTransfer();
+
+        updateHeatParticles();
+
+    }
+
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    drawContainers();
+
+    drawHeatParticles();
+
+
+    leftParticles.forEach(
+        p=&gt;
+        drawParticle(
+            p,
+            temperatureColor(
+                leftTemp
+            )
+        )
+    );
+
+
+    rightParticles.forEach(
+        p=&gt;
+        drawParticle(
+            p,
+            temperatureColor(
+                rightTemp
+            )
+        )
+    );
+
+
+    updateInterface();
+
+
+    requestAnimationFrame(
+        animate
+    );
+
+}
+
+
+animate();
+
+
+/* =====================================================
+   CONTROLS
+===================================================== */
+
+document.getElementById(
+    &quot;leftSubstance&quot;
+).onchange=function(){
+
+    leftSub=this.value;
+
+    createParticles();
+
+    updateSubstanceInfo();
+
+};
+
+
+document.getElementById(
+    &quot;rightSubstance&quot;
+).onchange=function(){
+
+    rightSub=this.value;
+
+    createParticles();
+
+    updateSubstanceInfo();
+
+};
+
+
+document.getElementById(
+    &quot;leftMass&quot;
+).oninput=function(){
+
+    leftMass=
+    Number(this.value);
+
+    document.getElementById(
+        &quot;leftMassValue&quot;
+    ).textContent=
+    leftMass;
+
+};
+
+
+document.getElementById(
+    &quot;rightMass&quot;
+).oninput=function(){
+
+    rightMass=
+    Number(this.value);
+
+    document.getElementById(
+        &quot;rightMassValue&quot;
+    ).textContent=
+    rightMass;
+
+};
+
+
+document.getElementById(
+    &quot;leftTemp&quot;
+).oninput=function(){
+
+    leftTemp=
+    Number(this.value);
+
+    document.getElementById(
+        &quot;leftTempValue&quot;
+    ).textContent=
+    leftTemp;
+
+};
+
+
+document.getElementById(
+    &quot;rightTemp&quot;
+).oninput=function(){
+
+    rightTemp=
+    Number(this.value);
+
+    document.getElementById(
+        &quot;rightTempValue&quot;
+    ).textContent=
+    rightTemp;
+
+};
+
+
+document.getElementById(
+    &quot;speed&quot;
+).oninput=function(){
+
+    speed=
+    Number(this.value);
+
+    document.getElementById(
+        &quot;speedValue&quot;
+    ).textContent=
+    speed.toFixed(1)+&quot;×&quot;;
+
+};
+
+
+/* =====================================================
+   START
+===================================================== */
+
+function startSimulation(){
+
+    if(
+        Math.abs(
+            leftTemp-rightTemp
+        )&lt;0.02
+    ){
+
+        equilibriumReached=true;
+
+        document.getElementById(
+            &quot;equilibrium&quot;
+        ).style.display=
+        &quot;block&quot;;
+
+        return;
+
+    }
+
+
+    initialLeftTemp=
+    leftTemp;
+
+    initialRightTemp=
+    rightTemp;
+
+
+    equilibriumReached=false;
+
+    running=true;
+
+    paused=false;
+
+    heatParticles=[];
+
+
+    document.getElementById(
+        &quot;equilibrium&quot;
+    ).style.display=
+    &quot;none&quot;;
+
+
+    document.getElementById(
+        &quot;pauseButton&quot;
+    ).textContent=
+    &quot;⏸ Pause&quot;;
+
+
+    const direction=
+    getDirection();
+
+
+    if(
+        direction===&quot;left-right&quot;
+    ){
+
+        document.getElementById(
+            &quot;result&quot;
+        ).innerHTML=
+
+        &quot;🔥 &lt;strong&gt;LEFT → RIGHT&lt;/strong&gt;&lt;br&gt;&lt;br&gt;&quot;+
+
+        getLeft().name+
+        &quot; is hotter than &quot;+
+        getRight().name+
+        &quot;.&lt;br&gt;&lt;br&gt;&quot;+
+
+        &quot;Thermal energy is transferred toward the lower-temperature substance.&quot;;
+
+    }
+
+    else{
+
+        document.getElementById(
+            &quot;result&quot;
+        ).innerHTML=
+
+        &quot;🔥 &lt;strong&gt;RIGHT → LEFT&lt;/strong&gt;&lt;br&gt;&lt;br&gt;&quot;+
+
+        getRight().name+
+        &quot; is hotter than &quot;+
+        getLeft().name+
+        &quot;.&lt;br&gt;&lt;br&gt;&quot;+
+
+        &quot;Thermal energy is transferred toward the lower-temperature substance.&quot;;
+
+    }
+
+}
+
+
+/* =====================================================
+   PAUSE
+===================================================== */
+
+function pauseSimulation(){
+
+    paused=!paused;
+
+
+    document.getElementById(
+        &quot;pauseButton&quot;
+    ).textContent=
+    paused
+    ?
+    &quot;▶ Resume&quot;
+    :
+    &quot;⏸ Pause&quot;;
+
+}
+
+
+/* =====================================================
+   RESET
+
+   Reset returns to the currently
+   selected slider temperatures.
+===================================================== */
+
+function resetSimulation(){
+
+    leftTemp=
+    Number(
+        document.getElementById(
+            &quot;leftTemp&quot;
+        ).value
+    );
+
+
+    rightTemp=
+    Number(
+        document.getElementById(
+            &quot;rightTemp&quot;
+        ).value
+    );
+
+
+    leftMass=
+    Number(
+        document.getElementById(
+            &quot;leftMass&quot;
+        ).value
+    );
+
+
+    rightMass=
+    Number(
+        document.getElementById(
+            &quot;rightMass&quot;
+        ).value
+    );
+
+
+    leftSub=
+    document.getElementById(
+        &quot;leftSubstance&quot;
+    ).value;
+
+
+    rightSub=
+    document.getElementById(
+        &quot;rightSubstance&quot;
+    ).value;
+
+
+    running=false;
+
+    paused=false;
+
+    equilibriumReached=false;
+
+    heatParticles=[];
+
+
+    document.getElementById(
+        &quot;equilibrium&quot;
+    ).style.display=
+    &quot;none&quot;;
+
+
+    document.getElementById(
+        &quot;pauseButton&quot;
+    ).textContent=
+    &quot;⏸ Pause&quot;;
+
+
+    document.getElementById(
+        &quot;result&quot;
+    ).innerHTML=
+
+    &quot;Set the temperatures and press &lt;strong&gt;Start Heat Transfer&lt;/strong&gt;.&quot;;
+
+
+    createParticles();
+
+    updateSubstanceInfo();
+
+}
+
+
+/* =====================================================
+   CAPITALIZE
+===================================================== */
+
+function capitalize(text){
+
+    return text.charAt(0).toUpperCase()
+    +
+    text.slice(1);
+
+}
+
+
+/* =====================================================
+   INITIALIZE
+===================================================== */
+
+updateSubstanceInfo();
+
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
