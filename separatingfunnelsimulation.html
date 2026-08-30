@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Separating Funnel simulation</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Chemistry Lab: Separating Funnel &amp; Multi-Liquid Extraction&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0b0d12;
+            --panel-bg: #151821;
+            --panel-border: #262c3a;
+            --accent-blue: #00d2ff;
+            --accent-gold: #ffb703;
+            --accent-orange: #ff6b00;
+            --accent-red: #ff3366;
+            --accent-green: #00ff88;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Inter&#39;, -apple-system, sans-serif; user-select: none; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            flex-direction: row;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            width: 360px;
+            min-width: 360px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+        }
+
+        .sidebar-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--panel-border);
+            background: rgba(0,0,0,0.3);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.15rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+
+        .scroll-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-gold);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .control-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.78rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-main);
+        }
+
+        span.val {
+            color: var(--accent-blue);
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        input[type=&quot;range&quot;] {
+            width: 100%;
+            height: 5px;
+            border-radius: 2px;
+            background: #2a3142;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        select, button {
+            background: #1e2433;
+            color: #fff;
+            border: 1px solid var(--panel-border);
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: var(--accent-blue);
+            background: #252d40;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .btn-action {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .btn-action:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        .btn-warning {
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .btn-warning:hover {
+            background: var(--accent-orange);
+            color: #000;
+        }
+
+        /* Workspace Canvas Area */
+        #workspace {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #121622 0%, #06070a 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas#labCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* HUD Panels */
+        .hud-panel {
+            position: absolute;
+            background: rgba(15, 18, 26, 0.88);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            padding: 12px;
+            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        #layerHUD {
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .hud-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .layer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            padding: 4px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 4px;
+        }
+
+        .layer-badge {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        #vacuumAlert {
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 51, 102, 0.15);
+            border: 1px solid var(--accent-red);
+            color: #ff88a5;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 0.72rem;
+            color: #aaa;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 12px;
+            border-radius: 6px;
+            pointer-events: none;
+            line-height: 1.4;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        @media (max-width: 950px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; min-width: 100%; height: 42vh; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+            #workspace { height: 58vh; }
+            .controls-hint { display: none; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- SIDEBAR CONTROL PANEL --&gt;
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;div class=&quot;sidebar-header&quot;&gt;
+            &lt;h1&gt;🧪 Separating Funnel Lab&lt;/h1&gt;
+            &lt;p&gt;Multi-Liquid Pouring &amp; Density Extraction&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;scroll-container&quot;&gt;
+
+            &lt;!-- 1. MULTI-LIQUID POURING SETUP --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;1. Add Liquid to Funnel&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Select Liquid Component&lt;/label&gt;
+                    &lt;select id=&quot;liquidSelect&quot;&gt;
+                        &lt;option value=&quot;mercury&quot;&gt;Mercury (ρ = 13.53 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;dcm&quot;&gt;Dichloromethane DCM (ρ = 1.33 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;water&quot; selected&gt;Dyed Water (ρ = 1.00 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;oil&quot;&gt;Vegetable Oil (ρ = 0.92 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;ether&quot;&gt;Diethyl Ether (ρ = 0.71 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;hexane&quot;&gt;Hexane (ρ = 0.66 g/mL)&lt;/option&gt;
+                        &lt;option value=&quot;custom&quot;&gt;Custom Density Liquid&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot; id=&quot;customGroup&quot; style=&quot;display: none;&quot;&gt;
+                    &lt;label&gt;Custom Name: &lt;input type=&quot;text&quot; id=&quot;customName&quot; value=&quot;Organic Solvent&quot; style=&quot;padding:4px; font-size:0.75rem; background:#111; border:1px solid #444; color:#fff; border-radius:3px;&quot;&gt;&lt;/label&gt;
+                    &lt;label style=&quot;margin-top:4px;&quot;&gt;Custom Density (ρ): &lt;span id=&quot;customRhoVal&quot; class=&quot;val&quot;&gt;0.85 g/mL&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;customRhoSlider&quot; min=&quot;0.5&quot; max=&quot;3.0&quot; step=&quot;0.05&quot; value=&quot;0.85&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Volume to Pour: &lt;span id=&quot;pourVolVal&quot; class=&quot;val&quot;&gt;80 mL&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;pourVolSlider&quot; min=&quot;20&quot; max=&quot;150&quot; step=&quot;10&quot; value=&quot;80&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;button class=&quot;btn-action&quot; id=&quot;btnPour&quot;&gt;🧪 Pour Liquid into Funnel&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 2. FUNNEL MECHANICAL CONTROLS --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;2. Funnel Mechanical Controls&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Stopcock Valve Flow: &lt;span id=&quot;valveVal&quot; class=&quot;val&quot;&gt;0% (Closed)&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;valveSlider&quot; min=&quot;0&quot; max=&quot;100&quot; step=&quot;1&quot; value=&quot;0&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;btn-grid&quot; style=&quot;margin-top: 4px;&quot;&gt;
+                    &lt;button id=&quot;btnStopperToggle&quot; class=&quot;btn-warning&quot;&gt;🔓 Stopper: REMOVED&lt;/button&gt;
+                    &lt;button id=&quot;btnShake&quot; class=&quot;btn-warning&quot;&gt;🌀 Shake &amp; Emulsify&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 3. GLASSWARE &amp; BENCH --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;3. Glassware &amp; Bench&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;btn-grid&quot;&gt;
+                    &lt;button id=&quot;btnClearFunnel&quot; style=&quot;border-color: var(--accent-red); color: var(--accent-red);&quot;&gt;🗑️ Flush Funnel&lt;/button&gt;
+                    &lt;button id=&quot;btnResetBeakers&quot;&gt;🥛 Reset Beakers&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- MAIN WORKSPACE --&gt;
+    &lt;div id=&quot;workspace&quot;&gt;
+        &lt;canvas id=&quot;labCanvas&quot;&gt;&lt;/canvas&gt;
+
+        &lt;!-- Vacuum Alert --&gt;
+        &lt;div id=&quot;vacuumAlert&quot; class=&quot;hud-panel&quot;&gt;
+            ⚠️ &lt;b&gt;VACUUM LOCK:&lt;/b&gt; Stopper is seated! Remove the top stopper to vent air and allow draining.
+        &lt;/div&gt;
+
+        &lt;!-- Layer Analytics HUD --&gt;
+        &lt;div id=&quot;layerHUD&quot; class=&quot;hud-panel&quot;&gt;
+            &lt;div class=&quot;hud-title&quot;&gt;📊 Funnel Density Stack Analytics&lt;/div&gt;
+            &lt;div id=&quot;layerList&quot;&gt;
+                &lt;div style=&quot;font-size:0.75rem; color:#888;&quot;&gt;Funnel is empty. Pour liquids above!&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div style=&quot;font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;&quot;&gt;
+                &lt;span&gt;Separation Phase:&lt;/span&gt;
+                &lt;span id=&quot;sepPctVal&quot; style=&quot;color:#fff; font-weight:bold;&quot;&gt;100%&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;controls-hint&quot;&gt;
+            💡 &lt;b&gt;Multiple Liquids:&lt;/b&gt; Add as many liquids as you like. They will automatically settle by density!&lt;br&gt;
+            💡 &lt;b&gt;Draggable Beakers:&lt;/b&gt; Drag beakers under the stem tip to collect fractions.
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- LIQUID PRESETS ---
+        const LIQUID_PRESETS = {
+            mercury: { name: &quot;Liquid Mercury&quot;, rho: 13.53, color: &quot;rgba(170, 185, 200, 0.95)&quot; },
+            dcm: { name: &quot;Dichloromethane (DCM)&quot;, rho: 1.33, color: &quot;rgba(180, 220, 240, 0.65)&quot; },
+            water: { name: &quot;Dyed Aqueous Water&quot;, rho: 1.00, color: &quot;rgba(0, 160, 255, 0.70)&quot; },
+            oil: { name: &quot;Vegetable Oil&quot;, rho: 0.92, color: &quot;rgba(255, 215, 0, 0.75)&quot; },
+            ether: { name: &quot;Diethyl Ether&quot;, rho: 0.71, color: &quot;rgba(180, 255, 140, 0.70)&quot; },
+            hexane: { name: &quot;Hexane (Dyed Pink)&quot;, rho: 0.66, color: &quot;rgba(255, 120, 180, 0.70)&quot; }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            // Liquids inside funnel (ordered by density: index 0 is lightest/top, index N-1 is densest/bottom)
+            liquids: [],
+            
+            // Funnel Controls
+            stopperSeated: false, // Stopper is off by default so pouring works right away!
+            valvePct: 0,
+            separationPct: 1.0,
+            shakeIntensity: 0,
+            vacuumPressure: 0,
+            
+            // Active Pouring Animation State
+            pouring: {
+                active: false,
+                progress: 0, // 0 to 1
+                liquid: null,
+                targetVol: 0
+            },
+            
+            // Beakers (Draggable)
+            beakers: [],
+            activeDragBeaker: null,
+            dragOffset: { x: 0, y: 0 }
+        };
+
+        // DOM Handles
+        const canvas = document.getElementById(&#39;labCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const liquidSelect = document.getElementById(&#39;liquidSelect&#39;);
+        const customGroup = document.getElementById(&#39;customGroup&#39;);
+        const customName = document.getElementById(&#39;customName&#39;);
+        const customRhoSlider = document.getElementById(&#39;customRhoSlider&#39;), customRhoVal = document.getElementById(&#39;customRhoVal&#39;);
+        const pourVolSlider = document.getElementById(&#39;pourVolSlider&#39;), pourVolVal = document.getElementById(&#39;pourVolVal&#39;);
+        const btnPour = document.getElementById(&#39;btnPour&#39;);
+        const valveSlider = document.getElementById(&#39;valveSlider&#39;), valveVal = document.getElementById(&#39;valveVal&#39;);
+        const btnStopperToggle = document.getElementById(&#39;btnStopperToggle&#39;);
+        const btnShake = document.getElementById(&#39;btnShake&#39;);
+        const btnClearFunnel = document.getElementById(&#39;btnClearFunnel&#39;);
+        const btnResetBeakers = document.getElementById(&#39;btnResetBeakers&#39;);
+        const layerList = document.getElementById(&#39;layerList&#39;);
+        const sepPctVal = document.getElementById(&#39;sepPctVal&#39;);
+        const vacuumAlert = document.getElementById(&#39;vacuumAlert&#39;);
+
+        // Geometry Layout
+        let geo = {
+            fcX: 0,
+            topY: 0,
+            fH: 220,           // Bulbous body height
+            maxR: 75,          // Pear maximum radius
+            stemLength: 100,
+            stopcockY: 0,
+            benchY: 0
+        };
+
+        function initBeakers() {
+            let bw = 75, bh = 85;
+            state.beakers = [
+                { id: 1, x: geo.fcX - bw / 2, y: geo.benchY - bh, w: bw, h: bh, label: &quot;Beaker A&quot;, contents: [] },
+                { id: 2, x: geo.fcX + 110, y: geo.benchY - bh, w: bw, h: bh, label: &quot;Beaker B&quot;, contents: [] },
+                { id: 3, x: geo.fcX + 210, y: geo.benchY - bh, w: bw, h: bh, label: &quot;Beaker C&quot;, contents: [] }
+            ];
+        }
+
+        // --- ACCURATE SQUIBB PEAR-SHAPE GEOMETRY HELPER ---
+        // Returns the inner glass radius (in px) at relative height yRel (0.0 at top neck to 1.0 at stem junction)
+        function getFunnelRadius(yRel) {
+            if (yRel &lt; 0 || yRel &gt; 1) return 0;
+
+            if (yRel &lt; 0.08) {
+                // Ground glass neck
+                return 16;
+            } else if (yRel &lt; 0.32) {
+                // Swelling pear shoulder
+                let t = (yRel - 0.08) / 0.24;
+                return 16 + Math.sin(t * Math.PI * 0.5) * (geo.maxR - 16);
+            } else if (yRel &lt; 0.92) {
+                // Smooth tapering cone body
+                let t = (yRel - 0.32) / 0.60;
+                return geo.maxR - t * (geo.maxR - 12);
+            } else {
+                // Junction into narrow stem
+                let t = (yRel - 0.92) / 0.08;
+                return 12 - t * 6; // Taper down to radius 6 (12px stem diameter)
+            }
+        }
+
+        // Sort liquids array automatically by density: highest density at bottom (index N-1), lowest density at top (index 0)
+        function sortLiquidsByDensity() {
+            state.liquids.sort((a, b) =&gt; a.rho - b.rho); // Ascending density order
+        }
+
+        // Add / Pour Liquid Trigger
+        function triggerPour() {
+            if (state.pouring.active) return;
+
+            let key = liquidSelect.value;
+            let lData;
+
+            if (key === &quot;custom&quot;) {
+                lData = {
+                    name: customName.value || &quot;Custom Solvent&quot;,
+                    rho: parseFloat(customRhoSlider.value),
+                    color: &quot;rgba(255, 100, 200, 0.75)&quot;
+                };
+            } else {
+                let p = LIQUID_PRESETS[key];
+                lData = { name: p.name, rho: p.rho, color: p.color };
+            }
+
+            // Remove stopper if it&#39;s seated
+            if (state.stopperSeated) {
+                state.stopperSeated = false;
+                updateStopperButton();
+            }
+
+            state.pouring = {
+                active: true,
+                progress: 0,
+                liquid: lData,
+                targetVol: parseFloat(pourVolSlider.value)
+            };
+        }
+
+        // --- PHYSICS &amp; ANIMATION ENGINE ---
+        function updatePhysics() {
+            // 1. Process Pouring Animation Stream
+            if (state.pouring.active) {
+                state.pouring.progress += 0.015;
+                
+                // Gradually transfer volume to funnel liquids
+                let addedThisFrame = (state.pouring.targetVol / (1 / 0.015));
+                
+                let existing = state.liquids.find(l =&gt; l.name === state.pouring.liquid.name);
+                if (existing) {
+                    existing.vol += addedThisFrame;
+                } else {
+                    state.liquids.push({
+                        name: state.pouring.liquid.name,
+                        rho: state.pouring.liquid.rho,
+                        color: state.pouring.liquid.color,
+                        vol: addedThisFrame
+                    });
+                    sortLiquidsByDensity();
+                }
+
+                if (state.pouring.progress &gt;= 1.0) {
+                    state.pouring.active = false;
+                }
+            }
+
+            // 2. Unmixing / Settling Logic
+            if (state.separationPct &lt; 1.0) {
+                state.separationPct = Math.min(1.0, state.separationPct + 0.003);
+                if (state.separationPct === 1.0) sortLiquidsByDensity();
+            }
+
+            // 3. Shake Decay
+            if (state.shakeIntensity &gt; 0) {
+                state.shakeIntensity *= 0.9;
+                if (state.shakeIntensity &lt; 0.1) state.shakeIntensity = 0;
+            }
+
+            // 4. Fluid Drainage Logic
+            if (state.valvePct &gt; 0 &amp;&amp; state.liquids.length &gt; 0) {
+                let canDrain = true;
+                if (state.stopperSeated) {
+                    state.vacuumPressure += 0.04;
+                    if (state.vacuumPressure &gt; 1.0) {
+                        canDrain = false;
+                        vacuumAlert.style.display = &quot;flex&quot;;
+                    }
+                } else {
+                    state.vacuumPressure = Math.max(0, state.vacuumPressure - 0.1);
+                    vacuumAlert.style.display = &quot;none&quot;;
+                }
+
+                if (canDrain) {
+                    let drainRate = (state.valvePct / 100) * 0.7; // mL per frame
+
+                    // Denser liquid at the bottom (last element in sorted array) drains first
+                    let bottomLayer = state.liquids[state.liquids.length - 1];
+                    let drainedAmount = Math.min(bottomLayer.vol, drainRate);
+                    
+                    bottomLayer.vol -= drainedAmount;
+
+                    // Remove empty layer
+                    if (bottomLayer.vol &lt;= 0.01) {
+                        state.liquids.pop();
+                    }
+
+                    // Collect in Beaker if positioned under stem tip
+                    let fcX = geo.fcX;
+                    let beakerUnder = state.beakers.find(b =&gt; Math.abs((b.x + b.w / 2) - fcX) &lt; b.w / 2 + 10);
+                    if (beakerUnder &amp;&amp; drainedAmount &gt; 0) {
+                        let existing = beakerUnder.contents.find(c =&gt; c.name === bottomLayer.name);
+                        if (existing) {
+                            existing.vol += drainedAmount;
+                        } else {
+                            beakerUnder.contents.push({ name: bottomLayer.name, color: bottomLayer.color, vol: drainedAmount });
+                        }
+                    }
+                }
+            } else {
+                if (!state.stopperSeated) vacuumAlert.style.display = &quot;none&quot;;
+            }
+
+            updateHUD();
+        }
+
+        function updateHUD() {
+            sepPctVal.textContent = `${Math.round(state.separationPct * 100)}%`;
+
+            if (state.liquids.length === 0) {
+                layerList.innerHTML = `&lt;div style=&quot;font-size:0.75rem; color:#888;&quot;&gt;Funnel is empty. Select liquid above and click Pour!&lt;/div&gt;`;
+                return;
+            }
+
+            let html = &quot;&quot;;
+            // Render list from top (lightest) to bottom (densest)
+            state.liquids.forEach((l, idx) =&gt; {
+                let posName = (idx === 0) ? &quot;Top&quot; : (idx === state.liquids.length - 1 ? &quot;Bottom&quot; : `Layer ${idx+1}`);
+                html += `
+                    &lt;div class=&quot;layer-row&quot;&gt;
+                        &lt;div&gt;&lt;span class=&quot;layer-badge&quot; style=&quot;background:${l.color};&quot;&gt;&lt;/span&gt;&lt;b&gt;${posName}:&lt;/b&gt; ${l.name}&lt;/div&gt;
+                        &lt;div&gt;${l.vol.toFixed(1)} mL | ρ=${l.rho}&lt;/div&gt;
+                    &lt;/div&gt;
+                `;
+            });
+            layerList.innerHTML = html;
+        }
+
+        // --- DRAWING ENGINE ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            if (state.shakeIntensity &gt; 0) {
+                ctx.translate((Math.random() - 0.5) * state.shakeIntensity, (Math.random() - 0.5) * state.shakeIntensity);
+            }
+
+            drawStand();
+            drawFunnelGlassAndLiquids();
+            drawStopcock();
+            drawDrainStream();
+            ctx.restore();
+
+            drawBeakers();
+            drawPouringBeakerAnimation();
+
+            updatePhysics();
+            requestAnimationFrame(draw);
+        }
+
+        function drawStand() {
+            let fcX = geo.fcX;
+            let benchY = geo.benchY;
+
+            // Workbench surface
+            ctx.fillStyle = &quot;#141822&quot;; ctx.fillRect(0, benchY, canvas.width, canvas.height - benchY);
+            ctx.strokeStyle = &quot;#262c3a&quot;; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, benchY); ctx.lineTo(canvas.width, benchY); ctx.stroke();
+
+            // Metal Stand Base
+            ctx.fillStyle = &quot;#222733&quot;; ctx.strokeStyle = &quot;#444d61&quot;; ctx.lineWidth = 2;
+            ctx.fillRect(fcX - 160, benchY - 14, 180, 14);
+            ctx.strokeRect(fcX - 160, benchY - 14, 180, 14);
+
+            // Vertical Support Rod
+            let rodX = fcX - 140;
+            ctx.fillStyle = &quot;#4a5568&quot;; ctx.fillRect(rodX - 4, geo.topY - 40, 8, benchY - 14 - (geo.topY - 40));
+
+            // Support Ring holding upper pear shoulder
+            let ringY = geo.topY + geo.fH * 0.35;
+            ctx.fillStyle = &quot;#2d3748&quot;; ctx.fillRect(rodX, ringY - 6, fcX - rodX - geo.maxR * 0.8, 12);
+            ctx.strokeStyle = &quot;#4a5568&quot;; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.ellipse(fcX, ringY, getFunnelRadius(0.35) + 4, 10, 0, 0, Math.PI * 2); ctx.stroke();
+
+            // Off-duty Stopper Resting on Bench (if unstoppered)
+            if (!state.stopperSeated) {
+                let stX = fcX - 110, stY = benchY - 8;
+                ctx.fillStyle = &quot;rgba(200, 220, 240, 0.85)&quot;; ctx.strokeStyle = &quot;#ffffff&quot;; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(stX - 12, stY); ctx.lineTo(stX + 12, stY); ctx.lineTo(stX + 6, stY - 16); ctx.lineTo(stX - 6, stY - 16); ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(stX, stY - 20, 10, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+        }
+
+        function drawFunnelGlassAndLiquids() {
+            let fcX = geo.fcX;
+            let topY = geo.topY;
+            let fH = geo.fH;
+            let junctionY = topY + fH;
+
+            // --- 1. DRAW LAYERED FLUIDS ---
+            let totVol = state.liquids.reduce((sum, l) =&gt; sum + l.vol, 0);
+
+            if (totVol &gt; 0) {
+                let maxCap = 380; // mL max capacity
+                let fillRatio = Math.min(1.0, totVol / maxCap);
+
+                ctx.save();
+                // Inner Glass Clip Path
+                ctx.beginPath();
+                ctx.moveTo(fcX - 16, topY);
+                for (let y = 0; y &lt;= fH; y += 3) {
+                    let r = getFunnelRadius(y / fH);
+                    ctx.lineTo(fcX - r + 1.5, topY + y);
+                }
+                ctx.lineTo(fcX - 4, junctionY + geo.stemLength);
+                ctx.lineTo(fcX + 4, junctionY + geo.stemLength);
+                for (let y = fH; y &gt;= 0; y -= 3) {
+                    let r = getFunnelRadius(y / fH);
+                    ctx.lineTo(fcX + r - 1.5, topY + y);
+                }
+                ctx.closePath();
+                ctx.clip();
+
+                let currentYLevel = junctionY;
+                let heightPerVol = (fH * 0.9) / maxCap;
+
+                // Render layers from bottom (densest) to top (lightest)
+                for (let i = state.liquids.length - 1; i &gt;= 0; i--) {
+                    let l = state.liquids[i];
+                    let layerH = l.vol * heightPerVol;
+                    let nextYLevel = currentYLevel - layerH;
+
+                    ctx.fillStyle = l.color;
+                    ctx.fillRect(fcX - geo.maxR - 20, nextYLevel, (geo.maxR + 20) * 2, currentYLevel - nextYLevel + 2);
+
+                    // Draw Interface Meniscus Line
+                    ctx.strokeStyle = &quot;rgba(255,255,255,0.4)&quot;; ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    let rLevel = getFunnelRadius((nextYLevel - topY) / fH);
+                    ctx.ellipse(fcX, nextYLevel, Math.max(2, rLevel), 3, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    currentYLevel = nextYLevel;
+                }
+
+                // If emulsified by shaking, draw blended cloudy overlay
+                if (state.separationPct &lt; 0.99) {
+                    ctx.fillStyle = `rgba(240, 240, 240, ${(1.0 - state.separationPct) * 0.7})`;
+                    ctx.fillRect(fcX - geo.maxR - 20, topY, (geo.maxR + 20) * 2, fH + geo.stemLength);
+                }
+
+                ctx.restore();
+            }
+
+            // --- 2. GLASS OUTLINE &amp; REALISTIC HIGHLIGHTS ---
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.65)&quot;;
+            ctx.lineWidth = 2.5;
+
+            // Pear Contour Left
+            ctx.beginPath();
+            ctx.moveTo(fcX - 16, topY - 12);
+            ctx.lineTo(fcX - 16, topY);
+            for (let y = 0; y &lt;= fH; y += 4) {
+                let r = getFunnelRadius(y / fH);
+                ctx.lineTo(fcX - r, topY + y);
+            }
+            ctx.lineTo(fcX - 5, junctionY + geo.stemLength);
+            ctx.stroke();
+
+            // Pear Contour Right
+            ctx.beginPath();
+            ctx.moveTo(fcX + 16, topY - 12);
+            ctx.lineTo(fcX + 16, topY);
+            for (let y = 0; y &lt;= fH; y += 4) {
+                let r = getFunnelRadius(y / fH);
+                ctx.lineTo(fcX + r, topY + y);
+            }
+            ctx.lineTo(fcX + 5, junctionY + geo.stemLength); // Bevel stem tip
+            ctx.lineTo(fcX - 5, junctionY + geo.stemLength + 4);
+            ctx.stroke();
+
+            // Glass Reflection Highlights
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.3)&quot;;
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            for (let y = 15; y &lt;= fH - 15; y += 4) {
+                let r = getFunnelRadius(y / fH) * 0.78;
+                if (y === 15) ctx.moveTo(fcX - r, topY + y);
+                else ctx.lineTo(fcX - r, topY + y);
+            }
+            ctx.stroke();
+
+            // Top Neck Ground-Glass Joint Rim
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.85)&quot;;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(fcX, topY - 12, 16, 5, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(fcX, topY, 16, 5, 0, 0, Math.PI * 2); ctx.stroke();
+
+            // Ground Glass Frosting Effect
+            ctx.fillStyle = &quot;rgba(255, 255, 255, 0.15)&quot;;
+            ctx.fillRect(fcX - 16, topY - 12, 32, 12);
+
+            // --- 3. SEATED TOP STOPPER (Only drawn if seated) ---
+            if (state.stopperSeated) {
+                let stY = topY - 12;
+                ctx.fillStyle = &quot;rgba(200, 220, 240, 0.85)&quot;;
+                ctx.strokeStyle = &quot;#ffffff&quot;;
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(fcX - 15, stY);
+                ctx.lineTo(fcX + 15, stY);
+                ctx.lineTo(fcX + 8, stY - 18);
+                ctx.lineTo(fcX - 8, stY - 18);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+
+                ctx.beginPath(); ctx.ellipse(fcX, stY - 24, 12, 6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+        }
+
+        function drawStopcock() {
+            let fcX = geo.fcX;
+            let scY = geo.stopcockY;
+
+            // Glass Housing Collar
+            ctx.fillStyle = &quot;rgba(220, 235, 255, 0.75)&quot;;
+            ctx.strokeStyle = &quot;#ffffff&quot;;
+            ctx.lineWidth = 2;
+            ctx.fillRect(fcX - 12, scY - 8, 24, 16);
+            ctx.strokeRect(fcX - 12, scY - 8, 24, 16);
+
+            // PTFE Valve Handle
+            ctx.save();
+            ctx.translate(fcX, scY);
+            let rotRad = (state.valvePct / 100) * (Math.PI / 2);
+            ctx.rotate(rotRad);
+
+            ctx.fillStyle = &quot;#ffb703&quot;; ctx.strokeStyle = &quot;#e0a000&quot;; ctx.lineWidth = 1.5;
+            ctx.fillRect(-18, -4, 36, 8); ctx.strokeRect(-18, -4, 36, 8);
+            ctx.fillStyle = &quot;#ff6b00&quot;;
+            ctx.beginPath(); ctx.arc(-18, 0, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(18, 0, 6, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawDrainStream() {
+            if (state.valvePct &gt; 0 &amp;&amp; state.vacuumPressure &lt;= 1.0 &amp;&amp; state.liquids.length &gt; 0) {
+                // Bottommost liquid drains first
+                let activeL = state.liquids[state.liquids.length - 1];
+                if (!activeL || activeL.vol &lt;= 0) return;
+
+                let fcX = geo.fcX;
+                let startY = geo.topY + geo.fH + geo.stemLength;
+                
+                let beakerUnder = state.beakers.find(b =&gt; Math.abs((b.x + b.w / 2) - fcX) &lt; b.w / 2 + 10);
+                let endY = beakerUnder ? (beakerUnder.y + beakerUnder.h - 10) : geo.benchY;
+
+                ctx.strokeStyle = activeL.color;
+                ctx.lineWidth = (state.valvePct / 100) * 4 + 1;
+                ctx.beginPath(); ctx.moveTo(fcX, startY); ctx.lineTo(fcX, endY); ctx.stroke();
+            }
+        }
+
+        function drawBeakers() {
+            state.beakers.forEach(b =&gt; {
+                ctx.save();
+                ctx.fillStyle = &quot;rgba(255, 255, 255, 0.04)&quot;;
+                ctx.strokeStyle = (state.activeDragBeaker === b) ? &quot;#00d2ff&quot; : &quot;rgba(255, 255, 255, 0.6)&quot;;
+                ctx.lineWidth = (state.activeDragBeaker === b) ? 3 : 2;
+
+                ctx.beginPath();
+                ctx.moveTo(b.x, b.y);
+                ctx.lineTo(b.x, b.y + b.h - 4);
+                ctx.quadraticCurveTo(b.x, b.y + b.h, b.x + 4, b.y + b.h);
+                ctx.lineTo(b.x + b.w - 4, b.y + b.h);
+                ctx.quadraticCurveTo(b.x + b.w, b.y + b.h, b.x + b.w, b.y + b.h - 4);
+                ctx.lineTo(b.x + b.w, b.y);
+                ctx.fill(); ctx.stroke();
+
+                // Spout
+                ctx.beginPath(); ctx.moveTo(b.x - 4, b.y); ctx.lineTo(b.x + b.w + 4, b.y); ctx.stroke();
+
+                // Multi-liquid Layer Stacking in Beaker
+                let totVol = b.contents.reduce((sum, c) =&gt; sum + c.vol, 0);
+                if (totVol &gt; 0) {
+                    let maxCap = 250;
+                    let fillH = Math.min(b.h - 10, (totVol / maxCap) * (b.h - 15));
+                    
+                    ctx.save();
+                    ctx.beginPath(); ctx.rect(b.x + 2, b.y + b.h - fillH, b.w - 4, fillH); ctx.clip();
+
+                    let currentY = b.y + b.h;
+                    b.contents.forEach(c =&gt; {
+                        let layerH = (c.vol / totVol) * fillH;
+                        ctx.fillStyle = c.color;
+                        ctx.fillRect(b.x + 2, currentY - layerH, b.w - 4, layerH);
+                        currentY -= layerH;
+                    });
+
+                    ctx.restore();
+                }
+
+                ctx.fillStyle = &quot;#94a3b8&quot;; ctx.font = &quot;11px sans-serif&quot;; ctx.textAlign = &quot;center&quot;;
+                ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h + 15);
+                ctx.restore();
+            });
+        }
+
+        // Animated Beaker Pouring Simulation into Top Neck
+        function drawPouringBeakerAnimation() {
+            if (!state.pouring.active) return;
+
+            let p = state.pouring.progress; // 0 to 1
+            let fcX = geo.fcX;
+            let topY = geo.topY - 12;
+
+            // Calculate Beaker Position &amp; Angle
+            let tiltAngle = Math.sin(Math.min(p * 2, 1.0) * Math.PI * 0.5) * 1.1; // Rotates to ~65 deg
+            let bkX = fcX + 70 - p * 20;
+            let bkY = topY - 40;
+
+            ctx.save();
+            ctx.translate(bkX, bkY);
+            ctx.rotate(-tiltAngle);
+
+            // Pouring Beaker Glass
+            ctx.fillStyle = &quot;rgba(255, 255, 255, 0.08)&quot;;
+            ctx.strokeStyle = &quot;#ffffff&quot;;
+            ctx.lineWidth = 2;
+            ctx.fillRect(-25, -35, 50, 70);
+            ctx.strokeRect(-25, -35, 50, 70);
+
+            // Fluid inside tilting beaker
+            ctx.fillStyle = state.pouring.liquid.color;
+            ctx.fillRect(-23, -10, 46, 43);
+
+            ctx.restore();
+
+            // Fluid Stream falling from beaker spout into top neck
+            if (p &gt; 0.15 &amp;&amp; p &lt; 0.9) {
+                let spoutX = bkX - Math.cos(-tiltAngle) * 25 + Math.sin(-tiltAngle) * 35;
+                let spoutY = bkY - Math.sin(-tiltAngle) * 25 - Math.cos(-tiltAngle) * 35;
+
+                ctx.strokeStyle = state.pouring.liquid.color;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(spoutX - 10, spoutY + 15);
+                ctx.lineTo(fcX, topY + 15);
+                ctx.stroke();
+
+                // Surface splash effect inside top neck
+                ctx.fillStyle = state.pouring.liquid.color;
+                ctx.beginPath();
+                ctx.ellipse(fcX, topY + 20, 10 + Math.sin(Date.now()*0.02)*3, 3, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // --- INTERACTIVITY &amp; DRAG ---
+        function getMousePos(e) {
+            let rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, e =&gt; {
+            let m = getMousePos(e);
+            for (let i = state.beakers.length - 1; i &gt;= 0; i--) {
+                let b = state.beakers[i];
+                if (m.x &gt;= b.x &amp;&amp; m.x &lt;= b.x + b.w &amp;&amp; m.y &gt;= b.y &amp;&amp; m.y &lt;= b.y + b.h + 20) {
+                    state.activeDragBeaker = b;
+                    state.dragOffset = { x: m.x - b.x, y: m.y - b.y };
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; {
+            if (!state.activeDragBeaker) return;
+            let m = getMousePos(e);
+            let b = state.activeDragBeaker;
+            b.x = m.x - state.dragOffset.x;
+            b.y = geo.benchY - b.h;
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+            if (state.activeDragBeaker) {
+                let b = state.activeDragBeaker;
+                if (Math.abs((b.x + b.w / 2) - geo.fcX) &lt; 40) b.x = geo.fcX - b.w / 2;
+                state.activeDragBeaker = null;
+            }
+        });
+
+        function updateStopperButton() {
+            btnStopperToggle.textContent = state.stopperSeated ? &quot;🔒 Stopper: SEATED&quot; : &quot;🔓 Stopper: REMOVED&quot;;
+            btnStopperToggle.className = state.stopperSeated ? &quot;btn-action&quot; : &quot;btn-warning&quot;;
+        }
+
+        // --- UI EVENT BINDINGS ---
+        liquidSelect.addEventListener(&#39;change&#39;, e =&gt; {
+            customGroup.style.display = (e.target.value === &quot;custom&quot;) ? &quot;flex&quot; : &quot;none&quot;;
+        });
+
+        customRhoSlider.addEventListener(&#39;input&#39;, e =&gt; customRhoVal.textContent = e.target.value + &quot; g/mL&quot;);
+        pourVolSlider.addEventListener(&#39;input&#39;, e =&gt; pourVolVal.textContent = e.target.value + &quot; mL&quot;);
+
+        btnPour.addEventListener(&#39;click&#39;, triggerPour);
+
+        valveSlider.addEventListener(&#39;input&#39;, e =&gt; {
+            state.valvePct = parseInt(e.target.value);
+            valveVal.textContent = `${state.valvePct}% (${state.valvePct === 0 ? &#39;Closed&#39; : &#39;Flowing&#39;})`;
+        });
+
+        btnStopperToggle.addEventListener(&#39;click&#39;, () =&gt; {
+            state.stopperSeated = !state.stopperSeated;
+            updateStopperButton();
+        });
+
+        btnShake.addEventListener(&#39;click&#39;, () =&gt; {
+            if (state.liquids.length &gt; 1) {
+                state.separationPct = 0; // Emulsify
+                state.shakeIntensity = 16;
+            }
+        });
+
+        btnClearFunnel.addEventListener(&#39;click&#39;, () =&gt; {
+            state.liquids = [];
+            state.separationPct = 1.0;
+        });
+
+        btnResetBeakers.addEventListener(&#39;click&#39;, initBeakers);
+
+        // --- RESIZE CANVAS RESPONSIBLY ---
+        function resizeCanvas() {
+            canvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
+            canvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+
+            geo.fcX = canvas.width * 0.38;
+            geo.topY = Math.max(70, canvas.height * 0.15);
+            geo.benchY = canvas.height - 40;
+            geo.stopcockY = geo.topY + geo.fH + 45;
+
+            initBeakers();
+        }
+
+        window.addEventListener(&#39;resize&#39;, resizeCanvas);
+
+        // --- INITIALIZATION ---
+        resizeCanvas();
+        requestAnimationFrame(draw);
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
