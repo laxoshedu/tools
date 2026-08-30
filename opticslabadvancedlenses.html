@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Optics Lab: Advanced Lenses</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Ultimate Physics Lab: Advanced Lenses&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0b0d12;
+            --panel-bg: #151821;
+            --panel-border: #262c3a;
+            --accent-blue: #00d2ff;
+            --accent-orange: #ff6b00;
+            --accent-gold: #ffb703;
+            --accent-green: #00ff88;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Inter&#39;, -apple-system, sans-serif; user-select: none; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; width: 100vw; overflow: hidden; flex-direction: row; }
+
+        /* Sidebar */
+        #sidebar { width: 340px; min-width: 340px; background-color: var(--panel-bg); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; z-index: 10; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+        .sidebar-header { padding: 15px 20px; border-bottom: 1px solid var(--panel-border); background: rgba(0,0,0,0.2); }
+        .sidebar-header h1 { font-size: 1.1rem; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; }
+        .sidebar-header p { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
+        
+        .scroll-container { flex-grow: 1; overflow-y: auto; padding: 15px 20px; display: flex; flex-direction: column; gap: 15px; }
+        .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-gold); margin-bottom: 6px; font-weight: 700; }
+        .control-card { background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        
+        label { font-size: 0.8rem; font-weight: 500; display: flex; justify-content: space-between; color: var(--text-main); }
+        span.val { color: var(--accent-blue); font-family: monospace; font-weight: bold; }
+        input[type=&quot;range&quot;] { width: 100%; height: 4px; border-radius: 2px; background: #2a3142; accent-color: var(--accent-blue); cursor: pointer; }
+        select, button { background: #1e2433; color: #fff; border: 1px solid var(--panel-border); padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease; }
+        select:hover, button:hover { border-color: var(--accent-blue); background: #252d40; }
+        
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; }
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-action { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue); font-weight: 600; width: 100%; }
+        .btn-action:hover { background: var(--accent-blue); color: #000; }
+
+        /* Workspace */
+        #workspace { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #121622 0%, #07080c 100%); overflow: hidden; width: 100%; }
+        canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+        /* HUD Panels */
+        .hud-panel { position: absolute; background: rgba(15, 18, 26, 0.85); border: 1px solid var(--panel-border); backdrop-filter: blur(8px); border-radius: 8px; padding: 12px; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        
+        #dataHUD { top: 20px; right: 20px; width: 260px; display: flex; flex-direction: column; gap: 8px; }
+        .data-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .data-row span:last-child { font-weight: bold; font-family: monospace; }
+        .real-img { color: var(--accent-green); }
+        .virt-img { color: var(--accent-orange); }
+
+        #instructionsHUD { top: 20px; left: 20px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; pointer-events: none; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px; }
+
+        /* REAL-TIME CALCULATIONS HUD (NEW) */
+        #calcHUD { bottom: 20px; left: 20px; min-width: 320px; display: flex; flex-direction: column; gap: 6px; }
+        
+        .math-row {
+            display: flex; align-items: center; justify-content: flex-start; gap: 6px;
+            background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 4px;
+            font-family: &#39;Times New Roman&#39;, Times, serif; font-size: 1.05rem; letter-spacing: 0.5px;
+        }
+        
+        .math-row i { font-style: italic; }
+        .math-row b { font-family: &#39;Inter&#39;, sans-serif; font-size: 0.85rem; letter-spacing: 0; }
+        
+        .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+        .num { border-bottom: 1px solid #fff; padding: 0 3px; font-size: 0.85em; }
+        .den { padding: 0 3px; font-size: 0.85em; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        @media (max-width: 950px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: 45vh; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 100; }
+            #workspace { height: 55vh; }
+            #dataHUD { transform: scale(0.85); transform-origin: top right; top: 10px; right: 10px; }
+            #calcHUD { transform: scale(0.8); transform-origin: bottom left; bottom: 10px; left: 10px; }
+            #instructionsHUD { display: none; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- SIDEBAR CONTROLS --&gt;
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;div class=&quot;sidebar-header&quot;&gt;
+            &lt;h1&gt;🔬 Optics Lab: Advanced Lenses&lt;/h1&gt;
+            &lt;p&gt;Interactive Ray Tracing &amp; Real-Time Physics&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;scroll-container&quot;&gt;
+            &lt;div class=&quot;section-title&quot;&gt;1. Setup &amp; Object&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Lens Type&lt;/label&gt;
+                    &lt;select id=&quot;lensType&quot;&gt;
+                        &lt;option value=&quot;convex&quot;&gt;Convex (Converging)&lt;/option&gt;
+                        &lt;option value=&quot;concave&quot;&gt;Concave (Diverging)&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Object Style&lt;/label&gt;
+                    &lt;select id=&quot;objStyle&quot;&gt;
+                        &lt;option value=&quot;arrow&quot;&gt;Classic Vector Arrow&lt;/option&gt;
+                        &lt;option value=&quot;candle&quot;&gt;Illuminated Candle&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;2. Lab Measurements&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Focal Length (&lt;i&gt;f&lt;/i&gt;): &lt;span id=&quot;fVal&quot; class=&quot;val&quot;&gt;100 px&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;fSlider&quot; min=&quot;50&quot; max=&quot;300&quot; step=&quot;5&quot; value=&quot;100&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Object Distance (&lt;i&gt;d&lt;sub&gt;o&lt;/sub&gt;&lt;/i&gt;): &lt;span id=&quot;doVal&quot; class=&quot;val&quot;&gt;250 px&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;doSlider&quot; min=&quot;10&quot; max=&quot;600&quot; step=&quot;5&quot; value=&quot;250&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Object Height (&lt;i&gt;h&lt;sub&gt;o&lt;/sub&gt;&lt;/i&gt;): &lt;span id=&quot;hoVal&quot; class=&quot;val&quot;&gt;80 px&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;hoSlider&quot; min=&quot;10&quot; max=&quot;200&quot; step=&quot;5&quot; value=&quot;80&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;3. Textbook Scenarios&lt;/div&gt;
+            &lt;div class=&quot;control-card btn-grid&quot;&gt;
+                &lt;button id=&quot;btn2F&quot; class=&quot;btn-action&quot;&gt;Object at 2F&lt;/button&gt;
+                &lt;button id=&quot;btnF&quot; class=&quot;btn-action&quot;&gt;Object at F&lt;/button&gt;
+                &lt;button id=&quot;btnMidF&quot; class=&quot;btn-action&quot;&gt;Object &lt; F (Mag)&lt;/button&gt;
+                &lt;button id=&quot;btnFar&quot; class=&quot;btn-action&quot;&gt;Object &gt; 2F&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;4. Visibility Options&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;label class=&quot;checkbox-label&quot; style=&quot;color:#ff3366;&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;showRay1&quot; checked&gt; Ray 1: Parallel &amp;rarr; Focus&lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot; style=&quot;color:#33ccff;&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;showRay2&quot; checked&gt; Ray 2: Optical Center&lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot; style=&quot;color:#ffcc00;&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;showRay3&quot; checked&gt; Ray 3: Focus &amp;rarr; Parallel&lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot; style=&quot;color:#fff;&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;showGrid&quot; checked&gt; Show Graph Axis &amp; Grid&lt;/label&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;5. Export Data&lt;/div&gt;
+            &lt;div class=&quot;control-card btn-grid&quot;&gt;
+                &lt;button id=&quot;btnSnap&quot; class=&quot;btn-action&quot;&gt;📸 Snapshot&lt;/button&gt;
+                &lt;button id=&quot;btnCSV&quot; class=&quot;btn-action&quot;&gt;📊 Export CSV&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- MAIN WORKSPACE --&gt;
+    &lt;div id=&quot;workspace&quot;&gt;
+        &lt;canvas id=&quot;opticsCanvas&quot;&gt;&lt;/canvas&gt;
+
+        &lt;div id=&quot;instructionsHUD&quot;&gt;
+            💡 &lt;strong&gt;Interactive Lab Tips:&lt;/strong&gt;&lt;br&gt;
+            • &lt;strong&gt;Drag the Object&lt;/strong&gt; (blue) to move it.&lt;br&gt;
+            • &lt;strong&gt;Drag the F Points&lt;/strong&gt; (yellow) to change lens power.&lt;br&gt;
+        &lt;/div&gt;
+
+        &lt;!-- NEW REAL-TIME CALCULATIONS HUD --&gt;
+        &lt;div id=&quot;calcHUD&quot; class=&quot;hud-panel&quot;&gt;
+            &lt;div style=&quot;font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 2px;&quot;&gt;Real-Time Lens Calculations&lt;/div&gt;
+            
+            &lt;!-- 1. Find Image Distance (di) --&gt;
+            &lt;div class=&quot;math-row&quot;&gt;
+                &lt;div class=&quot;fraction&quot;&gt;&lt;span class=&quot;num&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&lt;i&gt;d&lt;sub&gt;i&lt;/sub&gt;&lt;/i&gt;&lt;/span&gt;&lt;/div&gt;
+                &lt;span&gt;=&lt;/span&gt;
+                &lt;div class=&quot;fraction&quot;&gt;&lt;span class=&quot;num&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;den&quot; id=&quot;math-f&quot;&gt;100&lt;/span&gt;&lt;/div&gt;
+                &lt;span&gt;&amp;minus;&lt;/span&gt;
+                &lt;div class=&quot;fraction&quot;&gt;&lt;span class=&quot;num&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;den&quot; id=&quot;math-do&quot;&gt;250&lt;/span&gt;&lt;/div&gt;
+                &lt;span style=&quot;margin-left:8px; color:var(--accent-green); font-family:&#39;Inter&#39;, sans-serif; font-size:0.9rem;&quot;&gt;
+                    &amp;rarr; &lt;i&gt;d&lt;sub&gt;i&lt;/sub&gt;&lt;/i&gt; = &lt;b id=&quot;math-di-res&quot;&gt;166.7&lt;/b&gt; px
+                &lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 2. Find Magnification (m) --&gt;
+            &lt;div class=&quot;math-row&quot;&gt;
+                &lt;span&gt;&lt;i&gt;m&lt;/i&gt; = &amp;minus;&lt;/span&gt;
+                &lt;div class=&quot;fraction&quot;&gt;&lt;span class=&quot;num&quot; id=&quot;math-di-val&quot;&gt;166.7&lt;/span&gt;&lt;span class=&quot;den&quot; id=&quot;math-do-val2&quot;&gt;250&lt;/span&gt;&lt;/div&gt;
+                &lt;span&gt;=&lt;/span&gt;
+                &lt;b id=&quot;math-m-res&quot; style=&quot;color:var(--accent-blue); font-size:0.95rem;&quot;&gt;-0.67&lt;/b&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 3. Find Image Height (hi) --&gt;
+            &lt;div class=&quot;math-row&quot;&gt;
+                &lt;span&gt;&lt;i&gt;h&lt;sub&gt;i&lt;/sub&gt;&lt;/i&gt; = &lt;/span&gt;
+                &lt;span id=&quot;math-ho&quot;&gt;80&lt;/span&gt;
+                &lt;span&gt;&amp;times;&lt;/span&gt;
+                &lt;span id=&quot;math-m-val2&quot;&gt;-0.67&lt;/span&gt;
+                &lt;span&gt;=&lt;/span&gt;
+                &lt;b id=&quot;math-hi-res&quot; style=&quot;color:var(--accent-orange); font-size:0.95rem;&quot;&gt;-53.3&lt;/b&gt; px
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Property Summary HUD --&gt;
+        &lt;div id=&quot;dataHUD&quot; class=&quot;hud-panel&quot;&gt;
+            &lt;div style=&quot;font-size: 0.8rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;&quot;&gt;Optical Summary&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Type:&lt;/span&gt; &lt;span id=&quot;imgType&quot; class=&quot;real-img&quot;&gt;Real, Inverted&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Image Dist. (&lt;i&gt;d&lt;sub&gt;i&lt;/sub&gt;&lt;/i&gt;):&lt;/span&gt; &lt;span id=&quot;diDisplay&quot;&gt;0 px&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Image Height (&lt;i&gt;h&lt;sub&gt;i&lt;/sub&gt;&lt;/i&gt;):&lt;/span&gt; &lt;span id=&quot;hiDisplay&quot;&gt;0 px&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Magnification (&lt;i&gt;m&lt;/i&gt;):&lt;/span&gt; &lt;span id=&quot;magDisplay&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;opticsCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+
+        // UI Controls
+        const lensTypeSelect = document.getElementById(&#39;lensType&#39;);
+        const objStyleSelect = document.getElementById(&#39;objStyle&#39;);
+        const fSlider = document.getElementById(&#39;fSlider&#39;), fVal = document.getElementById(&#39;fVal&#39;);
+        const doSlider = document.getElementById(&#39;doSlider&#39;), doVal = document.getElementById(&#39;doVal&#39;);
+        const hoSlider = document.getElementById(&#39;hoSlider&#39;), hoVal = document.getElementById(&#39;hoVal&#39;);
+        const showRay1 = document.getElementById(&#39;showRay1&#39;), showRay2 = document.getElementById(&#39;showRay2&#39;), showRay3 = document.getElementById(&#39;showRay3&#39;), showGrid = document.getElementById(&#39;showGrid&#39;);
+
+        // State Object
+        let state = {
+            lens: &#39;convex&#39;, objStyle: &#39;arrow&#39;,
+            f: 100, do: 250, ho: 80,
+            di: 0, hi: 0,
+            cx: 0, cy: 0,
+            dragTarget: null
+        };
+
+        const vec = (x, y) =&gt; ({ x, y });
+        const len = a =&gt; Math.sqrt(a.x*a.x + a.y*a.y);
+        const sub = (a, b) =&gt; vec(a.x - b.x, a.y - b.y);
+
+        function updatePhysics() {
+            let f = state.lens === &#39;convex&#39; ? state.f : -state.f;
+            
+            // Check infinity edge case (when object is exactly at F for convex lens)
+            if (state.lens === &#39;convex&#39; &amp;&amp; Math.abs(state.do - f) &lt; 0.5) {
+                state.di = Infinity; 
+                state.hi = Infinity;
+            } else {
+                state.di = (f * state.do) / (state.do - f);
+                state.hi = state.ho * (-state.di / state.do);
+            }
+            
+            updateHUD();
+            updateCalculations(f);
+        }
+
+        function updateHUD() {
+            let m = -state.di / state.do;
+            let isReal = state.di &gt; 0;
+            let isInverted = state.hi &lt; 0;
+            let typeStr = state.di === Infinity ? &quot;Image at Infinity&quot; : `${isReal ? &#39;Real&#39; : &#39;Virtual&#39;}, ${isInverted ? &#39;Inverted&#39; : &#39;Upright&#39;}`;
+            
+            document.getElementById(&#39;imgType&#39;).className = (isReal &amp;&amp; state.di !== Infinity) ? &#39;real-img&#39; : &#39;virt-img&#39;;
+            document.getElementById(&#39;imgType&#39;).textContent = typeStr;
+            document.getElementById(&#39;diDisplay&#39;).textContent = state.di === Infinity ? &quot;∞&quot; : `${Math.abs(state.di).toFixed(1)} px`;
+            document.getElementById(&#39;hiDisplay&#39;).textContent = state.di === Infinity ? &quot;∞&quot; : `${Math.abs(state.hi).toFixed(1)} px`;
+            document.getElementById(&#39;magDisplay&#39;).textContent = state.di === Infinity ? &quot;∞&quot; : `${m.toFixed(2)}`;
+        }
+
+        // UPDATE THE REAL-TIME MATH FORMULAS
+        function updateCalculations(f_val) {
+            let m = -state.di / state.do;
+            let isInf = (state.di === Infinity);
+
+            document.getElementById(&#39;math-f&#39;).textContent = f_val;
+            document.getElementById(&#39;math-do&#39;).textContent = state.do.toFixed(1);
+            
+            document.getElementById(&#39;math-di-res&#39;).textContent = isInf ? &quot;∞&quot; : state.di.toFixed(1);
+            document.getElementById(&#39;math-di-val&#39;).textContent = isInf ? &quot;∞&quot; : state.di.toFixed(1);
+            
+            document.getElementById(&#39;math-do-val2&#39;).textContent = state.do.toFixed(1);
+            
+            document.getElementById(&#39;math-m-res&#39;).textContent = isInf ? &quot;∞&quot; : m.toFixed(2);
+            document.getElementById(&#39;math-m-val2&#39;).textContent = isInf ? &quot;∞&quot; : m.toFixed(2);
+            
+            document.getElementById(&#39;math-ho&#39;).textContent = state.ho.toFixed(1);
+            document.getElementById(&#39;math-hi-res&#39;).textContent = isInf ? &quot;∞&quot; : state.hi.toFixed(1);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(state.cx, state.cy);
+
+            drawGrid();
+            drawLens();
+            drawFocalPoints();
+
+            if (state.di !== Infinity) { drawRays(); drawImage(); } 
+            else { drawParallelRaysInfinity(); }
+            
+            drawObject();
+
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            if (!showGrid.checked) return;
+            ctx.strokeStyle = &quot;rgba(255,255,255,0.05)&quot;; ctx.lineWidth = 1;
+            let step = 50;
+            
+            // Major Grid Lines
+            for (let x = -state.cx; x &lt; state.cx; x += step) { ctx.beginPath(); ctx.moveTo(x, -state.cy); ctx.lineTo(x, state.cy); ctx.stroke(); }
+            for (let y = -state.cy; y &lt; state.cy; y += step) { ctx.beginPath(); ctx.moveTo(-state.cx, y); ctx.lineTo(state.cx, y); ctx.stroke(); }
+            
+            // Axis Lines
+            ctx.strokeStyle = &quot;rgba(255,255,255,0.4)&quot;; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-state.cx, 0); ctx.lineTo(state.cx, 0); ctx.stroke(); // X
+            ctx.beginPath(); ctx.moveTo(0, -state.cy); ctx.lineTo(0, state.cy); ctx.stroke(); // Y
+            
+            // Axis Numbers
+            ctx.fillStyle = &quot;#666&quot;; ctx.font = &quot;10px monospace&quot;; ctx.textAlign = &quot;center&quot;;
+            for (let x = -Math.floor(state.cx/step)*step; x &lt; state.cx; x += step) {
+                if(x !== 0) { ctx.fillText(Math.abs(x), x, 15); ctx.beginPath(); ctx.moveTo(x, -4); ctx.lineTo(x, 4); ctx.stroke(); }
+            }
+        }
+
+        function drawLens() {
+            ctx.fillStyle = &quot;rgba(0, 210, 255, 0.15)&quot;; ctx.strokeStyle = &quot;#00d2ff&quot;; ctx.lineWidth = 2;
+            let h = 250; 
+            ctx.beginPath();
+            if (state.lens === &#39;convex&#39;) {
+                ctx.moveTo(0, -h); ctx.quadraticCurveTo(35, 0, 0, h); ctx.quadraticCurveTo(-35, 0, 0, -h);
+            } else {
+                ctx.moveTo(-20, -h); ctx.lineTo(20, -h); ctx.quadraticCurveTo(5, 0, 20, h);
+                ctx.lineTo(-20, h); ctx.quadraticCurveTo(-5, 0, -20, -h);
+            }
+            ctx.fill(); ctx.stroke();
+        }
+
+        function drawFocalPoints() {
+            ctx.font = &quot;13px Arial&quot;; ctx.textAlign = &quot;center&quot;;
+            let f = state.f;
+            
+            // Highlight for dragging F
+            if (state.dragTarget === &#39;focal&#39;) {
+                ctx.fillStyle = &quot;rgba(255, 183, 3, 0.3)&quot;;
+                ctx.beginPath(); ctx.arc(-f, 0, 15, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(f, 0, 15, 0, Math.PI*2); ctx.fill();
+            }
+
+            ctx.fillStyle = &quot;#ffb703&quot;;
+            ctx.beginPath(); ctx.arc(-f, 0, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillText(state.lens === &#39;convex&#39; ? &quot;F&quot; : &quot;F₁&quot;, -f, -10);
+            
+            ctx.beginPath(); ctx.arc(f, 0, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillText(state.lens === &#39;convex&#39; ? &quot;F&#39;&quot; : &quot;F₂&quot;, f, -10);
+
+            ctx.fillStyle = &quot;rgba(255, 183, 3, 0.6)&quot;;
+            ctx.beginPath(); ctx.arc(-2*f, 0, 4, 0, Math.PI*2); ctx.fill(); ctx.fillText(&quot;2F&quot;, -2*f, -10);
+            ctx.beginPath(); ctx.arc(2*f, 0, 4, 0, Math.PI*2); ctx.fill(); ctx.fillText(&quot;2F&#39;&quot;, 2*f, -10);
+        }
+
+        function drawArrowContext(context, x, renderY, isImage = false) {
+            context.strokeStyle = isImage ? (state.di &gt; 0 ? &quot;#00ff88&quot; : &quot;#ff6b00&quot;) : &quot;#00d2ff&quot;;
+            context.fillStyle = context.strokeStyle; context.lineWidth = 4;
+            
+            if (isImage &amp;&amp; state.di &lt; 0) context.setLineDash([5, 5]);
+            else context.setLineDash([]);
+
+            context.beginPath(); context.moveTo(x, 0); context.lineTo(x, renderY); context.stroke(); context.setLineDash([]);
+            
+            context.beginPath();
+            let h = 10, dir = renderY &lt; 0 ? 1 : -1;
+            context.moveTo(x, renderY); context.lineTo(x - h/2, renderY + dir * h); context.lineTo(x + h/2, renderY + dir * h);
+            context.closePath(); context.fill();
+        }
+
+        function drawCandleContext(context, x, renderY, isImage = false) {
+            let width = Math.min(15, Math.abs(renderY) * 0.3);
+            let sign = renderY &lt; 0 ? -1 : 1;
+            let flameH = 15 * sign;
+            let bodyH = renderY - flameH;
+
+            // Draw Body
+            context.fillStyle = isImage ? (state.di &gt; 0 ? &quot;rgba(0, 255, 136, 0.7)&quot; : &quot;rgba(255, 107, 0, 0.5)&quot;) : &quot;#e2e8f0&quot;;
+            if (isImage &amp;&amp; state.di &lt; 0) {
+                context.strokeStyle = &quot;#ff6b00&quot;; context.setLineDash([3,3]); context.lineWidth = 2;
+                context.strokeRect(x - width/2, 0, width, bodyH); context.setLineDash([]);
+            } else {
+                context.fillRect(x - width/2, 0, width, bodyH);
+            }
+
+            // Draw Flame
+            context.fillStyle = (isImage &amp;&amp; state.di &lt; 0) ? &quot;rgba(255, 183, 3, 0.4)&quot; : &quot;#ffb703&quot;;
+            context.beginPath();
+            context.moveTo(x, renderY);
+            context.quadraticCurveTo(x - width, renderY - flameH/2, x, bodyH);
+            context.quadraticCurveTo(x + width, renderY - flameH/2, x, renderY);
+            context.fill();
+
+            // Wick
+            context.strokeStyle = &quot;#333&quot;; context.lineWidth = 2;
+            context.beginPath(); context.moveTo(x, bodyH); context.lineTo(x, bodyH + (3 * sign)); context.stroke();
+        }
+
+        function drawObject() {
+            let ry = -state.ho;
+            if (state.objStyle === &#39;candle&#39;) drawCandleContext(ctx, -state.do, ry, false);
+            else drawArrowContext(ctx, -state.do, ry, false);
+            
+            if (state.dragTarget === &#39;object&#39;) {
+                ctx.beginPath(); ctx.arc(-state.do, ry, 20, 0, Math.PI*2);
+                ctx.fillStyle = &quot;rgba(0, 210, 255, 0.3)&quot;; ctx.fill();
+            }
+        }
+
+        function drawImage() {
+            let ry = -state.hi;
+            if (state.objStyle === &#39;candle&#39;) drawCandleContext(ctx, state.di, ry, true);
+            else drawArrowContext(ctx, state.di, ry, true);
+        }
+
+        function drawRaySeg(x1, y1, x2, y2, color, isDashed = false) {
+            ctx.beginPath(); ctx.moveTo(x1, -y1); ctx.lineTo(x2, -y2);
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+            ctx.setLineDash(isDashed ? [6, 6] : []); ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        function drawRays() {
+            let xo = -state.do, yo = state.ho, xi = state.di, yi = state.hi, f = state.f;
+            let extX = Math.max(state.cx, Math.abs(xi) + 200);
+            let c1 = &quot;#ff3366&quot;, c2 = &quot;#33ccff&quot;, c3 = &quot;#ffcc00&quot;;
+
+            if (state.lens === &#39;convex&#39;) {
+                if (showRay1.checked) {
+                    drawRaySeg(xo, yo, 0, yo, c1);
+                    if (state.di &gt; 0) { drawRaySeg(0, yo, extX, yo + ((0-yo)/f)*extX, c1); } 
+                    else { drawRaySeg(0, yo, extX, yo + ((0-yo)/f)*extX, c1); drawRaySeg(0, yo, -extX, yo - ((0-yo)/f)*extX, c1, true); }
+                }
+                if (showRay2.checked) {
+                    drawRaySeg(xo, yo, extX, (yo/xo)*extX, c2);
+                    if (state.di &lt; 0) drawRaySeg(0, 0, -extX, (yo/xo)*-extX, c2, true);
+                }
+                if (showRay3.checked) {
+                    if (state.do &gt; f) {
+                        let hitY = ((yo-0)/(xo+f))*f;
+                        drawRaySeg(xo, yo, 0, hitY, c3); drawRaySeg(0, hitY, extX, hitY, c3);
+                    } else {
+                        let hitY = ((yo-0)/(xo+f))*f;
+                        drawRaySeg(-f, 0, 0, hitY, c3, true); drawRaySeg(xo, yo, 0, hitY, c3);
+                        drawRaySeg(0, hitY, extX, hitY, c3); drawRaySeg(0, hitY, -extX, hitY, c3, true);
+                    }
+                }
+            } else {
+                if (showRay1.checked) {
+                    drawRaySeg(xo, yo, 0, yo, c1);
+                    drawRaySeg(0, yo, extX, yo + (yo/f)*extX, c1); drawRaySeg(0, yo, -f, 0, c1, true);
+                }
+                if (showRay2.checked) {
+                    drawRaySeg(xo, yo, extX, (yo/xo)*extX, c2);
+                }
+                if (showRay3.checked) {
+                    let hitY = yo + ((0-yo)/(f-xo))*(0-xo);
+                    drawRaySeg(xo, yo, 0, hitY, c3); drawRaySeg(0, hitY, f, 0, c3, true);
+                    drawRaySeg(0, hitY, extX, hitY, c3); drawRaySeg(0, hitY, -extX, hitY, c3, true);
+                }
+            }
+        }
+
+        function drawParallelRaysInfinity() {
+            let xo = -state.do, yo = state.ho, f = state.f, extX = state.cx;
+            if (showRay1.checked) { drawRaySeg(xo, yo, 0, yo, &quot;#ff3366&quot;); drawRaySeg(0, yo, extX, yo + ((0-yo)/f)*extX, &quot;#ff3366&quot;); }
+            if (showRay2.checked) { drawRaySeg(xo, yo, extX, (yo/xo)*extX, &quot;#33ccff&quot;); }
+        }
+
+        // --- INTERACTIVITY ---
+        function getMousePos(e) { let r = canvas.getBoundingClientRect(); return vec(e.clientX - r.left - state.cx, e.clientY - r.top - state.cy); }
+
+        canvas.addEventListener(&#39;mousedown&#39;, e =&gt; {
+            let m = getMousePos(e);
+            if (len(sub(m, vec(-state.do, -state.ho))) &lt; 35) { state.dragTarget = &#39;object&#39;; return; }
+            if (len(sub(m, vec(-state.f, 0))) &lt; 20 || len(sub(m, vec(state.f, 0))) &lt; 20) { state.dragTarget = &#39;focal&#39;; return; }
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; {
+            if (!state.dragTarget) return;
+            let m = getMousePos(e);
+            
+            if (state.dragTarget === &#39;object&#39;) {
+                state.do = Math.max(20, -m.x);
+                state.ho = -m.y;
+                doSlider.value = state.do; doVal.textContent = state.do.toFixed(1) + &quot; px&quot;;
+                hoSlider.value = state.ho; hoVal.textContent = state.ho.toFixed(1) + &quot; px&quot;;
+            } else if (state.dragTarget === &#39;focal&#39;) {
+                let newF = Math.abs(m.x);
+                if (newF &gt;= 50 &amp;&amp; newF &lt;= 300) {
+                    state.f = newF;
+                    fSlider.value = state.f; fVal.textContent = state.f.toFixed(1) + &quot; px&quot;;
+                }
+            }
+            updatePhysics(); draw();
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; { state.dragTarget = null; draw(); });
+
+        // --- UI BINDINGS ---
+        function setPreset(doMultiplier) {
+            state.do = state.f * doMultiplier;
+            doSlider.value = state.do; doVal.textContent = state.do.toFixed(1) + &quot; px&quot;;
+            updatePhysics(); draw();
+        }
+
+        document.getElementById(&#39;btn2F&#39;).addEventListener(&#39;click&#39;, () =&gt; setPreset(2));
+        document.getElementById(&#39;btnF&#39;).addEventListener(&#39;click&#39;, () =&gt; setPreset(1));
+        document.getElementById(&#39;btnMidF&#39;).addEventListener(&#39;click&#39;, () =&gt; setPreset(0.6));
+        document.getElementById(&#39;btnFar&#39;).addEventListener(&#39;click&#39;, () =&gt; setPreset(2.8));
+
+        lensTypeSelect.addEventListener(&#39;change&#39;, e =&gt; { state.lens = e.target.value; updatePhysics(); draw(); });
+        objStyleSelect.addEventListener(&#39;change&#39;, e =&gt; { state.objStyle = e.target.value; updatePhysics(); draw(); });
+        
+        fSlider.addEventListener(&#39;input&#39;, e =&gt; { state.f = parseFloat(e.target.value); fVal.textContent = state.f + &quot; px&quot;; updatePhysics(); draw(); });
+        doSlider.addEventListener(&#39;input&#39;, e =&gt; { state.do = parseFloat(e.target.value); doVal.textContent = state.do + &quot; px&quot;; updatePhysics(); draw(); });
+        hoSlider.addEventListener(&#39;input&#39;, e =&gt; { state.ho = parseFloat(e.target.value); hoVal.textContent = state.ho + &quot; px&quot;; updatePhysics(); draw(); });
+
+        showRay1.addEventListener(&#39;change&#39;, draw); showRay2.addEventListener(&#39;change&#39;, draw);
+        showRay3.addEventListener(&#39;change&#39;, draw); showGrid.addEventListener(&#39;change&#39;, draw);
+
+        document.getElementById(&#39;btnSnap&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            let link = document.createElement(&#39;a&#39;); link.download = &#39;lens_lab_snapshot.png&#39;; link.href = canvas.toDataURL(); link.click();
+        });
+
+        document.getElementById(&#39;btnCSV&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            let csv = `Lens,Focal Length (px),Obj Dist (px),Obj Height (px),Image Dist (px),Image Height (px),Mag (m)\n`;
+            csv += `${state.lens},${state.f},${state.do},${state.ho},${state.di.toFixed(2)},${state.hi.toFixed(2)},${(-state.di/state.do).toFixed(2)}`;
+            let link = document.createElement(&quot;a&quot;); link.href = encodeURI(&quot;data:text/csv;charset=utf-8,&quot; + csv); link.download = &quot;lens_data.csv&quot;; link.click();
+        });
+
+        function resize() {
+            canvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
+            canvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+            state.cx = canvas.width / 2; state.cy = canvas.height / 2;
+            if (canvas.width &lt; 600 &amp;&amp; state.do &gt; 150) { state.do = 150; doSlider.value = 150; doVal.textContent = &quot;150 px&quot;; }
+            updatePhysics(); draw();
+        }
+
+        window.addEventListener(&#39;resize&#39;, resize); window.onload = resize;
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
