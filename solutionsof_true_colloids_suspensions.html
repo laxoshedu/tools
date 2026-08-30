@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>SOLUTIONS ( TRUE, COLLOIDS, SUSPENSIONS )</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;3-Channel Interactive Optics &amp; Chemistry Lab&lt;/title&gt;
+    &lt;style&gt;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 12px;
+            background: #1e293b;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            border-bottom: 1px solid #334155;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            color: #38bdf8;
+        }
+
+        header p {
+            font-size: 0.88rem;
+            color: #94a3b8;
+        }
+
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            width: 100%;
+            max-width: 1240px;
+        }
+
+        .shelf-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            background: #1e293b;
+            padding: 10px 20px;
+            border-radius: 10px;
+            width: 100%;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .jar-select-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .jar-select-group label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        select {
+            background: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #3b82f6;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:hover {
+            border-color: #60a5fa;
+        }
+
+        #canvas-container {
+            position: relative;
+            background: #020617;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        canvas {
+            display: block;
+            border-radius: 10px;
+        }
+
+        .instructions {
+            background: #0284c7;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            background: #1e293b;
+            padding: 12px 20px;
+            border-radius: 10px;
+            width: 100%;
+            border: 1px solid #334155;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: #dc2626;
+        }
+        .btn-reset:hover {
+            background: #ef4444;
+        }
+
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .card h3 {
+            font-size: 0.98rem;
+            color: #38bdf8;
+            margin-bottom: 6px;
+        }
+
+        .card ul {
+            font-size: 0.82rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            padding-left: 16px;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;3-Channel Optics Lab: Tyndall Effect &amp; Solutions&lt;/h1&gt;
+        &lt;p&gt;Prepare custom solutions, toggle individual lasers, observe high-contrast dark screens &amp; inspect particle optics!&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;div id=&quot;main-container&quot;&gt;
+        &lt;div class=&quot;instructions&quot;&gt;
+            🧪 &lt;b&gt;Instructions:&lt;/b&gt; Choose substances from dropdowns → Drag &lt;b&gt;Powder Jars&lt;/b&gt; to Beakers → Stir with &lt;b&gt;Glass Rod&lt;/b&gt; (Re-stir anytime!) → Click &lt;b&gt;ON/OFF Switches on Lasers&lt;/b&gt; → Use &lt;b&gt;Magnifier&lt;/b&gt; to see particle scattering!
+        &lt;/div&gt;
+
+        &lt;!-- Shelf Dropdown Selectors --&gt;
+        &lt;div class=&quot;shelf-controls&quot;&gt;
+            &lt;div class=&quot;jar-select-group&quot;&gt;
+                &lt;label for=&quot;jar1Select&quot;&gt;Jar 1 (True Solutions):&lt;/label&gt;
+                &lt;select id=&quot;jar1Select&quot;&gt;
+                    &lt;option value=&quot;salt&quot;&gt;Salt (NaCl)&lt;/option&gt;
+                    &lt;option value=&quot;sugar&quot;&gt;Sugar&lt;/option&gt;
+                    &lt;option value=&quot;coppersulfate&quot;&gt;Copper Sulfate (Blue)&lt;/option&gt;
+                &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;jar-select-group&quot;&gt;
+                &lt;label for=&quot;jar2Select&quot;&gt;Jar 2 (Colloids):&lt;/label&gt;
+                &lt;select id=&quot;jar2Select&quot;&gt;
+                    &lt;option value=&quot;milk&quot;&gt;Milk Powder&lt;/option&gt;
+                    &lt;option value=&quot;starch&quot;&gt;Starch Powder&lt;/option&gt;
+                    &lt;option value=&quot;soap&quot;&gt;Dilute Soap&lt;/option&gt;
+                &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;jar-select-group&quot;&gt;
+                &lt;label for=&quot;jar3Select&quot;&gt;Jar 3 (Suspensions):&lt;/label&gt;
+                &lt;select id=&quot;jar3Select&quot;&gt;
+                    &lt;option value=&quot;chalk&quot;&gt;Chalk Powder&lt;/option&gt;
+                    &lt;option value=&quot;flour&quot;&gt;Wheat Flour&lt;/option&gt;
+                    &lt;option value=&quot;sand&quot;&gt;Fine Sand&lt;/option&gt;
+                &lt;/select&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div id=&quot;canvas-container&quot;&gt;
+            &lt;canvas id=&quot;labCanvas&quot; width=&quot;1200&quot; height=&quot;540&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;controls&quot;&gt;
+            &lt;button class=&quot;btn&quot; id=&quot;laserColorBtn&quot;&gt;Change Laser Beam Color&lt;/button&gt;
+            &lt;button class=&quot;btn&quot; id=&quot;toggleParticlesBtn&quot;&gt;Pause/Resume Physics&lt;/button&gt;
+            &lt;button class=&quot;btn btn-reset&quot; id=&quot;resetLabBtn&quot;&gt;Reset Entire Lab&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;info-panel&quot;&gt;
+            &lt;div class=&quot;card&quot; style=&quot;border-left-color: #4ade80;&quot;&gt;
+                &lt;h3&gt;Channel 1: True Solution&lt;/h3&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;&lt;b&gt;Particles:&lt;/b&gt; Dissolved molecules/ions (&amp;lt; 1 nm).&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Light Path:&lt;/b&gt; Completely invisible inside liquid.&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Dark Screen:&lt;/b&gt; Sharp, focused, high-contrast laser dot.&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card&quot; style=&quot;border-left-color: #facc15;&quot;&gt;
+                &lt;h3&gt;Channel 2: Colloidal Solution&lt;/h3&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;&lt;b&gt;Particles:&lt;/b&gt; Micelles/macromolecules (1–1000 nm, slow motion).&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Tyndall Effect:&lt;/b&gt; Bright white/colored glowing beam path!&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Dark Screen:&lt;/b&gt; Wide diffuse glowing halo ring.&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card&quot; style=&quot;border-left-color: #f87171;&quot;&gt;
+                &lt;h3&gt;Channel 3: Suspension&lt;/h3&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;&lt;b&gt;Particles:&lt;/b&gt; Large particles (&amp;gt; 1000 nm) that settle down.&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Re-stirring:&lt;/b&gt; Drag glass rod into liquid to re-mix sediment!&lt;/li&gt;
+                    &lt;li&gt;&lt;b&gt;Dark Screen:&lt;/b&gt; Dim, faint, heavily scattered fuzzy spot.&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;labCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+
+        // State &amp; Settings
+        let isSimulating = true;
+        let laserColors = [&#39;#ff0055&#39;, &#39;#00ff66&#39;, &#39;#0099ff&#39;];
+        let currentColorIdx = 0;
+
+        // Substance Database
+        const substanceData = {
+            salt: { name: &quot;Salt (NaCl)&quot;, category: &quot;solution&quot;, color: &quot;#f8fafc&quot;, liquidTint: &quot;rgba(56, 189, 248, 0.15)&quot; },
+            sugar: { name: &quot;Sugar&quot;, category: &quot;solution&quot;, color: &quot;#f1f5f9&quot;, liquidTint: &quot;rgba(56, 189, 248, 0.15)&quot; },
+            coppersulfate: { name: &quot;Copper Sulfate&quot;, category: &quot;solution&quot;, color: &quot;#38bdf8&quot;, liquidTint: &quot;rgba(14, 165, 233, 0.35)&quot; },
+
+            milk: { name: &quot;Milk Powder&quot;, category: &quot;colloid&quot;, color: &quot;#fef08a&quot;, liquidTint: &quot;rgba(245, 245, 240, 0.55)&quot; },
+            starch: { name: &quot;Starch Powder&quot;, category: &quot;colloid&quot;, color: &quot;#e2e8f0&quot;, liquidTint: &quot;rgba(226, 232, 240, 0.45)&quot; },
+            soap: { name: &quot;Dilute Soap&quot;, category: &quot;colloid&quot;, color: &quot;#bfdbfe&quot;, liquidTint: &quot;rgba(191, 219, 254, 0.4)&quot; },
+
+            chalk: { name: &quot;Chalk Powder&quot;, category: &quot;suspension&quot;, color: &quot;#cbd5e1&quot;, liquidTint: &quot;rgba(203, 213, 225, 0.38)&quot; },
+            flour: { name: &quot;Wheat Flour&quot;, category: &quot;suspension&quot;, color: &quot;#fef3c7&quot;, liquidTint: &quot;rgba(254, 243, 199, 0.42)&quot; },
+            sand: { name: &quot;Fine Sand&quot;, category: &quot;suspension&quot;, color: &quot;#d97706&quot;, liquidTint: &quot;rgba(217, 119, 6, 0.35)&quot; }
+        };
+
+        // Shelf Jars
+        const shelf = { x: 40, y: 15, w: 280, h: 70 };
+        const jars = [
+            { id: 1, subKey: &#39;salt&#39;, x: 55, y: 22, w: 60, h: 50, homeX: 55, homeY: 22, isDragging: false },
+            { id: 2, subKey: &#39;milk&#39;, x: 150, y: 22, w: 60, h: 50, homeX: 150, homeY: 22, isDragging: false },
+            { id: 3, subKey: &#39;chalk&#39;, x: 245, y: 22, w: 60, h: 50, homeX: 245, homeY: 22, isDragging: false }
+        ];
+
+        // Glass Stirring Rod
+        const rod = {
+            x: 350, y: 15, w: 10, h: 95, homeX: 350, homeY: 15,
+            isDragging: false, lastX: 0, lastY: 0
+        };
+
+        // 3 Channels: Beakers, Lasers, Dark Screens
+        const beakers = [
+            { id: 1, name: &quot;Channel 1&quot;, x: 170, y: 220, w: 150, h: 190, state: &#39;water&#39;, soluteKey: null, stirAmount: 0 },
+            { id: 2, name: &quot;Channel 2&quot;, x: 540, y: 220, w: 150, h: 190, state: &#39;water&#39;, soluteKey: null, stirAmount: 0 },
+            { id: 3, name: &quot;Channel 3&quot;, x: 910, y: 220, w: 150, h: 190, state: &#39;water&#39;, soluteKey: null, stirAmount: 0 }
+        ];
+
+        const lasers = [
+            { id: 1, x: 35,  y: 315, angle: 0, isOn: true, isDraggingBody: false, isDraggingTip: false },
+            { id: 2, x: 405, y: 315, angle: 0, isOn: true, isDraggingBody: false, isDraggingTip: false },
+            { id: 3, x: 775, y: 315, angle: 0, isOn: true, isDraggingBody: false, isDraggingTip: false }
+        ];
+
+        const screens = [
+            { id: 1, x: 355, y: 180, w: 16, h: 240 },
+            { id: 2, x: 725, y: 180, w: 16, h: 240 },
+            { id: 3, x: 1095, y: 180, w: 16, h: 240 }
+        ];
+
+        // Particle System Data
+        let particles = { 1: [], 2: [], 3: [] };
+
+        // Magnifying Lens
+        const magnifier = {
+            x: 615, y: 315, radius: 75, zoom: 2.3, isDragging: false
+        };
+
+        let dragOffsetX = 0, dragOffsetY = 0;
+
+        // Reset Lab
+        function resetLab() {
+            beakers.forEach(b =&gt; {
+                b.state = &#39;water&#39;;
+                b.soluteKey = null;
+                b.stirAmount = 0;
+            });
+            particles = { 1: [], 2: [], 3: [] };
+            jars.forEach(j =&gt; { j.x = j.homeX; j.y = j.homeY; });
+            rod.x = rod.homeX; rod.y = rod.homeY;
+            lasers[0].x = 35; lasers[0].y = 315; lasers[0].angle = 0; lasers[0].isOn = true;
+            lasers[1].x = 405; lasers[1].y = 315; lasers[1].angle = 0; lasers[1].isOn = true;
+            lasers[2].x = 775; lasers[2].y = 315; lasers[2].angle = 0; lasers[2].isOn = true;
+        }
+
+        // Dropdown HTML Listeners
+        document.getElementById(&#39;jar1Select&#39;).addEventListener(&#39;change&#39;, (e) =&gt; jars[0].subKey = e.target.value);
+        document.getElementById(&#39;jar2Select&#39;).addEventListener(&#39;change&#39;, (e) =&gt; jars[1].subKey = e.target.value);
+        document.getElementById(&#39;jar3Select&#39;).addEventListener(&#39;change&#39;, (e) =&gt; jars[2].subKey = e.target.value);
+
+        // Generate Microscopic Particles
+        function createParticles(beaker) {
+            const list = [];
+            const bX = beaker.x + 10;
+            const bY = beaker.y + 25;
+            const bW = beaker.w - 20;
+            const bH = beaker.h - 30;
+            const sub = substanceData[beaker.soluteKey];
+
+            if (sub.category === &#39;solution&#39;) {
+                for (let i = 0; i &lt; 45; i++) {
+                    list.push({
+                        x: bX + Math.random() * bW,
+                        y: bY + Math.random() * bH,
+                        r: 0.9,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        type: &#39;ion&#39;,
+                        isIlluminated: false
+                    });
+                }
+            } else if (sub.category === &#39;colloid&#39;) {
+                // SLOW Brownian Motion for Colloids
+                for (let i = 0; i &lt; 85; i++) {
+                    list.push({
+                        x: bX + Math.random() * bW,
+                        y: bY + Math.random() * bH,
+                        r: 2.8,
+                        vx: (Math.random() - 0.5) * 0.3,
+                        vy: (Math.random() - 0.5) * 0.3,
+                        type: &#39;colloid&#39;,
+                        isIlluminated: false
+                    });
+                }
+            } else if (sub.category === &#39;suspension&#39;) {
+                for (let i = 0; i &lt; 70; i++) {
+                    list.push({
+                        x: bX + Math.random() * bW,
+                        y: bY + Math.random() * (bH - 15),
+                        r: Math.random() * 3.5 + 3,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: Math.random() * 0.35 + 0.15,
+                        settled: false,
+                        type: &#39;suspension&#39;,
+                        isIlluminated: false
+                    });
+                }
+            }
+            particles[beaker.id] = list;
+        }
+
+        // Re-stir Functionality
+        function reStirBeaker(beaker) {
+            const list = particles[beaker.id];
+            if (!list) return;
+
+            list.forEach(p =&gt; {
+                if (p.type === &#39;suspension&#39;) {
+                    p.settled = false;
+                    p.y = beaker.y + 30 + Math.random() * (beaker.h - 60);
+                    p.vx = (Math.random() - 0.5) * 1.5;
+                    p.vy = Math.random() * 0.4 + 0.1;
+                } else {
+                    p.vx = (Math.random() - 0.5) * 0.8;
+                    p.vy = (Math.random() - 0.5) * 0.8;
+                }
+            });
+        }
+
+        // Main Drawing Routine
+        function drawScene(targetCtx, isMagnified = false) {
+            if (!isMagnified) {
+                targetCtx.fillStyle = &quot;#020617&quot;;
+                targetCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Lab Bench
+                targetCtx.fillStyle = &quot;#1e293b&quot;;
+                targetCtx.fillRect(0, 410, canvas.width, 130);
+                targetCtx.strokeStyle = &quot;#334155&quot;;
+                targetCtx.lineWidth = 2;
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, 410);
+                targetCtx.lineTo(canvas.width, 410);
+                targetCtx.stroke();
+
+                drawShelfAndJars(targetCtx);
+            }
+
+            // Draw Dark Screens
+            screens.forEach(s =&gt; drawDarkScreen(targetCtx, s, isMagnified));
+
+            // Draw Beakers
+            beakers.forEach(b =&gt; drawBeaker(targetCtx, b, isMagnified));
+
+            // Physics Update &amp; Particle Drawing (Particles only visible inside Lens!)
+            updateAndDrawParticles(targetCtx, isMagnified);
+
+            // Compute Laser Optics
+            lasers.forEach(l =&gt; {
+                if (l.isOn) {
+                    const screenImpact = calculateAndDrawLight(targetCtx, l);
+                    if (screenImpact &amp;&amp; screenImpact.hit) {
+                        drawScreenImpactSpot(targetCtx, screenImpact);
+                    }
+                }
+            });
+
+            // Draw Tools
+            if (!isMagnified) {
+                lasers.forEach(l =&gt; drawLaserDevice(targetCtx, l));
+                drawStirringRod(targetCtx);
+            }
+        }
+
+        function drawShelfAndJars(targetCtx) {
+            targetCtx.fillStyle = &quot;#334155&quot;;
+            targetCtx.fillRect(shelf.x, shelf.y + shelf.h - 8, shelf.w, 10);
+
+            jars.forEach(j =&gt; {
+                const sub = substanceData[j.subKey];
+                targetCtx.fillStyle = &quot;#1e293b&quot;;
+                targetCtx.strokeStyle = &quot;#64748b&quot;;
+                targetCtx.lineWidth = 2;
+                targetCtx.fillRect(j.x, j.y, j.w, j.h);
+                targetCtx.strokeRect(j.x, j.y, j.w, j.h);
+
+                targetCtx.fillStyle = &quot;#475569&quot;;
+                targetCtx.fillRect(j.x - 2, j.y - 6, j.w + 4, 6);
+
+                targetCtx.fillStyle = sub.color;
+                targetCtx.fillRect(j.x + 4, j.y + 18, j.w - 8, j.h - 22);
+
+                targetCtx.fillStyle = &quot;#ffffff&quot;;
+                targetCtx.font = &quot;bold 8px Segoe UI&quot;;
+                targetCtx.textAlign = &quot;center&quot;;
+                targetCtx.fillText(sub.name, j.x + j.w/2, j.y + 13);
+            });
+        }
+
+        function drawStirringRod(targetCtx) {
+            targetCtx.save();
+            targetCtx.fillStyle = &quot;rgba(224, 242, 254, 0.75)&quot;;
+            targetCtx.strokeStyle = &quot;rgba(255, 255, 255, 0.9)&quot;;
+            targetCtx.lineWidth = 2;
+            targetCtx.fillRect(rod.x, rod.y, rod.w, rod.h);
+            targetCtx.strokeRect(rod.x, rod.y, rod.w, rod.h);
+
+            targetCtx.fillStyle = &quot;#38bdf8&quot;;
+            targetCtx.beginPath();
+            targetCtx.arc(rod.x + rod.w/2, rod.y, 7, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.restore();
+        }
+
+        function drawBeaker(targetCtx, b, isMagnified) {
+            let liquidColor = &quot;rgba(56, 189, 248, 0.12)&quot;;
+            if (b.state === &#39;unmixed&#39;) {
+                liquidColor = &quot;rgba(148, 163, 184, 0.22)&quot;;
+            } else if (b.state === &#39;prepared&#39;) {
+                const sub = substanceData[b.soluteKey];
+                liquidColor = sub.liquidTint;
+            }
+
+            // Liquid Body
+            targetCtx.fillStyle = liquidColor;
+            targetCtx.fillRect(b.x + 5, b.y + 20, b.w - 10, b.h - 25);
+
+            // Sediment at Bottom if unmixed
+            if (b.state === &#39;unmixed&#39;) {
+                const sub = substanceData[b.soluteKey];
+                targetCtx.fillStyle = sub.color;
+                targetCtx.beginPath();
+                targetCtx.ellipse(b.x + b.w/2, b.y + b.h - 10, b.w/2 - 12, 7, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
+
+            // Glass Container Outline
+            targetCtx.strokeStyle = &quot;rgba(255, 255, 255, 0.6)&quot;;
+            targetCtx.lineWidth = 3.5;
+            targetCtx.beginPath();
+            targetCtx.moveTo(b.x, b.y);
+            targetCtx.lineTo(b.x, b.y + b.h);
+            targetCtx.quadraticCurveTo(b.x + b.w/2, b.y + b.h + 8, b.x + b.w, b.y + b.h);
+            targetCtx.lineTo(b.x + b.w, b.y);
+            targetCtx.stroke();
+
+            // Water Rim
+            targetCtx.beginPath();
+            targetCtx.ellipse(b.x + b.w/2, b.y + 20, b.w/2 - 5, 7, 0, 0, Math.PI * 2);
+            targetCtx.strokeStyle = &quot;rgba(255, 255, 255, 0.4)&quot;;
+            targetCtx.lineWidth = 2;
+            targetCtx.stroke();
+
+            if (!isMagnified) {
+                targetCtx.fillStyle = &quot;#e2e8f0&quot;;
+                targetCtx.font = &quot;bold 13px Segoe UI&quot;;
+                targetCtx.textAlign = &quot;center&quot;;
+                targetCtx.fillText(b.name, b.x + b.w/2, b.y - 25);
+
+                let statusText = &quot;Pure Water&quot;;
+                let badgeColor = &quot;#38bdf8&quot;;
+
+                if (b.state === &#39;unmixed&#39;) {
+                    statusText = &quot;Unmixed (Stir Me)&quot;;
+                    badgeColor = &quot;#fbbf24&quot;;
+                } else if (b.state === &#39;prepared&#39;) {
+                    const sub = substanceData[b.soluteKey];
+                    statusText = sub.name;
+                    badgeColor = sub.category === &#39;solution&#39; ? &quot;#4ade80&quot; : sub.category === &#39;colloid&#39; ? &quot;#facc15&quot; : &quot;#f87171&quot;;
+                }
+
+                targetCtx.fillStyle = badgeColor;
+                targetCtx.font = &quot;bold 11px Segoe UI&quot;;
+                targetCtx.fillText(statusText, b.x + b.w/2, b.y - 8);
+            }
+        }
+
+        function updateAndDrawParticles(targetCtx, isMagnified) {
+            beakers.forEach(b =&gt; {
+                const list = particles[b.id];
+                if (!list) return;
+
+                const minX = b.x + 8, maxX = b.x + b.w - 8;
+                const minY = b.y + 22, maxY = b.y + b.h - 8;
+
+                list.forEach(p =&gt; {
+                    if (isSimulating) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+
+                        // Very gentle Brownian jitter for Colloids
+                        if (p.type === &#39;colloid&#39;) {
+                            p.vx += (Math.random() - 0.5) * 0.04;
+                            p.vy += (Math.random() - 0.5) * 0.04;
+                            // Speed Cap
+                            p.vx = Math.max(-0.4, Math.min(0.4, p.vx));
+                            p.vy = Math.max(-0.4, Math.min(0.4, p.vy));
+                        }
+
+                        if (p.type === &#39;suspension&#39; &amp;&amp; p.y &gt;= maxY - 4) {
+                            p.settled = true;
+                            p.vy = 0; p.vx = 0;
+                        }
+
+                        if (p.x &lt; minX || p.x &gt; maxX) p.vx *= -1;
+                        if (p.y &lt; minY || p.y &gt; maxY) p.vy *= -1;
+                    }
+
+                    // Particles rendered ONLY inside Magnifier Lens
+                    if (isMagnified) {
+                        targetCtx.fillStyle = p.type === &#39;ion&#39; ? &quot;#a5f3fc&quot; : p.type === &#39;colloid&#39; ? &quot;#ffffff&quot; : &quot;#cbd5e1&quot;;
+
+                        // Glowing highlight if particle is hit by laser beam
+                        if (p.isIlluminated) {
+                            targetCtx.shadowColor = laserColors[currentColorIdx];
+                            targetCtx.shadowBlur = 10;
+                            targetCtx.fillStyle = &quot;#ffffff&quot;;
+                        }
+
+                        targetCtx.beginPath();
+                        targetCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        targetCtx.fill();
+                        targetCtx.shadowBlur = 0; // Reset
+                    }
+
+                    p.isIlluminated = false; // Reset frame flag
+                });
+            });
+        }
+
+        function drawDarkScreen(targetCtx, s, isMagnified) {
+            // Screen Frame
+            targetCtx.fillStyle = &quot;#334155&quot;;
+            targetCtx.fillRect(s.x - 3, s.y - 15, s.w + 6, s.h + 30);
+
+            // Dark Matte Screen Surface
+            targetCtx.fillStyle = &quot;#090d16&quot;;
+            targetCtx.fillRect(s.x, s.y, s.w, s.h);
+
+            // Grid Lines
+            targetCtx.strokeStyle = &quot;#1e293b&quot;;
+            targetCtx.lineWidth = 1;
+            for (let y = s.y + 15; y &lt; s.y + s.h; y += 15) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(s.x, y);
+                targetCtx.lineTo(s.x + s.w, y);
+                targetCtx.stroke();
+            }
+
+            if (!isMagnified) {
+                targetCtx.fillStyle = &quot;#94a3b8&quot;;
+                targetCtx.font = &quot;bold 11px Segoe UI&quot;;
+                targetCtx.textAlign = &quot;center&quot;;
+                targetCtx.fillText(&quot;SCREEN &quot; + s.id, s.x + s.w/2, s.y - 20);
+            }
+        }
+
+        function calculateAndDrawLight(targetCtx, laserObj) {
+            const color = laserColors[currentColorIdx];
+            const tipX = laserObj.x + Math.cos(laserObj.angle) * 36;
+            const tipY = laserObj.y + Math.sin(laserObj.angle) * 36;
+            const dirX = Math.cos(laserObj.angle);
+            const dirY = Math.sin(laserObj.angle);
+
+            let px = tipX;
+            let py = tipY;
+            let intensity = 1.0;
+            let screenHit = null;
+
+            targetCtx.lineWidth = 3;
+
+            for (let d = 0; d &lt; 1200; d += 4) {
+                let nextX = px + dirX * 4;
+                let nextY = py + dirY * 4;
+
+                // Collision with Dark Screens
+                for (let s of screens) {
+                    if (nextX &gt;= s.x &amp;&amp; nextX &lt;= s.x + s.w &amp;&amp; nextY &gt;= s.y &amp;&amp; nextY &lt;= s.y + s.h) {
+                        screenHit = { hit: true, screen: s, y: nextY, intensity: intensity, beakerKey: getBeakerSoluteKeyAt(px, py) };
+                        break;
+                    }
+                }
+                if (screenHit) break;
+
+                // Liquid Interaction
+                let currentBeaker = beakers.find(b =&gt;
+                    px &gt;= b.x + 5 &amp;&amp; px &lt;= b.x + b.w - 5 &amp;&amp; py &gt;= b.y + 20 &amp;&amp; py &lt;= b.y + b.h - 8
+                );
+
+                targetCtx.beginPath();
+                targetCtx.moveTo(px, py);
+                targetCtx.lineTo(nextX, nextY);
+
+                if (!currentBeaker) {
+                    targetCtx.strokeStyle = color;
+                    targetCtx.globalAlpha = 0.45 * intensity;
+                    targetCtx.stroke();
+                } else {
+                    const sub = currentBeaker.state === &#39;prepared&#39; ? substanceData[currentBeaker.soluteKey] : null;
+
+                    if (!sub || sub.category === &#39;solution&#39;) {
+                        // True Solution: Invisible beam inside liquid
+                        targetCtx.strokeStyle = color;
+                        targetCtx.globalAlpha = 0.03;
+                        targetCtx.stroke();
+                        intensity *= 0.998;
+                    } else if (sub.category === &#39;colloid&#39;) {
+                        // Colloidal Solution: TYNDALL EFFECT (Glowing Beam Path)
+                        targetCtx.strokeStyle = &quot;#ffffff&quot;;
+                        targetCtx.lineWidth = 6;
+                        targetCtx.globalAlpha = 0.9 * intensity;
+                        targetCtx.stroke();
+
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(px, py);
+                        targetCtx.lineTo(nextX, nextY);
+                        targetCtx.strokeStyle = color;
+                        targetCtx.lineWidth = 14;
+                        targetCtx.globalAlpha = 0.4 * intensity;
+                        targetCtx.stroke();
+                        targetCtx.lineWidth = 3;
+                        intensity *= 0.985;
+
+                        // Mark particles along ray for scattering reflection
+                        const list = particles[currentBeaker.id];
+                        if (list) {
+                            list.forEach(p =&gt; {
+                                if (Math.hypot(p.x - px, p.y - py) &lt; 10) p.isIlluminated = true;
+                            });
+                        }
+                    } else if (sub.category === &#39;suspension&#39;) {
+                        // Suspension: Opaque / Scattered path
+                        targetCtx.strokeStyle = color;
+                        targetCtx.lineWidth = 8;
+                        targetCtx.globalAlpha = 0.35 * intensity;
+                        targetCtx.stroke();
+                        targetCtx.lineWidth = 3;
+                        intensity *= 0.93;
+
+                        const list = particles[currentBeaker.id];
+                        if (list) {
+                            list.forEach(p =&gt; {
+                                if (Math.hypot(p.x - px, p.y - py) &lt; 12) p.isIlluminated = true;
+                            });
+                        }
+                    }
+                }
+
+                px = nextX;
+                py = nextY;
+            }
+
+            targetCtx.globalAlpha = 1.0;
+            return screenHit;
+        }
+
+        function getBeakerSoluteKeyAt(px, py) {
+            let b = beakers.find(b =&gt; px &gt;= b.x - 20 &amp;&amp; px &lt;= b.x + b.w + 20);
+            return b &amp;&amp; b.state === &#39;prepared&#39; ? b.soluteKey : null;
+        }
+
+        function drawScreenImpactSpot(targetCtx, impact) {
+            const color = laserColors[currentColorIdx];
+            targetCtx.save();
+
+            const spotX = impact.screen.x + impact.screen.w / 2;
+            const spotY = impact.y;
+            const sub = impact.beakerKey ? substanceData[impact.beakerKey] : null;
+
+            if (sub &amp;&amp; sub.category === &#39;colloid&#39;) {
+                // High-Contrast Diffuse Tyndall Halo on Dark Screen
+                let grad = targetCtx.createRadialGradient(spotX, spotY, 2, spotX, spotY, 18);
+                grad.addColorStop(0, &#39;#ffffff&#39;);
+                grad.addColorStop(0.35, color);
+                grad.addColorStop(1, &#39;transparent&#39;);
+                targetCtx.fillStyle = grad;
+                targetCtx.beginPath();
+                targetCtx.arc(spotX, spotY, 18, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else if (sub &amp;&amp; sub.category === &#39;suspension&#39;) {
+                // Faint Scattered Spot
+                targetCtx.fillStyle = color;
+                targetCtx.globalAlpha = 0.28 * impact.intensity;
+                targetCtx.beginPath();
+                targetCtx.arc(spotX, spotY, 12, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else {
+                // Intense Sharp Laser Point (Water / True Solution)
+                targetCtx.fillStyle = &quot;#ffffff&quot;;
+                targetCtx.shadowColor = color;
+                targetCtx.shadowBlur = 12;
+                targetCtx.beginPath();
+                targetCtx.arc(spotX, spotY, 4, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
+
+            targetCtx.restore();
+        }
+
+        function drawLaserDevice(targetCtx, l) {
+            targetCtx.save();
+            targetCtx.translate(l.x, l.y);
+            targetCtx.rotate(l.angle);
+
+            // Laser Main Body
+            targetCtx.fillStyle = &quot;#334155&quot;;
+            targetCtx.strokeStyle = &quot;#64748b&quot;;
+            targetCtx.lineWidth = 2;
+            targetCtx.fillRect(-35, -12, 60, 24);
+            targetCtx.strokeRect(-35, -12, 60, 24);
+
+            // Emitter Tip
+            targetCtx.fillStyle = laserColors[currentColorIdx];
+            targetCtx.fillRect(25, -9, 9, 18);
+
+            // Interactive ON/OFF Switch Button on Laser Housing
+            targetCtx.fillStyle = l.isOn ? &quot;#22c55e&quot; : &quot;#ef4444&quot;;
+            targetCtx.fillRect(-28, -8, 16, 16);
+            targetCtx.strokeStyle = &quot;#ffffff&quot;;
+            targetCtx.lineWidth = 1;
+            targetCtx.strokeRect(-28, -8, 16, 16);
+
+            // Text Label on Switch
+            targetCtx.fillStyle = &quot;#ffffff&quot;;
+            targetCtx.font = &quot;bold 8px Segoe UI&quot;;
+            targetCtx.textAlign = &quot;center&quot;;
+            targetCtx.fillText(l.isOn ? &quot;ON&quot; : &quot;OFF&quot;, -20, 3);
+
+            targetCtx.restore();
+        }
+
+        function drawMagnifier() {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(magnifier.x, magnifier.y, magnifier.radius, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.save();
+            ctx.translate(magnifier.x, magnifier.y);
+            ctx.scale(magnifier.zoom, magnifier.zoom);
+            ctx.translate(-magnifier.x, -magnifier.y);
+
+            // Redraw scene inside lens with particles ENABLED
+            drawScene(ctx, true);
+
+            // Draw Active Photon Scattering Rays on Illuminated Particles
+            beakers.forEach(b =&gt; {
+                const list = particles[b.id];
+                const color = laserColors[currentColorIdx];
+                if (list) {
+                    list.forEach(p =&gt; {
+                        if (p.isIlluminated &amp;&amp; Math.hypot(p.x - magnifier.x, p.y - magnifier.y) &lt; magnifier.radius) {
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 0.9;
+                            for (let a = 0; a &lt; Math.PI * 2; a += Math.PI / 3) {
+                                ctx.beginPath();
+                                ctx.moveTo(p.x, p.y);
+                                ctx.lineTo(p.x + Math.cos(a) * 10, p.y + Math.sin(a) * 10);
+                                ctx.stroke();
+                            }
+                        }
+                    });
+                }
+            });
+
+            ctx.restore();
+
+            // Lens Glass Shine
+            let gradient = ctx.createLinearGradient(
+                magnifier.x - magnifier.radius, magnifier.y - magnifier.radius,
+                magnifier.x + magnifier.radius, magnifier.y + magnifier.radius
+            );
+            gradient.addColorStop(0, &#39;rgba(255, 255, 255, 0.35)&#39;);
+            gradient.addColorStop(0.5, &#39;rgba(255, 255, 255, 0.05)&#39;);
+            gradient.addColorStop(1, &#39;rgba(0, 0, 0, 0.2)&#39;);
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(magnifier.x, magnifier.y, magnifier.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Metallic Frame &amp; Handle
+            ctx.strokeStyle = &quot;#94a3b8&quot;;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(magnifier.x, magnifier.y, magnifier.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.strokeStyle = &quot;#475569&quot;;
+            ctx.lineWidth = 10;
+            ctx.lineCap = &quot;round&quot;;
+            ctx.beginPath();
+            ctx.moveTo(magnifier.x + magnifier.radius * 0.7, magnifier.y + magnifier.radius * 0.7);
+            ctx.lineTo(magnifier.x + magnifier.radius * 1.4, magnifier.y + magnifier.radius * 1.4);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- Interaction Logic &amp; Event Handlers ---
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; {
+            const m = getMousePos(e);
+
+            // 1. Drag Magnifier
+            if (Math.hypot(m.x - magnifier.x, m.y - magnifier.y) &lt; magnifier.radius) {
+                magnifier.isDragging = true;
+                dragOffsetX = m.x - magnifier.x;
+                dragOffsetY = m.y - magnifier.y;
+                return;
+            }
+
+            // 2. Drag Glass Stirring Rod
+            if (m.x &gt;= rod.x - 6 &amp;&amp; m.x &lt;= rod.x + rod.w + 6 &amp;&amp; m.y &gt;= rod.y - 10 &amp;&amp; m.y &lt;= rod.y + rod.h) {
+                rod.isDragging = true;
+                rod.lastX = m.x;
+                rod.lastY = m.y;
+                dragOffsetX = m.x - rod.x;
+                dragOffsetY = m.y - rod.y;
+                return;
+            }
+
+            // 3. Drag Powder Jars
+            for (let j of jars) {
+                if (m.x &gt;= j.x &amp;&amp; m.x &lt;= j.x + j.w &amp;&amp; m.y &gt;= j.y &amp;&amp; m.y &lt;= j.y + j.h) {
+                    j.isDragging = true;
+                    dragOffsetX = m.x - j.x;
+                    dragOffsetY = m.y - j.y;
+                    return;
+                }
+            }
+
+            // 4. Lasers Interaction (ON/OFF Switch, Drag Body, Rotate Tip)
+            for (let l of lasers) {
+                // Transform mouse point into Laser local space to test ON/OFF switch
+                let dx = m.x - l.x;
+                let dy = m.y - l.y;
+                let localX = dx * Math.cos(-l.angle) - dy * Math.sin(-l.angle);
+                let localY = dx * Math.sin(-l.angle) + dy * Math.cos(-l.angle);
+
+                // Check ON/OFF Switch Button Click
+                if (localX &gt;= -28 &amp;&amp; localX &lt;= -12 &amp;&amp; localY &gt;= -8 &amp;&amp; localY &lt;= 8) {
+                    l.isOn = !l.isOn;
+                    return;
+                }
+
+                // Check Tip Rotation
+                let tipX = l.x + Math.cos(l.angle) * 36;
+                let tipY = l.y + Math.sin(l.angle) * 36;
+                if (Math.hypot(m.x - tipX, m.y - tipY) &lt; 16) {
+                    l.isDraggingTip = true;
+                    return;
+                }
+
+                // Check Body Drag
+                if (Math.hypot(m.x - l.x, m.y - l.y) &lt; 26) {
+                    l.isDraggingBody = true;
+                    dragOffsetX = m.x - l.x;
+                    dragOffsetY = m.y - l.y;
+                    return;
+                }
+            }
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; {
+            const m = getMousePos(e);
+
+            if (magnifier.isDragging) {
+                magnifier.x = m.x - dragOffsetX;
+                magnifier.y = m.y - dragOffsetY;
+            } else if (rod.isDragging) {
+                rod.x = m.x - dragOffsetX;
+                rod.y = m.y - dragOffsetY;
+
+                // Stirring detection in beakers
+                beakers.forEach(b =&gt; {
+                    if (rod.x &gt;= b.x &amp;&amp; rod.x &lt;= b.x + b.w &amp;&amp; rod.y + rod.h &gt;= b.y + 20 &amp;&amp; rod.y + rod.h &lt;= b.y + b.h) {
+                        let speed = Math.hypot(m.x - rod.lastX, m.y - rod.lastY);
+
+                        if (b.state === &#39;unmixed&#39;) {
+                            b.stirAmount += speed;
+                            if (b.stirAmount &gt; 320) {
+                                b.state = &#39;prepared&#39;;
+                                createParticles(b);
+                            }
+                        } else if (b.state === &#39;prepared&#39;) {
+                            // RE-STIRRING FUNCTION
+                            reStirBeaker(b);
+                        }
+                    }
+                });
+                rod.lastX = m.x;
+                rod.lastY = m.y;
+            } else {
+                // Jars Dragging
+                jars.forEach(j =&gt; {
+                    if (j.isDragging) {
+                        j.x = m.x - dragOffsetX;
+                        j.y = m.y - dragOffsetY;
+                    }
+                });
+
+                // Lasers Dragging / Rotating
+                lasers.forEach(l =&gt; {
+                    if (l.isDraggingBody) {
+                        l.x = m.x - dragOffsetX;
+                        l.y = m.y - dragOffsetY;
+                    } else if (l.isDraggingTip) {
+                        l.angle = Math.atan2(m.y - l.y, m.x - l.x);
+                    }
+                });
+            }
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+            magnifier.isDragging = false;
+            rod.isDragging = false;
+            lasers.forEach(l =&gt; { l.isDraggingBody = false; l.isDraggingTip = false; });
+
+            // Drop Powder Jar into Beakers
+            jars.forEach(j =&gt; {
+                if (j.isDragging) {
+                    j.isDragging = false;
+                    beakers.forEach(b =&gt; {
+                        if (j.x + j.w/2 &gt;= b.x &amp;&amp; j.x + j.w/2 &lt;= b.x + b.w &amp;&amp; j.y + j.h &gt;= b.y &amp;&amp; j.y &lt;= b.y + b.h) {
+                            if (b.state === &#39;water&#39;) {
+                                b.state = &#39;unmixed&#39;;
+                                b.soluteKey = j.subKey;
+                                b.stirAmount = 0;
+                            }
+                        }
+                    });
+                    j.x = j.homeX; j.y = j.homeY;
+                }
+            });
+
+            rod.x = rod.homeX; rod.y = rod.homeY;
+        });
+
+        // UI Controls Events
+        document.getElementById(&#39;laserColorBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            currentColorIdx = (currentColorIdx + 1) % laserColors.length;
+        });
+
+        document.getElementById(&#39;toggleParticlesBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            isSimulating = !isSimulating;
+        });
+
+        document.getElementById(&#39;resetLabBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            resetLab();
+        });
+
+        // Animation Loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawScene(ctx, false);
+            drawMagnifier();
+            requestAnimationFrame(animate);
+        }
+
+        // Start Virtual Lab
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
