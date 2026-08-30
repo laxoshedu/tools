@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>Separating Funnel simulation</title>
+<title>separatingfunnelsimulation</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -217,7 +217,15 @@
             --text-muted: #94a3b8;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Inter&#39;, -apple-system, sans-serif; user-select: none; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: &#39;Inter&#39;, -apple-system, sans-serif; 
+            user-select: none; 
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
 
         body {
             background-color: var(--bg-color);
@@ -318,6 +326,7 @@
             background: #2a3142;
             accent-color: var(--accent-blue);
             cursor: pointer;
+            touch-action: none;
         }
 
         select, button {
@@ -373,12 +382,14 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            touch-action: none;
         }
 
         canvas#labCanvas {
             width: 100%;
             height: 100%;
             display: block;
+            touch-action: none;
         }
 
         /* HUD Panels */
@@ -472,12 +483,12 @@
             #sidebar { width: 100%; min-width: 100%; height: 42vh; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
             #workspace { height: 58vh; }
             .controls-hint { display: none; }
+            #layerHUD { width: 220px; top: 10px; right: 10px; padding: 8px; }
         }
     &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 
-    &lt;!-- SIDEBAR CONTROL PANEL --&gt;
     &lt;div id=&quot;sidebar&quot;&gt;
         &lt;div class=&quot;sidebar-header&quot;&gt;
             &lt;h1&gt;🧪 Separating Funnel Lab&lt;/h1&gt;
@@ -486,7 +497,6 @@
 
         &lt;div class=&quot;scroll-container&quot;&gt;
 
-            &lt;!-- 1. MULTI-LIQUID POURING SETUP --&gt;
             &lt;div class=&quot;section-title&quot;&gt;1. Add Liquid to Funnel&lt;/div&gt;
             &lt;div class=&quot;control-card&quot;&gt;
                 &lt;div class=&quot;control-group&quot;&gt;
@@ -516,7 +526,6 @@
                 &lt;button class=&quot;btn-action&quot; id=&quot;btnPour&quot;&gt;🧪 Pour Liquid into Funnel&lt;/button&gt;
             &lt;/div&gt;
 
-            &lt;!-- 2. FUNNEL MECHANICAL CONTROLS --&gt;
             &lt;div class=&quot;section-title&quot;&gt;2. Funnel Mechanical Controls&lt;/div&gt;
             &lt;div class=&quot;control-card&quot;&gt;
                 &lt;div class=&quot;control-group&quot;&gt;
@@ -530,7 +539,6 @@
                 &lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;!-- 3. GLASSWARE &amp; BENCH --&gt;
             &lt;div class=&quot;section-title&quot;&gt;3. Glassware &amp; Bench&lt;/div&gt;
             &lt;div class=&quot;control-card&quot;&gt;
                 &lt;div class=&quot;btn-grid&quot;&gt;
@@ -542,18 +550,15 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- MAIN WORKSPACE --&gt;
     &lt;div id=&quot;workspace&quot;&gt;
         &lt;canvas id=&quot;labCanvas&quot;&gt;&lt;/canvas&gt;
 
-        &lt;!-- Vacuum Alert --&gt;
         &lt;div id=&quot;vacuumAlert&quot; class=&quot;hud-panel&quot;&gt;
-            ⚠️ &lt;b&gt;VACUUM LOCK:&lt;/b&gt; Stopper is seated! Remove the top stopper to vent air and allow draining.
+            ⚠️ &lt;b&gt;VACUUM LOCK:&lt;/b&gt; Stopper is seated! Remove top stopper to vent air and drain.
         &lt;/div&gt;
 
-        &lt;!-- Layer Analytics HUD --&gt;
         &lt;div id=&quot;layerHUD&quot; class=&quot;hud-panel&quot;&gt;
-            &lt;div class=&quot;hud-title&quot;&gt;📊 Funnel Density Stack Analytics&lt;/div&gt;
+            &lt;div class=&quot;hud-title&quot;&gt;📊 Density Stack Analytics&lt;/div&gt;
             &lt;div id=&quot;layerList&quot;&gt;
                 &lt;div style=&quot;font-size:0.75rem; color:#888;&quot;&gt;Funnel is empty. Pour liquids above!&lt;/div&gt;
             &lt;/div&gt;
@@ -564,8 +569,8 @@
         &lt;/div&gt;
 
         &lt;div class=&quot;controls-hint&quot;&gt;
-            💡 &lt;b&gt;Multiple Liquids:&lt;/b&gt; Add as many liquids as you like. They will automatically settle by density!&lt;br&gt;
-            💡 &lt;b&gt;Draggable Beakers:&lt;/b&gt; Drag beakers under the stem tip to collect fractions.
+            💡 &lt;b&gt;Multiple Liquids:&lt;/b&gt; Add liquids to watch them settle by density.&lt;br&gt;
+            💡 &lt;b&gt;Draggable Beakers:&lt;/b&gt; Touch or click and drag beakers under the tip to collect fractions.
         &lt;/div&gt;
     &lt;/div&gt;
 
@@ -582,25 +587,20 @@
 
         // --- STATE MANAGEMENT ---
         let state = {
-            // Liquids inside funnel (ordered by density: index 0 is lightest/top, index N-1 is densest/bottom)
             liquids: [],
-            
-            // Funnel Controls
-            stopperSeated: false, // Stopper is off by default so pouring works right away!
+            stopperSeated: false,
             valvePct: 0,
             separationPct: 1.0,
             shakeIntensity: 0,
             vacuumPressure: 0,
             
-            // Active Pouring Animation State
             pouring: {
                 active: false,
-                progress: 0, // 0 to 1
+                progress: 0,
                 liquid: null,
                 targetVol: 0
             },
             
-            // Beakers (Draggable)
             beakers: [],
             activeDragBeaker: null,
             dragOffset: { x: 0, y: 0 }
@@ -628,8 +628,8 @@
         let geo = {
             fcX: 0,
             topY: 0,
-            fH: 220,           // Bulbous body height
-            maxR: 75,          // Pear maximum radius
+            fH: 220,
+            maxR: 75,
             stemLength: 100,
             stopcockY: 0,
             benchY: 0
@@ -644,35 +644,27 @@
             ];
         }
 
-        // --- ACCURATE SQUIBB PEAR-SHAPE GEOMETRY HELPER ---
-        // Returns the inner glass radius (in px) at relative height yRel (0.0 at top neck to 1.0 at stem junction)
         function getFunnelRadius(yRel) {
             if (yRel &lt; 0 || yRel &gt; 1) return 0;
 
             if (yRel &lt; 0.08) {
-                // Ground glass neck
                 return 16;
             } else if (yRel &lt; 0.32) {
-                // Swelling pear shoulder
                 let t = (yRel - 0.08) / 0.24;
                 return 16 + Math.sin(t * Math.PI * 0.5) * (geo.maxR - 16);
             } else if (yRel &lt; 0.92) {
-                // Smooth tapering cone body
                 let t = (yRel - 0.32) / 0.60;
                 return geo.maxR - t * (geo.maxR - 12);
             } else {
-                // Junction into narrow stem
                 let t = (yRel - 0.92) / 0.08;
-                return 12 - t * 6; // Taper down to radius 6 (12px stem diameter)
+                return 12 - t * 6;
             }
         }
 
-        // Sort liquids array automatically by density: highest density at bottom (index N-1), lowest density at top (index 0)
         function sortLiquidsByDensity() {
-            state.liquids.sort((a, b) =&gt; a.rho - b.rho); // Ascending density order
+            state.liquids.sort((a, b) =&gt; a.rho - b.rho);
         }
 
-        // Add / Pour Liquid Trigger
         function triggerPour() {
             if (state.pouring.active) return;
 
@@ -690,7 +682,6 @@
                 lData = { name: p.name, rho: p.rho, color: p.color };
             }
 
-            // Remove stopper if it&#39;s seated
             if (state.stopperSeated) {
                 state.stopperSeated = false;
                 updateStopperButton();
@@ -704,13 +695,9 @@
             };
         }
 
-        // --- PHYSICS &amp; ANIMATION ENGINE ---
         function updatePhysics() {
-            // 1. Process Pouring Animation Stream
             if (state.pouring.active) {
                 state.pouring.progress += 0.015;
-                
-                // Gradually transfer volume to funnel liquids
                 let addedThisFrame = (state.pouring.targetVol / (1 / 0.015));
                 
                 let existing = state.liquids.find(l =&gt; l.name === state.pouring.liquid.name);
@@ -731,19 +718,16 @@
                 }
             }
 
-            // 2. Unmixing / Settling Logic
             if (state.separationPct &lt; 1.0) {
                 state.separationPct = Math.min(1.0, state.separationPct + 0.003);
                 if (state.separationPct === 1.0) sortLiquidsByDensity();
             }
 
-            // 3. Shake Decay
             if (state.shakeIntensity &gt; 0) {
                 state.shakeIntensity *= 0.9;
                 if (state.shakeIntensity &lt; 0.1) state.shakeIntensity = 0;
             }
 
-            // 4. Fluid Drainage Logic
             if (state.valvePct &gt; 0 &amp;&amp; state.liquids.length &gt; 0) {
                 let canDrain = true;
                 if (state.stopperSeated) {
@@ -758,20 +742,17 @@
                 }
 
                 if (canDrain) {
-                    let drainRate = (state.valvePct / 100) * 0.7; // mL per frame
+                    let drainRate = (state.valvePct / 100) * 0.7;
 
-                    // Denser liquid at the bottom (last element in sorted array) drains first
                     let bottomLayer = state.liquids[state.liquids.length - 1];
                     let drainedAmount = Math.min(bottomLayer.vol, drainRate);
                     
                     bottomLayer.vol -= drainedAmount;
 
-                    // Remove empty layer
                     if (bottomLayer.vol &lt;= 0.01) {
                         state.liquids.pop();
                     }
 
-                    // Collect in Beaker if positioned under stem tip
                     let fcX = geo.fcX;
                     let beakerUnder = state.beakers.find(b =&gt; Math.abs((b.x + b.w / 2) - fcX) &lt; b.w / 2 + 10);
                     if (beakerUnder &amp;&amp; drainedAmount &gt; 0) {
@@ -799,7 +780,6 @@
             }
 
             let html = &quot;&quot;;
-            // Render list from top (lightest) to bottom (densest)
             state.liquids.forEach((l, idx) =&gt; {
                 let posName = (idx === 0) ? &quot;Top&quot; : (idx === state.liquids.length - 1 ? &quot;Bottom&quot; : `Layer ${idx+1}`);
                 html += `
@@ -812,7 +792,6 @@
             layerList.innerHTML = html;
         }
 
-        // --- DRAWING ENGINE ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -838,26 +817,21 @@
             let fcX = geo.fcX;
             let benchY = geo.benchY;
 
-            // Workbench surface
             ctx.fillStyle = &quot;#141822&quot;; ctx.fillRect(0, benchY, canvas.width, canvas.height - benchY);
             ctx.strokeStyle = &quot;#262c3a&quot;; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, benchY); ctx.lineTo(canvas.width, benchY); ctx.stroke();
 
-            // Metal Stand Base
             ctx.fillStyle = &quot;#222733&quot;; ctx.strokeStyle = &quot;#444d61&quot;; ctx.lineWidth = 2;
             ctx.fillRect(fcX - 160, benchY - 14, 180, 14);
             ctx.strokeRect(fcX - 160, benchY - 14, 180, 14);
 
-            // Vertical Support Rod
             let rodX = fcX - 140;
             ctx.fillStyle = &quot;#4a5568&quot;; ctx.fillRect(rodX - 4, geo.topY - 40, 8, benchY - 14 - (geo.topY - 40));
 
-            // Support Ring holding upper pear shoulder
             let ringY = geo.topY + geo.fH * 0.35;
             ctx.fillStyle = &quot;#2d3748&quot;; ctx.fillRect(rodX, ringY - 6, fcX - rodX - geo.maxR * 0.8, 12);
             ctx.strokeStyle = &quot;#4a5568&quot;; ctx.lineWidth = 6;
             ctx.beginPath(); ctx.ellipse(fcX, ringY, getFunnelRadius(0.35) + 4, 10, 0, 0, Math.PI * 2); ctx.stroke();
 
-            // Off-duty Stopper Resting on Bench (if unstoppered)
             if (!state.stopperSeated) {
                 let stX = fcX - 110, stY = benchY - 8;
                 ctx.fillStyle = &quot;rgba(200, 220, 240, 0.85)&quot;; ctx.strokeStyle = &quot;#ffffff&quot;; ctx.lineWidth = 1.5;
@@ -872,15 +846,13 @@
             let fH = geo.fH;
             let junctionY = topY + fH;
 
-            // --- 1. DRAW LAYERED FLUIDS ---
             let totVol = state.liquids.reduce((sum, l) =&gt; sum + l.vol, 0);
 
             if (totVol &gt; 0) {
-                let maxCap = 380; // mL max capacity
+                let maxCap = 380;
                 let fillRatio = Math.min(1.0, totVol / maxCap);
 
                 ctx.save();
-                // Inner Glass Clip Path
                 ctx.beginPath();
                 ctx.moveTo(fcX - 16, topY);
                 for (let y = 0; y &lt;= fH; y += 3) {
@@ -899,7 +871,6 @@
                 let currentYLevel = junctionY;
                 let heightPerVol = (fH * 0.9) / maxCap;
 
-                // Render layers from bottom (densest) to top (lightest)
                 for (let i = state.liquids.length - 1; i &gt;= 0; i--) {
                     let l = state.liquids[i];
                     let layerH = l.vol * heightPerVol;
@@ -908,7 +879,6 @@
                     ctx.fillStyle = l.color;
                     ctx.fillRect(fcX - geo.maxR - 20, nextYLevel, (geo.maxR + 20) * 2, currentYLevel - nextYLevel + 2);
 
-                    // Draw Interface Meniscus Line
                     ctx.strokeStyle = &quot;rgba(255,255,255,0.4)&quot;; ctx.lineWidth = 1.5;
                     ctx.beginPath();
                     let rLevel = getFunnelRadius((nextYLevel - topY) / fH);
@@ -918,7 +888,6 @@
                     currentYLevel = nextYLevel;
                 }
 
-                // If emulsified by shaking, draw blended cloudy overlay
                 if (state.separationPct &lt; 0.99) {
                     ctx.fillStyle = `rgba(240, 240, 240, ${(1.0 - state.separationPct) * 0.7})`;
                     ctx.fillRect(fcX - geo.maxR - 20, topY, (geo.maxR + 20) * 2, fH + geo.stemLength);
@@ -927,11 +896,9 @@
                 ctx.restore();
             }
 
-            // --- 2. GLASS OUTLINE &amp; REALISTIC HIGHLIGHTS ---
             ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.65)&quot;;
             ctx.lineWidth = 2.5;
 
-            // Pear Contour Left
             ctx.beginPath();
             ctx.moveTo(fcX - 16, topY - 12);
             ctx.lineTo(fcX - 16, topY);
@@ -942,7 +909,6 @@
             ctx.lineTo(fcX - 5, junctionY + geo.stemLength);
             ctx.stroke();
 
-            // Pear Contour Right
             ctx.beginPath();
             ctx.moveTo(fcX + 16, topY - 12);
             ctx.lineTo(fcX + 16, topY);
@@ -950,11 +916,10 @@
                 let r = getFunnelRadius(y / fH);
                 ctx.lineTo(fcX + r, topY + y);
             }
-            ctx.lineTo(fcX + 5, junctionY + geo.stemLength); // Bevel stem tip
+            ctx.lineTo(fcX + 5, junctionY + geo.stemLength);
             ctx.lineTo(fcX - 5, junctionY + geo.stemLength + 4);
             ctx.stroke();
 
-            // Glass Reflection Highlights
             ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.3)&quot;;
             ctx.lineWidth = 3.5;
             ctx.beginPath();
@@ -965,17 +930,14 @@
             }
             ctx.stroke();
 
-            // Top Neck Ground-Glass Joint Rim
             ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.85)&quot;;
             ctx.lineWidth = 2;
             ctx.beginPath(); ctx.ellipse(fcX, topY - 12, 16, 5, 0, 0, Math.PI * 2); ctx.stroke();
             ctx.beginPath(); ctx.ellipse(fcX, topY, 16, 5, 0, 0, Math.PI * 2); ctx.stroke();
 
-            // Ground Glass Frosting Effect
             ctx.fillStyle = &quot;rgba(255, 255, 255, 0.15)&quot;;
             ctx.fillRect(fcX - 16, topY - 12, 32, 12);
 
-            // --- 3. SEATED TOP STOPPER (Only drawn if seated) ---
             if (state.stopperSeated) {
                 let stY = topY - 12;
                 ctx.fillStyle = &quot;rgba(200, 220, 240, 0.85)&quot;;
@@ -997,14 +959,12 @@
             let fcX = geo.fcX;
             let scY = geo.stopcockY;
 
-            // Glass Housing Collar
             ctx.fillStyle = &quot;rgba(220, 235, 255, 0.75)&quot;;
             ctx.strokeStyle = &quot;#ffffff&quot;;
             ctx.lineWidth = 2;
             ctx.fillRect(fcX - 12, scY - 8, 24, 16);
             ctx.strokeRect(fcX - 12, scY - 8, 24, 16);
 
-            // PTFE Valve Handle
             ctx.save();
             ctx.translate(fcX, scY);
             let rotRad = (state.valvePct / 100) * (Math.PI / 2);
@@ -1021,7 +981,6 @@
 
         function drawDrainStream() {
             if (state.valvePct &gt; 0 &amp;&amp; state.vacuumPressure &lt;= 1.0 &amp;&amp; state.liquids.length &gt; 0) {
-                // Bottommost liquid drains first
                 let activeL = state.liquids[state.liquids.length - 1];
                 if (!activeL || activeL.vol &lt;= 0) return;
 
@@ -1053,10 +1012,8 @@
                 ctx.lineTo(b.x + b.w, b.y);
                 ctx.fill(); ctx.stroke();
 
-                // Spout
                 ctx.beginPath(); ctx.moveTo(b.x - 4, b.y); ctx.lineTo(b.x + b.w + 4, b.y); ctx.stroke();
 
-                // Multi-liquid Layer Stacking in Beaker
                 let totVol = b.contents.reduce((sum, c) =&gt; sum + c.vol, 0);
                 if (totVol &gt; 0) {
                     let maxCap = 250;
@@ -1082,16 +1039,14 @@
             });
         }
 
-        // Animated Beaker Pouring Simulation into Top Neck
         function drawPouringBeakerAnimation() {
             if (!state.pouring.active) return;
 
-            let p = state.pouring.progress; // 0 to 1
+            let p = state.pouring.progress;
             let fcX = geo.fcX;
             let topY = geo.topY - 12;
 
-            // Calculate Beaker Position &amp; Angle
-            let tiltAngle = Math.sin(Math.min(p * 2, 1.0) * Math.PI * 0.5) * 1.1; // Rotates to ~65 deg
+            let tiltAngle = Math.sin(Math.min(p * 2, 1.0) * Math.PI * 0.5) * 1.1;
             let bkX = fcX + 70 - p * 20;
             let bkY = topY - 40;
 
@@ -1099,20 +1054,17 @@
             ctx.translate(bkX, bkY);
             ctx.rotate(-tiltAngle);
 
-            // Pouring Beaker Glass
             ctx.fillStyle = &quot;rgba(255, 255, 255, 0.08)&quot;;
             ctx.strokeStyle = &quot;#ffffff&quot;;
             ctx.lineWidth = 2;
             ctx.fillRect(-25, -35, 50, 70);
             ctx.strokeRect(-25, -35, 50, 70);
 
-            // Fluid inside tilting beaker
             ctx.fillStyle = state.pouring.liquid.color;
             ctx.fillRect(-23, -10, 46, 43);
 
             ctx.restore();
 
-            // Fluid Stream falling from beaker spout into top neck
             if (p &gt; 0.15 &amp;&amp; p &lt; 0.9) {
                 let spoutX = bkX - Math.cos(-tiltAngle) * 25 + Math.sin(-tiltAngle) * 35;
                 let spoutY = bkY - Math.sin(-tiltAngle) * 25 - Math.cos(-tiltAngle) * 35;
@@ -1124,7 +1076,6 @@
                 ctx.lineTo(fcX, topY + 15);
                 ctx.stroke();
 
-                // Surface splash effect inside top neck
                 ctx.fillStyle = state.pouring.liquid.color;
                 ctx.beginPath();
                 ctx.ellipse(fcX, topY + 20, 10 + Math.sin(Date.now()*0.02)*3, 3, 0, 0, Math.PI*2);
@@ -1132,39 +1083,67 @@
             }
         }
 
-        // --- INTERACTIVITY &amp; DRAG ---
-        function getMousePos(e) {
+        // --- TOUCH &amp; MOUSE INTERACTIVITY ---
+        function getPos(e) {
             let rect = canvas.getBoundingClientRect();
-            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches &amp;&amp; e.touches.length &gt; 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
-        canvas.addEventListener(&#39;mousedown&#39;, e =&gt; {
-            let m = getMousePos(e);
+        function handleStart(m) {
             for (let i = state.beakers.length - 1; i &gt;= 0; i--) {
                 let b = state.beakers[i];
-                if (m.x &gt;= b.x &amp;&amp; m.x &lt;= b.x + b.w &amp;&amp; m.y &gt;= b.y &amp;&amp; m.y &lt;= b.y + b.h + 20) {
+                if (m.x &gt;= b.x - 10 &amp;&amp; m.x &lt;= b.x + b.w + 10 &amp;&amp; m.y &gt;= b.y - 10 &amp;&amp; m.y &lt;= b.y + b.h + 20) {
                     state.activeDragBeaker = b;
                     state.dragOffset = { x: m.x - b.x, y: m.y - b.y };
-                    break;
+                    return true;
                 }
             }
-        });
+            return false;
+        }
 
-        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; {
+        function handleMove(m) {
             if (!state.activeDragBeaker) return;
-            let m = getMousePos(e);
             let b = state.activeDragBeaker;
             b.x = m.x - state.dragOffset.x;
             b.y = geo.benchY - b.h;
-        });
+        }
 
-        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+        function handleEnd() {
             if (state.activeDragBeaker) {
                 let b = state.activeDragBeaker;
                 if (Math.abs((b.x + b.w / 2) - geo.fcX) &lt; 40) b.x = geo.fcX - b.w / 2;
                 state.activeDragBeaker = null;
             }
-        });
+        }
+
+        // Mouse Events
+        canvas.addEventListener(&#39;mousedown&#39;, e =&gt; handleStart(getPos(e)));
+        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; handleMove(getPos(e)));
+        window.addEventListener(&#39;mouseup&#39;, handleEnd);
+
+        // Touch Events
+        canvas.addEventListener(&#39;touchstart&#39;, e =&gt; {
+            if (handleStart(getPos(e))) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener(&#39;touchmove&#39;, e =&gt; {
+            if (state.activeDragBeaker) {
+                handleMove(getPos(e));
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        window.addEventListener(&#39;touchend&#39;, handleEnd);
 
         function updateStopperButton() {
             btnStopperToggle.textContent = state.stopperSeated ? &quot;🔒 Stopper: SEATED&quot; : &quot;🔓 Stopper: REMOVED&quot;;
@@ -1193,7 +1172,7 @@
 
         btnShake.addEventListener(&#39;click&#39;, () =&gt; {
             if (state.liquids.length &gt; 1) {
-                state.separationPct = 0; // Emulsify
+                state.separationPct = 0;
                 state.shakeIntensity = 16;
             }
         });
@@ -1207,8 +1186,9 @@
 
         // --- RESIZE CANVAS RESPONSIBLY ---
         function resizeCanvas() {
-            canvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
-            canvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+            const container = document.getElementById(&#39;workspace&#39;);
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
 
             geo.fcX = canvas.width * 0.38;
             geo.topY = Math.max(70, canvas.height * 0.15);
