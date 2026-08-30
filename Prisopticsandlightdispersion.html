@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Prism Optics and  Light Dispersion</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Master Physics Lab: Prism Optics &amp; Light Dispersion&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #080a0f;
+            --panel-bg: #121520;
+            --panel-border: #222838;
+            --accent-blue: #00d2ff;
+            --accent-gold: #ffb703;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: &#39;Inter&#39;, -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* Sidebar Controls Panel */
+        #sidebar {
+            width: 320px;
+            min-width: 320px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.6);
+        }
+
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--panel-border);
+            background: rgba(0,0,0,0.25);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        .scroll-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-gold);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .control-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.78rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-main);
+        }
+
+        span.val {
+            color: var(--accent-blue);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        input[type=&quot;range&quot;] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #232a3b;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        select, button {
+            background: #1a202c;
+            color: #fff;
+            border: 1px solid var(--panel-border);
+            padding: 7px 9px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, button:hover {
+            border-color: var(--accent-blue);
+            background: #222938;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-action {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .btn-action:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        /* Canvas Workspace */
+        #workspace {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #101420 0%, #05060a 100%);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* HUD Overlays on Canvas */
+        .hud-panel {
+            position: absolute;
+            background: rgba(12, 15, 23, 0.88);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            padding: 10px;
+            pointer-events: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        #graphHUD {
+            bottom: 15px;
+            right: 15px;
+            width: 250px;
+            height: 170px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #graphHUD canvas {
+            width: 100%;
+            height: 120px;
+        }
+
+        #spectrumHUD {
+            top: 15px;
+            right: 15px;
+            width: 230px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .spectrum-bar {
+            height: 22px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background: #000;
+        }
+
+        #instructionsHUD {
+            bottom: 15px;
+            left: 15px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            pointer-events: none;
+            background: rgba(8, 10, 15, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #232a3b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- SIDEBAR CONTROLS --&gt;
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;div class=&quot;sidebar-header&quot;&gt;
+            &lt;h1&gt;💎 Prism Optics Lab&lt;/h1&gt;
+            &lt;p&gt;Interactive Light Dispersion Physics Simulation&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;scroll-container&quot;&gt;
+
+            &lt;!-- 1. LIGHT SOURCE CONTROLS --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;1. Light Source &amp; Beam&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Spectral Type&lt;/label&gt;
+                    &lt;select id=&quot;lightType&quot;&gt;
+                        &lt;option value=&quot;white&quot;&gt;Polychromatic White Light&lt;/option&gt;
+                        &lt;option value=&quot;laser_red&quot;&gt;Red Laser (650 nm)&lt;/option&gt;
+                        &lt;option value=&quot;laser_green&quot;&gt;Green Laser (532 nm)&lt;/option&gt;
+                        &lt;option value=&quot;laser_violet&quot;&gt;Violet Laser (405 nm)&lt;/option&gt;
+                        &lt;option value=&quot;custom&quot;&gt;Custom Single Wavelength&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot; id=&quot;customLambdaGroup&quot; style=&quot;display:none;&quot;&gt;
+                    &lt;label&gt;Wavelength (λ): &lt;span id=&quot;lambdaVal&quot; class=&quot;val&quot;&gt;550 nm&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;lambdaSlider&quot; min=&quot;380&quot; max=&quot;750&quot; step=&quot;1&quot; value=&quot;550&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Beam Width (Rays): &lt;span id=&quot;widthVal&quot; class=&quot;val&quot;&gt;1 Ray&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;widthSlider&quot; min=&quot;1&quot; max=&quot;15&quot; step=&quot;1&quot; value=&quot;1&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 2. PRIMARY PRISM PROPERTIES --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;2. Primary Prism (Glass 1)&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Material Preset&lt;/label&gt;
+                    &lt;select id=&quot;materialPreset&quot;&gt;
+                        &lt;option value=&quot;1.52&quot;&gt;Crown Glass (n = 1.52)&lt;/option&gt;
+                        &lt;option value=&quot;1.66&quot; selected&gt;Flint Glass (High Dispersion, n = 1.66)&lt;/option&gt;
+                        &lt;option value=&quot;2.42&quot;&gt;Diamond (Extreme Refraction, n = 2.42)&lt;/option&gt;
+                        &lt;option value=&quot;1.33&quot;&gt;Water Ice (n = 1.33)&lt;/option&gt;
+                        &lt;option value=&quot;custom&quot;&gt;Custom Refractive Index&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Base Refractive Index (&lt;i&gt;n&lt;/i&gt;&lt;sub&gt;d&lt;/sub&gt;): &lt;span id=&quot;nVal&quot; class=&quot;val&quot;&gt;1.66&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;nSlider&quot; min=&quot;1.10&quot; max=&quot;2.60&quot; step=&quot;0.01&quot; value=&quot;1.66&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Prism Apex Angle (&lt;i&gt;A&lt;/i&gt;): &lt;span id=&quot;apexVal&quot; class=&quot;val&quot;&gt;60°&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;apexSlider&quot; min=&quot;20&quot; max=&quot;90&quot; step=&quot;1&quot; value=&quot;60&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Rotation Angle: &lt;span id=&quot;rotVal&quot; class=&quot;val&quot;&gt;0°&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;rotSlider&quot; min=&quot;-180&quot; max=&quot;180&quot; step=&quot;0.5&quot; value=&quot;0&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 3. NEWTON&#39;S RECOMBINATION EXPERIMENT --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;3. Recombination (Newton&#39;s 2nd Prism)&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;enablePrism2&quot;&gt; Enable 2nd Inverted Prism
+                &lt;/label&gt;
+                &lt;div class=&quot;control-group&quot; id=&quot;prism2Controls&quot; style=&quot;opacity: 0.5; pointer-events: none;&quot;&gt;
+                    &lt;label&gt;2nd Prism Rotation: &lt;span id=&quot;rot2Val&quot; class=&quot;val&quot;&gt;180°&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;rot2Slider&quot; min=&quot;0&quot; max=&quot;360&quot; step=&quot;1&quot; value=&quot;180&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 4. ENVIRONMENT &amp; PHYSICS OPTIONS --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;4. Lab Environment &amp; Optics&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Surrounding Medium&lt;/label&gt;
+                    &lt;select id=&quot;mediumSelect&quot;&gt;
+                        &lt;option value=&quot;1.00&quot;&gt;Air / Vacuum (n = 1.00)&lt;/option&gt;
+                        &lt;option value=&quot;1.33&quot;&gt;Water Tank (n = 1.33)&lt;/option&gt;
+                        &lt;option value=&quot;1.52&quot;&gt;Oil Bath (n = 1.52)&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+
+                &lt;label class=&quot;checkbox-label&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;showFresnel&quot; checked&gt; Show Partial Fresnel Reflections
+                &lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;showNormals&quot; checked&gt; Show Surface Normals
+                &lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;showProtractor&quot; checked&gt; Show Angle Measurement Overlay
+                &lt;/label&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 5. ANALYTICS &amp; EXPORT --&gt;
+            &lt;div class=&quot;section-title&quot;&gt;5. Data &amp; Export Tools&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;btn-grid&quot;&gt;
+                    &lt;button id=&quot;btnSnapshot&quot; class=&quot;btn-action&quot;&gt;📸 Snapshot&lt;/button&gt;
+                    &lt;button id=&quot;btnExportCSV&quot; class=&quot;btn-action&quot;&gt;📊 Export CSV&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;button id=&quot;btnReset&quot; style=&quot;margin-top: 4px;&quot;&gt;↺ Auto-Fit &amp; Reset Layout&lt;/button&gt;
+            &lt;/div&gt;
+
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- MAIN WORKSPACE --&gt;
+    &lt;div id=&quot;workspace&quot;&gt;
+        &lt;canvas id=&quot;opticsCanvas&quot;&gt;&lt;/canvas&gt;
+
+        &lt;!-- Instructions Overlay --&gt;
+        &lt;div id=&quot;instructionsHUD&quot;&gt;
+            💡 &lt;strong&gt;Interactive Controls:&lt;/strong&gt;&lt;br&gt;
+            • &lt;strong&gt;Click &amp; Drag&lt;/strong&gt; Prisms, Light Source, or Screen to reposition.&lt;br&gt;
+            • &lt;strong&gt;Drag Handles&lt;/strong&gt; (gold/blue dots) to rotate components.
+        &lt;/div&gt;
+
+        &lt;!-- Spectrum Projection Screen HUD --&gt;
+        &lt;div id=&quot;spectrumHUD&quot; class=&quot;hud-panel&quot;&gt;
+            &lt;div style=&quot;font-size: 0.78rem; font-weight: bold; color: var(--accent-gold);&quot;&gt;Detector Screen Spectrum&lt;/div&gt;
+            &lt;canvas id=&quot;screenSpectrumCanvas&quot; class=&quot;spectrum-bar&quot;&gt;&lt;/canvas&gt;
+            &lt;div id=&quot;spectrumStats&quot; style=&quot;font-size: 0.7rem; color: var(--text-muted); display:flex; justify-content:space-between;&quot;&gt;
+                &lt;span&gt;Spread: &lt;b id=&quot;spreadVal&quot; style=&quot;color:#fff;&quot;&gt;0.0 px&lt;/b&gt;&lt;/span&gt;
+                &lt;span&gt;Rays Hit: &lt;b id=&quot;hitsVal&quot; style=&quot;color:#fff;&quot;&gt;0&lt;/b&gt;&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- i - Delta Graph HUD --&gt;
+        &lt;div id=&quot;graphHUD&quot; class=&quot;hud-panel&quot;&gt;
+            &lt;div style=&quot;font-size: 0.78rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 2px;&quot;&gt;
+                Deviation Curve (&lt;i&gt;i&lt;/i&gt;&lt;sub&gt;1&lt;/sub&gt; vs δ)
+            &lt;/div&gt;
+            &lt;canvas id=&quot;graphCanvas&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- CONSTANTS &amp; SPECTRUM MAP ---
+        const SPECTRUM = [
+            { name: &quot;Red&quot;, lambda: 700, color: &quot;#ff0000&quot; },
+            { name: &quot;Orange&quot;, lambda: 620, color: &quot;#ff7f00&quot; },
+            { name: &quot;Yellow&quot;, lambda: 580, color: &quot;#ffff00&quot; },
+            { name: &quot;Green&quot;, lambda: 530, color: &quot;#00ff00&quot; },
+            { name: &quot;Cyan&quot;, lambda: 490, color: &quot;#00ffff&quot; },
+            { name: &quot;Blue&quot;, lambda: 450, color: &quot;#0000ff&quot; },
+            { name: &quot;Violet&quot;, lambda: 400, color: &quot;#8b00ff&quot; }
+        ];
+
+        function wavelengthToColor(wavelength) {
+            let r=0, g=0, b=0;
+            if (wavelength &gt;= 380 &amp;&amp; wavelength &lt; 440) {
+                r = -(wavelength - 440) / (440 - 380); b = 1;
+            } else if (wavelength &gt;= 440 &amp;&amp; wavelength &lt; 490) {
+                g = (wavelength - 440) / (490 - 440); b = 1;
+            } else if (wavelength &gt;= 490 &amp;&amp; wavelength &lt; 510) {
+                g = 1; b = -(wavelength - 510) / (510 - 490);
+            } else if (wavelength &gt;= 510 &amp;&amp; wavelength &lt; 580) {
+                r = (wavelength - 510) / (580 - 510); g = 1;
+            } else if (wavelength &gt;= 580 &amp;&amp; wavelength &lt; 645) {
+                r = 1; g = -(wavelength - 645) / (645 - 580);
+            } else if (wavelength &gt;= 645 &amp;&amp; wavelength &lt;= 780) {
+                r = 1;
+            }
+            return `rgb(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)})`;
+        }
+
+        // --- VECTOR MATH HELPERS ---
+        const vec = (x, y) =&gt; ({ x, y });
+        const add = (a, b) =&gt; vec(a.x + b.x, a.y + b.y);
+        const sub = (a, b) =&gt; vec(a.x - b.x, a.y - b.y);
+        const mult = (a, s) =&gt; vec(a.x * s, a.y * s);
+        const dot = (a, b) =&gt; a.x * b.x + a.y * b.y;
+        const len = a =&gt; Math.sqrt(dot(a, a));
+        const normalize = a =&gt; { let l = len(a); return l === 0 ? vec(0,0) : vec(a.x/l, a.y/l); };
+        const rotateVec = (v, angleRad) =&gt; vec(
+            v.x * Math.cos(angleRad) - v.y * Math.sin(angleRad),
+            v.x * Math.sin(angleRad) + v.y * Math.cos(angleRad)
+        );
+
+        function lineIntersect(p1, p2, p3, p4) {
+            let denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+            if (denom === 0) return null;
+            let ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
+            let ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
+            if (ua &gt;= 0 &amp;&amp; ua &lt;= 1 &amp;&amp; ub &gt;= 0 &amp;&amp; ub &lt;= 1) {
+                return vec(p1.x + ua * (p2.x - p1.x), p1.y + ua * (p2.y - p1.y));
+            }
+            return null;
+        }
+
+        // --- CANVASES &amp; STATE MANAGEMENT ---
+        const canvas = document.getElementById(&#39;opticsCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const screenCanvas = document.getElementById(&#39;screenSpectrumCanvas&#39;);
+        const screenCtx = screenCanvas.getContext(&#39;2d&#39;);
+        const graphCanvas = document.getElementById(&#39;graphCanvas&#39;);
+        const graphCtx = graphCanvas.getContext(&#39;2d&#39;);
+
+        let isInitialized = false;
+
+        let state = {
+            light: { x: 100, y: 300, angle: 0, type: &#39;white&#39;, customLambda: 550, beamWidth: 1 },
+            prism1: { x: 350, y: 300, size: 180, apexAngle: 60, rotation: 0, nBase: 1.66 },
+            prism2: { enabled: false, x: 550, y: 300, size: 180, apexAngle: 60, rotation: 180, nBase: 1.66 },
+            screen: { x: 750, y: 300, height: 220, angle: Math.PI / 2 },
+            env: { nMedium: 1.00, showFresnel: true, showNormals: true, showProtractor: true },
+            dragTarget: null,
+            dragOffset: vec(0, 0),
+            dragType: &#39;move&#39;
+        };
+
+        let screenHits = [];
+        let primaryRayData = { incidentAngle: 0, emergenceAngle: 0, totalDeviation: 0 };
+        let polychromaticFanPoints = []; // Stores ray exit coordinates to draw clear volumetric rainbow fan
+
+        // --- AUTO-FIT RELATIVE POSITIONS ---
+        function autoFitLayout() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cy = h * 0.48;
+
+            let calculatedPrismSize = Math.min(Math.max(w * 0.16, 140), 200);
+
+            state.light.x = w * 0.10;
+            state.light.y = cy;
+            state.light.angle = 0;
+
+            state.prism1.x = w * 0.38;
+            state.prism1.y = cy;
+            state.prism1.size = calculatedPrismSize;
+
+            state.prism2.x = w * 0.60;
+            state.prism2.y = cy;
+            state.prism2.size = calculatedPrismSize;
+
+            state.screen.x = w * 0.85;
+            state.screen.y = cy;
+            state.screen.height = Math.min(Math.max(h * 0.45, 180), 300);
+
+            isInitialized = true;
+        }
+
+        // --- CAUCHY DISPERSION FORMULA (Boosted B for visual clarity) ---
+        function getRefractiveIndex(baseN, lambdaNm) {
+            const B = 10500; // Enhanced dispersion constant to make rainbow separation distinct and vivid
+            const refLambda = 589.3;
+            return baseN + (B / (lambdaNm * lambdaNm)) - (B / (refLambda * refLambda));
+        }
+
+        // --- SNELL&#39;S LAW &amp; VECTOR REFRACTION / FRESNEL ---
+        function refract(I, N, n1, n2) {
+            let eta = n1 / n2;
+            let cosI = -dot(N, I);
+            let normal = N;
+            if (cosI &lt; 0) {
+                normal = mult(N, -1);
+                cosI = -dot(normal, I);
+            }
+            let sinT2 = eta * eta * (1.0 - cosI * cosI);
+            if (sinT2 &gt; 1.0) {
+                let R = add(I, mult(normal, 2 * cosI));
+                return { type: &#39;TIR&#39;, dir: R, fresnelR: 1.0 };
+            }
+            let cosT = Math.sqrt(1.0 - sinT2);
+            let T = add(mult(I, eta), mult(normal, eta * cosI - cosT));
+            
+            let R0 = Math.pow((n1 - n2) / (n1 + n2), 2);
+            let fresnelR = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
+
+            return { type: &#39;refract&#39;, dir: T, fresnelR: fresnelR };
+        }
+
+        // --- PRISM GEOMETRY GENERATOR ---
+        function getPrismFaces(prism) {
+            let apexRad = (prism.apexAngle * Math.PI) / 180;
+            let h = prism.size * Math.cos(apexRad / 2);
+            let halfBase = prism.size * Math.sin(apexRad / 2);
+
+            let pA = vec(0, -h * 2/3);
+            let pB = vec(-halfBase, h * 1/3);
+            let pC = vec(halfBase, h * 1/3);
+
+            let rotRad = (prism.rotation * Math.PI) / 180;
+            pA = add(rotateVec(pA, rotRad), vec(prism.x, prism.y));
+            pB = add(rotateVec(pB, rotRad), vec(prism.x, prism.y));
+            pC = add(rotateVec(pC, rotRad), vec(prism.x, prism.y));
+
+            let vertices = [pA, pB, pC];
+            let faces = [];
+
+            for (let i = 0; i &lt; 3; i++) {
+                let p1 = vertices[i];
+                let p2 = vertices[(i + 1) % 3];
+                let edge = sub(p2, p1);
+                let normal = normalize(vec(-edge.y, edge.x));
+                
+                let mid = mult(add(p1, p2), 0.5);
+                if (dot(normal, sub(mid, vec(prism.x, prism.y))) &lt; 0) {
+                    normal = mult(normal, -1);
+                }
+                faces.push({ p1, p2, normal });
+            }
+
+            return { vertices, faces };
+        }
+
+        // --- MAIN RAY TRACING ENGINE ---
+        function traceAllRays() {
+            screenHits = [];
+            polychromaticFanPoints = [];
+            let raysToTrace = [];
+
+            let wavelengths = [];
+            if (state.light.type === &#39;white&#39;) {
+                wavelengths = SPECTRUM.map(s =&gt; ({ lambda: s.lambda, color: s.color, intensity: 1.0 }));
+            } else if (state.light.type === &#39;laser_red&#39;) {
+                wavelengths = [{ lambda: 650, color: &#39;#ff0000&#39;, intensity: 1.2 }];
+            } else if (state.light.type === &#39;laser_green&#39;) {
+                wavelengths = [{ lambda: 532, color: &#39;#00ff00&#39;, intensity: 1.2 }];
+            } else if (state.light.type === &#39;laser_violet&#39;) {
+                wavelengths = [{ lambda: 405, color: &#39;#8b00ff&#39;, intensity: 1.2 }];
+            } else {
+                let c = wavelengthToColor(state.light.customLambda);
+                wavelengths = [{ lambda: state.light.customLambda, color: c, intensity: 1.2 }];
+            }
+
+            let numRays = state.light.beamWidth;
+            let spacing = 6;
+            let startOffset = -((numRays - 1) * spacing) / 2;
+
+            let lightDir = vec(Math.cos(state.light.angle), Math.sin(state.light.angle));
+            let perpDir = vec(-lightDir.y, lightDir.x);
+
+            for (let r = 0; r &lt; numRays; r++) {
+                let offsetAmount = startOffset + r * spacing;
+                let rayOrigin = add(vec(state.light.x, state.light.y), mult(perpDir, offsetAmount));
+
+                wavelengths.forEach(w =&gt; {
+                    raysToTrace.push({
+                        origin: rayOrigin,
+                        dir: lightDir,
+                        lambda: w.lambda,
+                        color: w.color,
+                        intensity: w.intensity,
+                        currentMediumN: state.env.nMedium,
+                        depth: 0,
+                        path: [rayOrigin]
+                    });
+                });
+            }
+
+            raysToTrace.forEach(ray =&gt; recursiveTrace(ray));
+
+            // Draw Volumetric Rainbow Fill Fan for White Light
+            if (state.light.type === &#39;white&#39; &amp;&amp; polychromaticFanPoints.length &gt;= 2) {
+                drawRainbowFanGlow();
+            }
+        }
+
+        function recursiveTrace(ray) {
+            if (ray.depth &gt; 5 || ray.intensity &lt; 0.02) return;
+
+            let prisms = [getPrismFaces(state.prism1)];
+            if (state.prism2.enabled) prisms.push(getPrismFaces(state.prism2));
+
+            let closestHit = null;
+            let closestDist = Infinity;
+            let hitType = null;
+            let hitObject = null;
+
+            prisms.forEach((p, pIndex) =&gt; {
+                let baseN = (pIndex === 0) ? state.prism1.nBase : state.prism2.nBase;
+                p.faces.forEach(face =&gt; {
+                    let hitP = lineIntersect(ray.origin, add(ray.origin, mult(ray.dir, 2000)), face.p1, face.p2);
+                    if (hitP) {
+                        let d = len(sub(hitP, ray.origin));
+                        if (d &gt; 0.001 &amp;&amp; d &lt; closestDist) {
+                            closestDist = d;
+                            closestHit = hitP;
+                            hitType = &#39;prism&#39;;
+                            hitObject = { face, prismIndex: pIndex, baseN };
+                        }
+                    }
+                });
+            });
+
+            let sRad = state.screen.angle;
+            let sDir = vec(Math.cos(sRad), Math.sin(sRad));
+            let sP1 = add(vec(state.screen.x, state.screen.y), mult(sDir, -state.screen.height / 2));
+            let sP2 = add(vec(state.screen.x, state.screen.y), mult(sDir, state.screen.height / 2));
+            let sHitP = lineIntersect(ray.origin, add(ray.origin, mult(ray.dir, 2000)), sP1, sP2);
+
+            if (sHitP) {
+                let d = len(sub(sHitP, ray.origin));
+                if (d &gt; 0.001 &amp;&amp; d &lt; closestDist) {
+                    closestDist = d;
+                    closestHit = sHitP;
+                    hitType = &#39;screen&#39;;
+                    hitObject = { p1: sP1, p2: sP2 };
+                }
+            }
+
+            let endP = closestHit ? closestHit : add(ray.origin, mult(ray.dir, 1500));
+            drawRaySegment(ray.origin, endP, ray.color, ray.intensity);
+
+            if (state.light.type === &#39;white&#39; &amp;&amp; (ray.lambda === 700 || ray.lambda === 400)) {
+                polychromaticFanPoints.push({ lambda: ray.lambda, start: ray.origin, end: endP });
+            }
+
+            if (!closestHit) return;
+
+            if (hitType === &#39;screen&#39;) {
+                let screenVec = sub(closestHit, hitObject.p1);
+                let hitDistOnScreen = len(screenVec);
+                screenHits.push({ pos: hitDistOnScreen, color: ray.color, lambda: ray.lambda });
+                return;
+            }
+
+            if (hitType === &#39;prism&#39;) {
+                let face = hitObject.face;
+                let isEntering = dot(ray.dir, face.normal) &lt; 0;
+                let n1 = ray.currentMediumN;
+                let n2 = isEntering ? getRefractiveIndex(hitObject.baseN, ray.lambda) : state.env.nMedium;
+
+                if (ray.depth === 0 &amp;&amp; hitObject.prismIndex === 0 &amp;&amp; ray.lambda === 580) {
+                    let incidentCos = Math.abs(dot(ray.dir, face.normal));
+                    primaryRayData.incidentAngle = Math.acos(incidentCos) * 180 / Math.PI;
+                }
+
+                let result = refract(ray.dir, face.normal, n1, n2);
+
+                if (state.env.showNormals &amp;&amp; ray.lambda === 580 &amp;&amp; ray.depth &lt;= 1) {
+                    drawNormal(closestHit, face.normal);
+                }
+
+                if (result.type === &#39;TIR&#39;) {
+                    recursiveTrace({
+                        origin: closestHit,
+                        dir: result.dir,
+                        lambda: ray.lambda,
+                        color: ray.color,
+                        intensity: ray.intensity,
+                        currentMediumN: n1,
+                        depth: ray.depth + 1
+                    });
+                } else {
+                    recursiveTrace({
+                        origin: closestHit,
+                        dir: result.dir,
+                        lambda: ray.lambda,
+                        color: ray.color,
+                        intensity: ray.intensity * (1 - (state.env.showFresnel ? result.fresnelR : 0)),
+                        currentMediumN: n2,
+                        depth: ray.depth + 1
+                    });
+
+                    if (state.env.showFresnel &amp;&amp; result.fresnelR &gt; 0.02) {
+                        let normal = face.normal;
+                        let cosI = -dot(normal, ray.dir);
+                        if (cosI &lt; 0) normal = mult(normal, -1);
+                        let Rdir = add(ray.dir, mult(normal, 2 * Math.abs(dot(normal, ray.dir))));
+                        recursiveTrace({
+                            origin: closestHit,
+                            dir: Rdir,
+                            lambda: ray.lambda,
+                            color: ray.color,
+                            intensity: ray.intensity * result.fresnelR,
+                            currentMediumN: n1,
+                            depth: ray.depth + 1
+                        });
+                    }
+
+                    if (ray.depth === 1 &amp;&amp; hitObject.prismIndex === 0 &amp;&amp; ray.lambda === 580) {
+                        let emergenceCos = Math.abs(dot(result.dir, face.normal));
+                        primaryRayData.emergenceAngle = Math.acos(emergenceCos) * 180 / Math.PI;
+
+                        let origAngle = Math.atan2(Math.sin(state.light.angle), Math.cos(state.light.angle));
+                        let finalAngle = Math.atan2(result.dir.y, result.dir.x);
+                        let dev = Math.abs(finalAngle - origAngle) * 180 / Math.PI;
+                        if (dev &gt; 180) dev = 360 - dev;
+                        primaryRayData.totalDeviation = dev;
+                    }
+                }
+            }
+        }
+
+        // --- DRAW RAINBOW FAN FILL BETWEEN RED &amp; VIOLET ---
+        function drawRainbowFanGlow() {
+            let reds = polychromaticFanPoints.filter(p =&gt; p.lambda === 700);
+            let violets = polychromaticFanPoints.filter(p =&gt; p.lambda === 400);
+
+            if (reds.length &gt;= 2 &amp;&amp; violets.length &gt;= 2) {
+                ctx.save();
+                let grad = ctx.createLinearGradient(reds[1].end.x, reds[1].end.y, violets[1].end.x, violets[1].end.y);
+                grad.addColorStop(0, &quot;rgba(255, 0, 0, 0.15)&quot;);
+                grad.addColorStop(0.2, &quot;rgba(255, 165, 0, 0.15)&quot;);
+                grad.addColorStop(0.4, &quot;rgba(0, 255, 0, 0.15)&quot;);
+                grad.addColorStop(0.7, &quot;rgba(0, 212, 255, 0.15)&quot;);
+                grad.addColorStop(1, &quot;rgba(139, 0, 255, 0.15)&quot;);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(reds[0].end.x, reds[0].end.y);
+                ctx.lineTo(reds[1].end.x, reds[1].end.y);
+                ctx.lineTo(violets[1].end.x, violets[1].end.y);
+                ctx.lineTo(violets[0].end.x, violets[0].end.y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- DRAWING FUNCTIONS ---
+        function drawRaySegment(p1, p2, color, intensity) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = Math.min(1.0, Math.max(0.15, intensity));
+            ctx.lineWidth = state.light.type === &#39;white&#39; ? 2.5 : 2;
+            ctx.shadowBlur = intensity &gt; 0.5 ? 10 : 0;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawNormal(p, normal) {
+            ctx.save();
+            ctx.setLineDash([3, 4]);
+            ctx.strokeStyle = &quot;rgba(255,255,255,0.3)&quot;;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(p.x - normal.x * 30, p.y - normal.y * 30);
+            ctx.lineTo(p.x + normal.x * 30, p.y + normal.y * 30);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawPrism(prism, label) {
+            let { vertices } = getPrismFaces(prism);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(vertices[0].x, vertices[0].y);
+            ctx.lineTo(vertices[1].x, vertices[1].y);
+            ctx.lineTo(vertices[2].x, vertices[2].y);
+            ctx.closePath();
+
+            ctx.fillStyle = &quot;rgba(255, 255, 255, 0.06)&quot;;
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.65)&quot;;
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+
+            // Center Drag Handle
+            ctx.beginPath();
+            ctx.arc(prism.x, prism.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;#00d2ff&quot;;
+            ctx.fill();
+
+            // Top Rotation Handle
+            let topVertex = vertices[0];
+            ctx.beginPath();
+            ctx.arc(topVertex.x, topVertex.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;rgba(255, 183, 3, 0.9)&quot;;
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = &quot;#94a3b8&quot;;
+            ctx.font = &quot;11px sans-serif&quot;;
+            ctx.fillText(label, prism.x - 22, prism.y + 22);
+            ctx.restore();
+        }
+
+        function drawLightSource() {
+            ctx.save();
+            ctx.translate(state.light.x, state.light.y);
+            ctx.rotate(state.light.angle);
+
+            ctx.fillStyle = &quot;#1e2433&quot;;
+            ctx.strokeStyle = &quot;#00d2ff&quot;;
+            ctx.lineWidth = 2;
+            ctx.fillRect(-30, -12, 30, 24);
+            ctx.strokeRect(-30, -12, 30, 24);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fillStyle = state.light.type === &#39;white&#39; ? &#39;#fff&#39; : wavelengthToColor(state.light.customLambda);
+            ctx.fill();
+
+            // Rotation Handle Tip
+            ctx.beginPath();
+            ctx.arc(22, 0, 5, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;#ffb703&quot;;
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawScreen() {
+            let sRad = state.screen.angle;
+            let sDir = vec(Math.cos(sRad), Math.sin(sRad));
+            let p1 = add(vec(state.screen.x, state.screen.y), mult(sDir, -state.screen.height / 2));
+            let p2 = add(vec(state.screen.x, state.screen.y), mult(sDir, state.screen.height / 2));
+
+            ctx.save();
+            ctx.strokeStyle = &quot;#e2e8f0&quot;;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(state.screen.x, state.screen.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;#00d2ff&quot;;
+            ctx.fill();
+
+            ctx.fillStyle = &quot;#e2e8f0&quot;;
+            ctx.font = &quot;11px sans-serif&quot;;
+            ctx.fillText(&quot;Projection Screen&quot;, state.screen.x - 45, state.screen.y - state.screen.height/2 - 8);
+            ctx.restore();
+        }
+
+        function drawProtractorOverlay() {
+            if (!state.env.showProtractor) return;
+
+            ctx.save();
+            ctx.fillStyle = &quot;rgba(0, 210, 255, 0.9)&quot;;
+            ctx.font = &quot;11px monospace&quot;;
+            ctx.fillText(`Incident Angle (i₁): ${primaryRayData.incidentAngle.toFixed(1)}°`, 15, 25);
+            ctx.fillText(`Emergence Angle (e₂): ${primaryRayData.emergenceAngle.toFixed(1)}°`, 15, 42);
+            ctx.fillText(`Total Deviation (δ): ${primaryRayData.totalDeviation.toFixed(1)}°`, 15, 59);
+            ctx.restore();
+        }
+
+        // --- HUD SPECTRUM &amp; GRAPH RENDERERS ---
+        function renderSpectrumHUD() {
+            screenCtx.clearRect(0, 0, screenCanvas.width, screenCanvas.height);
+            screenCtx.fillStyle = &quot;#05070a&quot;;
+            screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height);
+
+            if (screenHits.length === 0) {
+                document.getElementById(&#39;hitsVal&#39;).textContent = &quot;0&quot;;
+                document.getElementById(&#39;spreadVal&#39;).textContent = &quot;0.0 px&quot;;
+                return;
+            }
+
+            screenHits.sort((a, b) =&gt; a.pos - b.pos);
+            let minPos = screenHits[0].pos;
+            let maxPos = screenHits[screenHits.length - 1].pos;
+            let spread = (maxPos - minPos).toFixed(1);
+
+            document.getElementById(&#39;hitsVal&#39;).textContent = screenHits.length;
+            document.getElementById(&#39;spreadVal&#39;).textContent = `${spread} px`;
+
+            screenHits.forEach(hit =&gt; {
+                let normX = (hit.pos / state.screen.height) * screenCanvas.width;
+                screenCtx.fillStyle = hit.color;
+                screenCtx.globalAlpha = 0.65;
+                screenCtx.fillRect(normX - 2, 0, 4, screenCanvas.height);
+            });
+        }
+
+        function renderGraphHUD() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+
+            graphCtx.strokeStyle = &quot;#334155&quot;;
+            graphCtx.lineWidth = 1;
+            graphCtx.beginPath();
+            graphCtx.moveTo(25, 10); graphCtx.lineTo(25, 95);
+            graphCtx.lineTo(230, 95);
+            graphCtx.stroke();
+
+            graphCtx.fillStyle = &quot;#94a3b8&quot;;
+            graphCtx.font = &quot;9px sans-serif&quot;;
+            graphCtx.fillText(&quot;i₁ (°)&quot;, 205, 110);
+            graphCtx.fillText(&quot;δ (°)&quot;, 6, 12);
+
+            let A = (state.prism1.apexAngle * Math.PI) / 180;
+            let n = state.prism1.nBase;
+
+            graphCtx.strokeStyle = &quot;#00d2ff&quot;;
+            graphCtx.lineWidth = 1.8;
+            graphCtx.beginPath();
+
+            let firstPoint = true;
+            for (let deg = 20; deg &lt;= 80; deg += 1) {
+                let i1 = (deg * Math.PI) / 180;
+                let sinR1 = Math.sin(i1) / n;
+                if (sinR1 &gt; 1) continue;
+                let r1 = Math.asin(sinR1);
+                let r2 = A - r1;
+                let sinI2 = n * Math.sin(r2);
+                if (Math.abs(sinI2) &gt; 1) continue;
+                let i2 = Math.asin(sinI2);
+                let delta = (i1 + i2 - A) * 180 / Math.PI;
+
+                let plotX = 25 + ((deg - 20) / 60) * 205;
+                let plotY = 95 - (delta / 90) * 85;
+
+                if (firstPoint) { graphCtx.moveTo(plotX, plotY); firstPoint = false; }
+                else { graphCtx.lineTo(plotX, plotY); }
+            }
+            graphCtx.stroke();
+
+            let currI = primaryRayData.incidentAngle;
+            let currDev = primaryRayData.totalDeviation;
+            let curX = 25 + ((currI - 20) / 60) * 205;
+            let curY = 95 - (currDev / 90) * 85;
+
+            if (curX &gt;= 25 &amp;&amp; curX &lt;= 230 &amp;&amp; curY &gt;= 10 &amp;&amp; curY &lt;= 95) {
+                graphCtx.fillStyle = &quot;#ffb703&quot;;
+                graphCtx.beginPath();
+                graphCtx.arc(curX, curY, 3.5, 0, Math.PI * 2);
+                graphCtx.fill();
+            }
+        }
+
+        // --- MAIN CANVAS DRAW LOOP ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = &quot;rgba(255,255,255,0.025)&quot;;
+            ctx.lineWidth = 1;
+            for (let x = 0; x &lt; canvas.width; x += 35) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y &lt; canvas.height; y += 35) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            drawPrism(state.prism1, &quot;Prism 1&quot;);
+            if (state.prism2.enabled) drawPrism(state.prism2, &quot;Prism 2 (Inverted)&quot;);
+            drawLightSource();
+            drawScreen();
+            drawProtractorOverlay();
+
+            traceAllRays();
+
+            renderSpectrumHUD();
+            renderGraphHUD();
+        }
+
+        // --- INTERACTIVE MOUSE HANDLERS ---
+        function getMousePos(e) {
+            let rect = canvas.getBoundingClientRect();
+            return vec(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, e =&gt; {
+            let m = getMousePos(e);
+
+            let lightTip = add(vec(state.light.x, state.light.y), rotateVec(vec(22, 0), state.light.angle));
+            if (len(sub(m, lightTip)) &lt; 12) {
+                state.dragTarget = &#39;light&#39;; state.dragType = &#39;rotate&#39;; return;
+            }
+            if (len(sub(m, vec(state.light.x, state.light.y))) &lt; 25) {
+                state.dragTarget = &#39;light&#39;; state.dragType = &#39;move&#39;;
+                state.dragOffset = sub(vec(state.light.x, state.light.y), m); return;
+            }
+
+            let p1Verts = getPrismFaces(state.prism1).vertices;
+            if (len(sub(m, p1Verts[0])) &lt; 12) {
+                state.dragTarget = &#39;prism1&#39;; state.dragType = &#39;rotate&#39;; return;
+            }
+            if (len(sub(m, vec(state.prism1.x, state.prism1.y))) &lt; 35) {
+                state.dragTarget = &#39;prism1&#39;; state.dragType = &#39;move&#39;;
+                state.dragOffset = sub(vec(state.prism1.x, state.prism1.y), m); return;
+            }
+
+            if (state.prism2.enabled) {
+                let p2Verts = getPrismFaces(state.prism2).vertices;
+                if (len(sub(m, p2Verts[0])) &lt; 12) {
+                    state.dragTarget = &#39;prism2&#39;; state.dragType = &#39;rotate&#39;; return;
+                }
+                if (len(sub(m, vec(state.prism2.x, state.prism2.y))) &lt; 35) {
+                    state.dragTarget = &#39;prism2&#39;; state.dragType = &#39;move&#39;;
+                    state.dragOffset = sub(vec(state.prism2.x, state.prism2.y), m); return;
+                }
+            }
+
+            if (len(sub(m, vec(state.screen.x, state.screen.y))) &lt; 25) {
+                state.dragTarget = &#39;screen&#39;; state.dragType = &#39;move&#39;;
+                state.dragOffset = sub(vec(state.screen.x, state.screen.y), m); return;
+            }
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; {
+            if (!state.dragTarget) return;
+            let m = getMousePos(e);
+
+            if (state.dragTarget === &#39;light&#39;) {
+                if (state.dragType === &#39;move&#39;) {
+                    state.light.x = m.x + state.dragOffset.x;
+                    state.light.y = m.y + state.dragOffset.y;
+                } else {
+                    state.light.angle = Math.atan2(m.y - state.light.y, m.x - state.light.x);
+                }
+            } else if (state.dragTarget === &#39;prism1&#39;) {
+                if (state.dragType === &#39;move&#39;) {
+                    state.prism1.x = m.x + state.dragOffset.x;
+                    state.prism1.y = m.y + state.dragOffset.y;
+                } else {
+                    let ang = Math.atan2(m.y - state.prism1.y, m.x - state.prism1.x) * 180 / Math.PI + 90;
+                    state.prism1.rotation = ang;
+                    document.getElementById(&#39;rotSlider&#39;).value = ang;
+                    document.getElementById(&#39;rotVal&#39;).textContent = `${ang.toFixed(1)}°`;
+                }
+            } else if (state.dragTarget === &#39;prism2&#39;) {
+                if (state.dragType === &#39;move&#39;) {
+                    state.prism2.x = m.x + state.dragOffset.x;
+                    state.prism2.y = m.y + state.dragOffset.y;
+                } else {
+                    let ang = Math.atan2(m.y - state.prism2.y, m.x - state.prism2.x) * 180 / Math.PI + 90;
+                    state.prism2.rotation = ang;
+                    document.getElementById(&#39;rot2Slider&#39;).value = ang;
+                    document.getElementById(&#39;rot2Val&#39;).textContent = `${ang.toFixed(1)}°`;
+                }
+            } else if (state.dragTarget === &#39;screen&#39;) {
+                state.screen.x = m.x + state.dragOffset.x;
+                state.screen.y = m.y + state.dragOffset.y;
+            }
+
+            draw();
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; { state.dragTarget = null; });
+
+        // --- UI CONTROL BINDINGS ---
+        document.getElementById(&#39;lightType&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            state.light.type = e.target.value;
+            document.getElementById(&#39;customLambdaGroup&#39;).style.display = e.target.value === &#39;custom&#39; ? &#39;flex&#39; : &#39;none&#39;;
+            draw();
+        });
+
+        document.getElementById(&#39;lambdaSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.light.customLambda = parseFloat(e.target.value);
+            document.getElementById(&#39;lambdaVal&#39;).textContent = `${e.target.value} nm`;
+            draw();
+        });
+
+        document.getElementById(&#39;widthSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.light.beamWidth = parseInt(e.target.value);
+            document.getElementById(&#39;widthVal&#39;).textContent = `${e.target.value} Ray${e.target.value &gt; 1 ? &#39;s&#39; : &#39;&#39;}`;
+            draw();
+        });
+
+        document.getElementById(&#39;materialPreset&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            if (e.target.value !== &#39;custom&#39;) {
+                let n = parseFloat(e.target.value);
+                state.prism1.nBase = n;
+                document.getElementById(&#39;nSlider&#39;).value = n;
+                document.getElementById(&#39;nVal&#39;).textContent = n;
+                draw();
+            }
+        });
+
+        document.getElementById(&#39;nSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.prism1.nBase = parseFloat(e.target.value);
+            document.getElementById(&#39;nVal&#39;).textContent = e.target.value;
+            document.getElementById(&#39;materialPreset&#39;).value = &#39;custom&#39;;
+            draw();
+        });
+
+        document.getElementById(&#39;apexSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.prism1.apexAngle = parseFloat(e.target.value);
+            document.getElementById(&#39;apexVal&#39;).textContent = `${e.target.value}°`;
+            draw();
+        });
+
+        document.getElementById(&#39;rotSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.prism1.rotation = parseFloat(e.target.value);
+            document.getElementById(&#39;rotVal&#39;).textContent = `${e.target.value}°`;
+            draw();
+        });
+
+        document.getElementById(&#39;enablePrism2&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            state.prism2.enabled = e.target.checked;
+            let controls = document.getElementById(&#39;prism2Controls&#39;);
+            controls.style.opacity = e.target.checked ? &quot;1&quot; : &quot;0.5&quot;;
+            controls.style.pointerEvents = e.target.checked ? &quot;auto&quot; : &quot;none&quot;;
+            draw();
+        });
+
+        document.getElementById(&#39;rot2Slider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            state.prism2.rotation = parseFloat(e.target.value);
+            document.getElementById(&#39;rot2Val&#39;).textContent = `${e.target.value}°`;
+            draw();
+        });
+
+        document.getElementById(&#39;mediumSelect&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            state.env.nMedium = parseFloat(e.target.value);
+            draw();
+        });
+
+        document.getElementById(&#39;showFresnel&#39;).addEventListener(&#39;change&#39;, e =&gt; { state.env.showFresnel = e.target.checked; draw(); });
+        document.getElementById(&#39;showNormals&#39;).addEventListener(&#39;change&#39;, e =&gt; { state.env.showNormals = e.target.checked; draw(); });
+        document.getElementById(&#39;showProtractor&#39;).addEventListener(&#39;change&#39;, e =&gt; { state.env.showProtractor = e.target.checked; draw(); });
+
+        document.getElementById(&#39;btnSnapshot&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            let link = document.createElement(&#39;a&#39;);
+            link.download = &#39;prism_physics_lab.png&#39;;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        document.getElementById(&#39;btnExportCSV&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            let csvContent = &quot;data:text/csv;charset=utf-8,Wavelength (nm),Refractive Index (n),Incident Angle (deg),Emergence Angle (deg),Deviation Angle (deg)\n&quot;;
+            SPECTRUM.forEach(s =&gt; {
+                let n = getRefractiveIndex(state.prism1.nBase, s.lambda);
+                csvContent += `${s.lambda},${n.toFixed(4)},${primaryRayData.incidentAngle.toFixed(2)},${primaryRayData.emergenceAngle.toFixed(2)},${primaryRayData.totalDeviation.toFixed(2)}\n`;
+            });
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement(&quot;a&quot;);
+            link.setAttribute(&quot;href&quot;, encodedUri);
+            link.setAttribute(&quot;download&quot;, &quot;prism_dispersion_data.csv&quot;);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        document.getElementById(&#39;btnReset&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            autoFitLayout();
+            state.prism2.enabled = false;
+            document.getElementById(&#39;enablePrism2&#39;).checked = false;
+            document.getElementById(&#39;rotSlider&#39;).value = 0;
+            document.getElementById(&#39;rotVal&#39;).textContent = &quot;0°&quot;;
+            draw();
+        });
+
+        function resize() {
+            canvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
+            canvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+            screenCanvas.width = 230;
+            screenCanvas.height = 22;
+            graphCanvas.width = 250;
+            graphCanvas.height = 120;
+
+            if (!isInitialized) {
+                autoFitLayout();
+            }
+            draw();
+        }
+
+        window.addEventListener(&#39;resize&#39;, resize);
+        resize();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
