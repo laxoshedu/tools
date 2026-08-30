@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Unlimited TTS Text Editor</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+        }
+
+        /* Controls Header */
+        .controls-bar {
+            padding: 16px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: #fff;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            max-width: 200px;
+        }
+
+        /* Rich Text Toolbar */
+        .toolbar {
+            background: #f1f5f9;
+            padding: 8px 24px;
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toolbar button {
+            padding: 6px 12px;
+            font-size: 13px;
+            background: transparent;
+            color: #334155;
+            border: 1px solid transparent;
+        }
+
+        .toolbar button:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+
+        /* Editor Area */
+        .editor-container {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .editor {
+            width: 100%;
+            height: 100%;
+            outline: none;
+            font-size: 16px;
+            line-height: 1.7;
+            color: #334155;
+        }
+
+        .editor[contenteditable]:empty::before {
+            content: "Paste your unlimited text here...";
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        /* Status Details */
+        .status {
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e1;
+        }
+
+        .status-dot.playing {
+            background: #10b981;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls-bar">
+        <div class="btn-group">
+            <button id="btn-read" class="btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Read Out
+            </button>
+            <button id="btn-stop" class="btn-danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                Stop
+            </button>
+        </div>
+
+        <div class="settings-group">
+            <div class="speed-control">
+                <span>Speed:</span>
+                <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1.0">
+                <span id="speed-val">1.0x</span>
+            </div>
+
+            <select id="voice-select">
+                <option value="">Loading Native Voices...</option>
+            </select>
+
+            <div class="status">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button onclick="execCmd('bold')"><b>B</b></button>
+        <button onclick="execCmd('italic')"><i>I</i></button>
+        <button onclick="execCmd('underline')"><u>U</u></button>
+        <button onclick="execCmd('insertUnorderedList')">• Bullet List</button>
+    </div>
+
+    <div class="editor-container">
+        <div id="editor" class="editor" contenteditable="true"></div>
+    </div>
+</div>
+
+<script>
+    const editor = document.getElementById('editor');
+    const btnRead = document.getElementById('btn-read');
+    const btnStop = document.getElementById('btn-stop');
+    const voiceSelect = document.getElementById('voice-select');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedVal = document.getElementById('speed-val');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+
+    let synth = window.speechSynthesis;
+    let voices = [];
+    let textChunks = [];
+    let currentChunkIndex = 0;
+    let isReading = false;
+    let silenceAudioContext = null;
+
+    // Format Commands
+    function execCmd(command) {
+        document.execCommand(command, false, null);
+        editor.focus();
+    }
+
+    // Dynamic Speed Visualizer Update
+    speedSlider.addEventListener('input', (e) => {
+        speedVal.textContent = e.target.value + 'x';
+    });
+
+    // Populate Device Audio Profiles
+    function populateVoices() {
+        voices = synth.getVoices();
+        voiceSelect.innerHTML = '';
+        voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if (voice.name.toLowerCase().includes('google') || voice.default) {
+                option.selected = true;
+            }
+            voiceSelect.appendChild(option);
+        });
+    }
+    if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = populateVoices;
+    populateVoices();
+
+    // Keeps Chrome alive infinitely behind locked screens
+    function activateBackgroundAudioBypass() {
+        if (!silenceAudioContext) {
+            silenceAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const bufferSize = 2 * silenceAudioContext.sampleRate;
+            const noiseBuffer = silenceAudioContext.createBuffer(1, bufferSize, silenceAudioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = 0; // Pure mathematical silence
+            
+            const silentSource = silenceAudioContext.createBufferSource();
+            silentSource.buffer = noiseBuffer;
+            silentSource.loop = true;
+            silentSource.connect(silenceAudioContext.destination);
+            silentSource.start();
+        }
+    }
+
+    // Advanced Intelligent Text Splitter (Forces Punctuation Compliance & Endless Reading)
+    function splitTextIntoPunctuationChunks(text) {
+        // Regex splits text cleanly at sentence structures while keeping natural stops (. ! ? ; ,)
+        const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+/g) || [text];
+        return sentences.map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function startReading() {
+        stopReading(); // Fresh clear state reset
+
+        const plainText = editor.innerText.trim();
+        if (!plainText) return alert("Canvas empty! Please insert your text.");
+
+        textChunks = splitTextIntoPunctuationChunks(plainText);
+        currentChunkIndex = 0;
+        isReading = true;
+
+        activateBackgroundAudioBypass();
+        
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({ title: 'Infinite Engine Reading Active' });
+            navigator.mediaSession.setActionHandler('stop', stopReading);
+            navigator.mediaSession.setActionHandler('pause', stopReading);
+        }
+
+        statusDot.classList.add('playing');
+        statusText.textContent = "Processing Text...";
+        
+        speakNextChunk();
+    }
+
+    function speakNextChunk() {
+        if (!isReading || currentChunkIndex >= textChunks.length) {
+            cleanupSpeechUI();
+            return;
+        }
+
+        statusText.textContent = `Reading sentence ${currentChunkIndex + 1} of ${textChunks.length}`;
+        
+        const utterance = new SpeechSynthesisUtterance(textChunks[currentChunkIndex]);
+        
+        // Dynamically assign chosen configuration profiles
+        if (voiceSelect.value !== "") {
+            utterance.voice = voices[voiceSelect.value];
+        }
+        
+        // Custom Speed Configuration Hook
+        utterance.rate = parseFloat(speedSlider.value);
+
+        utterance.onend = () => {
+            currentChunkIndex++;
+            speakNextChunk(); // Chain to the next chunk seamlessly
+        };
+
+        utterance.onerror = (e) => {
+            console.error("TTS Engine processing exception intercepted: ", e);
+            // If Chrome hits an interruption exception, wait 100ms and try running the next chunk
+            if (isReading) {
+                currentChunkIndex++;
+                setTimeout(speakNextChunk, 100);
+            }
+        };
+
+        synth.speak(utterance);
+    }
+
+    function stopReading() {
+        isReading = false;
+        if (synth.speaking) {
+            synth.cancel();
+        }
+        cleanupSpeechUI();
+    }
+
+    function cleanupSpeechUI() {
+        statusDot.classList.remove('playing');
+        statusText.textContent = "Ready";
+        if (silenceAudioContext) {
+            silenceAudioContext.close();
+            silenceAudioContext = null;
+        }
+    }
+
+    btnRead.addEventListener('click', startReading);
+    btnStop.addEventListener('click', stopReading);
+</script>
+
+</body>
+</html>
