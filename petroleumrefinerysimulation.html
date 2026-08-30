@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Petroleum Refinery Simulation</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Chemistry Lab: Petroleum Refinery Simulation&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0b0d12;
+            --panel-bg: #151821;
+            --panel-border: #262c3a;
+            --accent-blue: #00d2ff;
+            --accent-gold: #ffb703;
+            --accent-orange: #ff6b00;
+            --accent-red: #ff3366;
+            --accent-green: #00ff88;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Inter&#39;, -apple-system, sans-serif; user-select: none; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; width: 100vw; overflow: hidden; flex-direction: row; }
+
+        /* Sidebar Control Panel */
+        #sidebar { width: 340px; min-width: 340px; background-color: var(--panel-bg); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; z-index: 10; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+        .sidebar-header { padding: 15px 20px; border-bottom: 1px solid var(--panel-border); background: rgba(0,0,0,0.3); }
+        .sidebar-header h1 { font-size: 1.15rem; color: var(--accent-gold); display: flex; align-items: center; gap: 8px; }
+        .sidebar-header p { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
+
+        .scroll-container { flex-grow: 1; overflow-y: auto; padding: 15px 20px; display: flex; flex-direction: column; gap: 14px; }
+        .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-blue); margin-bottom: 6px; font-weight: 700; }
+        .control-card { background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 0.78rem; font-weight: 500; display: flex; justify-content: space-between; color: var(--text-main); }
+        span.val { color: var(--accent-gold); font-family: monospace; font-weight: bold; font-size: 0.85rem; }
+        
+        input[type=&quot;range&quot;] { width: 100%; height: 5px; border-radius: 2px; background: #2a3142; accent-color: var(--accent-gold); cursor: pointer; }
+        
+        button { background: #1e2433; color: #fff; border: 1px solid var(--panel-border); padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; }
+        button:hover { border-color: var(--accent-gold); background: #252d40; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn-action { background: rgba(255, 183, 3, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); }
+        .btn-action:hover { background: var(--accent-gold); color: #000; }
+        
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); }
+
+        /* Workspace Canvas Area */
+        #workspace { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #121622 0%, #06070a 100%); overflow: hidden; display: flex; flex-direction: column; }
+        canvas#refineryCanvas { width: 100%; height: 100%; display: block; }
+
+        /* Fraction Inspector HUD */
+        #inspectorHUD { position: absolute; top: 20px; right: 20px; width: 280px; background: rgba(15, 18, 26, 0.85); border: 1px solid var(--panel-border); backdrop-filter: blur(8px); border-radius: 8px; padding: 12px; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s; opacity: 0; }
+        .inspector-header { font-size: 1rem; font-weight: bold; color: var(--accent-blue); border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 4px; }
+        .data-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+        .data-row span:last-child { font-weight: bold; font-family: monospace; color: #fff; }
+
+        .temp-display { position: absolute; font-family: monospace; font-weight: bold; font-size: 1rem; color: var(--accent-orange); text-shadow: 0 0 10px var(--accent-red); pointer-events: none; transform: translateX(-50%); }
+
+        .controls-hint { position: absolute; bottom: 20px; right: 20px; font-size: 0.7rem; color: #aaa; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 4px; pointer-events: none; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
+
+        @media (max-width: 950px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; min-width: 100%; height: 40vh; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+            #workspace { height: 60vh; }
+            .controls-hint { display: none; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;div class=&quot;sidebar-header&quot;&gt;
+            &lt;h1&gt;🛢️ Refinery Physics Lab&lt;/h1&gt;
+            &lt;p&gt;Extraction &amp; Fractional Distillation&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;scroll-container&quot;&gt;
+            &lt;div class=&quot;section-title&quot;&gt;1. Underground Extraction&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Pumpjack Extraction Rate: &lt;span id=&quot;flowVal&quot; class=&quot;val&quot;&gt;Medium&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;flowSlider&quot; min=&quot;0&quot; max=&quot;100&quot; step=&quot;1&quot; value=&quot;50&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;2. Under-Column Heater&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Burner Temperature: &lt;span id=&quot;tempVal&quot; class=&quot;val&quot;&gt;20 °C&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;tempSlider&quot; min=&quot;20&quot; max=&quot;450&quot; step=&quot;5&quot; value=&quot;20&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;btn-grid&quot; style=&quot;margin-top: 5px;&quot;&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnHeatFull&quot;&gt;🔥 Max Heat (450°C)&lt;/button&gt;
+                    &lt;button id=&quot;btnCoolDown&quot;&gt;❄️ Cool Down (20°C)&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;3. Display &amp; Analytics&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkTempGradient&quot; checked&gt; Show Column Temp Gradient&lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkVaporParticles&quot; checked&gt; Show Hydrocarbon Particles&lt;/label&gt;
+                &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkLabels&quot; checked&gt; Show Fraction Name Labels&lt;/label&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;button id=&quot;btnEmptyTanks&quot; style=&quot;border-color: var(--accent-red); color: var(--accent-red);&quot;&gt;🗑️ Empty Storage Containers&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;workspace&quot;&gt;
+        &lt;canvas id=&quot;refineryCanvas&quot;&gt;&lt;/canvas&gt;
+        &lt;div id=&quot;furnaceTempDisplay&quot; class=&quot;temp-display&quot;&gt;20 °C&lt;/div&gt;
+
+        &lt;div id=&quot;inspectorHUD&quot;&gt;
+            &lt;div class=&quot;inspector-header&quot; id=&quot;insName&quot;&gt;Fraction Name&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Condensation Point:&lt;/span&gt; &lt;span id=&quot;insBP&quot;&gt;-- °C&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Carbon Atoms:&lt;/span&gt; &lt;span id=&quot;insCarbon&quot;&gt;--&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Viscosity:&lt;/span&gt; &lt;span id=&quot;insVisc&quot;&gt;--&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Flammability:&lt;/span&gt; &lt;span id=&quot;insFlam&quot;&gt;--&lt;/span&gt;&lt;/div&gt;
+            &lt;div class=&quot;data-row&quot;&gt;&lt;span&gt;Common Usage:&lt;/span&gt; &lt;span id=&quot;insUse&quot; style=&quot;color:var(--accent-gold);&quot;&gt;--&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;controls-hint&quot;&gt;🖱️ &lt;b&gt;Hover&lt;/b&gt; over pipes, tanks, or cylinders to inspect fractions.&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- DATA MODEL: FRACTIONS ---
+        const fractions = [
+            { id: 0, name: &quot;Refinery Gas&quot;, bp: 25, carbon: &quot;C₁ - C₄&quot;, visc: &quot;Very Low (Gas)&quot;, flam: &quot;Extremely High&quot;, use: &quot;Heating, Cooking&quot;, color: &quot;#a0c4ff&quot;, yRatio: 0.08, type: &quot;gas&quot; },
+            { id: 1, name: &quot;Petrol (Gasoline)&quot;, bp: 60, carbon: &quot;C₅ - C₉&quot;, visc: &quot;Low (Runny)&quot;, flam: &quot;Very High&quot;, use: &quot;Car Fuel&quot;, color: &quot;#fdffb6&quot;, yRatio: 0.20, type: &quot;liquid&quot; },
+            { id: 2, name: &quot;Naphtha&quot;, bp: 120, carbon: &quot;C₆ - C₁₁&quot;, visc: &quot;Low&quot;, flam: &quot;High&quot;, use: &quot;Chemicals, Plastics&quot;, color: &quot;#caffbf&quot;, yRatio: 0.32, type: &quot;liquid&quot; },
+            { id: 3, name: &quot;Kerosene&quot;, bp: 180, carbon: &quot;C₁₁ - C₁₈&quot;, visc: &quot;Medium&quot;, flam: &quot;Medium&quot;, use: &quot;Jet Engine Fuel&quot;, color: &quot;#ffc6ff&quot;, yRatio: 0.44, type: &quot;liquid&quot; },
+            { id: 4, name: &quot;Diesel&quot;, bp: 250, carbon: &quot;C₁₄ - C₂₀&quot;, visc: &quot;Medium-High&quot;, flam: &quot;Low&quot;, use: &quot;Truck / Train Fuel&quot;, color: &quot;#ffd6a5&quot;, yRatio: 0.56, type: &quot;liquid&quot; },
+            { id: 5, name: &quot;Fuel Oil&quot;, bp: 320, carbon: &quot;C₂₀ - C₅₀&quot;, visc: &quot;High (Thick)&quot;, flam: &quot;Very Low&quot;, use: &quot;Ship / Factory Fuel&quot;, color: &quot;#ffadad&quot;, yRatio: 0.68, type: &quot;liquid&quot; },
+            { id: 6, name: &quot;Residue (Bitumen)&quot;, bp: 400, carbon: &quot;C₅₀+&quot;, visc: &quot;Solid / Very Thick&quot;, flam: &quot;Virtually None&quot;, use: &quot;Road Surfacing, Roofs&quot;, color: &quot;#4a4e69&quot;, yRatio: 0.85, type: &quot;sludge&quot; }
+        ];
+
+        // --- STATE ---
+        let state = {
+            temp: 20, flowRate: 50,
+            showGradient: true, showParticles: true, showLabels: true,
+            tanks: [0, 0, 0, 0, 0, 0, 0], 
+            particles: [], flames: [],
+            hoveredFraction: null,
+            pumpPhase: 0, pipeFlowOffset: 0, liquidPhase: 0
+        };
+
+        const canvas = document.getElementById(&#39;refineryCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const tempSlider = document.getElementById(&#39;tempSlider&#39;), tempVal = document.getElementById(&#39;tempVal&#39;), tempDisplay = document.getElementById(&#39;furnaceTempDisplay&#39;);
+        const flowSlider = document.getElementById(&#39;flowSlider&#39;), flowVal = document.getElementById(&#39;flowVal&#39;);
+        const inspectorHUD = document.getElementById(&#39;inspectorHUD&#39;);
+
+        // --- GEOMETRY LAYOUT ---
+        let geo = {
+            groundY: 0, pumpX: 0, wellX: 0,
+            colX: 0, colY: 0, colW: 0, colH: 0,
+            burnerX: 0, burnerY: 0, burnerW: 0,
+            pipeZones: []
+        };
+
+        function calculateGeometry() {
+            let cw = canvas.width, ch = canvas.height;
+
+            geo.groundY = ch * 0.82;
+
+            // Pumpjack &amp; Wellbore
+            geo.pumpX = Math.max(90, cw * 0.12);
+            geo.wellX = geo.pumpX - 60; // Sucker rod alignment
+
+            // Distillation Column
+            geo.colW = Math.min(160, cw * 0.14);
+            geo.colH = ch * 0.60;
+            geo.colX = cw * 0.40 - geo.colW/2;
+            
+            // Tripod &amp; Burner Space
+            let tripodHeight = 80;
+            geo.colY = geo.groundY - tripodHeight - geo.colH;
+
+            // Burner under column
+            geo.burnerW = 80;
+            geo.burnerX = geo.colX + geo.colW/2 - geo.burnerW/2;
+            geo.burnerY = geo.groundY - 15;
+
+            // Interaction Zones
+            geo.pipeZones = [];
+            fractions.forEach(frac =&gt; {
+                let fy = geo.colY + (geo.colH * frac.yRatio);
+                geo.pipeZones.push({ id: frac.id, x: geo.colX + geo.colW, y: fy - 15, w: cw - (geo.colX + geo.colW), h: 40 });
+            });
+
+            tempDisplay.style.left = `${geo.colX + geo.colW/2}px`;
+            tempDisplay.style.top = `${geo.groundY + 15}px`;
+        }
+
+        // --- PARTICLE ENGINES ---
+        class VaporParticle {
+            constructor() { this.reset(); }
+            reset() {
+                let available = fractions.filter(f =&gt; state.temp &gt;= f.bp);
+                if (available.length === 0 || state.flowRate === 0) { this.active = false; return; }
+                this.fraction = available[Math.floor(Math.random() * available.length)];
+                
+                this.x = geo.colX + 15 + Math.random() * (geo.colW - 30);
+                this.y = geo.colY + geo.colH - 25; // Rise from boiling pool
+                this.targetY = geo.colY + (geo.colH * this.fraction.yRatio); 
+                
+                let speedBase = (state.flowRate / 50) * 1.2;
+                this.vy = speedBase + (6 - this.fraction.id) * 0.25 + Math.random();
+                this.vx = 0;
+                this.state = &quot;vapor&quot;; this.active = true; this.size = Math.random() * 3 + 2; this.wobble = Math.random() * Math.PI * 2;
+            }
+            update() {
+                if (!this.active) return;
+                if (this.state === &quot;vapor&quot;) {
+                    this.y -= this.vy;
+                    this.x += Math.sin(this.y * 0.05 + this.wobble) * 0.5;
+                    if (this.y &lt;= this.targetY) { this.y = this.targetY; this.state = &quot;liquid&quot;; this.vx = this.vy * 1.5; this.vy = 0; }
+                } else if (this.state === &quot;liquid&quot;) {
+                    this.x += this.vx;
+                    let tankX = geo.colX + geo.colW + 160 + (this.fraction.id % 2 === 0 ? 40 : 0);
+                    if (this.x &gt; tankX) {
+                        if (state.tanks[this.fraction.id] &lt; 100) state.tanks[this.fraction.id] += 0.2;
+                        this.reset();
+                    }
+                }
+            }
+            draw(ctx) {
+                if (!this.active) return;
+                ctx.fillStyle = this.fraction.color; ctx.globalAlpha = this.state === &quot;vapor&quot; ? 0.6 : 0.9;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class FlameParticle {
+            constructor() { this.reset(); this.life = Math.random(); }
+            reset() {
+                this.x = geo.burnerX + 5 + Math.random() * (geo.burnerW - 10);
+                this.y = geo.burnerY - 5;
+                let tempRatio = (state.temp - 20) / 430;
+                this.vx = (Math.random() - 0.5) * 1.0;
+                this.vy = -(Math.random() * 3 + 1.5) * tempRatio; 
+                this.size = (Math.random() * 12 + 6) * tempRatio;
+                this.life = 1.0; this.decay = 0.02 + Math.random() * 0.04;
+                this.hue = 20 + Math.random() * 40; 
+                if (Math.random() &gt; 0.7 &amp;&amp; tempRatio &gt; 0.5) this.hue = 200; 
+            }
+            update() {
+                if (state.temp &lt;= 25) { this.life = 0; return; }
+                this.x += this.vx; this.y += this.vy;
+                if (this.y &lt; geo.colY + geo.colH + 10) { this.vy *= 0.5; this.vx *= 1.5; }
+                this.life -= this.decay; this.size *= 0.95;
+                if (this.life &lt;= 0) this.reset();
+            }
+            draw(ctx) {
+                if (this.life &lt;= 0 || state.temp &lt;= 25) return;
+                ctx.beginPath(); ctx.arc(this.x, this.y, Math.max(0.1, this.size), 0, Math.PI*2);
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 50%, ${this.life})`; ctx.fill();
+            }
+        }
+
+        for(let i=0; i&lt;250; i++) state.particles.push(new VaporParticle());
+        for(let i=0; i&lt;120; i++) state.flames.push(new FlameParticle());
+
+        // --- RENDER ENGINE ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (state.flowRate &gt; 0) {
+                state.pumpPhase += (state.flowRate / 100) * 0.05;
+                state.pipeFlowOffset += (state.flowRate / 100) * 2; // Positive makes dashes flow along the path
+                state.liquidPhase += 0.05;
+            }
+
+            drawUnderground();
+            drawCrudePipeline();
+            drawExtractionPumpjack();
+            
+            drawHeaterAndStand(); 
+            drawColumn();
+            drawPipesAndContainers();
+            
+            if (state.showParticles) state.particles.forEach(p =&gt; { p.update(); p.draw(ctx); });
+            else state.particles.forEach(p =&gt; p.update());
+
+            if (Math.random() &lt; (state.flowRate / 100)) {
+                let inactive = state.particles.find(p =&gt; !p.active);
+                if (inactive) inactive.reset();
+            }
+
+            if (state.hoveredFraction !== null) drawHighlight(state.hoveredFraction);
+
+            requestAnimationFrame(draw);
+        }
+
+        function drawUnderground() {
+            // Earth layers
+            ctx.fillStyle = &quot;#2c221a&quot;; ctx.fillRect(0, geo.groundY, canvas.width, canvas.height - geo.groundY);
+            ctx.fillStyle = &quot;#1f1d1b&quot;; ctx.fillRect(0, geo.groundY + 60, canvas.width, canvas.height - geo.groundY - 60);
+
+            // Deep Crude Reservoir
+            let resY = canvas.height - 50;
+            let grad = ctx.createRadialGradient(geo.wellX, resY, 10, geo.wellX, resY, 90);
+            grad.addColorStop(0, &quot;#000&quot;);
+            grad.addColorStop(1, &quot;#111&quot;);
+            ctx.fillStyle = grad; 
+            ctx.beginPath(); ctx.ellipse(geo.wellX, resY, 90, 35, 0, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = &quot;#555&quot;; ctx.font = &quot;11px sans-serif&quot;; ctx.textAlign=&quot;center&quot;; 
+            ctx.fillText(&quot;Crude Oil Deposit&quot;, geo.wellX, resY + 5);
+        }
+
+        function drawCrudePipeline() {
+            let wellBottom = canvas.height - 40;
+            let surfaceY = geo.groundY - 15;
+            let endX = geo.colX, endY = geo.colY + geo.colH - 15; 
+            let midX = geo.colX - 40;
+
+            // Pipeline Body (Seamless from underground to column)
+            ctx.strokeStyle = &quot;#2a2a35&quot;; ctx.lineWidth = 14; ctx.lineJoin = &quot;round&quot;;
+            ctx.beginPath(); 
+            ctx.moveTo(geo.wellX, wellBottom); 
+            ctx.lineTo(geo.wellX, surfaceY); 
+            ctx.lineTo(midX, surfaceY); 
+            ctx.lineTo(midX, endY); 
+            ctx.lineTo(endX, endY); 
+            ctx.stroke();
+
+            // Animated Crude Oil Flow (Flows UP the well and into the column)
+            if (state.flowRate &gt; 0) {
+                ctx.save();
+                ctx.strokeStyle = &quot;#050505&quot;; ctx.lineWidth = 6;
+                ctx.setLineDash([20, 15]); 
+                ctx.lineDashOffset = -state.pipeFlowOffset; // Negative offset to move &quot;forward&quot; along path
+                ctx.beginPath(); 
+                ctx.moveTo(geo.wellX, wellBottom); 
+                ctx.lineTo(geo.wellX, surfaceY); 
+                ctx.lineTo(midX, surfaceY); 
+                ctx.lineTo(midX, endY); 
+                ctx.lineTo(endX, endY); 
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function drawExtractionPumpjack() {
+            let px = geo.pumpX, py = geo.groundY;
+
+            // Base
+            ctx.fillStyle = &quot;#111&quot;; ctx.fillRect(px - 50, py - 5, 160, 5); 
+            
+            // A-Frame
+            ctx.strokeStyle = &quot;#444&quot;; ctx.lineWidth = 6; ctx.lineCap = &quot;round&quot;; 
+            let pivotX = px, pivotY = py - 80;
+            ctx.beginPath(); ctx.moveTo(px - 20, py); ctx.lineTo(pivotX, pivotY); ctx.lineTo(px + 20, py); ctx.stroke();
+
+            // Beam
+            let beamAngle = Math.sin(state.pumpPhase) * 0.25;
+            ctx.save(); ctx.translate(pivotX, pivotY); ctx.rotate(beamAngle);
+            ctx.fillStyle = &quot;#ffb703&quot;; ctx.fillRect(-75, -4, 150, 8);
+            ctx.beginPath(); ctx.arc(-75, 0, 15, Math.PI/2, Math.PI*1.5); ctx.fill(); // Horsehead
+            ctx.restore();
+
+            // Sucker Rod (Extends straight down into the wellbore)
+            let rodX = pivotX - 60; // Equals geo.wellX
+            let rodY = pivotY - Math.sin(beamAngle) * 60; 
+            
+            // Shiny metallic rod
+            ctx.strokeStyle = &quot;#ddd&quot;; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(rodX, rodY); ctx.lineTo(rodX, geo.groundY - 15); ctx.stroke();
+
+            // Wellhead T-Junction at surface
+            ctx.fillStyle = &quot;#555&quot;; ctx.fillRect(geo.wellX - 12, geo.groundY - 20, 24, 20);
+            ctx.fillStyle = &quot;#333&quot;; ctx.fillRect(geo.wellX - 16, geo.groundY - 24, 32, 4);
+
+            // Crank
+            let crankCenterX = px + 60, crankCenterY = py - 20;
+            ctx.fillStyle = &quot;#222&quot;; ctx.beginPath(); ctx.arc(crankCenterX, crankCenterY, 20, 0, Math.PI*2); ctx.fill();
+            
+            let cX = crankCenterX + Math.cos(state.pumpPhase) * 15, cY = crankCenterY + Math.sin(state.pumpPhase) * 15;
+            let beamBackX = pivotX + Math.cos(beamAngle)*75, beamBackY = pivotY + Math.sin(beamAngle)*75;
+            ctx.strokeStyle = &quot;#ff6b00&quot;; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(cX, cY); ctx.lineTo(beamBackX, beamBackY); ctx.stroke();
+        }
+
+        function drawHeaterAndStand() {
+            // 1. Tripod Legs holding up the column
+            ctx.strokeStyle = &quot;#444&quot;; ctx.lineWidth = 8; ctx.lineCap = &quot;round&quot;;
+            ctx.beginPath(); // Left leg
+            ctx.moveTo(geo.colX + 20, geo.colY + geo.colH); 
+            ctx.lineTo(geo.colX - 10, geo.groundY); ctx.stroke();
+            ctx.beginPath(); // Right leg
+            ctx.moveTo(geo.colX + geo.colW - 20, geo.colY + geo.colH); 
+            ctx.lineTo(geo.colX + geo.colW + 10, geo.groundY); ctx.stroke();
+
+            // 2. Real-Time Flame Particles shooting up from burner
+            ctx.save();
+            ctx.globalCompositeOperation = &quot;lighter&quot;; 
+            state.flames.forEach(f =&gt; { f.update(); f.draw(ctx); });
+            ctx.restore();
+
+            // 3. Industrial Burner Base
+            ctx.fillStyle = &quot;#1e2433&quot;; 
+            ctx.beginPath(); ctx.roundRect(geo.burnerX, geo.burnerY, geo.burnerW, 15, 4); ctx.fill();
+            
+            // Burner nozzles
+            ctx.fillStyle = &quot;#555&quot;;
+            for(let i=0; i&lt;4; i++) ctx.fillRect(geo.burnerX + 10 + i*18, geo.burnerY - 5, 8, 5);
+
+            // Glow underneath
+            let heatRatio = (state.temp - 20) / 430; 
+            if (heatRatio &gt; 0.1) {
+                ctx.shadowBlur = 40 * heatRatio; ctx.shadowColor = &quot;rgba(255,80,0,1)&quot;;
+                ctx.fillStyle = `rgba(255,100,0,${heatRatio * 0.2})`;
+                ctx.beginPath(); ctx.arc(geo.burnerX + geo.burnerW/2, geo.burnerY, 30, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawColumn() {
+            if (state.showGradient) {
+                let grad = ctx.createLinearGradient(0, geo.colY + geo.colH, 0, geo.colY);
+                grad.addColorStop(0, &quot;rgba(255, 50, 0, 0.5)&quot;); grad.addColorStop(0.5, &quot;rgba(255, 200, 0, 0.2)&quot;); grad.addColorStop(1, &quot;rgba(0, 150, 255, 0.1)&quot;);
+                ctx.fillStyle = grad; ctx.fillRect(geo.colX, geo.colY, geo.colW, geo.colH);
+            } else {
+                ctx.fillStyle = &quot;rgba(255,255,255,0.02)&quot;; ctx.fillRect(geo.colX, geo.colY, geo.colW, geo.colH);
+            }
+
+            // Outline &amp; Dome top, Flat bottom
+            ctx.strokeStyle = &quot;#666&quot;; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(geo.colX, geo.colY, geo.colW, geo.colH, [15, 15, 2, 2]); ctx.stroke();
+
+            // Boiling Crude Pool at Bottom
+            let poolH = 30;
+            let poolY = geo.colY + geo.colH - poolH;
+            ctx.fillStyle = &quot;#050505&quot;;
+            ctx.beginPath();
+            ctx.moveTo(geo.colX + 2, geo.colY + geo.colH - 2);
+            ctx.lineTo(geo.colX + geo.colW - 2, geo.colY + geo.colH - 2);
+            ctx.lineTo(geo.colX + geo.colW - 2, poolY);
+            
+            let heatRatio = (state.temp - 20) / 430; 
+            for(let wx = geo.colX + geo.colW - 2; wx &gt;= geo.colX + 2; wx -= 4) {
+                let wy = poolY + Math.sin(wx * 0.15 + state.liquidPhase * 4) * (3 * heatRatio);
+                ctx.lineTo(wx, wy);
+            }
+            ctx.fill();
+
+            // Trays
+            ctx.strokeStyle = &quot;rgba(255,255,255,0.2)&quot;; ctx.lineWidth = 2;
+            fractions.forEach((frac, i) =&gt; {
+                if (i === fractions.length - 1) return; 
+                let fy = geo.colY + (geo.colH * frac.yRatio);
+                ctx.beginPath(); ctx.moveTo(geo.colX, fy); ctx.lineTo(geo.colX + geo.colW, fy); ctx.stroke();
+
+                ctx.fillStyle = &quot;rgba(255,255,255,0.3)&quot;;
+                for(let cx = geo.colX + 20; cx &lt; geo.colX + geo.colW - 10; cx += 30) { ctx.beginPath(); ctx.arc(cx, fy, 8, Math.PI, 0); ctx.fill(); }
+
+                if (state.showLabels) {
+                    ctx.fillStyle = &quot;#888&quot;; ctx.textAlign = &quot;right&quot;; ctx.font = &quot;11px monospace&quot;;
+                    ctx.fillText(`${frac.bp}°C`, geo.colX - 10, fy + 4);
+                }
+            });
+        }
+
+        function drawPipesAndContainers() {
+            fractions.forEach((frac, i) =&gt; {
+                let fy = geo.colY + (geo.colH * frac.yRatio);
+                let pipeLen = 140 + (i % 2 === 0 ? 40 : 0); 
+                let cX = geo.colX + geo.colW + pipeLen;
+                
+                // Output Pipes
+                ctx.fillStyle = &quot;#2a2a35&quot;; ctx.fillRect(geo.colX + geo.colW, fy - 6, pipeLen, 12);
+                ctx.strokeStyle = &quot;#111&quot;; ctx.lineWidth = 1; ctx.strokeRect(geo.colX + geo.colW, fy - 6, pipeLen, 12);
+
+                if (state.temp &gt;= frac.bp) {
+                    ctx.fillStyle = frac.color; ctx.globalAlpha = 0.5;
+                    ctx.fillRect(geo.colX + geo.colW, fy - 4, pipeLen, 8); ctx.globalAlpha = 1.0;
+                }
+
+                let fillPct = state.tanks[i] / 100;
+                
+                if (frac.type === &quot;gas&quot;) {
+                    let cylW = 30, cylH = 45;
+                    let cyY = fy - cylH/2 + 5;
+                    
+                    ctx.fillStyle = &quot;#2a3142&quot;; ctx.beginPath(); ctx.roundRect(cX, cyY, cylW, cylH, 10); ctx.fill();
+                    ctx.strokeStyle = &quot;#111&quot;; ctx.lineWidth = 2; ctx.stroke();
+                    
+                    ctx.fillStyle = frac.color; ctx.globalAlpha = fillPct * 0.9;
+                    ctx.beginPath(); ctx.roundRect(cX+2, cyY+2, cylW-4, cylH-4, 8); ctx.fill(); ctx.globalAlpha = 1.0;
+
+                    ctx.fillStyle = &quot;#aaa&quot;; ctx.fillRect(cX + cylW/2 - 4, cyY - 8, 8, 8); ctx.fillRect(cX + cylW/2 - 10, cyY - 6, 20, 4);
+
+                } else {
+                    let tankW = 55, tankH = 35, tY = fy - tankH/2;
+                    ctx.fillStyle = &quot;#1e2433&quot;; ctx.beginPath(); ctx.roundRect(cX, tY, tankW, tankH, 4); ctx.fill();
+                    ctx.strokeStyle = &quot;#444&quot;; ctx.lineWidth = 2; ctx.stroke();
+
+                    if (fillPct &gt; 0) {
+                        let fillH = tankH * fillPct;
+                        ctx.fillStyle = frac.color;
+                        ctx.beginPath(); ctx.moveTo(cX + 2, tY + tankH - 2); ctx.lineTo(cX + tankW - 2, tY + tankH - 2); ctx.lineTo(cX + tankW - 2, tY + tankH - fillH);
+                        for(let wx = cX + tankW - 2; wx &gt;= cX + 2; wx -= 2) {
+                            let wy = tY + tankH - fillH;
+                            if (frac.type === &quot;liquid&quot;) wy += Math.sin(wx * 0.3 + state.liquidPhase * 2) * 1.5;
+                            ctx.lineTo(wx, wy);
+                        }
+                        ctx.fill();
+                    }
+                }
+
+                if (state.showLabels) {
+                    ctx.fillStyle = &quot;#e2e8f0&quot;; ctx.textAlign = &quot;left&quot;; ctx.font = &quot;bold 11px sans-serif&quot;;
+                    ctx.fillText(frac.name, cX + 65, fy + 2);
+                    ctx.fillStyle = &quot;#94a3b8&quot;; ctx.font = &quot;10px monospace&quot;;
+                    ctx.fillText(frac.carbon, cX + 65, fy + 14);
+                }
+            });
+        }
+
+        function drawHighlight(id) {
+            let frac = fractions.find(f =&gt; f.id === id);
+            if (!frac) return;
+            let fy = geo.colY + (geo.colH * frac.yRatio);
+            let pipeLen = 140 + (id % 2 === 0 ? 40 : 0);
+            ctx.save(); ctx.strokeStyle = frac.color; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.shadowColor = frac.color;
+            ctx.strokeRect(geo.colX + geo.colW, fy - 8, pipeLen + 60, 50); ctx.restore();
+        }
+
+        // --- INTERACTIVITY ---
+        tempSlider.addEventListener(&#39;input&#39;, e =&gt; {
+            state.temp = parseInt(e.target.value);
+            tempVal.textContent = state.temp + &quot; °C&quot;;
+            tempDisplay.textContent = state.temp + &quot; °C&quot;;
+            if(state.temp &lt; 100) tempDisplay.style.color = &quot;#00d2ff&quot;;
+            else if(state.temp &lt; 300) tempDisplay.style.color = &quot;#ffb703&quot;;
+            else tempDisplay.style.color = &quot;#ff3366&quot;;
+            state.particles.forEach(p =&gt; { if(!p.active) p.reset(); });
+        });
+
+        flowSlider.addEventListener(&#39;input&#39;, e =&gt; {
+            state.flowRate = parseInt(e.target.value);
+            flowVal.textContent = state.flowRate === 0 ? &quot;Off&quot; : (state.flowRate &lt; 33 ? &quot;Low&quot; : (state.flowRate &lt; 66 ? &quot;Medium&quot; : &quot;High&quot;));
+        });
+
+        document.getElementById(&#39;btnHeatFull&#39;).addEventListener(&#39;click&#39;, () =&gt; { tempSlider.value = 450; tempSlider.dispatchEvent(new Event(&#39;input&#39;)); });
+        document.getElementById(&#39;btnCoolDown&#39;).addEventListener(&#39;click&#39;, () =&gt; { tempSlider.value = 20; tempSlider.dispatchEvent(new Event(&#39;input&#39;)); });
+        document.getElementById(&#39;chkTempGradient&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showGradient = e.target.checked);
+        document.getElementById(&#39;chkVaporParticles&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showParticles = e.target.checked);
+        document.getElementById(&#39;chkLabels&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showLabels = e.target.checked);
+        document.getElementById(&#39;btnEmptyTanks&#39;).addEventListener(&#39;click&#39;, () =&gt; state.tanks = [0,0,0,0,0,0,0]);
+
+        canvas.addEventListener(&#39;mousemove&#39;, e =&gt; {
+            let rect = canvas.getBoundingClientRect();
+            let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            let hovered = null;
+            for (let zone of geo.pipeZones) {
+                if (mx &gt;= zone.x &amp;&amp; mx &lt;= zone.x + zone.w &amp;&amp; my &gt;= zone.y - 25 &amp;&amp; my &lt;= zone.y + 40) { hovered = zone.id; break; }
+            }
+            if (hovered !== state.hoveredFraction) {
+                state.hoveredFraction = hovered;
+                if (hovered !== null) {
+                    let frac = fractions.find(f =&gt; f.id === hovered);
+                    document.getElementById(&#39;insName&#39;).textContent = frac.name;
+                    document.getElementById(&#39;insName&#39;).style.color = frac.color;
+                    document.getElementById(&#39;insBP&#39;).textContent = `&lt; ${frac.bp} °C`;
+                    document.getElementById(&#39;insCarbon&#39;).textContent = frac.carbon;
+                    document.getElementById(&#39;insVisc&#39;).textContent = frac.visc;
+                    document.getElementById(&#39;insFlam&#39;).textContent = frac.flam;
+                    document.getElementById(&#39;insUse&#39;).textContent = frac.use;
+                    inspectorHUD.style.opacity = 1;
+                } else inspectorHUD.style.opacity = 0;
+            }
+        });
+        canvas.addEventListener(&#39;mouseleave&#39;, () =&gt; { state.hoveredFraction = null; inspectorHUD.style.opacity = 0; });
+
+        window.addEventListener(&#39;resize&#39;, () =&gt; {
+            canvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
+            canvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+            calculateGeometry();
+        });
+        
+        window.dispatchEvent(new Event(&#39;resize&#39;));
+        requestAnimationFrame(draw);
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
