@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>Electromagnetc Wave Simulator</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Physics Lab: Dynamic EM Wave Simulator&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0b0d12;
+            --panel-bg: #151821;
+            --panel-border: #262c3a;
+            --accent-blue: #00d2ff;
+            --accent-gold: #ffb703;
+            --accent-orange: #ff6b00;
+            --accent-green: #00ff88;
+            --accent-magenta: #ff007f;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Inter&#39;, -apple-system, sans-serif; user-select: none; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; width: 100vw; overflow: hidden; flex-direction: row; }
+
+        /* Sidebar Control Panel */
+        #sidebar { width: 360px; min-width: 360px; background-color: var(--panel-bg); border-right: 1px solid var(--panel-border); display: flex; flex-direction: column; z-index: 10; box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+        .sidebar-header { padding: 14px 18px; border-bottom: 1px solid var(--panel-border); background: rgba(0,0,0,0.2); }
+        .sidebar-header h1 { font-size: 1.15rem; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; }
+        .sidebar-header p { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+
+        .scroll-container { flex-grow: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+        .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-gold); margin-bottom: 6px; font-weight: 700; }
+        .control-card { background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        
+        label { font-size: 0.78rem; font-weight: 500; display: flex; justify-content: space-between; color: var(--text-main); }
+        span.val { color: var(--accent-blue); font-family: monospace; font-weight: bold; }
+        input[type=&quot;range&quot;] { width: 100%; height: 4px; border-radius: 2px; background: #2a3142; accent-color: var(--accent-blue); cursor: pointer; }
+        select, button { background: #1e2433; color: #fff; border: 1px solid var(--panel-border); padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease; }
+        select:hover, button:hover { border-color: var(--accent-blue); background: #252d40; }
+        
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        .btn-action { background: rgba(0, 210, 255, 0.1); border: 1px solid var(--accent-blue); color: var(--accent-blue); font-weight: 600; }
+        .btn-action:hover { background: var(--accent-blue); color: #000; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; }
+
+        /* Workspace Canvas Area */
+        #workspace { flex-grow: 1; position: relative; background: radial-gradient(circle at center, #121622 0%, #07080c 100%); overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Disable touch actions on canvas to enable custom pan/zoom logic */
+        canvas#waveCanvas { width: 100%; flex-grow: 1; display: block; cursor: grab; touch-action: none; }
+        canvas#waveCanvas:active { cursor: grabbing; }
+
+        /* Spectrum Bar */
+        #spectrumBarCard { background: rgba(15, 18, 26, 0.9); border-bottom: 1px solid var(--panel-border); padding: 10px 15px; display: flex; flex-direction: column; gap: 6px; backdrop-filter: blur(8px); z-index: 5; }
+        .spectrum-title-row { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: bold; }
+        canvas#spectrumCanvas { width: 100%; height: 34px; border-radius: 4px; border: 1px solid #333; cursor: pointer; }
+
+        /* Math HUD */
+        #calcHUD { position: absolute; bottom: 15px; left: 15px; width: 360px; background: rgba(15, 18, 26, 0.92); border: 1px solid var(--panel-border); backdrop-filter: blur(10px); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 5; pointer-events: none; }
+        .calc-header { font-size: 0.8rem; font-weight: bold; color: var(--accent-gold); display: flex; justify-content: space-between; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px; }
+        .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .calc-card-item { background: rgba(0, 0, 0, 0.4); border-left: 3px solid var(--accent-blue); padding: 5px 8px; border-radius: 4px; font-size: 0.75rem; }
+        .calc-card-item.gold { border-left-color: var(--accent-gold); }
+        .calc-card-item.green { border-left-color: var(--accent-green); }
+        .calc-card-item.magenta { border-left-color: var(--accent-magenta); }
+        .calc-lbl { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; }
+        
+        .math-expr { font-family: &#39;Cambria Math&#39;, &#39;Georgia&#39;, serif; font-style: italic; font-size: 0.82rem; color: #fff; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+        .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.85em; margin: 0 2px; font-style: normal; }
+        .frac .num { border-bottom: 1px solid var(--accent-blue); padding: 0 2px; }
+        .frac .den { padding: 0 2px; }
+
+        .val-highlight { color: var(--accent-green); font-style: normal; font-weight: bold; font-family: monospace; }
+        .val-blue { color: var(--accent-blue); font-style: normal; font-weight: bold; font-family: monospace; }
+        .val-gold { color: var(--accent-gold); font-style: normal; font-weight: bold; font-family: monospace; }
+
+        /* Legend HUD */
+        #legendHUD { position: absolute; bottom: 15px; right: 15px; background: rgba(15, 18, 26, 0.85); border: 1px solid var(--panel-border); backdrop-filter: blur(8px); border-radius: 6px; padding: 10px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; z-index: 5; pointer-events: none; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Instructions overlay */
+        .controls-hint { font-size: 0.65rem; color: #aaa; border-top: 1px solid #444; padding-top: 6px; margin-top: 4px; line-height: 1.4; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        @media (max-width: 950px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; min-width: 100%; height: 45vh; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+            #workspace { height: 55vh; }
+            #calcHUD { transform: scale(0.8); transform-origin: bottom left; bottom: 5px; left: 5px; width: 320px; }
+            #legendHUD { display: none; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- SIDEBAR CONTROL PANEL --&gt;
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;div class=&quot;sidebar-header&quot;&gt;
+            &lt;h1&gt;📡 EM Wave Physics Lab&lt;/h1&gt;
+            &lt;p&gt;Dynamic Spectrum &amp; 3D Wave Propagation&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;scroll-container&quot;&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;1. Frequency / Wavelength Band&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Current Band: &lt;span id=&quot;bandNameVal&quot; class=&quot;val&quot;&gt;Green Visible Light&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;spectrumSlider&quot; min=&quot;0&quot; max=&quot;1000&quot; step=&quot;1&quot; value=&quot;429&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;btn-grid-3&quot;&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandRadio&quot;&gt;Radio&lt;/button&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandMicro&quot;&gt;Micro&lt;/button&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandIR&quot;&gt;IR&lt;/button&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandVis&quot;&gt;Visible&lt;/button&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandUV&quot;&gt;UV&lt;/button&gt;
+                    &lt;button class=&quot;btn-action&quot; id=&quot;btnBandXray&quot;&gt;X-Ray&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;2. Propagation Medium&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;select id=&quot;mediumSelect&quot;&gt;
+                    &lt;option value=&quot;1.0000&quot;&gt;Vacuum / Air (n = 1.00, v = c)&lt;/option&gt;
+                    &lt;option value=&quot;1.3330&quot;&gt;Water (n = 1.33, v = 0.75c)&lt;/option&gt;
+                    &lt;option value=&quot;1.5200&quot;&gt;Glass (n = 1.52, v = 0.66c)&lt;/option&gt;
+                    &lt;option value=&quot;2.4170&quot;&gt;Diamond (n = 2.41, v = 0.41c)&lt;/option&gt;
+                &lt;/select&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;3. Wave Field Properties&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Electric Field (&lt;i&gt;E&lt;/i&gt;₀): &lt;span id=&quot;e0Val&quot; class=&quot;val&quot;&gt;100 V/m&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;e0Slider&quot; min=&quot;10&quot; max=&quot;500&quot; step=&quot;10&quot; value=&quot;100&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Polarization Angle: &lt;span id=&quot;polVal&quot; class=&quot;val&quot;&gt;0°&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;polSlider&quot; min=&quot;0&quot; max=&quot;180&quot; step=&quot;15&quot; value=&quot;0&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;section-title&quot;&gt;4. 3D Camera &amp; Animation&lt;/div&gt;
+            &lt;div class=&quot;control-card&quot;&gt;
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Base Simulation Speed: &lt;span id=&quot;speedVal&quot; class=&quot;val&quot;&gt;1.0x&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;speedSlider&quot; min=&quot;0&quot; max=&quot;3&quot; step=&quot;0.1&quot; value=&quot;1&quot;&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;btn-grid&quot;&gt;
+                    &lt;button id=&quot;btnPlayPause&quot; style=&quot;background: var(--accent-orange); color:#000; border-color:var(--accent-orange); font-weight:bold;&quot;&gt;⏸ Pause to Inspect Parts&lt;/button&gt;
+                    &lt;button id=&quot;btnResetView&quot;&gt;🎥 Reset Camera&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;control-group&quot; style=&quot;margin-top:5px;&quot;&gt;
+                    &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkShowVectors&quot; checked&gt; Show Field Vectors&lt;/label&gt;
+                    &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkShowEnvelope&quot; checked&gt; Show Wave Envelope&lt;/label&gt;
+                    &lt;label class=&quot;checkbox-label&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chkShowGrid&quot; checked&gt; Show Spatial Grid&lt;/label&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- MAIN WORKSPACE --&gt;
+    &lt;div id=&quot;workspace&quot;&gt;
+
+        &lt;!-- Spectrum Bar --&gt;
+        &lt;div id=&quot;spectrumBarCard&quot;&gt;
+            &lt;div class=&quot;spectrum-title-row&quot;&gt;
+                &lt;span&gt;Electromagnetic Spectrum Scale&lt;/span&gt;
+                &lt;span id=&quot;spectrumRangeText&quot; style=&quot;color: var(--accent-gold);&quot;&gt;λ = 532 nm | f = 5.63 × 10¹⁴ Hz&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;canvas id=&quot;spectrumCanvas&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 3D Wave Canvas --&gt;
+        &lt;canvas id=&quot;waveCanvas&quot;&gt;&lt;/canvas&gt;
+
+        &lt;!-- Math Calc HUD --&gt;
+        &lt;div id=&quot;calcHUD&quot;&gt;
+            &lt;div class=&quot;calc-header&quot;&gt;
+                &lt;span&gt;🧮 Real-Time Wave Physics Engine&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;calc-grid&quot;&gt;
+                &lt;div class=&quot;calc-card-item&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;1. Phase Velocity (&lt;i&gt;v&lt;/i&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;v&lt;/i&gt; = &lt;span class=&quot;frac&quot;&gt;&lt;span class=&quot;num&quot;&gt;&lt;i&gt;c&lt;/i&gt;&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&lt;i&gt;n&lt;/i&gt;&lt;/span&gt;&lt;/span&gt; = &lt;span id=&quot;mathSpeedVal&quot; class=&quot;val-blue&quot;&gt;3.00×10⁸&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;2. Frequency (&lt;i&gt;f&lt;/i&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;f&lt;/i&gt; = &lt;span class=&quot;frac&quot;&gt;&lt;span class=&quot;num&quot;&gt;&lt;i&gt;v&lt;/i&gt;&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&amp;lambda;&lt;/span&gt;&lt;/span&gt; = &lt;span id=&quot;mathFreqVal&quot; class=&quot;val-highlight&quot;&gt;5.63×10¹⁴&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;3. Period (&lt;i&gt;T&lt;/i&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;T&lt;/i&gt; = &lt;span class=&quot;frac&quot;&gt;&lt;span class=&quot;num&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&lt;i&gt;f&lt;/i&gt;&lt;/span&gt;&lt;/span&gt; = &lt;span id=&quot;mathPeriodVal&quot; class=&quot;val-blue&quot;&gt;1.78 fs&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;4. Angular Freq (&amp;omega;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&amp;omega; = 2&amp;pi;&lt;i&gt;f&lt;/i&gt; = &lt;span id=&quot;mathOmegaVal&quot; class=&quot;val-highlight&quot;&gt;3.54×10¹⁵&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item gold&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;5. Wave Number (&lt;i&gt;k&lt;/i&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;k&lt;/i&gt; = &lt;span class=&quot;frac&quot;&gt;&lt;span class=&quot;num&quot;&gt;2&amp;pi;&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&amp;lambda;&lt;/span&gt;&lt;/span&gt; = &lt;span id=&quot;mathKVal&quot; class=&quot;val-gold&quot;&gt;1.18×10⁷&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item green&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;6. Photon Energy (&lt;i&gt;E&lt;/i&gt; = &lt;i&gt;h f&lt;/i&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;E&lt;/i&gt; = &lt;span id=&quot;mathEnergyVal&quot; class=&quot;val-highlight&quot;&gt;2.33 eV&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item magenta&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;7. Peak Mag Field (&lt;i&gt;B&lt;/i&gt;₀)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;B&lt;/i&gt;₀ = &lt;span class=&quot;frac&quot;&gt;&lt;span class=&quot;num&quot;&gt;&lt;i&gt;E&lt;/i&gt;₀&lt;/span&gt;&lt;span class=&quot;den&quot;&gt;&lt;i&gt;v&lt;/i&gt;&lt;/span&gt;&lt;/span&gt; = &lt;span id=&quot;mathB0Val&quot; class=&quot;val-gold&quot;&gt;333 nT&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-card-item&quot;&gt;
+                    &lt;div class=&quot;calc-lbl&quot;&gt;8. Intensity (&lt;i&gt;S&lt;/i&gt;&lt;sub&gt;avg&lt;/sub&gt;)&lt;/div&gt;
+                    &lt;div class=&quot;math-expr&quot;&gt;&lt;i&gt;S&lt;/i&gt; = &amp;frac12;&amp;epsilon;&lt;i&gt;v E&lt;/i&gt;₀² = &lt;span id=&quot;mathSVal&quot; class=&quot;val-highlight&quot;&gt;13.3 W/m²&lt;/span&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Legend HUD --&gt;
+        &lt;div id=&quot;legendHUD&quot;&gt;
+            &lt;div class=&quot;legend-item&quot;&gt;&lt;div class=&quot;legend-dot&quot; style=&quot;background: var(--accent-blue);&quot;&gt;&lt;/div&gt; Electric Field (&amp;vec;E)&lt;/div&gt;
+            &lt;div class=&quot;legend-item&quot;&gt;&lt;div class=&quot;legend-dot&quot; style=&quot;background: var(--accent-gold);&quot;&gt;&lt;/div&gt; Magnetic Field (&amp;vec;B)&lt;/div&gt;
+            &lt;div class=&quot;legend-item&quot;&gt;&lt;div class=&quot;legend-dot&quot; style=&quot;background: #ffffff;&quot;&gt;&lt;/div&gt; Propagation Direction (&amp;vec;k)&lt;/div&gt;
+            &lt;div class=&quot;controls-hint&quot;&gt;
+                🖱️ &lt;b&gt;L-Click:&lt;/b&gt; Rotate | &lt;b&gt;R-Click:&lt;/b&gt; Pan | &lt;b&gt;Wheel:&lt;/b&gt; Zoom&lt;br&gt;
+                👆 &lt;b&gt;1-Finger:&lt;/b&gt; Rotate | &lt;b&gt;2-Finger:&lt;/b&gt; Pan &amp; Pinch Zoom
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- CONSTANTS ---
+        const C_VACUUM = 299792458; 
+        const H_PLANCK_J = 6.62607015e-34; 
+        const H_PLANCK_EV = 4.135667696e-15; 
+        const EPSILON_0 = 8.854187817e-12; 
+
+        // Log scale limits for wavelengths in meters
+        const MIN_LOG_LAMBDA = -14; // Gamma
+        const MAX_LOG_LAMBDA = 4;   // Radio
+
+        const BANDS = [
+            { name: &quot;Gamma Rays&quot;, minLog: -14, maxLog: -11, color: &quot;#9d4edd&quot; },
+            { name: &quot;X-Rays&quot;, minLog: -11, maxLog: -8, color: &quot;#4895ef&quot; },
+            { name: &quot;Ultraviolet (UV)&quot;, minLog: -8, maxLog: -7.1, color: &quot;#7209b7&quot; },
+            { name: &quot;Visible Spectrum&quot;, minLog: -7.1, maxLog: -6.1, color: &quot;rainbow&quot; },
+            { name: &quot;Infrared (IR)&quot;, minLog: -6.1, maxLog: -3, color: &quot;#f72585&quot; },
+            { name: &quot;Microwaves&quot;, minLog: -3, maxLog: -1, color: &quot;#ffb703&quot; },
+            { name: &quot;Radio Waves&quot;, minLog: -1, maxLog: 4, color: &quot;#4cc9f0&quot; }
+        ];
+
+        // --- STATE ---
+        let state = {
+            sliderVal: 429, lambda: 5.32e-7, n: 1.0, e0: 100, polAngle: 0,
+            speedMult: 1.0, isPlaying: true,
+            showVectors: true, showEnvelope: true, showGrid: true,
+            
+            // 3D Camera &amp; Interaction
+            camYaw: -0.55, camPitch: 0.35, camZoom: 1.0, panX: 0, panY: 0,
+            phase: 0,
+            
+            // Dynamic Wave Rendering
+            visCycles: 4, visSpeed: 0.05, visGlow: 5
+        };
+
+        const waveCanvas = document.getElementById(&#39;waveCanvas&#39;), ctx = waveCanvas.getContext(&#39;2d&#39;);
+        const specCanvas = document.getElementById(&#39;spectrumCanvas&#39;), specCtx = specCanvas.getContext(&#39;2d&#39;);
+        const spectrumSlider = document.getElementById(&#39;spectrumSlider&#39;);
+
+        // --- SCIENTIFIC FORMATTER ---
+        function formatSci(val, unit = &quot;&quot;, precision = 2) {
+            if (val === 0) return `0 ${unit}`;
+            let absVal = Math.abs(val);
+            if (unit === &quot;s&quot; &amp;&amp; absVal &lt; 1e-12) return `${(val * 1e15).toFixed(precision)} fs`;
+            if (unit === &quot;s&quot; &amp;&amp; absVal &lt; 1e-9) return `${(val * 1e12).toFixed(precision)} ps`;
+            if (unit === &quot;s&quot; &amp;&amp; absVal &lt; 1e-6) return `${(val * 1e9).toFixed(precision)} ns`;
+            if (unit === &quot;m&quot; &amp;&amp; absVal &lt; 1e-9) return `${(val * 1e12).toFixed(precision)} pm`;
+            if (unit === &quot;m&quot; &amp;&amp; absVal &lt; 1e-6) return `${(val * 1e9).toFixed(precision)} nm`;
+            if (unit === &quot;m&quot; &amp;&amp; absVal &lt; 1e-3) return `${(val * 1e6).toFixed(precision)} µm`;
+            if (unit === &quot;T&quot; &amp;&amp; absVal &lt; 1e-6) return `${(val * 1e9).toFixed(precision)} nT`;
+            if (unit === &quot;T&quot; &amp;&amp; absVal &lt; 1e-3) return `${(val * 1e6).toFixed(precision)} µT`;
+
+            let exp = Math.floor(Math.log10(absVal));
+            let mantissa = val / Math.pow(10, exp);
+            if (exp &gt;= -2 &amp;&amp; exp &lt;= 3) return `${val.toFixed(precision)} ${unit}`;
+            
+            const superscripts = { &#39;-&#39;: &#39;⁻&#39;, &#39;0&#39;: &#39;⁰&#39;, &#39;1&#39;: &#39;¹&#39;, &#39;2&#39;: &#39;²&#39;, &#39;3&#39;: &#39;³&#39;, &#39;4&#39;: &#39;⁴&#39;, &#39;5&#39;: &#39;⁵&#39;, &#39;6&#39;: &#39;⁶&#39;, &#39;7&#39;: &#39;⁷&#39;, &#39;8&#39;: &#39;⁸&#39;, &#39;9&#39;: &#39;⁹&#39; };
+            let expStr = exp.toString().split(&#39;&#39;).map(c =&gt; superscripts[c] || c).join(&#39;&#39;);
+            return `${mantissa.toFixed(precision)}×10${expStr} ${unit}`;
+        }
+
+        // --- LOGARITHMIC SPECTRUM LOGIC ---
+        function sliderToLambda(val) { return Math.pow(10, MIN_LOG_LAMBDA + (val / 1000) * (MAX_LOG_LAMBDA - MIN_LOG_LAMBDA)); }
+        
+        function getBandInfo(lambda) {
+            let logL = Math.log10(lambda);
+            if (logL &gt;= -7.1 &amp;&amp; logL &lt;= -6.1) {
+                let nm = lambda * 1e9;
+                if (nm &gt;= 380 &amp;&amp; nm &lt; 440) return { name: &quot;Violet Visible&quot;, color: &quot;#8b00ff&quot; };
+                if (nm &gt;= 440 &amp;&amp; nm &lt; 490) return { name: &quot;Blue Visible&quot;, color: &quot;#0044ff&quot; };
+                if (nm &gt;= 490 &amp;&amp; nm &lt; 550) return { name: &quot;Green Visible&quot;, color: &quot;#00ff44&quot; };
+                if (nm &gt;= 550 &amp;&amp; nm &lt; 590) return { name: &quot;Yellow Visible&quot;, color: &quot;#ffff00&quot; };
+                if (nm &gt;= 590 &amp;&amp; nm &lt; 620) return { name: &quot;Orange Visible&quot;, color: &quot;#ff7f00&quot; };
+                return { name: &quot;Red Visible&quot;, color: &quot;#ff0000&quot; };
+            }
+            for (let b of BANDS) if (logL &gt;= b.minLog &amp;&amp; logL &lt;= b.maxLog) return b;
+            return { name: &quot;Electromagnetic Wave&quot;, color: &quot;#00d2ff&quot; };
+        }
+
+        // --- MATH ENGINE &amp; DYNAMIC SCALING ---
+        function recalculatePhysics() {
+            state.lambda = sliderToLambda(state.sliderVal);
+            
+            // Dynamic Rendering Scale based on Spectrum 
+            // Radio (1000) = Large wide slow waves. Gamma (0) = Short dense fast waves.
+            let ratio = state.sliderVal / 1000; 
+            state.visCycles = (1 - ratio) * 15 + (ratio) * 0.8;
+            state.visSpeed = ((1 - ratio) * 0.18 + (ratio) * 0.015) * state.speedMult;
+            state.visGlow = (1 - ratio) * 12 + (ratio) * 1;
+
+            let v = C_VACUUM / state.n, f = v / state.lambda, T = 1 / f, omega = 2 * Math.PI * f;
+            let k = (2 * Math.PI) / state.lambda, energyJ = H_PLANCK_J * f, energyEV = H_PLANCK_EV * f;
+            let B0 = state.e0 / v, S_avg = 0.5 * (EPSILON_0 * state.n * state.n) * v * (state.e0 * state.e0);
+
+            let band = getBandInfo(state.lambda);
+            document.getElementById(&#39;bandNameVal&#39;).textContent = band.name;
+            document.getElementById(&#39;spectrumRangeText&#39;).textContent = `λ = ${formatSci(state.lambda, &quot;m&quot;)} | f = ${formatSci(f, &quot;Hz&quot;)}`;
+
+            document.getElementById(&#39;mathSpeedVal&#39;).textContent = `${formatSci(v, &quot;m/s&quot;)}`;
+            document.getElementById(&#39;mathFreqVal&#39;).textContent = formatSci(f, &quot;Hz&quot;);
+            document.getElementById(&#39;mathPeriodVal&#39;).textContent = formatSci(T, &quot;s&quot;);
+            document.getElementById(&#39;mathOmegaVal&#39;).textContent = formatSci(omega, &quot;rad/s&quot;);
+            document.getElementById(&#39;mathKVal&#39;).textContent = formatSci(k, &quot;m⁻¹&quot;);
+            document.getElementById(&#39;mathEnergyVal&#39;).textContent = `${energyEV &lt; 1000 ? energyEV.toFixed(2) + &quot; eV&quot; : formatSci(energyEV, &quot;eV&quot;)}`;
+            document.getElementById(&#39;mathB0Val&#39;).textContent = formatSci(B0, &quot;T&quot;);
+            document.getElementById(&#39;mathSVal&#39;).textContent = formatSci(S_avg, &quot;W/m²&quot;);
+
+            drawSpectrumBar();
+        }
+
+        function drawSpectrumBar() {
+            let w = specCanvas.width, h = specCanvas.height;
+            specCtx.clearRect(0, 0, w, h);
+            for (let b of BANDS) {
+                let x1 = ((b.minLog - MIN_LOG_LAMBDA) / (MAX_LOG_LAMBDA - MIN_LOG_LAMBDA)) * w;
+                let x2 = ((b.maxLog - MIN_LOG_LAMBDA) / (MAX_LOG_LAMBDA - MIN_LOG_LAMBDA)) * w;
+                if (b.color === &quot;rainbow&quot;) {
+                    let grad = specCtx.createLinearGradient(x1, 0, x2, 0);
+                    grad.addColorStop(0, &quot;#8b00ff&quot;); grad.addColorStop(0.2, &quot;#0000ff&quot;); grad.addColorStop(0.4, &quot;#00ff00&quot;);
+                    grad.addColorStop(0.6, &quot;#ffff00&quot;); grad.addColorStop(0.8, &quot;#ff7f00&quot;); grad.addColorStop(1, &quot;#ff0000&quot;);
+                    specCtx.fillStyle = grad;
+                } else specCtx.fillStyle = b.color;
+                specCtx.fillRect(x1, 0, x2 - x1, h);
+                
+                specCtx.fillStyle = &quot;rgba(255,255,255,0.7)&quot;; specCtx.font = &quot;9px sans-serif&quot;; specCtx.textAlign = &quot;center&quot;;
+                if (x2 - x1 &gt; 35) specCtx.fillText(b.name.split(&quot; &quot;)[0], (x1 + x2) / 2, h / 2 + 3);
+            }
+            let curX = ((Math.log10(state.lambda) - MIN_LOG_LAMBDA) / (MAX_LOG_LAMBDA - MIN_LOG_LAMBDA)) * w;
+            specCtx.strokeStyle = &quot;#fff&quot;; specCtx.lineWidth = 3; specCtx.beginPath(); specCtx.moveTo(curX, 0); specCtx.lineTo(curX, h); specCtx.stroke();
+            specCtx.fillStyle = &quot;#fff&quot;; specCtx.beginPath(); specCtx.moveTo(curX-5, 0); specCtx.lineTo(curX+5, 0); specCtx.lineTo(curX, 6); specCtx.fill();
+        }
+
+        // --- 3D ENGINE ---
+        function project3D(x, y, z) {
+            let cosY = Math.cos(state.camYaw), sinY = Math.sin(state.camYaw);
+            let cosP = Math.cos(state.camPitch), sinP = Math.sin(state.camPitch);
+            let x1 = x * cosY - z * sinY, z1 = x * sinY + z * cosY;
+            let y2 = y * cosP - z1 * sinP, z2 = y * sinP + z1 * cosP;
+            
+            let fov = 400;
+            let scale = (fov / (fov + z2)) * state.camZoom;
+            return { x: (waveCanvas.width/2 + state.panX) + x1 * scale, y: (waveCanvas.height/2 + state.panY) - y2 * scale };
+        }
+
+        function drawLabelBox(text, x, y, color) {
+            ctx.font = &quot;bold 11px sans-serif&quot;;
+            let m = ctx.measureText(text);
+            ctx.fillStyle = &quot;rgba(0,0,0,0.8)&quot;;
+            ctx.fillRect(x - m.width/2 - 5, y - 12, m.width + 10, 18);
+            ctx.fillStyle = color; ctx.textAlign = &quot;center&quot;;
+            ctx.fillText(text, x, y);
+        }
+
+        function drawWaveAnnotations() {
+            if (state.isPlaying) return; // Only draw labels when paused
+
+            let xMin = -400, xMax = 400;
+            let spatialFreq = (Math.PI * 2 * state.visCycles) / (xMax - xMin);
+            let periodX = (2 * Math.PI) / spatialFreq;
+            let polRad = (state.polAngle * Math.PI) / 180;
+            let ampE = (state.e0 / 500) * 110;
+
+            // Find crests and troughs inside view
+            let startX = ((Math.PI / 2 + state.phase) / spatialFreq);
+            while (startX &gt; xMin) startX -= periodX;
+            
+            let crests = [], troughs = [];
+            for (let x = startX; x &lt;= xMax + periodX; x += periodX) {
+                if (x &gt;= xMin &amp;&amp; x &lt;= xMax) crests.push(x);
+                let tx = x + periodX / 2;
+                if (tx &gt;= xMin &amp;&amp; tx &lt;= xMax) troughs.push(tx);
+            }
+
+            // 1. Wavelength Label
+            if (crests.length &gt;= 2) {
+                let offY = (ampE + 50) * Math.cos(polRad);
+                let offZ = (ampE + 50) * Math.sin(polRad);
+                let p1 = project3D(crests[0], offY, offZ), p2 = project3D(crests[1], offY, offZ);
+                
+                ctx.strokeStyle = &quot;#fff&quot;; ctx.lineWidth = 1.5; ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.moveTo(p1.x, p1.y - 5); ctx.lineTo(p1.x, p1.y + 5);
+                ctx.moveTo(p2.x, p2.y - 5); ctx.lineTo(p2.x, p2.y + 5); ctx.stroke();
+                
+                drawLabelBox(`Wavelength (λ) = ${formatSci(state.lambda, &quot;m&quot;)}`, (p1.x + p2.x)/2, (p1.y + p2.y)/2 - 10, &quot;#fff&quot;);
+            }
+
+            // 2. Amplitude &amp; Crest Label
+            if (crests.length &gt;= 1) {
+                let cx = crests[crests.length &gt; 2 ? 1 : 0]; 
+                let pBase = project3D(cx, 0, 0), pCrest = project3D(cx, ampE * Math.cos(polRad), ampE * Math.sin(polRad));
+                
+                ctx.strokeStyle = &quot;#00d2ff&quot;; ctx.setLineDash([4, 4]); ctx.beginPath();
+                ctx.moveTo(pBase.x, pBase.y); ctx.lineTo(pCrest.x, pCrest.y); ctx.stroke(); ctx.setLineDash([]);
+                
+                drawLabelBox(`Amplitude (E₀)`, (pBase.x + pCrest.x)/2 + 35, (pBase.y + pCrest.y)/2, &quot;#00d2ff&quot;);
+                drawLabelBox(&quot;Crest&quot;, pCrest.x, pCrest.y - 10, &quot;#fff&quot;);
+            }
+
+            // 3. Trough Label
+            if (troughs.length &gt;= 1) {
+                let tx = troughs[troughs.length &gt; 2 ? 1 : 0];
+                let pTrough = project3D(tx, -ampE * Math.cos(polRad), -ampE * Math.sin(polRad));
+                drawLabelBox(&quot;Trough&quot;, pTrough.x, pTrough.y + 20, &quot;#fff&quot;);
+            }
+
+            // 4. Direction Label
+            let kTip = project3D(420, 0, 0);
+            drawLabelBox(&quot;Wave Vector (k)&quot;, kTip.x + 30, kTip.y - 15, &quot;#fff&quot;);
+        }
+
+        function drawWaveSimulation() {
+            ctx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+
+            // Grid
+            if (state.showGrid) {
+                ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.05)&quot;; ctx.lineWidth = 1;
+                let g = 400, st = 50;
+                for (let x = -g; x &lt;= g; x += st) { let p1=project3D(x,-120,-g), p2=project3D(x,-120,g); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+                for (let z = -g; z &lt;= g; z += st) { let p1=project3D(-g,-120,z), p2=project3D(g,-120,z); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+            }
+
+            // K Vector (Propagation axis)
+            let axS = project3D(-400, 0, 0), axE = project3D(400, 0, 0), kTip = project3D(420, 0, 0);
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.3)&quot;; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(axS.x, axS.y); ctx.lineTo(axE.x, axE.y); ctx.stroke();
+            ctx.fillStyle = &quot;#fff&quot;; ctx.beginPath(); ctx.arc(kTip.x, kTip.y, 4, 0, Math.PI*2); ctx.fill();
+
+            // EM Oscillations
+            let nPts = 250, xMin = -400, xMax = 400;
+            let spatialFreq = (Math.PI * 2 * state.visCycles) / (xMax - xMin);
+            let polRad = (state.polAngle * Math.PI) / 180;
+            let ampE = (state.e0 / 500) * 110, ampB = ampE * 0.9;
+            
+            let ptsE = [], ptsB = [];
+            for (let i = 0; i &lt;= nPts; i++) {
+                let x = xMin + (i / nPts) * (xMax - xMin);
+                let val = Math.sin(spatialFreq * x - state.phase);
+                let Ey = val * ampE * Math.cos(polRad), Ez = val * ampE * Math.sin(polRad);
+                let By = -val * ampB * Math.sin(polRad), Bz = val * ampB * Math.cos(polRad);
+                
+                let pC = project3D(x, 0, 0), pE = project3D(x, Ey, Ez), pB = project3D(x, By, Bz);
+                ptsE.push(pE); ptsB.push(pB);
+
+                // Draw Vector Arrows
+                let skip = Math.max(2, Math.floor(nPts / (state.visCycles * 8)));
+                if (state.showVectors &amp;&amp; i % skip === 0) {
+                    ctx.strokeStyle = &quot;rgba(0, 210, 255, 0.6)&quot;; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pC.x, pC.y); ctx.lineTo(pE.x, pE.y); ctx.stroke();
+                    ctx.fillStyle = &quot;#00d2ff&quot;; ctx.beginPath(); ctx.arc(pE.x, pE.y, 2, 0, Math.PI*2); ctx.fill();
+                    
+                    ctx.strokeStyle = &quot;rgba(255, 183, 3, 0.6)&quot;; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pC.x, pC.y); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+                    ctx.fillStyle = &quot;#ffb703&quot;; ctx.beginPath(); ctx.arc(pB.x, pB.y, 2, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            // Envelope lines
+            if (state.showEnvelope) {
+                ctx.save(); ctx.lineWidth = 3; ctx.shadowBlur = state.visGlow;
+                ctx.strokeStyle = &quot;#00d2ff&quot;; ctx.shadowColor = &quot;#00d2ff&quot;;
+                ctx.beginPath(); ptsE.forEach((p, i) =&gt; i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.stroke();
+                
+                ctx.strokeStyle = &quot;#ffb703&quot;; ctx.shadowColor = &quot;#ffb703&quot;;
+                ctx.beginPath(); ptsB.forEach((p, i) =&gt; i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Educational Labels if Paused
+            drawWaveAnnotations();
+
+            if (state.isPlaying) {
+                state.phase += state.visSpeed;
+                if (state.phase &gt; Math.PI * 2) state.phase -= Math.PI * 2;
+            }
+        }
+
+        function animate() { drawWaveSimulation(); requestAnimationFrame(animate); }
+
+        // --- INTERACTIVITY: PAN, ZOOM, ROTATE ---
+        let dragState = { mode: &#39;none&#39;, lastX: 0, lastY: 0, lastDist: 0 };
+
+        waveCanvas.addEventListener(&#39;mousedown&#39;, e =&gt; {
+            if (e.button === 0) dragState.mode = &#39;rotate&#39;;
+            else if (e.button === 1 || e.button === 2) dragState.mode = &#39;pan&#39;;
+            dragState.lastX = e.clientX; dragState.lastY = e.clientY;
+        });
+        window.addEventListener(&#39;mousemove&#39;, e =&gt; {
+            if (dragState.mode === &#39;rotate&#39;) {
+                state.camYaw += (e.clientX - dragState.lastX) * 0.005;
+                state.camPitch += (e.clientY - dragState.lastY) * 0.005;
+                state.camPitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, state.camPitch));
+            } else if (dragState.mode === &#39;pan&#39;) {
+                state.panX += (e.clientX - dragState.lastX);
+                state.panY += (e.clientY - dragState.lastY);
+            }
+            dragState.lastX = e.clientX; dragState.lastY = e.clientY;
+        });
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; dragState.mode = &#39;none&#39;);
+        
+        waveCanvas.addEventListener(&#39;wheel&#39;, e =&gt; {
+            e.preventDefault();
+            state.camZoom = Math.max(0.2, Math.min(10, state.camZoom * (e.deltaY &gt; 0 ? 0.9 : 1.1)));
+        }, {passive: false});
+        waveCanvas.addEventListener(&#39;contextmenu&#39;, e =&gt; e.preventDefault()); 
+
+        // Touch Events (Mobile)
+        waveCanvas.addEventListener(&#39;touchstart&#39;, e =&gt; {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                dragState.mode = &#39;rotate&#39;;
+                dragState.lastX = e.touches[0].clientX; dragState.lastY = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                dragState.mode = &#39;panzoom&#39;;
+                dragState.lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                dragState.lastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                dragState.lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            }
+        }, {passive: false});
+
+        waveCanvas.addEventListener(&#39;touchmove&#39;, e =&gt; {
+            e.preventDefault();
+            if (dragState.mode === &#39;rotate&#39; &amp;&amp; e.touches.length === 1) {
+                state.camYaw += (e.touches[0].clientX - dragState.lastX) * 0.006;
+                state.camPitch += (e.touches[0].clientY - dragState.lastY) * 0.006;
+                state.camPitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, state.camPitch));
+                dragState.lastX = e.touches[0].clientX; dragState.lastY = e.touches[0].clientY;
+            } else if (dragState.mode === &#39;panzoom&#39; &amp;&amp; e.touches.length === 2) {
+                let cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                let cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                state.panX += (cx - dragState.lastX); state.panY += (cy - dragState.lastY);
+                dragState.lastX = cx; dragState.lastY = cy;
+                
+                let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                state.camZoom = Math.max(0.2, Math.min(10, state.camZoom * (dist / dragState.lastDist)));
+                dragState.lastDist = dist;
+            }
+        }, {passive: false});
+        waveCanvas.addEventListener(&#39;touchend&#39;, () =&gt; dragState.mode = &#39;none&#39;);
+
+        // --- UI BINDINGS ---
+        specCanvas.addEventListener(&#39;click&#39;, e =&gt; {
+            let rect = specCanvas.getBoundingClientRect();
+            state.sliderVal = Math.round(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * 1000);
+            spectrumSlider.value = state.sliderVal; recalculatePhysics();
+        });
+
+        spectrumSlider.addEventListener(&#39;input&#39;, e =&gt; { state.sliderVal = parseFloat(e.target.value); recalculatePhysics(); });
+        mediumSelect.addEventListener(&#39;change&#39;, e =&gt; { state.n = parseFloat(e.target.value); recalculatePhysics(); });
+        e0Slider.addEventListener(&#39;input&#39;, e =&gt; { state.e0 = parseFloat(e.target.value); e0Val.textContent = `${state.e0} V/m`; recalculatePhysics(); });
+        polSlider.addEventListener(&#39;input&#39;, e =&gt; { state.polAngle = parseFloat(e.target.value); document.getElementById(&#39;polVal&#39;).textContent = `${state.polAngle}°`; });
+        speedSlider.addEventListener(&#39;input&#39;, e =&gt; { state.speedMult = parseFloat(e.target.value); document.getElementById(&#39;speedVal&#39;).textContent = `${state.speedMult.toFixed(1)}x`; recalculatePhysics(); });
+        
+        document.getElementById(&#39;btnPlayPause&#39;).addEventListener(&#39;click&#39;, e =&gt; { 
+            state.isPlaying = !state.isPlaying; 
+            if (state.isPlaying) {
+                e.target.textContent = &quot;⏸ Pause to Inspect Parts&quot;;
+                e.target.style.background = &quot;rgba(255, 107, 0, 0.1)&quot;;
+                e.target.style.color = &quot;var(--accent-orange)&quot;;
+            } else {
+                e.target.textContent = &quot;▶ Resume Animation&quot;;
+                e.target.style.background = &quot;var(--accent-green)&quot;;
+                e.target.style.color = &quot;#000&quot;;
+            }
+        });
+        
+        document.getElementById(&#39;btnResetView&#39;).addEventListener(&#39;click&#39;, () =&gt; { state.camYaw = -0.55; state.camPitch = 0.35; state.camZoom = 1.0; state.panX = 0; state.panY = 0; });
+
+        document.getElementById(&#39;chkShowVectors&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showVectors = e.target.checked);
+        document.getElementById(&#39;chkShowEnvelope&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showEnvelope = e.target.checked);
+        document.getElementById(&#39;chkShowGrid&#39;).addEventListener(&#39;change&#39;, e =&gt; state.showGrid = e.target.checked);
+
+        // Precise Mathematical Preset Buttons Mapping
+        const bandBtns = { &#39;btnBandRadio&#39;: 888, &#39;btnBandMicro&#39;: 666, &#39;btnBandIR&#39;: 500, &#39;btnBandVis&#39;: 429, &#39;btnBandUV&#39;: 361, &#39;btnBandXray&#39;: 222 };
+        for (let id in bandBtns) document.getElementById(id).addEventListener(&#39;click&#39;, () =&gt; { state.sliderVal = bandBtns[id]; spectrumSlider.value = bandBtns[id]; recalculatePhysics(); });
+
+        // --- INIT ---
+        window.addEventListener(&#39;resize&#39;, () =&gt; {
+            waveCanvas.width = document.getElementById(&#39;workspace&#39;).clientWidth;
+            waveCanvas.height = document.getElementById(&#39;workspace&#39;).clientHeight;
+            specCanvas.width = document.getElementById(&#39;spectrumBarCard&#39;).clientWidth - 30; specCanvas.height = 34;
+            recalculatePhysics();
+        });
+        window.dispatchEvent(new Event(&#39;resize&#39;));
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
