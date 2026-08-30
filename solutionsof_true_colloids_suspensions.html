@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>SOLUTIONS ( TRUE, COLLOIDS, SUSPENSIONS )</title>
+<title>solutionsof_true_colloids_suspensions</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -209,6 +209,8 @@
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         body {
@@ -261,6 +263,7 @@
             width: 100%;
             border: 1px solid #334155;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
         }
 
         .jar-select-group {
@@ -297,11 +300,17 @@
             border: 2px solid #334155;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            width: 100%;
+            max-width: 1200px;
+            touch-action: none;
         }
 
         canvas {
             display: block;
             border-radius: 10px;
+            width: 100%;
+            height: auto;
+            touch-action: none;
         }
 
         .instructions {
@@ -392,7 +401,6 @@
             🧪 &lt;b&gt;Instructions:&lt;/b&gt; Choose substances from dropdowns → Drag &lt;b&gt;Powder Jars&lt;/b&gt; to Beakers → Stir with &lt;b&gt;Glass Rod&lt;/b&gt; (Re-stir anytime!) → Click &lt;b&gt;ON/OFF Switches on Lasers&lt;/b&gt; → Use &lt;b&gt;Magnifier&lt;/b&gt; to see particle scattering!
         &lt;/div&gt;
 
-        &lt;!-- Shelf Dropdown Selectors --&gt;
         &lt;div class=&quot;shelf-controls&quot;&gt;
             &lt;div class=&quot;jar-select-group&quot;&gt;
                 &lt;label for=&quot;jar1Select&quot;&gt;Jar 1 (True Solutions):&lt;/label&gt;
@@ -639,7 +647,7 @@
             // Draw Beakers
             beakers.forEach(b =&gt; drawBeaker(targetCtx, b, isMagnified));
 
-            // Physics Update &amp; Particle Drawing (Particles only visible inside Lens!)
+            // Physics Update &amp; Particle Drawing
             updateAndDrawParticles(targetCtx, isMagnified);
 
             // Compute Laser Optics
@@ -708,11 +716,9 @@
                 liquidColor = sub.liquidTint;
             }
 
-            // Liquid Body
             targetCtx.fillStyle = liquidColor;
             targetCtx.fillRect(b.x + 5, b.y + 20, b.w - 10, b.h - 25);
 
-            // Sediment at Bottom if unmixed
             if (b.state === &#39;unmixed&#39;) {
                 const sub = substanceData[b.soluteKey];
                 targetCtx.fillStyle = sub.color;
@@ -721,7 +727,6 @@
                 targetCtx.fill();
             }
 
-            // Glass Container Outline
             targetCtx.strokeStyle = &quot;rgba(255, 255, 255, 0.6)&quot;;
             targetCtx.lineWidth = 3.5;
             targetCtx.beginPath();
@@ -731,7 +736,6 @@
             targetCtx.lineTo(b.x + b.w, b.y);
             targetCtx.stroke();
 
-            // Water Rim
             targetCtx.beginPath();
             targetCtx.ellipse(b.x + b.w/2, b.y + 20, b.w/2 - 5, 7, 0, 0, Math.PI * 2);
             targetCtx.strokeStyle = &quot;rgba(255, 255, 255, 0.4)&quot;;
@@ -775,11 +779,9 @@
                         p.x += p.vx;
                         p.y += p.vy;
 
-                        // Very gentle Brownian jitter for Colloids
                         if (p.type === &#39;colloid&#39;) {
                             p.vx += (Math.random() - 0.5) * 0.04;
                             p.vy += (Math.random() - 0.5) * 0.04;
-                            // Speed Cap
                             p.vx = Math.max(-0.4, Math.min(0.4, p.vx));
                             p.vy = Math.max(-0.4, Math.min(0.4, p.vy));
                         }
@@ -793,11 +795,9 @@
                         if (p.y &lt; minY || p.y &gt; maxY) p.vy *= -1;
                     }
 
-                    // Particles rendered ONLY inside Magnifier Lens
                     if (isMagnified) {
                         targetCtx.fillStyle = p.type === &#39;ion&#39; ? &quot;#a5f3fc&quot; : p.type === &#39;colloid&#39; ? &quot;#ffffff&quot; : &quot;#cbd5e1&quot;;
 
-                        // Glowing highlight if particle is hit by laser beam
                         if (p.isIlluminated) {
                             targetCtx.shadowColor = laserColors[currentColorIdx];
                             targetCtx.shadowBlur = 10;
@@ -807,24 +807,21 @@
                         targetCtx.beginPath();
                         targetCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
                         targetCtx.fill();
-                        targetCtx.shadowBlur = 0; // Reset
+                        targetCtx.shadowBlur = 0;
                     }
 
-                    p.isIlluminated = false; // Reset frame flag
+                    p.isIlluminated = false;
                 });
             });
         }
 
         function drawDarkScreen(targetCtx, s, isMagnified) {
-            // Screen Frame
             targetCtx.fillStyle = &quot;#334155&quot;;
             targetCtx.fillRect(s.x - 3, s.y - 15, s.w + 6, s.h + 30);
 
-            // Dark Matte Screen Surface
             targetCtx.fillStyle = &quot;#090d16&quot;;
             targetCtx.fillRect(s.x, s.y, s.w, s.h);
 
-            // Grid Lines
             targetCtx.strokeStyle = &quot;#1e293b&quot;;
             targetCtx.lineWidth = 1;
             for (let y = s.y + 15; y &lt; s.y + s.h; y += 15) {
@@ -860,7 +857,6 @@
                 let nextX = px + dirX * 4;
                 let nextY = py + dirY * 4;
 
-                // Collision with Dark Screens
                 for (let s of screens) {
                     if (nextX &gt;= s.x &amp;&amp; nextX &lt;= s.x + s.w &amp;&amp; nextY &gt;= s.y &amp;&amp; nextY &lt;= s.y + s.h) {
                         screenHit = { hit: true, screen: s, y: nextY, intensity: intensity, beakerKey: getBeakerSoluteKeyAt(px, py) };
@@ -869,7 +865,6 @@
                 }
                 if (screenHit) break;
 
-                // Liquid Interaction
                 let currentBeaker = beakers.find(b =&gt;
                     px &gt;= b.x + 5 &amp;&amp; px &lt;= b.x + b.w - 5 &amp;&amp; py &gt;= b.y + 20 &amp;&amp; py &lt;= b.y + b.h - 8
                 );
@@ -886,13 +881,11 @@
                     const sub = currentBeaker.state === &#39;prepared&#39; ? substanceData[currentBeaker.soluteKey] : null;
 
                     if (!sub || sub.category === &#39;solution&#39;) {
-                        // True Solution: Invisible beam inside liquid
                         targetCtx.strokeStyle = color;
                         targetCtx.globalAlpha = 0.03;
                         targetCtx.stroke();
                         intensity *= 0.998;
                     } else if (sub.category === &#39;colloid&#39;) {
-                        // Colloidal Solution: TYNDALL EFFECT (Glowing Beam Path)
                         targetCtx.strokeStyle = &quot;#ffffff&quot;;
                         targetCtx.lineWidth = 6;
                         targetCtx.globalAlpha = 0.9 * intensity;
@@ -908,7 +901,6 @@
                         targetCtx.lineWidth = 3;
                         intensity *= 0.985;
 
-                        // Mark particles along ray for scattering reflection
                         const list = particles[currentBeaker.id];
                         if (list) {
                             list.forEach(p =&gt; {
@@ -916,7 +908,6 @@
                             });
                         }
                     } else if (sub.category === &#39;suspension&#39;) {
-                        // Suspension: Opaque / Scattered path
                         targetCtx.strokeStyle = color;
                         targetCtx.lineWidth = 8;
                         targetCtx.globalAlpha = 0.35 * intensity;
@@ -955,7 +946,6 @@
             const sub = impact.beakerKey ? substanceData[impact.beakerKey] : null;
 
             if (sub &amp;&amp; sub.category === &#39;colloid&#39;) {
-                // High-Contrast Diffuse Tyndall Halo on Dark Screen
                 let grad = targetCtx.createRadialGradient(spotX, spotY, 2, spotX, spotY, 18);
                 grad.addColorStop(0, &#39;#ffffff&#39;);
                 grad.addColorStop(0.35, color);
@@ -965,14 +955,12 @@
                 targetCtx.arc(spotX, spotY, 18, 0, Math.PI * 2);
                 targetCtx.fill();
             } else if (sub &amp;&amp; sub.category === &#39;suspension&#39;) {
-                // Faint Scattered Spot
                 targetCtx.fillStyle = color;
                 targetCtx.globalAlpha = 0.28 * impact.intensity;
                 targetCtx.beginPath();
                 targetCtx.arc(spotX, spotY, 12, 0, Math.PI * 2);
                 targetCtx.fill();
             } else {
-                // Intense Sharp Laser Point (Water / True Solution)
                 targetCtx.fillStyle = &quot;#ffffff&quot;;
                 targetCtx.shadowColor = color;
                 targetCtx.shadowBlur = 12;
@@ -989,25 +977,21 @@
             targetCtx.translate(l.x, l.y);
             targetCtx.rotate(l.angle);
 
-            // Laser Main Body
             targetCtx.fillStyle = &quot;#334155&quot;;
             targetCtx.strokeStyle = &quot;#64748b&quot;;
             targetCtx.lineWidth = 2;
             targetCtx.fillRect(-35, -12, 60, 24);
             targetCtx.strokeRect(-35, -12, 60, 24);
 
-            // Emitter Tip
             targetCtx.fillStyle = laserColors[currentColorIdx];
             targetCtx.fillRect(25, -9, 9, 18);
 
-            // Interactive ON/OFF Switch Button on Laser Housing
             targetCtx.fillStyle = l.isOn ? &quot;#22c55e&quot; : &quot;#ef4444&quot;;
             targetCtx.fillRect(-28, -8, 16, 16);
             targetCtx.strokeStyle = &quot;#ffffff&quot;;
             targetCtx.lineWidth = 1;
             targetCtx.strokeRect(-28, -8, 16, 16);
 
-            // Text Label on Switch
             targetCtx.fillStyle = &quot;#ffffff&quot;;
             targetCtx.font = &quot;bold 8px Segoe UI&quot;;
             targetCtx.textAlign = &quot;center&quot;;
@@ -1027,10 +1011,8 @@
             ctx.scale(magnifier.zoom, magnifier.zoom);
             ctx.translate(-magnifier.x, -magnifier.y);
 
-            // Redraw scene inside lens with particles ENABLED
             drawScene(ctx, true);
 
-            // Draw Active Photon Scattering Rays on Illuminated Particles
             beakers.forEach(b =&gt; {
                 const list = particles[b.id];
                 const color = laserColors[currentColorIdx];
@@ -1052,7 +1034,6 @@
 
             ctx.restore();
 
-            // Lens Glass Shine
             let gradient = ctx.createLinearGradient(
                 magnifier.x - magnifier.radius, magnifier.y - magnifier.radius,
                 magnifier.x + magnifier.radius, magnifier.y + magnifier.radius
@@ -1066,7 +1047,6 @@
             ctx.arc(magnifier.x, magnifier.y, magnifier.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // Metallic Frame &amp; Handle
             ctx.strokeStyle = &quot;#94a3b8&quot;;
             ctx.lineWidth = 5;
             ctx.beginPath();
@@ -1084,81 +1064,86 @@
             ctx.restore();
         }
 
-        // --- Interaction Logic &amp; Event Handlers ---
-        function getMousePos(evt) {
+        // --- Responsive Coordinate Scaling ---
+        function getPos(evt) {
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+
+            if (evt.touches &amp;&amp; evt.touches.length &gt; 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
             return {
-                x: evt.clientX - rect.left,
-                y: evt.clientY - rect.top
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
             };
         }
 
-        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; {
-            const m = getMousePos(e);
-
+        // --- Interaction Logic Functions ---
+        function handleStart(m) {
             // 1. Drag Magnifier
             if (Math.hypot(m.x - magnifier.x, m.y - magnifier.y) &lt; magnifier.radius) {
                 magnifier.isDragging = true;
                 dragOffsetX = m.x - magnifier.x;
                 dragOffsetY = m.y - magnifier.y;
-                return;
+                return true;
             }
 
             // 2. Drag Glass Stirring Rod
-            if (m.x &gt;= rod.x - 6 &amp;&amp; m.x &lt;= rod.x + rod.w + 6 &amp;&amp; m.y &gt;= rod.y - 10 &amp;&amp; m.y &lt;= rod.y + rod.h) {
+            if (m.x &gt;= rod.x - 12 &amp;&amp; m.x &lt;= rod.x + rod.w + 12 &amp;&amp; m.y &gt;= rod.y - 12 &amp;&amp; m.y &lt;= rod.y + rod.h + 12) {
                 rod.isDragging = true;
                 rod.lastX = m.x;
                 rod.lastY = m.y;
                 dragOffsetX = m.x - rod.x;
                 dragOffsetY = m.y - rod.y;
-                return;
+                return true;
             }
 
             // 3. Drag Powder Jars
             for (let j of jars) {
-                if (m.x &gt;= j.x &amp;&amp; m.x &lt;= j.x + j.w &amp;&amp; m.y &gt;= j.y &amp;&amp; m.y &lt;= j.y + j.h) {
+                if (m.x &gt;= j.x - 10 &amp;&amp; m.x &lt;= j.x + j.w + 10 &amp;&amp; m.y &gt;= j.y - 10 &amp;&amp; m.y &lt;= j.y + j.h + 10) {
                     j.isDragging = true;
                     dragOffsetX = m.x - j.x;
                     dragOffsetY = m.y - j.y;
-                    return;
+                    return true;
                 }
             }
 
-            // 4. Lasers Interaction (ON/OFF Switch, Drag Body, Rotate Tip)
+            // 4. Lasers Interaction
             for (let l of lasers) {
-                // Transform mouse point into Laser local space to test ON/OFF switch
                 let dx = m.x - l.x;
                 let dy = m.y - l.y;
                 let localX = dx * Math.cos(-l.angle) - dy * Math.sin(-l.angle);
                 let localY = dx * Math.sin(-l.angle) + dy * Math.cos(-l.angle);
 
-                // Check ON/OFF Switch Button Click
-                if (localX &gt;= -28 &amp;&amp; localX &lt;= -12 &amp;&amp; localY &gt;= -8 &amp;&amp; localY &lt;= 8) {
+                if (localX &gt;= -35 &amp;&amp; localX &lt;= -10 &amp;&amp; localY &gt;= -15 &amp;&amp; localY &lt;= 15) {
                     l.isOn = !l.isOn;
-                    return;
+                    return true;
                 }
 
-                // Check Tip Rotation
                 let tipX = l.x + Math.cos(l.angle) * 36;
                 let tipY = l.y + Math.sin(l.angle) * 36;
-                if (Math.hypot(m.x - tipX, m.y - tipY) &lt; 16) {
+                if (Math.hypot(m.x - tipX, m.y - tipY) &lt; 25) {
                     l.isDraggingTip = true;
-                    return;
+                    return true;
                 }
 
-                // Check Body Drag
-                if (Math.hypot(m.x - l.x, m.y - l.y) &lt; 26) {
+                if (Math.hypot(m.x - l.x, m.y - l.y) &lt; 35) {
                     l.isDraggingBody = true;
                     dragOffsetX = m.x - l.x;
                     dragOffsetY = m.y - l.y;
-                    return;
+                    return true;
                 }
             }
-        });
+            return false;
+        }
 
-        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; {
-            const m = getMousePos(e);
-
+        function handleMove(m) {
             if (magnifier.isDragging) {
                 magnifier.x = m.x - dragOffsetX;
                 magnifier.y = m.y - dragOffsetY;
@@ -1166,7 +1151,6 @@
                 rod.x = m.x - dragOffsetX;
                 rod.y = m.y - dragOffsetY;
 
-                // Stirring detection in beakers
                 beakers.forEach(b =&gt; {
                     if (rod.x &gt;= b.x &amp;&amp; rod.x &lt;= b.x + b.w &amp;&amp; rod.y + rod.h &gt;= b.y + 20 &amp;&amp; rod.y + rod.h &lt;= b.y + b.h) {
                         let speed = Math.hypot(m.x - rod.lastX, m.y - rod.lastY);
@@ -1178,7 +1162,6 @@
                                 createParticles(b);
                             }
                         } else if (b.state === &#39;prepared&#39;) {
-                            // RE-STIRRING FUNCTION
                             reStirBeaker(b);
                         }
                     }
@@ -1186,7 +1169,6 @@
                 rod.lastX = m.x;
                 rod.lastY = m.y;
             } else {
-                // Jars Dragging
                 jars.forEach(j =&gt; {
                     if (j.isDragging) {
                         j.x = m.x - dragOffsetX;
@@ -1194,7 +1176,6 @@
                     }
                 });
 
-                // Lasers Dragging / Rotating
                 lasers.forEach(l =&gt; {
                     if (l.isDraggingBody) {
                         l.x = m.x - dragOffsetX;
@@ -1204,14 +1185,13 @@
                     }
                 });
             }
-        });
+        }
 
-        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+        function handleEnd() {
             magnifier.isDragging = false;
             rod.isDragging = false;
             lasers.forEach(l =&gt; { l.isDraggingBody = false; l.isDraggingTip = false; });
 
-            // Drop Powder Jar into Beakers
             jars.forEach(j =&gt; {
                 if (j.isDragging) {
                     j.isDragging = false;
@@ -1229,7 +1209,26 @@
             });
 
             rod.x = rod.homeX; rod.y = rod.homeY;
-        });
+        }
+
+        // --- Mouse Event Listeners ---
+        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; handleStart(getPos(e)));
+        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; handleMove(getPos(e)));
+        window.addEventListener(&#39;mouseup&#39;, handleEnd);
+
+        // --- Mobile Touch Event Listeners ---
+        canvas.addEventListener(&#39;touchstart&#39;, (e) =&gt; {
+            if (handleStart(getPos(e))) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener(&#39;touchmove&#39;, (e) =&gt; {
+            handleMove(getPos(e));
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener(&#39;touchend&#39;, handleEnd);
 
         // UI Controls Events
         document.getElementById(&#39;laserColorBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
