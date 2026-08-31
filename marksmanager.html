@@ -64,6 +64,12 @@
         .status-sync { background: #ffc107; color: black; }
         .status-on { background: #28a745; color: white; }
 
+        /* Search & Highlighting */
+        .search-container { margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ccc; display: flex; align-items: center; gap: 10px; }
+        .search-container input { max-width: 400px; }
+        tr.highlighted-row { background-color: #fff3cd !important; transition: background-color 0.3s ease; }
+        tr.highlighted-row td { background-color: #fff3cd !important; }
+
         /* REAL A4 PAGE CONTAINER UI */
         .page-wrapper {
             background-color: #525659;
@@ -82,7 +88,7 @@
             transition: width 0.3s ease, min-height 0.3s ease;
             width: 210mm;
             min-height: 297mm;
-            flex-shrink: 0; /* Prevents container layout compression on small mobile screens */
+            flex-shrink: 0;
         }
         body.landscape-mode .a4-sheet {
             width: 297mm;
@@ -96,7 +102,7 @@
         .sub-header { font-size: 13px; font-weight: bold; }
         
         thead th { background-color: #000; color: #fff; border-color: #444; }
-        thead th .sort-box span { background: #444; border: 1px solid #666; color: #fff; }
+        thead th .sort-box span { background: #444; border: 1px solid #666; color: #fff; margin: 0 2px; padding: 1px 3px; border-radius: 3px; cursor: pointer; }
         thead th .sort-box span:hover { background: #666; }
 
         .marks-input { width: 60px; text-align: center; padding: 4px; border: 1px solid transparent; border-bottom: 1px solid #ccc; font-weight: bold; transition: width 0.2s; background: transparent; }
@@ -106,14 +112,11 @@
         .note-btn { position: absolute; right: 2px; top: 2px; font-size: 10px; cursor: pointer; background: #eee; border: 1px solid #999; border-radius: 2px; padding: 2px 4px; display: none; color: #333; font-weight: bold; }
         td:hover .note-btn { display: inline-block; }
 
-        /* --- UPDATED STATEMENT HEADER LAYOUT (CENTERED + EDITABLE) --- */
+        /* STATEMENT HEADER LAYOUT */
         .statement-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        
-        /* Editable Heading */
         .heading-input { text-align: center; font-size: 24px; font-weight: bold; text-transform: uppercase; border: 1px solid transparent; background: transparent; width: 100%; outline: none; margin: 0 0 5px 0; padding: 0; color: #000; transition: border 0.2s; }
         .heading-input:hover, .heading-input:focus { border-bottom: 1px dashed #ccc; }
 
-        /* Centered Details */
         .statement-details-row { display: flex; justify-content: center; flex-wrap: wrap; width: 100%; margin-bottom: 5px; }
         .statement-details-group { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; font-size: 14px; }
 
@@ -156,7 +159,6 @@
             .marks-input, .reg-input { border: none !important; }
             .heading-input { border: none !important; } 
             
-            /* Force printing background colors (for the black header) */
             thead th {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -167,7 +169,6 @@
             tr { page-break-inside: avoid; page-break-after: auto; }
             thead { display: table-header-group; } 
         }
-
     </style>
 </head>
 <body>
@@ -220,8 +221,8 @@
                 </div>
                 <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
                     <label>Terms</label>
-                    <textarea id="g_terms" rows="2"></textarea>
-                    <button onclick="addGlobal('terms')" style="margin-top: 5px; width:100%;">Add Terms</button>
+                    <textarea id="g_terms" rows="2" placeholder="e.g. Term 1, Term 2"></textarea>
+                    <button onclick="addTerms()" style="margin-top: 5px; width:100%;">Add Terms</button>
                     <div class="global-list-box" id="list_terms"></div>
                 </div>
             </div>
@@ -280,7 +281,7 @@
 
     <script>
         // --- CENTRAL STATE DATA ARCHITECTURE ---
-        let db = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], school: {} };
+        let db = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], termMaxMarks: {}, school: {} };
         let historyStack = [];
         let historyIndex = -1;
         let backendUrl = localStorage.getItem("advancedMarksURL") || "";
@@ -341,7 +342,7 @@
             setSyncStatus("Connecting...", "status-sync");
             try {
                 let res = await fetch(url); let cloudData = await res.json();
-                if(!cloudData.school) cloudData = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], school: {} };
+                if(!cloudData.school) cloudData = { year: "", reportHeading: "MARKS STATEMENT", teachers: [], subjects: [], terms: [], termMaxMarks: {}, school: {} };
                 db = cloudData; backendUrl = url; localStorage.setItem("advancedMarksURL", url);
                 pushHistory(); refreshUI(); setSyncStatus("Connected ✅", "status-on"); alert("Connected successfully! Cloud data loaded.");
             } catch(e) { setSyncStatus("Connection Failed", "status-off"); alert("Connection failed!"); }
@@ -371,6 +372,7 @@
             if(saved) {
                 db = JSON.parse(saved);
                 if(!db.terms) db.terms = []; 
+                if(!db.termMaxMarks) db.termMaxMarks = {};
                 if(!db.year) db.year = "";
                 if(!db.reportHeading) db.reportHeading = "MARKS STATEMENT";
                 if(!db.school) db.school = {};
@@ -391,10 +393,33 @@
             saveDb(); document.getElementById(`g_${type}`).value = ""; refreshUI();
         }
 
+        function addTerms() {
+            let inputs = parseStr(document.getElementById("g_terms").value);
+            if(inputs.length === 0) return alert("Enter valid terms.");
+            
+            inputs.forEach(val => {
+                if(!db.terms.includes(val)) {
+                    let maxM = prompt(`Enter Maximum Marks for exam "${val}" (e.g., 10, 50, 100):`, "100");
+                    let parsedMax = parseFloat(maxM);
+                    if(isNaN(parsedMax) || parsedMax <= 0) parsedMax = 100;
+                    
+                    db.terms.push(val);
+                    if(!db.termMaxMarks) db.termMaxMarks = {};
+                    db.termMaxMarks[val] = parsedMax;
+                }
+            });
+            saveDb(); document.getElementById("g_terms").value = ""; refreshUI();
+        }
+
         function renameGlobal(type, oldName) {
             let newName = prompt(`Rename ${type.slice(0,-1)}:`, oldName);
             if(!newName || newName === oldName) return;
             let idx = db[type].indexOf(oldName); if(idx > -1) db[type][idx] = newName;
+
+            if(type === 'terms' && db.termMaxMarks && db.termMaxMarks[oldName]) {
+                db.termMaxMarks[newName] = db.termMaxMarks[oldName];
+                delete db.termMaxMarks[oldName];
+            }
 
             for(let c in db.school) {
                 for(let s in db.school[c]) {
@@ -421,6 +446,8 @@
         function deleteGlobal(type, name) {
             if(!confirm(`Delete ${name}?`)) return;
             db[type] = db[type].filter(i => i !== name);
+            if(type === 'terms' && db.termMaxMarks) delete db.termMaxMarks[name];
+
             for(let c in db.school) {
                 for(let s in db.school[c]) {
                     let sec = db.school[c][s];
@@ -438,7 +465,7 @@
             ['teachers', 'subjects', 'terms'].forEach(type => {
                 document.getElementById(`list_${type}`).innerHTML = db[type].map(item => `
                     <div class="list-item-row">
-                        <span>${item}</span>
+                        <span>${item} ${type === 'terms' ? `<small style="color:#666;">(Max: ${db.termMaxMarks?.[item]||100})</small>` : ''}</span>
                         <div>
                             <button class="action-btn" onclick="renameGlobal('${type}', '${item}')">✏️</button>
                             <button class="action-btn" onclick="deleteGlobal('${type}', '${item}')">🗑️</button>
@@ -511,21 +538,38 @@
                 </div>
                 
                 <div class="toolbar no-print">
-                    <div style="display:flex; flex-wrap:wrap; gap:15px;">
+                    <div style="display:flex; flex-wrap:wrap; gap:15px; width:100%;">
                         <div class="toolbar-group"><label>Filter Subject</label><select id="filter_sub"><option value="ALL">-- All --</option>${data.allotted.map(a => `<option value="${a.sub}">${a.sub}</option>`).join('')}</select></div>
                         <div class="toolbar-group"><label>Filter Teacher</label><select id="filter_tr"><option value="ALL">-- All --</option>${[...new Set(data.allotted.map(a => a.teacher))].map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
                         <div class="toolbar-group" style="border-left: 1px solid #ccc; padding-left: 15px;"><label class="toggle-switch"><input type="checkbox" id="compareToggle" onchange="toggleCompareUI()"> 🔄 Term Compare</label>
                             <div id="singleTermDiv" style="margin-top:5px;"><select id="filter_single_term">${db.terms.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
                             <div id="multiTermDiv" class="checkbox-group" style="display:none;">${db.terms.map(t => `<label><input type="checkbox" class="term-chk" value="${t}" checked> ${t}</label>`).join('')}</div>
                         </div>
+                        
+                        <div class="toolbar-group" style="border-left: 1px solid #ccc; padding-left: 15px;">
+                            <label>Quick Sort Canvas</label>
+                            <select id="sort_canvas_select" onchange="sortCanvasByOption(this.value)">
+                                <option value="">-- Choose Sorting --</option>
+                                <option value="name_asc">🔤 Name (A to Z)</option>
+                                <option value="name_desc">🔤 Name (Z to A)</option>
+                                <option value="reg_asc">🔢 Reg No / Roll (Ascending)</option>
+                                <option value="reg_desc">🔢 Reg No / Roll (Descending)</option>
+                                <option value="marks_desc">🏆 Total Marks (High to Low)</option>
+                                <option value="marks_asc">📈 Total Marks (Low to High)</option>
+                            </select>
+                        </div>
                     </div>
                     
-                    <div class="toolbar-group" style="flex-direction: row; align-items: center; gap: 15px; border-left: 1px solid #ccc; padding-left: 15px;">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="landscapeToggle" onchange="toggleLandscape()" ${isLandscapeMode ? 'checked' : ''}> 📄 Page Landscape Mode
-                        </label>
-                        <button class="btn-secondary" onclick="printStatement()" style="padding: 10px 15px;">🖨️ Print Sheet</button>
-                        <button class="btn-blue" onclick="renderMasterTable()" style="padding: 10px 20px; font-size:16px;">🔍 GET MARKS</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:10px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="landscapeToggle" onchange="toggleLandscape()" ${isLandscapeMode ? 'checked' : ''}> 📄 Page Landscape Mode
+                            </label>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-secondary" onclick="printStatement()" style="padding: 10px 15px;">🖨️ Print Sheet</button>
+                            <button class="btn-blue" onclick="renderMasterTable()" style="padding: 10px 20px; font-size:16px;">🔍 GET MARKS</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -540,9 +584,77 @@
 
         function toggleCompareUI() { let isC = document.getElementById("compareToggle").checked; document.getElementById("singleTermDiv").style.display = isC ? "none" : "block"; document.getElementById("multiTermDiv").style.display = isC ? "flex" : "none"; }
         
-        // Input updates
         function updateHeading(val) { db.reportHeading = val; saveDb(false); }
         function updateYear(val) { db.year = val; saveDb(false); applyLandscapeMode(); }
+
+        // --- SEARCH STUDENT FUNCTIONALITY ---
+        function filterStudentRow(query) {
+            let q = query.trim().toLowerCase();
+            let rows = document.querySelectorAll("#marksMasterTable tbody tr");
+            rows.forEach(r => {
+                let name = r.getAttribute("data-student-name") || "";
+                let reg = r.getAttribute("data-student-reg") || "";
+                if(q !== "" && (name.toLowerCase().includes(q) || reg.toLowerCase().includes(q))) {
+                    r.classList.add("highlighted-row");
+                    r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    r.classList.remove("highlighted-row");
+                }
+            });
+        }
+
+        // --- HELPER TO CALCULATE RELIABLE STUDENT PERCENTAGE ---
+        function getStudentPercentageData(targetSec, stu, sTerms, vAllot) {
+            let totalObtained = 0;
+            let totalPossible = 0;
+
+            vAllot.forEach(a => {
+                sTerms.forEach(t => {
+                    let maxM = parseFloat(db.termMaxMarks?.[t]) || 100;
+                    let valRaw = targetSec.marks?.[a.sub]?.[stu]?.[t];
+                    let valNum = parseFloat(valRaw);
+
+                    // If Absent ("AB") or empty, student gets 0 obtained, but totalPossible counts full exam score
+                    if(!isNaN(valNum)) {
+                        totalObtained += valNum;
+                    }
+                    totalPossible += maxM;
+                });
+            });
+
+            let percentage = totalPossible > 0 ? (totalObtained / totalPossible) * 100 : 0;
+            return { percentage, totalObtained, totalPossible };
+        }
+
+        // --- SORT CANVAS OPTIONS ---
+        function sortCanvasByOption(opt) {
+            if(!opt) return;
+            saveMasterMarks(false);
+            let { cls, sec } = activeSec;
+            let d = db.school[cls][sec];
+
+            let isC = document.getElementById("compareToggle") ? document.getElementById("compareToggle").checked : false;
+            let sTerms = isC ? Array.from(document.querySelectorAll(".term-chk:checked")).map(c=>c.value) : [document.getElementById("filter_single_term")?.value].filter(Boolean);
+
+            if(opt === 'name_asc') {
+                d.students.sort((a,b) => a.localeCompare(b));
+            } else if(opt === 'name_desc') {
+                d.students.sort((a,b) => b.localeCompare(a));
+            } else if(opt === 'reg_asc') {
+                d.students.sort((a,b) => (d.regNos[a]||"").localeCompare(d.regNos[b]||"", undefined, {numeric: true}));
+            } else if(opt === 'reg_desc') {
+                d.students.sort((a,b) => (d.regNos[b]||"").localeCompare(d.regNos[a]||"", undefined, {numeric: true}));
+            } else if(opt === 'marks_desc' || opt === 'marks_asc') {
+                d.students.sort((a,b) => {
+                    let pA = getStudentPercentageData(d, a, sTerms, d.allotted).percentage;
+                    let pB = getStudentPercentageData(d, b, sTerms, d.allotted).percentage;
+                    return opt === 'marks_desc' ? pB - pA : pA - pB;
+                });
+            }
+
+            saveDb(true);
+            renderMasterTable();
+        }
 
         // --- LANDSCAPE AND PRINTER SETTING MANAGER ---
         function toggleLandscape() { 
@@ -593,11 +705,13 @@
                     @bottom-left {
                         content: "${footerYear}";
                         font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                        border-bottom: 1px solid #ccc; padding-bottom: 5px; width: 100%;
                     }
 
                     @bottom-right {
                         content: "Page " counter(page);
                         font-family: Arial, sans-serif; font-size: 10pt; color: #666;
+                        border-bottom: 1px solid #ccc; padding-bottom: 5px; width: 100%;
                     }
                 }
             `;
@@ -619,6 +733,67 @@
 
         function addNoteToCell(btn) { let i = btn.previousElementSibling; let n = prompt("Note:", i.value); if(n !== null) { i.value = n; i.title = n; i.style.width = n.length > 5 ? '120px' : '60px'; saveMasterMarks(false); } }
 
+        // --- ACCURATE SECTION & CLASS RANKING ENGINE ---
+        function computeRanks(cls, sec, sTerms, vAllot) {
+            let currentSecObj = db.school[cls][sec];
+            
+            // 1. Calculate Section Ranks
+            let secStudentScores = currentSecObj.students.map(stu => {
+                let pData = getStudentPercentageData(currentSecObj, stu, sTerms, vAllot);
+                return { stu, percentage: pData.percentage, totalObtained: pData.totalObtained };
+            });
+
+            secStudentScores.sort((a,b) => b.percentage - a.percentage || b.totalObtained - a.totalObtained);
+
+            let srMap = {};
+            let currentRank = 1;
+            secStudentScores.forEach((item, index) => {
+                if (index > 0) {
+                    let prev = secStudentScores[index - 1];
+                    if (item.percentage === prev.percentage && item.totalObtained === prev.totalObtained) {
+                        srMap[item.stu] = srMap[prev.stu]; // Same rank on exact tie
+                    } else {
+                        srMap[item.stu] = index + 1;
+                    }
+                } else {
+                    srMap[item.stu] = 1;
+                }
+            });
+
+            // 2. Calculate Class-wide Ranks across all sections
+            let classStudentScores = [];
+            for(let s in db.school[cls]) {
+                let secObj = db.school[cls][s];
+                let secAllotted = secObj.allotted || [];
+                secObj.students.forEach(stu => {
+                    let pData = getStudentPercentageData(secObj, stu, sTerms, secAllotted);
+                    classStudentScores.push({ sec: s, stu, percentage: pData.percentage, totalObtained: pData.totalObtained });
+                });
+            }
+
+            classStudentScores.sort((a,b) => b.percentage - a.percentage || b.totalObtained - a.totalObtained);
+
+            let crMap = {};
+            classStudentScores.forEach((item, index) => {
+                let rankVal = index + 1;
+                if (index > 0) {
+                    let prev = classStudentScores[index - 1];
+                    if (item.percentage === prev.percentage && item.totalObtained === prev.totalObtained) {
+                        rankVal = crMap[`${prev.sec}___${prev.stu}`];
+                    }
+                }
+                crMap[`${item.sec}___${item.stu}`] = rankVal;
+            });
+
+            // Map current section class ranks
+            let finalCrMap = {};
+            currentSecObj.students.forEach(stu => {
+                finalCrMap[stu] = crMap[`${sec}___${stu}`] || '-';
+            });
+
+            return { srMap, crMap: finalCrMap };
+        }
+
         function renderMasterTable() {
             let { cls, sec } = activeSec; let d = db.school[cls][sec];
             if(d.students.length === 0) return document.getElementById("tableContainer").innerHTML = "<i>No students loaded inside this section roster.</i>";
@@ -631,11 +806,18 @@
             let vAllot = d.allotted.filter(a => (fSub === "ALL" || a.sub === fSub) && (fTr === "ALL" || a.teacher === fTr));
             if(vAllot.length === 0) return document.getElementById("tableContainer").innerHTML = "<i>No tracking records match selection.</i>";
 
+            let { srMap, crMap } = computeRanks(cls, sec, sTerms, vAllot);
+
             let hSub = [...new Set(vAllot.map(a => a.sub))].join(", "); let hTr = [...new Set(vAllot.map(a => a.teacher))].join(", ");
 
-            let html = `<div class="page-wrapper"><div class="a4-sheet">`;
+            let html = `<div class="search-container no-print">
+                            <label>🔍 <strong>Search Student:</strong></label>
+                            <input type="text" placeholder="Type student name or Reg No to highlight..." oninput="filterStudentRow(this.value)">
+                        </div>`;
 
-            // --- FULLY CENTERED LAYOUT WITH EDITABLE HEADING ---
+            html += `<div class="page-wrapper"><div class="a4-sheet">`;
+
+            // STATEMENT HEADER
             html += `<div class="statement-header">
                         <input type="text" class="heading-input nav-input" value="${db.reportHeading}" onchange="updateHeading(this.value)">
                         
@@ -643,7 +825,7 @@
                             <div class="statement-details-group">
                                 <span><strong>Class:</strong> ${cls}</span>
                                 <span><strong>Section:</strong> ${sec}</span>
-                                <span><strong>Term(s):</strong> ${sTerms.join(", ")}</span>
+                                <span><strong>Term(s):</strong> ${sTerms.map(t => `${t} (Max:${db.termMaxMarks?.[t]||100})`).join(", ")}</span>
                             </div>
                         </div>
 
@@ -655,15 +837,24 @@
                         </div>
                     </div>`;
             
-            html += `<table><thead><tr><th rowspan="${isC ? 2 : 1}">Reg. No.</th><th rowspan="${isC ? 2 : 1}">Student Name</th>`;
+            html += `<table id="marksMasterTable"><thead><tr>
+                        <th rowspan="${isC ? 2 : 1}">Reg. No.</th>
+                        <th rowspan="${isC ? 2 : 1}">Student Name</th>
+                        <th rowspan="${isC ? 2 : 1}">SR</th>
+                        <th rowspan="${isC ? 2 : 1}">CR</th>`;
             
             vAllot.forEach(a => { html += `<th colspan="${sTerms.length}">${a.sub}<br><small>(${a.teacher})</small>` + (isC ? "" : `<div class="sort-box no-print"><span onclick="sortTable('${a.sub}', '${sTerms[0]}', 'desc')">⬇️</span><span onclick="sortTable('${a.sub}', '${sTerms[0]}', 'asc')">⬆️</span></div>`) + `</th>`; });
             html += `</tr>`;
-            if(isC) { html += `<tr>`; vAllot.forEach(a => { sTerms.forEach(t => { html += `<th class="sub-header">${t}<div class="sort-box no-print"><span onclick="sortTable('${a.sub}', '${t}', 'desc')">⬇️</span><span onclick="sortTable('${a.sub}', '${t}', 'asc')">⬆️</span></div></th>`; }); }); html += `</tr>`; }
+            if(isC) { html += `<tr>`; vAllot.forEach(a => { sTerms.forEach(t => { html += `<th class="sub-header">${t}<br><small>(Max:${db.termMaxMarks?.[t]||100})</small><div class="sort-box no-print"><span onclick="sortTable('${a.sub}', '${t}', 'desc')">⬇️</span><span onclick="sortTable('${a.sub}', '${t}', 'asc')">⬆️</span></div></th>`; }); }); html += `</tr>`; }
             html += `</thead><tbody>`;
 
             d.students.forEach((stu, rIdx) => {
-                html += `<tr><td><input type="text" class="marks-input reg-input nav-input" data-r="${rIdx}" data-c="0" data-type="reg" data-stu="${stu}" value="${d.regNos[stu] || ""}"></td><td><strong>${stu}</strong></td>`;
+                let regVal = d.regNos[stu] || "";
+                html += `<tr data-student-name="${stu}" data-student-reg="${regVal}">
+                            <td><input type="text" class="marks-input reg-input nav-input" data-r="${rIdx}" data-c="0" data-type="reg" data-stu="${stu}" value="${regVal}"></td>
+                            <td><strong>${stu}</strong></td>
+                            <td><strong>${srMap[stu] || '-'}</strong></td>
+                            <td><strong>${crMap[stu] || '-'}</strong></td>`;
                 let cIdx = 1;
                 vAllot.forEach(a => {
                     sTerms.forEach(t => {
@@ -724,7 +915,7 @@
             if(n) { n.focus(); n.select(); e.preventDefault(); }
         });
 
-        // --- DATA ANALYTICS & INSIGHT RENDERING ---
+        // --- DATA ANALYTICS & INSIGHT RENDERING WITH NORMALIZED PERCENTAGES ---
         function renderAnalyticsSidebar() {
             document.getElementById("analytics_teachers").innerHTML = db.teachers.map(t => 
                 `<div class="clickable-list-item" onclick="viewTeacherAnalytics('${t}')">👩‍🏫 ${t}</div>`).join('') || "<i>No teachers registered</i>";
@@ -742,10 +933,16 @@
             document.getElementById("analytics_classes").innerHTML = classHtml || "<i>No classes structured</i>";
         }
 
-        function getAveragePercent(marksArr) {
-            let nums = marksArr.map(n => parseFloat(n)).filter(n => !isNaN(n));
-            if(nums.length === 0) return "N/A";
-            return (nums.reduce((a,b) => a+b, 0) / nums.length).toFixed(1) + "%"; 
+        function getAveragePercentNormalized(entries) {
+            if(!entries || entries.length === 0) return "N/A";
+            let totalObtained = 0;
+            let totalMax = 0;
+            entries.forEach(e => {
+                totalObtained += e.mark;
+                totalMax += e.maxMark;
+            });
+            if(totalMax === 0) return "N/A";
+            return ((totalObtained / totalMax) * 100).toFixed(1) + "%"; 
         }
 
         function viewTeacherAnalytics(teacherName) {
@@ -760,10 +957,16 @@
                             allotments.push({ cls: c, sec: s, sub: a.sub });
                             sec.students.forEach(stu => uniqueStudents.add(`${c}_${s}_${stu}`));
                             db.terms.forEach(term => {
+                                let maxM = db.termMaxMarks?.[term] || 100;
                                 if(!termMarks[term]) termMarks[term] = [];
                                 sec.students.forEach(stu => {
                                     let mark = sec.marks?.[a.sub]?.[stu]?.[term];
-                                    if(mark && !isNaN(parseFloat(mark))) { teacherMarksList.push(mark); termMarks[term].push(mark); }
+                                    let parsed = parseFloat(mark);
+                                    if(mark && !isNaN(parsed)) { 
+                                        let item = { mark: parsed, maxMark: maxM };
+                                        teacherMarksList.push(item); 
+                                        termMarks[term].push(item); 
+                                    }
                                 });
                             });
                         }
@@ -771,7 +974,7 @@
                 }
             }
 
-            let overallAvg = getAveragePercent(teacherMarksList);
+            let overallAvg = getAveragePercentNormalized(teacherMarksList);
             let comparisonHtml = "";
             
             allotments.forEach(al => {
@@ -779,7 +982,13 @@
                 let otherSubjectMarks = [];
                 currentSec.allotted.forEach(otherA => {
                     if(otherA.sub !== al.sub) {
-                        currentSec.students.forEach(stu => { db.terms.forEach(t => { let m = currentSec.marks?.[otherA.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) otherSubjectMarks.push(m); }); });
+                        currentSec.students.forEach(stu => { 
+                            db.terms.forEach(t => { 
+                                let maxM = db.termMaxMarks?.[t] || 100;
+                                let m = parseFloat(currentSec.marks?.[otherA.sub]?.[stu]?.[t]); 
+                                if(!isNaN(m)) otherSubjectMarks.push({ mark: m, maxMark: maxM }); 
+                            }); 
+                        });
                     }
                 });
                 
@@ -788,18 +997,30 @@
                     if(otherS !== al.sec) {
                         let osData = db.school[al.cls][otherS];
                         if(osData.allotted.find(x => x.sub === al.sub && x.teacher !== teacherName)) {
-                            osData.students.forEach(stu => { db.terms.forEach(t => { let m = osData.marks?.[al.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) otherSectionMarks.push(m); }); });
+                            osData.students.forEach(stu => { 
+                                db.terms.forEach(t => { 
+                                    let maxM = db.termMaxMarks?.[t] || 100;
+                                    let m = parseFloat(osData.marks?.[al.sub]?.[stu]?.[t]); 
+                                    if(!isNaN(m)) otherSectionMarks.push({ mark: m, maxMark: maxM }); 
+                                }); 
+                            });
                         }
                     }
                 }
 
                 let thisAllotmentMarks = [];
-                currentSec.students.forEach(stu => { db.terms.forEach(t => { let m = currentSec.marks?.[al.sub]?.[stu]?.[t]; if(m && !isNaN(parseFloat(m))) thisAllotmentMarks.push(m); }); });
+                currentSec.students.forEach(stu => { 
+                    db.terms.forEach(t => { 
+                        let maxM = db.termMaxMarks?.[t] || 100;
+                        let m = parseFloat(currentSec.marks?.[al.sub]?.[stu]?.[t]); 
+                        if(!isNaN(m)) thisAllotmentMarks.push({ mark: m, maxMark: maxM }); 
+                    }); 
+                });
                 
                 comparisonHtml += `<div style="border-bottom: 1px solid #ddd; padding: 10px 0;"><strong style="color:#d68100;">Class ${al.cls} - ${al.sec} (${al.sub})</strong>
-                        <ul style="margin: 5px 0; font-size: 14px;"><li>Teacher's Performance here: <strong>${getAveragePercent(thisAllotmentMarks)}</strong></li>
-                            <li>Vs. Rest of Section (${al.sec} all subjects avg): <strong>${getAveragePercent(otherSubjectMarks)}</strong></li>
-                            <li>Vs. Other Sections (${al.cls} ${al.sub} avg): <strong>${getAveragePercent(otherSectionMarks)}</strong></li></ul></div>`;
+                        <ul style="margin: 5px 0; font-size: 14px;"><li>Teacher's Performance here: <strong>${getAveragePercentNormalized(thisAllotmentMarks)}</strong></li>
+                            <li>Vs. Rest of Section (${al.sec} all subjects avg): <strong>${getAveragePercentNormalized(otherSubjectMarks)}</strong></li>
+                            <li>Vs. Other Sections (${al.cls} ${al.sub} avg): <strong>${getAveragePercentNormalized(otherSectionMarks)}</strong></li></ul></div>`;
             });
 
             document.getElementById("analyticsMain").innerHTML = `
@@ -812,7 +1033,7 @@
                     </div>
                     <div class="grid-2">
                         <div class="analytics-card"><h3 style="margin-top:0;">📅 Term-wise Performance</h3><table style="border:none;">
-                                ${db.terms.map(t => `<tr><td style="border:none; text-align:left; border-bottom:1px solid #eee;"><strong>${t}</strong></td><td style="border:none; text-align:right; border-bottom:1px solid #eee;">${getAveragePercent(termMarks[t] || [])}</td></tr>`).join('')}
+                                ${db.terms.map(t => `<tr><td style="border:none; text-align:left; border-bottom:1px solid #eee;"><strong>${t}</strong> <small>(Max:${db.termMaxMarks?.[t]||100})</small></td><td style="border:none; text-align:right; border-bottom:1px solid #eee;">${getAveragePercentNormalized(termMarks[t] || [])}</td></tr>`).join('')}
                             </table></div>
                         <div class="analytics-card"><h3 style="margin-top:0;">🏫 Allotted Classes</h3><ul style="padding-left:15px; font-size:14px;">
                                 ${allotments.map(a => `<li><strong>Class ${a.cls} - ${a.sec}</strong>: ${a.sub}</li>`).join('') || "<i>No current classes.</i>"}
