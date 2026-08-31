@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>testing of hydrogen gas experiment</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Hydrogen Gas Pop Test Simulator&lt;/title&gt;
+    &lt;style&gt;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc; color: #1e293b;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
+        }
+        header {
+            text-align: center; padding: 15px; background: #2563eb;
+            width: 100%; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { font-size: 1.6rem; }
+        header p { font-size: 0.95rem; opacity: 0.9; margin-top: 5px; }
+        
+        #app-container {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 15px; padding: 20px; width: 100%; max-width: 1000px;
+        }
+
+        .instructions {
+            background: #e0f2fe; color: #0369a1; padding: 12px 20px;
+            border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+            text-align: center; border: 2px solid #bae6fd; width: 100%;
+        }
+
+        #canvas-container {
+            position: relative; background: #ffffff;
+            border: 2px solid #cbd5e1; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 100%; touch-action: none;
+        }
+
+        canvas { display: block; border-radius: 10px; cursor: grab; max-width: 100%; height: auto; }
+        canvas:active { cursor: grabbing; }
+
+        .info-panel {
+            background: #ffffff; width: 100%; padding: 20px;
+            border-radius: 10px; border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .equation {
+            font-size: 1.4rem; font-weight: bold; color: #1d4ed8;
+            text-align: center; margin: 10px 0 20px 0; letter-spacing: 1px;
+        }
+
+        .note-box {
+            background: #fef9c3; border-left: 5px solid #eab308;
+            padding: 15px; border-radius: 4px; color: #854d0e;
+            font-size: 0.95rem; line-height: 1.5;
+        }
+
+        .note-box strong { color: #a16207; }
+
+        .controls {
+            display: flex; gap: 15px; justify-content: center;
+            background: #f1f5f9; padding: 15px 25px;
+            border-radius: 10px; width: 100%; border: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            background: #2563eb; color: white; border: none;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer;
+            font-weight: bold; font-size: 0.95rem; transition: 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+        .btn-reset { background: #ef4444; }
+        .btn-reset:hover { background: #b91c1c; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;Reaction of Acid with Metal (Hydrogen Pop Test)&lt;/h1&gt;
+        &lt;p&gt;Testing Hydrogen Gas with a Burning Candle&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;div id=&quot;app-container&quot;&gt;
+        &lt;div class=&quot;instructions&quot; id=&quot;instruction-text&quot;&gt;
+            Step 1: Drag &lt;b&gt;Zinc Granules&lt;/b&gt; and &lt;b&gt;Dil. Sulphuric Acid&lt;/b&gt; into the Test Tube.
+        &lt;/div&gt;
+
+        &lt;div id=&quot;canvas-container&quot;&gt;
+            &lt;canvas id=&quot;simCanvas&quot; width=&quot;900&quot; height=&quot;520&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;info-panel&quot;&gt;
+            &lt;div class=&quot;equation&quot;&gt;
+                Zn&lt;sub&gt;(s)&lt;/sub&gt; + H&lt;sub&gt;2&lt;/sub&gt;SO&lt;sub&gt;4(aq)&lt;/sub&gt; &amp;rarr; ZnSO&lt;sub&gt;4(aq)&lt;/sub&gt; + H&lt;sub&gt;2(g)&lt;/sub&gt; &amp;uarr;
+            &lt;/div&gt;
+            &lt;div class=&quot;note-box&quot;&gt;
+                &lt;strong&gt;💡 Observation Note:&lt;/strong&gt; When the Hydrogen gas bubble bursts with a &lt;b&gt;POP sound&lt;/b&gt;, the candle flame may sometimes be put off (extinguished). This happens because the sudden blast of expanding gas pushes the oxygen away from the wick. &lt;br&gt;&lt;br&gt;
+                However, &lt;i&gt;sometimes the flame might not go out&lt;/i&gt;, and that does not matter! &lt;b&gt;The main aim of this experiment is the POP sound&lt;/b&gt;, which acts as the ultimate confirmation that the released gas is Hydrogen.
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;controls&quot;&gt;
+            &lt;button class=&quot;btn btn-reset&quot; id=&quot;resetBtn&quot;&gt;Reset Experiment&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;simCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const instructionText = document.getElementById(&#39;instruction-text&#39;);
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function playPopSound() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === &#39;suspended&#39;) audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = &#39;sine&#39;;
+            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+            
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        let state = {
+            hasZinc: false,
+            hasAcid: false,
+            hasSoap: false,
+            hasCork: false,
+            reactionActive: false,
+            candleLit: true,
+            time: 0
+        };
+
+        let internalBubbles = [];
+        let soapBubbles = [];
+        let explosions = [];
+        let zincParticles = [];
+
+        const stand = { x: 200, y: 130, baseY: 460 };
+        const testTube = { x: 260, y: 200, w: 40, h: 140 };
+        const trough = { x: 450, y: 360, w: 220, h: 100 };
+
+        const items = [
+            { id: &#39;zinc&#39;, name: &#39;Zinc Granules&#39;, x: 40, y: 30, w: 50, h: 60, homeX: 40, homeY: 30, isDragging: false, color: &#39;#94a3b8&#39; },
+            { id: &#39;acid&#39;, name: &#39;Dil. H2SO4&#39;, x: 120, y: 30, w: 50, h: 60, homeX: 120, homeY: 30, isDragging: false, color: &#39;#fef08a&#39; },
+            { id: &#39;soap&#39;, name: &#39;Soap Solution&#39;, x: 200, y: 30, w: 50, h: 60, homeX: 200, homeY: 30, isDragging: false, color: &#39;#bae6fd&#39; },
+            { id: &#39;cork&#39;, name: &#39;Cork &amp; Tube&#39;, x: 300, y: 20, w: 40, h: 120, homeX: 300, homeY: 20, isDragging: false },
+            { id: &#39;candle&#39;, name: &#39;Candle&#39;, x: 750, y: 30, w: 100, h: 100, homeX: 750, homeY: 30, isDragging: false }
+        ];
+
+        let dragOffsetX = 0; let dragOffsetY = 0;
+
+        function updateInstructions() {
+            if (!state.hasZinc || !state.hasAcid) {
+                instructionText.innerHTML = &quot;Step 1: Drag &lt;b&gt;Zinc Granules&lt;/b&gt; and &lt;b&gt;Dil. Sulphuric Acid&lt;/b&gt; into the Test Tube.&quot;;
+            } else if (!state.hasSoap) {
+                instructionText.innerHTML = &quot;Step 2: Drag the &lt;b&gt;Soap Solution&lt;/b&gt; into the Glass Trough on the right.&quot;;
+            } else if (!state.hasCork) {
+                instructionText.innerHTML = &quot;Step 3: Drag the &lt;b&gt;Cork &amp; Delivery Tube&lt;/b&gt; to seal the Test Tube.&quot;;
+            } else {
+                instructionText.innerHTML = &quot;Step 4: Hydrogen gas is bubbling! Drag the &lt;b&gt;Candle&lt;/b&gt; to the bubbles to test them.&quot;;
+                state.reactionActive = true;
+            }
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            state.time += 0.05;
+
+            drawApparatus();
+            
+            if (state.hasSoap) drawTroughLiquid();
+            if (state.hasZinc) drawZincInTube();
+            if (state.hasAcid) drawAcidInTube();
+            
+            if (state.hasZinc &amp;&amp; state.hasAcid) updateAndDrawInternalBubbles();
+            if (state.reactionActive) updateAndDrawSoapBubbles();
+
+            if (state.hasCork) drawCorkAndTube(testTube.x + testTube.w/2, testTube.y, true);
+
+            drawExplosions();
+            drawInventoryItems();
+            drawLabels();
+        }
+
+        function drawApparatus() {
+            ctx.fillStyle = &#39;#64748b&#39;;
+            ctx.fillRect(stand.x - 60, stand.baseY, 140, 15);
+            ctx.fillRect(stand.x, stand.y, 12, stand.baseY - stand.y);
+            ctx.fillRect(stand.x + 12, testTube.y + 40, 50, 10);
+            ctx.beginPath(); ctx.arc(testTube.x - 5, testTube.y + 45, 8, 0, Math.PI*2); ctx.fill();
+
+            ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 3;
+            ctx.fillStyle = &#39;rgba(255,255,255,0.5)&#39;;
+            ctx.beginPath();
+            ctx.moveTo(testTube.x, testTube.y);
+            ctx.lineTo(testTube.x, testTube.y + testTube.h - 20);
+            ctx.arc(testTube.x + testTube.w/2, testTube.y + testTube.h - 20, testTube.w/2, Math.PI, 0, true);
+            ctx.lineTo(testTube.x + testTube.w, testTube.y);
+            ctx.stroke(); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(testTube.x + testTube.w/2, testTube.y, testTube.w/2 + 2, 4, 0, 0, Math.PI*2); ctx.stroke();
+
+            ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 4;
+            ctx.fillStyle = &#39;rgba(255,255,255,0.6)&#39;;
+            ctx.beginPath();
+            ctx.moveTo(trough.x, trough.y); ctx.lineTo(trough.x + 10, trough.y + trough.h);
+            ctx.lineTo(trough.x + trough.w - 10, trough.y + trough.h); ctx.lineTo(trough.x + trough.w, trough.y);
+            ctx.stroke(); ctx.fill();
+        }
+
+        function drawTroughLiquid() {
+            ctx.fillStyle = &#39;rgba(186, 230, 253, 0.6)&#39;; 
+            ctx.beginPath();
+            ctx.moveTo(trough.x + 4, trough.y + 30); ctx.lineTo(trough.x + 8, trough.y + trough.h - 2);
+            ctx.lineTo(trough.x + trough.w - 8, trough.y + trough.h - 2); ctx.lineTo(trough.x + trough.w - 4, trough.y + 30);
+            ctx.fill();
+            ctx.strokeStyle = &#39;rgba(255,255,255,0.8)&#39;; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(trough.x + 4, trough.y + 30); ctx.lineTo(trough.x + trough.w - 4, trough.y + 30); ctx.stroke();
+        }
+
+        function drawZincInTube() {
+            ctx.fillStyle = &#39;#64748b&#39;;
+            ctx.strokeStyle = &#39;#334155&#39;; ctx.lineWidth = 1;
+            
+            zincParticles.forEach(p =&gt; {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.beginPath();
+                for (let i = 0; i &lt; p.sides; i++) {
+                    let a = (i / p.sides) * Math.PI * 2;
+                    ctx.lineTo(Math.cos(a) * p.r, Math.sin(a) * p.r);
+                }
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                ctx.restore();
+            });
+        }
+
+        function drawAcidInTube() {
+            ctx.fillStyle = &#39;rgba(254, 240, 138, 0.4)&#39;; 
+            ctx.fillRect(testTube.x + 3, testTube.y + 60, testTube.w - 6, testTube.h - 65);
+        }
+
+        function drawCorkAndTube(cx, cy, isAttached) {
+            ctx.fillStyle = &#39;#b45309&#39;; 
+            ctx.fillRect(cx - 18, cy - 15, 36, 25);
+            ctx.strokeStyle = &#39;#78350f&#39;; ctx.lineWidth = 2;
+            ctx.strokeRect(cx - 18, cy - 15, 36, 25);
+
+            ctx.strokeStyle = &#39;#cbd5e1&#39;; ctx.lineWidth = 6; ctx.lineJoin = &#39;round&#39;;
+            ctx.beginPath(); ctx.moveTo(cx, cy + 5); ctx.lineTo(cx, cy - 40); 
+            
+            if (isAttached) {
+                ctx.lineTo(trough.x + trough.w/2 - 20, cy - 40);
+                ctx.lineTo(trough.x + trough.w/2 + 30, trough.y + trough.h - 20);
+            } else {
+                ctx.lineTo(cx + 40, cy - 40); ctx.lineTo(cx + 60, cy + 30);
+            }
+            ctx.stroke();
+            ctx.strokeStyle = &#39;#ffffff&#39;; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        function updateAndDrawInternalBubbles() {
+            if (Math.random() &lt; 0.4) {
+                internalBubbles.push({
+                    x: testTube.x + 10 + Math.random() * (testTube.w - 20),
+                    y: testTube.y + testTube.h - 15,
+                    r: Math.random() * 2 + 1,
+                    speed: Math.random() * 1.5 + 0.8
+                });
+            }
+            ctx.fillStyle = &#39;#ffffff&#39;; ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 1;
+            
+            for (let i = internalBubbles.length - 1; i &gt;= 0; i--) {
+                let b = internalBubbles[i];
+                b.y -= b.speed;
+                b.x += Math.sin(state.time * 5 + i) * 0.4;
+
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+                let limit = state.hasCork ? testTube.y + 10 : testTube.y + 60;
+                if (b.y &lt; limit) internalBubbles.splice(i, 1);
+            }
+        }
+
+        function updateAndDrawSoapBubbles() {
+            const tubeEndX = trough.x + trough.w/2 + 30;
+            const tubeEndY = trough.y + trough.h - 20;
+
+            if (Math.random() &lt; 0.05) {
+                soapBubbles.push({
+                    x: tubeEndX, y: tubeEndY, r: Math.random() * 8 + 6,
+                    vx: (Math.random() - 0.5) * 1, vy: -(Math.random() * 1.5 + 1.5),
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            ctx.lineWidth = 2;
+            
+            for (let i = soapBubbles.length - 1; i &gt;= 0; i--) {
+                let b = soapBubbles[i];
+                
+                b.y += b.vy;
+                if (b.y &lt; trough.y + 30) b.x += Math.sin(state.time * 2 + b.phase) * 1.5 + b.vx;
+                else b.x += (Math.random() - 0.5) * 2;
+
+                ctx.fillStyle = &#39;rgba(255, 255, 255, 0.4)&#39;;
+                ctx.strokeStyle = &#39;rgba(186, 230, 253, 0.9)&#39;;
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                
+                ctx.fillStyle = &#39;white&#39;;
+                ctx.beginPath(); ctx.arc(b.x - b.r*0.3, b.y - b.r*0.3, b.r*0.2, 0, Math.PI*2); ctx.fill();
+
+                let candle = items.find(itm =&gt; itm.id === &#39;candle&#39;);
+                let flameX = candle.x + 10; let flameY = candle.y + 10;
+
+                let dist = Math.hypot(b.x - flameX, b.y - flameY);
+                if (state.candleLit &amp;&amp; dist &lt; b.r + 20) {
+                    playPopSound();
+                    explosions.push({ x: b.x, y: b.y, life: 1.0 });
+                    soapBubbles.splice(i, 1);
+                    
+                    if (Math.random() &lt; 0.35) {
+                        state.candleLit = false;
+                    }
+                    continue;
+                }
+                if (b.y &lt; -50) soapBubbles.splice(i, 1);
+            }
+        }
+
+        function drawExplosions() {
+            for (let i = explosions.length - 1; i &gt;= 0; i--) {
+                let exp = explosions[i];
+                ctx.save();
+                ctx.translate(exp.x, exp.y);
+                let scale = 1.5 - exp.life; 
+                ctx.scale(scale, scale);
+                ctx.globalAlpha = exp.life;
+
+                ctx.beginPath();
+                for (let j = 0; j &lt; 16; j++) {
+                    let r = (j % 2 === 0) ? 35 : 12;
+                    let a = (j / 16) * Math.PI * 2;
+                    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+                }
+                ctx.closePath();
+                ctx.fillStyle = &#39;#f59e0b&#39;; ctx.fill();
+                ctx.lineWidth = 3; ctx.strokeStyle = &#39;#dc2626&#39;; ctx.stroke();
+
+                ctx.fillStyle = &#39;#000000&#39;; ctx.font = &#39;bold 18px Arial&#39;;
+                ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;;
+                ctx.fillText(&quot;POP&quot;, 0, 0);
+
+                ctx.restore();
+
+                exp.life -= 0.05;
+                if (exp.life &lt;= 0) explosions.splice(i, 1);
+            }
+        }
+
+        function drawInventoryItems() {
+            items.forEach(itm =&gt; {
+                if (itm.id === &#39;cork&#39; &amp;&amp; state.hasCork) return;
+                
+                if (itm.id === &#39;cork&#39;) {
+                    drawCorkAndTube(itm.x + itm.w/2, itm.y + itm.h/2, false);
+                } else if (itm.id === &#39;candle&#39;) {
+                    ctx.save();
+                    ctx.translate(itm.x, itm.y);
+                    
+                    if (state.candleLit) {
+                        ctx.fillStyle = &#39;#facc15&#39;;
+                        ctx.beginPath(); ctx.moveTo(10, 0); ctx.quadraticCurveTo(20, 15, 10, 25); ctx.quadraticCurveTo(0, 15, 10, 0); ctx.fill();
+                        ctx.fillStyle = &#39;#f97316&#39;;
+                        ctx.beginPath(); ctx.moveTo(10, 10); ctx.quadraticCurveTo(15, 18, 10, 23); ctx.quadraticCurveTo(5, 18, 10, 10); ctx.fill();
+                    } else {
+                        ctx.fillStyle = &#39;rgba(148, 163, 184, 0.6)&#39;;
+                        ctx.beginPath(); ctx.arc(10 + Math.sin(state.time*3)*3, -5, 4, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(10 + Math.sin(state.time*3+1)*5, -15, 6, 0, Math.PI*2); ctx.fill();
+                        
+                        ctx.fillStyle = &#39;#dc2626&#39;; ctx.font = &#39;bold 12px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+                        ctx.fillText(&quot;Tap to Relight!&quot;, 10, -30);
+                    }
+                    
+                    ctx.fillStyle = &#39;#d8b4fe&#39;; 
+                    ctx.fillRect(2, 23, 16, 60);
+                    ctx.strokeStyle = &#39;#a855f7&#39;; ctx.lineWidth=2; ctx.strokeRect(2,23,16,60);
+
+                    ctx.fillStyle = &#39;#fcd34d&#39;; 
+                    ctx.beginPath(); ctx.arc(10, 60, 15, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(-2, 50, 8, 0, Math.PI*2); ctx.fill(); 
+
+                    ctx.restore();
+                } else {
+                    if ((itm.id === &#39;zinc&#39; &amp;&amp; state.hasZinc) || (itm.id === &#39;acid&#39; &amp;&amp; state.hasAcid) || (itm.id === &#39;soap&#39; &amp;&amp; state.hasSoap)) {
+                        ctx.globalAlpha = 0.3;
+                    }
+                    ctx.fillStyle = &#39;#e2e8f0&#39;; ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 2;
+                    ctx.fillRect(itm.x, itm.y + 15, itm.w, itm.h - 15); ctx.strokeRect(itm.x, itm.y + 15, itm.w, itm.h - 15);
+                    ctx.fillStyle = &#39;#64748b&#39;; ctx.fillRect(itm.x + 10, itm.y, itm.w - 20, 15);
+                    
+                    ctx.fillStyle = itm.color;
+                    ctx.fillRect(itm.x + 4, itm.y + 35, itm.w - 8, itm.h - 39);
+                    
+                    ctx.fillStyle = &#39;#0f172a&#39;; ctx.font = &#39;bold 9px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+                    ctx.fillText(itm.name.split(&#39; &#39;)[0], itm.x + itm.w/2, itm.y + 55);
+
+                    ctx.globalAlpha = 1.0;
+                }
+            });
+        }
+
+        function drawLabels() {
+            ctx.fillStyle = &#39;#334155&#39;; ctx.font = &#39;13px Arial&#39;; ctx.textAlign = &#39;right&#39;;
+            
+            ctx.fillText(&quot;Stand&quot;, stand.x - 10, stand.y + 50);
+            ctx.beginPath(); ctx.moveTo(stand.x - 5, stand.y + 45); ctx.lineTo(stand.x + 10, stand.y + 45); ctx.stroke();
+
+            ctx.fillText(&quot;Test tube&quot;, testTube.x - 20, testTube.y + 40);
+            ctx.beginPath(); ctx.moveTo(testTube.x - 15, testTube.y + 35); ctx.lineTo(testTube.x, testTube.y + 35); ctx.stroke();
+
+            ctx.fillText(&quot;Dil. sulphuric acid&quot;, testTube.x - 20, testTube.y + 80);
+            ctx.beginPath(); ctx.moveTo(testTube.x - 15, testTube.y + 75); ctx.lineTo(testTube.x + 10, testTube.y + 75); ctx.stroke();
+
+            ctx.fillText(&quot;Zinc granules / powder&quot;, testTube.x - 20, testTube.y + 130);
+            ctx.beginPath(); ctx.moveTo(testTube.x - 15, testTube.y + 125); ctx.lineTo(testTube.x + 15, testTube.y + 125); ctx.stroke();
+
+            ctx.textAlign = &#39;left&#39;;
+            ctx.fillText(&quot;H₂ gas bubbles&quot;, testTube.x + 50, testTube.y + 100);
+
+            ctx.fillText(&quot;Soap solution&quot;, trough.x + trough.w + 20, trough.y + 80);
+            ctx.beginPath(); ctx.moveTo(trough.x + trough.w - 10, trough.y + 75); ctx.lineTo(trough.x + trough.w + 15, trough.y + 75); ctx.stroke();
+            
+            ctx.fillText(&quot;Delivery tube&quot;, testTube.x + 120, testTube.y - 60);
+            ctx.beginPath(); ctx.moveTo(testTube.x + 80, testTube.y - 40); ctx.lineTo(testTube.x + 115, testTube.y - 65); ctx.stroke();
+        }
+
+        // Universal Pos Pointer Handling (Mouse &amp; Touch)
+        function getPointerPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+
+            if (evt.touches &amp;&amp; evt.touches.length &gt; 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleStart(e) {
+            if (audioCtx &amp;&amp; audioCtx.state === &#39;suspended&#39;) audioCtx.resume();
+            
+            const m = getPointerPos(e);
+            
+            let candle = items.find(i =&gt; i.id === &#39;candle&#39;);
+            if (!state.candleLit &amp;&amp; m.x &gt;= candle.x &amp;&amp; m.x &lt;= candle.x + candle.w &amp;&amp; m.y &gt;= candle.y &amp;&amp; m.y &lt;= candle.y + candle.h) {
+                state.candleLit = true;
+                return;
+            }
+
+            for (let i = items.length - 1; i &gt;= 0; i--) {
+                let itm = items[i];
+                if (itm.id === &#39;zinc&#39; &amp;&amp; state.hasZinc) continue;
+                if (itm.id === &#39;acid&#39; &amp;&amp; state.hasAcid) continue;
+                if (itm.id === &#39;soap&#39; &amp;&amp; state.hasSoap) continue;
+                if (itm.id === &#39;cork&#39; &amp;&amp; state.hasCork) continue;
+
+                if (m.x &gt;= itm.x &amp;&amp; m.x &lt;= itm.x + itm.w &amp;&amp; m.y &gt;= itm.y &amp;&amp; m.y &lt;= itm.y + itm.h) {
+                    itm.isDragging = true;
+                    dragOffsetX = m.x - itm.x;
+                    dragOffsetY = m.y - itm.y;
+                    if (e.cancelable) e.preventDefault();
+                    return; 
+                }
+            }
+        }
+
+        function handleMove(e) {
+            const m = getPointerPos(e);
+            let activeDrag = false;
+            items.forEach(itm =&gt; {
+                if (itm.isDragging) {
+                    itm.x = m.x - dragOffsetX;
+                    itm.y = m.y - dragOffsetY;
+                    activeDrag = true;
+                }
+            });
+            if (activeDrag &amp;&amp; e.cancelable) e.preventDefault();
+        }
+
+        function handleEnd() {
+            items.forEach(itm =&gt; {
+                if (itm.isDragging) {
+                    itm.isDragging = false;
+                    
+                    if (itm.id === &#39;zinc&#39; || itm.id === &#39;acid&#39;) {
+                        if (itm.x + itm.w/2 &gt; testTube.x - 20 &amp;&amp; itm.x + itm.w/2 &lt; testTube.x + testTube.w + 20 &amp;&amp; 
+                            itm.y + itm.h &gt; testTube.y - 40 &amp;&amp; itm.y &lt; testTube.y + testTube.h) {
+                            
+                            if (itm.id === &#39;zinc&#39; &amp;&amp; !state.hasZinc) {
+                                state.hasZinc = true;
+                                zincParticles = [];
+                                for(let k = 0; k &lt; 45; k++) {
+                                    zincParticles.push({
+                                        x: testTube.x + 8 + Math.random()*(testTube.w - 16),
+                                        y: testTube.y + testTube.h - Math.random()*12 - 4,
+                                        r: Math.random()*2 + 1.2,
+                                        sides: Math.floor(Math.random()*4) + 4,
+                                        rot: Math.random()*Math.PI
+                                    });
+                                }
+                            }
+                            if (itm.id === &#39;acid&#39;) state.hasAcid = true;
+                        }
+                    } else if (itm.id === &#39;soap&#39;) {
+                        if (itm.x + itm.w/2 &gt; trough.x &amp;&amp; itm.x + itm.w/2 &lt; trough.x + trough.w &amp;&amp;
+                            itm.y + itm.h &gt; trough.y - 40 &amp;&amp; itm.y &lt; trough.y + trough.h) {
+                            state.hasSoap = true;
+                        }
+                    } else if (itm.id === &#39;cork&#39;) {
+                        if (itm.x + itm.w/2 &gt; testTube.x - 30 &amp;&amp; itm.x + itm.w/2 &lt; testTube.x + testTube.w + 30 &amp;&amp; 
+                            itm.y + itm.h/2 &gt; testTube.y - 40 &amp;&amp; itm.y + itm.h/2 &lt; testTube.y + 40) {
+                            state.hasCork = true;
+                        }
+                    }
+
+                    if (itm.id !== &#39;candle&#39;) {
+                        itm.x = itm.homeX; itm.y = itm.homeY;
+                    }
+                }
+            });
+
+            updateInstructions();
+        }
+
+        // Mouse listeners
+        canvas.addEventListener(&#39;mousedown&#39;, handleStart);
+        canvas.addEventListener(&#39;mousemove&#39;, handleMove);
+        window.addEventListener(&#39;mouseup&#39;, handleEnd);
+
+        // Touch listeners for Mobile Devices
+        canvas.addEventListener(&#39;touchstart&#39;, handleStart, { passive: false });
+        canvas.addEventListener(&#39;touchmove&#39;, handleMove, { passive: false });
+        window.addEventListener(&#39;touchend&#39;, handleEnd);
+
+        document.getElementById(&#39;resetBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            state.hasZinc = false; state.hasAcid = false; state.hasSoap = false; 
+            state.hasCork = false; state.reactionActive = false; state.candleLit = true;
+            internalBubbles = []; soapBubbles = []; explosions = []; zincParticles = [];
+            items.forEach(itm =&gt; { itm.x = itm.homeX; itm.y = itm.homeY; });
+            updateInstructions();
+        });
+
+        function animate() {
+            drawScene();
+            requestAnimationFrame(animate);
+        }
+
+        updateInstructions();
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
