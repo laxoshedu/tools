@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>burning of magnesium ribbon</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1401px;
+    height: 788px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Virtual Lab: Burning of Magnesium Ribbon&lt;/title&gt;
+    &lt;style&gt;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        
+        body {
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0f19; color: #f8fafc;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
+            touch-action: none; /* Prevents screen scrolling while dragging */
+        }
+
+        header {
+            text-align: center; padding: 12px 20px; background: #1e293b;
+            width: 100%; border-bottom: 1px solid #334155;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        header h1 { font-size: 1.5rem; color: #38bdf8; }
+        header p { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+
+        #main-container {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 12px; padding: 15px; width: 100%; max-width: 1120px;
+        }
+
+        .instructions {
+            background: #0284c7; color: #ffffff; padding: 10px 18px;
+            border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+            text-align: center; border: 1px solid #38bdf8; width: 100%;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        #canvas-container {
+            position: relative; background: #020617;
+            border: 2px solid #334155; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            width: 100%; max-width: 1060px;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block; border-radius: 10px; cursor: grab;
+            width: 100%; height: auto;
+            touch-action: none;
+        }
+        canvas:active { cursor: grabbing; }
+
+        .info-panel {
+            background: #1e293b; width: 100%; padding: 12px 20px;
+            border-radius: 10px; border: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            flex-wrap: wrap; gap: 10px;
+        }
+
+        .equation-box {
+            font-size: 1.05rem; font-weight: bold; color: #f8fafc;
+        }
+        .eq-highlight { color: #38bdf8; }
+
+        .btn {
+            background: #dc2626; color: white; border: none;
+            padding: 8px 18px; border-radius: 6px; cursor: pointer;
+            font-weight: bold; font-size: 0.9rem; transition: 0.2s;
+        }
+        .btn:hover { background: #ef4444; transform: translateY(-2px); }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;Virtual Chemistry Lab: Burning of Magnesium Ribbon&lt;/h1&gt;
+        &lt;p&gt;Synthesis Reaction of Magnesium with Atmospheric Oxygen &amp; Testing Oxide Nature&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;div id=&quot;main-container&quot;&gt;
+        &lt;div class=&quot;instructions&quot; id=&quot;instruction-text&quot;&gt;
+            Step 1: The Magnesium Ribbon is dull due to an oxide layer. Drag the &lt;b&gt;Rough Sandpaper&lt;/b&gt; and scrub it over the ribbon to clean it!
+        &lt;/div&gt;
+
+        &lt;div id=&quot;canvas-container&quot;&gt;
+            &lt;canvas id=&quot;simCanvas&quot; width=&quot;1060&quot; height=&quot;540&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;info-panel&quot;&gt;
+            &lt;div class=&quot;equation-box&quot; id=&quot;eq-display&quot;&gt;
+                Reaction: &lt;span class=&quot;eq-highlight&quot;&gt;2Mg + O₂ &amp;rarr; 2MgO&lt;/span&gt; (Magnesium + Oxygen &amp;rarr; Magnesium Oxide)
+            &lt;/div&gt;
+            &lt;button class=&quot;btn&quot; id=&quot;resetBtn&quot;&gt;Reset Experiment&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;simCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const instructionText = document.getElementById(&#39;instruction-text&#39;);
+        const eqDisplay = document.getElementById(&#39;eq-display&#39;);
+
+        // State Tracking
+        let state = {
+            step: 1,
+            ribbonCleanliness: 0, // 0 to 100
+            isBurning: false,
+            burnProgress: 0,     // 0 to 100
+            ashInDish: 0,        // 0 to 100
+            spatulaAsh: 0,       // Quantity on spatula
+            beakerAsh: 0,        // Quantity in beaker
+            litmusTested: false,
+            showWarning: false,
+            time: 0
+        };
+
+        // Static Beaker Position
+        const beakerPos = { x: 860, y: 290, w: 130, h: 160 };
+
+        // Draggable Inventory Items
+        const items = [
+            { id: &#39;sandpaper&#39;, name: &#39;Rough Sandpaper&#39;, x: 40, y: 25, w: 75, h: 55, homeX: 40, homeY: 25, isDragging: false },
+            { id: &#39;spatula&#39;, name: &#39;Spatula&#39;, x: 140, y: 25, w: 120, h: 30, homeX: 140, homeY: 25, isDragging: false },
+            { id: &#39;litmus&#39;, name: &#39;Red Litmus Strip&#39;, x: 280, y: 20, w: 22, h: 80, homeX: 280, homeY: 20, isDragging: false },
+            { id: &#39;burner&#39;, name: &#39;Burner&#39;, x: 220, y: 350, w: 90, h: 110, homeX: 220, homeY: 350, isDragging: false },
+            { id: &#39;dish&#39;, name: &#39;Transparent Glass Dish&#39;, x: 380, y: 395, w: 150, h: 45, homeX: 380, homeY: 395, isDragging: false },
+            { id: &#39;tongs&#39;, name: &#39;Tongs &amp; Ribbon&#39;, x: 550, y: 180, w: 260, h: 60, homeX: 550, homeY: 180, isDragging: false }
+        ];
+
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let lastMouseX = 0, lastMouseY = 0;
+
+        // Particle Arrays
+        let ashMotes = [];
+        let o2Particles = [];
+        let scrubParticles = [];
+
+        function updateStepGuide() {
+            if (state.step === 1 &amp;&amp; state.ribbonCleanliness &gt;= 100) {
+                state.step = 2;
+                instructionText.innerHTML = &quot;Step 2: Magnesium is clean! Drag the &lt;b&gt;Burner&lt;/b&gt; or &lt;b&gt;Glass Dish&lt;/b&gt; into position, then hold the &lt;b&gt;Ribbon Tip&lt;/b&gt; in the Flame.&quot;;
+            } else if (state.step === 2 &amp;&amp; state.ashInDish &gt;= 70) {
+                state.step = 3;
+                instructionText.innerHTML = &quot;Step 3: White MgO powder collected! Drag the &lt;b&gt;Spatula&lt;/b&gt; to scoop ash from the Glass Dish.&quot;;
+            } else if (state.step === 3 &amp;&amp; state.beakerAsh &gt;= 50) {
+                state.step = 4;
+                instructionText.innerHTML = &quot;Step 4: Magnesium Oxide dissolved into Mg(OH)₂! Drag the &lt;b&gt;Red Litmus Strip&lt;/b&gt; into the Beaker to test it.&quot;;
+            } else if (state.step === 4 &amp;&amp; state.litmusTested) {
+                instructionText.innerHTML = &quot;&lt;b&gt;Experiment Complete!&lt;/b&gt; Red Litmus turned Blue, confirming Mg(OH)₂ solution is &lt;b&gt;BASIC&lt;/b&gt; in nature.&quot;;
+            }
+        }
+
+        // --- Render Loop ---
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            state.time += 0.05;
+
+            drawLabBench();
+            drawBeaker();
+
+            if (state.isBurning) {
+                processBurning();
+            }
+
+            updateAndDrawO2Particles();
+            drawAshMotes();
+            drawScrubParticles();
+            drawInventoryItems();
+
+            drawDiagramLabels();
+
+            if (state.showWarning) {
+                ctx.fillStyle = &quot;#ef4444&quot;;
+                ctx.font = &quot;bold 15px Segoe UI&quot;; ctx.textAlign = &quot;center&quot;;
+                ctx.fillText(&quot;Cannot burn! Clean the dull oxide coating with Sandpaper first!&quot;, canvas.width / 2, 130);
+            }
+
+            updateStepGuide();
+        }
+
+        function drawLabBench() {
+            ctx.fillStyle = &quot;#1e293b&quot;; ctx.fillRect(20, 95, 420, 10);
+            ctx.fillStyle = &quot;#334155&quot;; ctx.fillRect(20, 105, 420, 4);
+
+            ctx.fillStyle = &quot;#1e293b&quot;; ctx.fillRect(0, 440, canvas.width, 100);
+            ctx.strokeStyle = &quot;#334155&quot;; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 440); ctx.lineTo(canvas.width, 440); ctx.stroke();
+        }
+
+        function drawSlantedBurner(burner) {
+            ctx.save();
+            ctx.translate(burner.x + 30, burner.y + 40);
+
+            ctx.fillStyle = &quot;#334155&quot;; ctx.strokeStyle = &quot;#64748b&quot;; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.ellipse(-10, 30, 40, 12, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            ctx.rotate(-Math.PI / 4);
+
+            ctx.fillStyle = &quot;#2563eb&quot;; ctx.fillRect(-20, -10, 80, 20);
+            ctx.fillStyle = &quot;#1d4ed8&quot;; ctx.fillRect(55, -12, 15, 24);
+            ctx.fillStyle = &quot;#475569&quot;; ctx.fillRect(10, 10, 8, 15);
+
+            let flameTipX = 70;
+            ctx.fillStyle = &quot;rgba(56, 189, 248, 0.6)&quot;;
+            ctx.beginPath();
+            ctx.moveTo(flameTipX, -10);
+            ctx.quadraticCurveTo(flameTipX + 50 + Math.sin(state.time * 4) * 4, 0, flameTipX, 10);
+            ctx.fill();
+
+            ctx.fillStyle = &quot;rgba(255, 255, 255, 0.85)&quot;;
+            ctx.beginPath();
+            ctx.moveTo(flameTipX, -5);
+            ctx.quadraticCurveTo(flameTipX + 25 + Math.sin(state.time * 6) * 2, 0, flameTipX, 5);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawGlassDish(dish) {
+            ctx.fillStyle = &quot;rgba(0, 0, 0, 0.35)&quot;;
+            ctx.beginPath();
+            ctx.ellipse(dish.x + dish.w / 2, dish.y + dish.h, dish.w / 2, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = &quot;rgba(224, 242, 254, 0.16)&quot;;
+            ctx.beginPath();
+            ctx.ellipse(dish.x + dish.w / 2, dish.y + 10, dish.w / 2, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(dish.x + dish.w / 2, dish.y + 10, dish.w / 2, 0, Math.PI, false);
+            ctx.fill();
+
+            if (state.ashInDish &gt; 0) {
+                let ashLevel = Math.min(state.ashInDish / 100, 1.0);
+                ctx.fillStyle = &quot;rgba(248, 250, 252, 0.9)&quot;;
+                ctx.beginPath();
+                ctx.ellipse(dish.x + dish.w / 2, dish.y + 18, (dish.w / 2 - 12) * ashLevel, 9 * ashLevel, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.75)&quot;;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.ellipse(dish.x + dish.w / 2, dish.y + 10, dish.w / 2, 10, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(dish.x + dish.w / 2, dish.y + 10, dish.w / 2, 0, Math.PI, false);
+            ctx.stroke();
+
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.35)&quot;;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(dish.x + dish.w / 2, dish.y + 12, dish.w / 2 - 5, 0.2, Math.PI - 0.2, false);
+            ctx.stroke();
+        }
+
+        function drawBeaker() {
+            ctx.fillStyle = state.beakerAsh &gt; 0 ? &quot;rgba(226, 232, 240, 0.55)&quot; : &quot;rgba(56, 189, 248, 0.15)&quot;;
+            ctx.fillRect(beakerPos.x + 6, beakerPos.y + 30, beakerPos.w - 12, beakerPos.h - 35);
+
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.6)&quot;; ctx.lineWidth = 3.5;
+            ctx.beginPath(); ctx.moveTo(beakerPos.x, beakerPos.y); ctx.lineTo(beakerPos.x, beakerPos.y + beakerPos.h);
+            ctx.quadraticCurveTo(beakerPos.x + beakerPos.w / 2, beakerPos.y + beakerPos.h + 8, beakerPos.x + beakerPos.w, beakerPos.y + beakerPos.h);
+            ctx.lineTo(beakerPos.x + beakerPos.w, beakerPos.y); ctx.stroke();
+
+            ctx.beginPath(); ctx.ellipse(beakerPos.x + beakerPos.w / 2, beakerPos.y + 30, beakerPos.w / 2 - 6, 8, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.4)&quot;; ctx.lineWidth = 2; ctx.stroke();
+
+            ctx.fillStyle = &quot;#94a3b8&quot;; ctx.font = &quot;bold 12px Segoe UI&quot;; ctx.textAlign = &quot;center&quot;;
+            ctx.fillText(state.beakerAsh &gt; 0 ? &quot;Mg(OH)₂ Solution&quot; : &quot;Water (H₂O)&quot;, beakerPos.x + beakerPos.w / 2, beakerPos.y + 100);
+        }
+
+        function drawInventoryItems() {
+            let sandpaper = items.find(i =&gt; i.id === &#39;sandpaper&#39;);
+            let tongs = items.find(i =&gt; i.id === &#39;tongs&#39;);
+            let spatula = items.find(i =&gt; i.id === &#39;spatula&#39;);
+            let litmus = items.find(i =&gt; i.id === &#39;litmus&#39;);
+            let burner = items.find(i =&gt; i.id === &#39;burner&#39;);
+            let dish = items.find(i =&gt; i.id === &#39;dish&#39;);
+
+            drawSlantedBurner(burner);
+            drawGlassDish(dish);
+
+            // Sandpaper
+            ctx.save();
+            ctx.translate(sandpaper.x, sandpaper.y);
+            ctx.fillStyle = &quot;#b45309&quot;; ctx.fillRect(0, 0, sandpaper.w, sandpaper.h);
+            ctx.fillStyle = &quot;#78350f&quot;;
+            for (let i = 0; i &lt; 40; i++) {
+                let rx = (Math.sin(i * 99) * 1000) % sandpaper.w;
+                let ry = (Math.cos(i * 33) * 1000) % sandpaper.h;
+                ctx.fillRect(Math.abs(rx), Math.abs(ry), 2, 2);
+            }
+            ctx.strokeStyle = &quot;#f59e0b&quot;; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, sandpaper.w, sandpaper.h);
+            ctx.fillStyle = &quot;#ffffff&quot;; ctx.font = &quot;bold 10px Segoe UI&quot;; ctx.textAlign = &quot;center&quot;;
+            ctx.fillText(&quot;Rough&quot;, sandpaper.w / 2, 24); ctx.fillText(&quot;Sandpaper&quot;, sandpaper.w / 2, 38);
+            ctx.restore();
+
+            // Tongs &amp; Ribbon
+            ctx.save();
+            ctx.translate(tongs.x, tongs.y);
+
+            ctx.fillStyle = &quot;#ec4899&quot;; ctx.fillRect(170, 0, 70, 14);
+            ctx.fillStyle = &quot;#3b82f6&quot;; ctx.fillRect(170, 22, 70, 14);
+
+            ctx.strokeStyle = &quot;#94a3b8&quot;; ctx.lineWidth = 5; ctx.lineCap = &quot;round&quot;;
+            ctx.beginPath(); ctx.moveTo(230, 7); ctx.lineTo(110, 15); ctx.lineTo(0, 16); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(230, 29); ctx.lineTo(110, 21); ctx.lineTo(0, 20); ctx.stroke();
+
+            ctx.fillStyle = &quot;#ef4444&quot;; ctx.beginPath(); ctx.arc(230, 18, 10, 0, Math.PI * 2); ctx.fill();
+
+            if (state.burnProgress &lt; 100) {
+                let remainingLength = 110 * (1 - state.burnProgress / 100);
+
+                let grad = ctx.createLinearGradient(-remainingLength, 0, 0, 0);
+                if (state.ribbonCleanliness &lt; 100) {
+                    grad.addColorStop(0, &quot;#475569&quot;);
+                    grad.addColorStop(1, &quot;#64748b&quot;);
+                } else {
+                    grad.addColorStop(0, &quot;#f8fafc&quot;);
+                    grad.addColorStop(0.5, &quot;#cbd5e1&quot;);
+                    grad.addColorStop(1, &quot;#f1f5f9&quot;);
+                }
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(-remainingLength, 13, remainingLength, 10);
+                ctx.strokeStyle = &quot;#334155&quot;; ctx.lineWidth = 1; ctx.strokeRect(-remainingLength, 13, remainingLength, 10);
+            }
+            ctx.restore();
+
+            // Spatula Tool
+            ctx.save();
+            ctx.translate(spatula.x, spatula.y);
+            ctx.fillStyle = &quot;#64748b&quot;; ctx.fillRect(35, 10, 80, 7);
+            ctx.fillStyle = &quot;#cbd5e1&quot;;
+            ctx.beginPath(); ctx.ellipse(18, 13, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+            if (state.spatulaAsh &gt; 0) {
+                let moundSize = (state.spatulaAsh / 35) * 7;
+                ctx.fillStyle = &quot;#f8fafc&quot;;
+                ctx.beginPath(); ctx.ellipse(18, 12, 12, moundSize, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+
+            // Red Litmus Strip
+            ctx.save();
+            ctx.translate(litmus.x, litmus.y);
+            ctx.fillStyle = &quot;#ef4444&quot;; ctx.fillRect(0, 0, litmus.w, litmus.h);
+
+            if (state.litmusTested) {
+                ctx.fillStyle = &quot;#2563eb&quot;;
+                ctx.fillRect(0, litmus.h * 0.4, litmus.w, litmus.h * 0.6);
+            }
+            ctx.strokeStyle = &quot;#b91c1c&quot;; ctx.lineWidth = 1; ctx.strokeRect(0, 0, litmus.w, litmus.h);
+            ctx.restore();
+        }
+
+        function processBurning() {
+            let tongs = items.find(i =&gt; i.id === &#39;tongs&#39;);
+            let remainingLength = 110 * (1 - state.burnProgress / 100);
+            let tipX = tongs.x - remainingLength;
+            let tipY = tongs.y + 18;
+
+            ctx.save();
+            ctx.shadowBlur = 55 + Math.random() * 20;
+            ctx.shadowColor = &quot;#ffffff&quot;;
+
+            let grad = ctx.createRadialGradient(tipX, tipY, 2, tipX, tipY, 40);
+            grad.addColorStop(0, &quot;#ffffff&quot;);
+            grad.addColorStop(0.3, &quot;rgba(255, 255, 255, 0.95)&quot;);
+            grad.addColorStop(0.7, &quot;rgba(248, 250, 252, 0.4)&quot;);
+            grad.addColorStop(1, &quot;transparent&quot;);
+
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(tipX, tipY, 45, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            if (Math.random() &lt; 0.4) {
+                let angle = Math.random() * Math.PI * 2;
+                let dist = 120 + Math.random() * 60;
+                o2Particles.push({
+                    x: tipX + Math.cos(angle) * dist,
+                    y: tipY + Math.sin(angle) * dist,
+                    targetX: tipX, targetY: tipY,
+                    speed: 2.5 + Math.random() * 1.5
+                });
+            }
+
+            if (Math.random() &lt; 0.65) {
+                ashMotes.push({
+                    x: tipX + (Math.random() - 0.5) * 12,
+                    y: tipY,
+                    vy: 1.8 + Math.random() * 1.5,
+                    r: Math.random() * 2.5 + 1.5
+                });
+            }
+
+            state.burnProgress += 0.35;
+            if (state.burnProgress &gt;= 100) {
+                state.isBurning = false;
+            }
+        }
+
+        function updateAndDrawO2Particles() {
+            let tongs = items.find(i =&gt; i.id === &#39;tongs&#39;);
+            let remainingLength = 110 * (1 - state.burnProgress / 100);
+            let tipX = tongs.x - remainingLength;
+            let tipY = tongs.y + 18;
+
+            for (let i = o2Particles.length - 1; i &gt;= 0; i--) {
+                let p = o2Particles[i];
+                let dx = tipX - p.x;
+                let dy = tipY - p.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist &lt; 10 || !state.isBurning) {
+                    o2Particles.splice(i, 1);
+                    continue;
+                }
+
+                p.x += (dx / dist) * p.speed;
+                p.y += (dy / dist) * p.speed;
+
+                ctx.fillStyle = &quot;#38bdf8&quot;;
+                ctx.font = &quot;bold 11px Segoe UI&quot;;
+                ctx.fillText(&quot;O₂&quot;, p.x, p.y);
+            }
+        }
+
+        function drawAshMotes() {
+            let dish = items.find(i =&gt; i.id === &#39;dish&#39;);
+
+            for (let i = ashMotes.length - 1; i &gt;= 0; i--) {
+                let m = ashMotes[i];
+                m.y += m.vy;
+
+                ctx.fillStyle = &quot;#f8fafc&quot;;
+                ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2); ctx.fill();
+
+                ctx.fillStyle = &quot;#e2e8f0&quot;;
+                ctx.font = &quot;bold 10px Segoe UI&quot;;
+                ctx.textAlign = &quot;left&quot;;
+                ctx.fillText(&quot;MgO&quot;, m.x + 6, m.y + 3);
+
+                if (m.x &gt;= dish.x &amp;&amp; m.x &lt;= dish.x + dish.w &amp;&amp; m.y &gt;= dish.y + 10 &amp;&amp; m.y &lt;= dish.y + dish.h + 20) {
+                    state.ashInDish += 1.2;
+                    ashMotes.splice(i, 1);
+                } else if (m.y &gt; 470) {
+                    ashMotes.splice(i, 1);
+                }
+            }
+        }
+
+        function drawScrubParticles() {
+            for (let i = scrubParticles.length - 1; i &gt;= 0; i--) {
+                let p = scrubParticles[i];
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.04;
+
+                if (p.alpha &lt;= 0) {
+                    scrubParticles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.fillStyle = `rgba(148, 163, 184, ${p.alpha})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function drawDiagramLabels() {
+            ctx.save();
+            ctx.fillStyle = &quot;#ffffff&quot;;
+            ctx.font = &quot;bold 12px Segoe UI&quot;;
+            ctx.strokeStyle = &quot;rgba(255, 255, 255, 0.7)&quot;;
+            ctx.lineWidth = 1.5;
+
+            function drawPointer(text, textX, textY, targetX, targetY, align = &quot;left&quot;) {
+                ctx.textAlign = align;
+                ctx.fillText(text, textX, textY);
+
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = &quot;#ffffff&quot;;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(targetX, targetY);
+                ctx.lineTo(textX + (align === &quot;right&quot; ? -5 : align === &quot;center&quot; ? 0 : 5), textY - 4);
+                ctx.stroke();
+            }
+
+            let burner = items.find(i =&gt; i.id === &#39;burner&#39;);
+            let dish = items.find(i =&gt; i.id === &#39;dish&#39;);
+            let tongs = items.find(i =&gt; i.id === &#39;tongs&#39;);
+            let spatula = items.find(i =&gt; i.id === &#39;spatula&#39;);
+            let litmus = items.find(i =&gt; i.id === &#39;litmus&#39;);
+
+            drawPointer(&quot;Burner&quot;, burner.x - 40, burner.y + 30, burner.x + 30, burner.y + 20, &quot;right&quot;);
+            drawPointer(&quot;Glass Dish&quot;, dish.x + dish.w + 40, dish.y + 25, dish.x + dish.w - 15, dish.y + 20, &quot;left&quot;);
+
+            if (state.ashInDish &gt; 0) {
+                drawPointer(&quot;White Powder ( MgO )&quot;, dish.x - 110, dish.y + 20, dish.x + 35, dish.y + 16, &quot;right&quot;);
+            }
+
+            if (state.burnProgress &lt; 100) {
+                let remainingLength = 110 * (1 - state.burnProgress / 100);
+                drawPointer(&quot;Magnesium Ribbon ( Mg )&quot;, tongs.x - remainingLength - 20, tongs.y + 70, tongs.x - remainingLength / 2, tongs.y + 18, &quot;center&quot;);
+            }
+
+            drawPointer(&quot;Tongs&quot;, tongs.x + 230, tongs.y - 12, tongs.x + 190, tongs.y + 18, &quot;left&quot;);
+            drawPointer(&quot;Spatula&quot;, spatula.x + spatula.w / 2, spatula.y - 12, spatula.x + 20, spatula.y + 12, &quot;center&quot;);
+            drawPointer(&quot;Red Litmus Paper&quot;, litmus.x + 30, litmus.y + 20, litmus.x + 10, litmus.y + 15, &quot;left&quot;);
+
+            if (state.isBurning) {
+                let remainingLength = 110 * (1 - state.burnProgress / 100);
+                let tipX = tongs.x - remainingLength;
+                let tipY = tongs.y + 18;
+                drawPointer(&quot;Dazzling Light&quot;, tipX - 80, tipY - 40, tipX, tipY, &quot;right&quot;);
+
+                if (o2Particles.length &gt; 0) {
+                    let p = o2Particles[0];
+                    drawPointer(&quot;Atmospheric Oxygen ( O₂ )&quot;, p.x + 30, p.y - 20, p.x + 5, p.y, &quot;left&quot;);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        // --- Unified Mouse &amp; Mobile Touch Mechanics ---
+        function getPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.touches ? (evt.touches[0] || evt.changedTouches[0]).clientX : evt.clientX;
+            const clientY = evt.touches ? (evt.touches[0] || evt.changedTouches[0]).clientY : evt.clientY;
+
+            // Calculates responsive scale factor so mobile coordinates are 100% accurate!
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleStart(m) {
+            for (let i = items.length - 1; i &gt;= 0; i--) {
+                let itm = items[i];
+
+                if (m.x &gt;= itm.x &amp;&amp; m.x &lt;= itm.x + itm.w &amp;&amp; m.y &gt;= itm.y &amp;&amp; m.y &lt;= itm.y + itm.h) {
+                    itm.isDragging = true;
+                    dragOffsetX = m.x - itm.x;
+                    dragOffsetY = m.y - itm.y;
+                    lastMouseX = m.x; lastMouseY = m.y;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function handleMove(m) {
+            let sandpaper = items.find(i =&gt; i.id === &#39;sandpaper&#39;);
+            let tongs = items.find(i =&gt; i.id === &#39;tongs&#39;);
+            let spatula = items.find(i =&gt; i.id === &#39;spatula&#39;);
+            let litmus = items.find(i =&gt; i.id === &#39;litmus&#39;);
+            let burner = items.find(i =&gt; i.id === &#39;burner&#39;);
+            let dish = items.find(i =&gt; i.id === &#39;dish&#39;);
+
+            // 1. Sandpaper Scrubbing
+            if (sandpaper.isDragging &amp;&amp; state.ribbonCleanliness &lt; 100) {
+                let remainingLength = 110 * (1 - state.burnProgress / 100);
+                let ribbonX = tongs.x - remainingLength;
+                let ribbonY = tongs.y + 13;
+
+                if (sandpaper.x &lt; tongs.x &amp;&amp; sandpaper.x + sandpaper.w &gt; ribbonX &amp;&amp;
+                    sandpaper.y &lt; ribbonY + 25 &amp;&amp; sandpaper.y + sandpaper.h &gt; ribbonY - 10) {
+                    
+                    let speed = Math.abs(m.x - lastMouseX) + Math.abs(m.y - lastMouseY);
+                    state.ribbonCleanliness += speed * 0.12;
+                    if (state.ribbonCleanliness &gt; 100) state.ribbonCleanliness = 100;
+
+                    if (Math.random() &lt; 0.5) {
+                        scrubParticles.push({
+                            x: m.x, y: m.y,
+                            vx: (Math.random() - 0.5) * 2,
+                            vy: (Math.random() - 0.5) * 2,
+                            alpha: 1.0, r: Math.random() * 2 + 1
+                        });
+                    }
+                }
+            }
+
+            // 2. Ribbon Ignition Check
+            if (tongs.isDragging &amp;&amp; state.burnProgress &lt; 100) {
+                let remainingLength = 110 * (1 - state.burnProgress / 100);
+                let tipX = tongs.x - remainingLength;
+                let tipY = tongs.y + 18;
+
+                let flameX = burner.x + 80;
+                let flameY = burner.y - 15;
+
+                if (Math.hypot(tipX - flameX, tipY - flameY) &lt; 40) {
+                    if (state.ribbonCleanliness &lt; 100) {
+                        state.showWarning = true;
+                        state.isBurning = false;
+                    } else {
+                        state.showWarning = false;
+                        state.isBurning = true;
+                    }
+                } else {
+                    state.showWarning = false;
+                    state.isBurning = false;
+                }
+            }
+
+            // 3. Spatula Scoop &amp; Deposit
+            if (spatula.isDragging) {
+                if (state.spatulaAsh &lt; 35 &amp;&amp; state.ashInDish &gt; 5) {
+                    if (spatula.x &gt;= dish.x - 10 &amp;&amp; spatula.x &lt;= dish.x + dish.w + 10 &amp;&amp;
+                        spatula.y + 15 &gt;= dish.y &amp;&amp; spatula.y + 15 &lt;= dish.y + dish.h) {
+                        
+                        let scoopAmount = Math.min(35 - state.spatulaAsh, state.ashInDish);
+                        state.spatulaAsh += scoopAmount;
+                        state.ashInDish -= scoopAmount;
+                    }
+                }
+                if (state.spatulaAsh &gt; 0) {
+                    if (spatula.x &gt;= beakerPos.x &amp;&amp; spatula.x &lt;= beakerPos.x + beakerPos.w &amp;&amp;
+                        spatula.y &gt;= beakerPos.y &amp;&amp; spatula.y &lt;= beakerPos.y + beakerPos.h) {
+                        
+                        state.beakerAsh += state.spatulaAsh;
+                        state.spatulaAsh = 0;
+                        eqDisplay.innerHTML = &quot;Reaction: &lt;span class=&#39;eq-highlight&#39;&gt;MgO + H₂O &amp;rarr; Mg(OH)₂&lt;/span&gt; (Magnesium Hydroxide)&quot;;
+                    }
+                }
+            }
+
+            // 4. Litmus Test
+            if (litmus.isDragging &amp;&amp; state.beakerAsh &gt;= 50) {
+                if (litmus.x &gt;= beakerPos.x &amp;&amp; litmus.x &lt;= beakerPos.x + beakerPos.w &amp;&amp;
+                    litmus.y + litmus.h &gt;= beakerPos.y + 40 &amp;&amp; litmus.y &lt;= beakerPos.y + beakerPos.h) {
+                    state.litmusTested = true;
+                }
+            }
+
+            items.forEach(itm =&gt; {
+                if (itm.isDragging) {
+                    itm.x = m.x - dragOffsetX;
+                    itm.y = m.y - dragOffsetY;
+                }
+            });
+
+            lastMouseX = m.x; lastMouseY = m.y;
+        }
+
+        function handleEnd() {
+            state.isBurning = false;
+
+            items.forEach(itm =&gt; {
+                itm.isDragging = false;
+                if (itm.id === &#39;sandpaper&#39; || itm.id === &#39;spatula&#39; || itm.id === &#39;litmus&#39;) {
+                    itm.x = itm.homeX; itm.y = itm.homeY; // Auto-return tools
+                }
+            });
+        }
+
+        // --- Mouse Event Listeners ---
+        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; {
+            const m = getPos(e);
+            handleStart(m);
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; {
+            const m = getPos(e);
+            handleMove(m);
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+            handleEnd();
+        });
+
+        // --- Mobile Touch Event Listeners ---
+        canvas.addEventListener(&#39;touchstart&#39;, (e) =&gt; {
+            e.preventDefault();
+            const m = getPos(e);
+            handleStart(m);
+        }, { passive: false });
+
+        canvas.addEventListener(&#39;touchmove&#39;, (e) =&gt; {
+            e.preventDefault();
+            const m = getPos(e);
+            handleMove(m);
+        }, { passive: false });
+
+        window.addEventListener(&#39;touchend&#39;, () =&gt; {
+            handleEnd();
+        });
+
+        window.addEventListener(&#39;touchcancel&#39;, () =&gt; {
+            handleEnd();
+        });
+
+        // Reset Button Handler
+        document.getElementById(&#39;resetBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            state = {
+                step: 1, ribbonCleanliness: 0, isBurning: false,
+                burnProgress: 0, ashInDish: 0, spatulaAsh: 0,
+                beakerAsh: 0, litmusTested: false, showWarning: false, time: 0
+            };
+            ashMotes = []; o2Particles = []; scrubParticles = [];
+            items.forEach(itm =&gt; { itm.x = itm.homeX; itm.y = itm.homeY; });
+            instructionText.innerHTML = &quot;Step 1: The Magnesium Ribbon is dull due to an oxide layer. Drag the &lt;b&gt;Rough Sandpaper&lt;/b&gt; and scrub it over the ribbon to clean it!&quot;;
+            eqDisplay.innerHTML = &quot;Reaction: &lt;span class=&#39;eq-highlight&#39;&gt;2Mg + O₂ &amp;rarr; 2MgO&lt;/span&gt; (Magnesium + Oxygen &amp;rarr; Magnesium Oxide)&quot;;
+        });
+
+        // Main Animation Loop
+        function animate() {
+            drawScene();
+            requestAnimationFrame(animate);
+        }
+
+        // Launch Virtual Lab
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1401;
+  const STAGE_H = 788;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
