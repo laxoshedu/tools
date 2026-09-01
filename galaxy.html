@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>galaxy</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Ultimate 3D Multi-System Simulation&lt;/title&gt;
+    &lt;style&gt;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            width: 100vw; height: 100vh; overflow: hidden;
+            background-color: #020205; font-family: &#39;Segoe UI&#39;, sans-serif; color: #fff;
+            user-select: none; /* Prevents text selection on touch */
+        }
+        
+        #canvas-container { width: 100%; height: 100%; touch-action: none; }
+
+        /* --- Left UI Panel --- */
+        #ui-panel {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(12, 14, 25, 0.85); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 20px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; gap: 15px; width: 320px; z-index: 100;
+        }
+
+        h1 { font-size: 1.2rem; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;}
+        h1 span { color: #ffd700; }
+
+        .control-group label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #ccc; margin-bottom: 5px; }
+        select, input[type=&quot;range&quot;] {
+            width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 10px; border-radius: 6px; outline: none; cursor: pointer; font-size: 0.95rem;
+        }
+        select optgroup { background: #111; color: #ffd700; }
+        select option { background: #1a1a24; color: #fff; }
+        input[type=&quot;range&quot;] { accent-color: #ffd700; height: 6px; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #ccc; cursor: pointer; }
+        input[type=&quot;checkbox&quot;] { accent-color: #ffd700; width: 18px; height: 18px; cursor: pointer;}
+
+        .button-group { display: flex; gap: 10px; }
+        button {
+            flex: 1; padding: 12px 10px; background: #ffd700; border: none;
+            color: #000; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background: #fff; transform: translateY(-2px); }
+
+        /* --- Right Information Card --- */
+        #info-card {
+            position: absolute; top: 20px; right: -400px; /* Hidden initially */
+            background: rgba(12, 14, 25, 0.85); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15); border-left: 4px solid #ffd700;
+            padding: 25px; border-radius: 12px; width: 340px; z-index: 100;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #info-card.active { right: 20px; }
+        #info-title { font-size: 1.5rem; color: #ffd700; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px;}
+        #info-type { font-size: 0.85rem; color: #00d2ff; margin-bottom: 15px; font-weight: bold;}
+        
+        .info-stat { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: #ccc;}
+        .info-stat span { color: #fff; font-weight: bold; text-align: right; max-width: 60%;}
+        
+        #info-desc { margin-top: 15px; font-size: 0.85rem; line-height: 1.5; color: #aaa; font-style: italic;}
+
+        /* --- Dynamic 2D Overlay Labels --- */
+        #labels-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        
+        .planet-label {
+            position: absolute; transform: translate(-50%, -100%);
+            display: flex; align-items: center; gap: 5px;
+            background: rgba(10, 10, 20, 0.85); border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+        
+        .hide-names .planet-name-text { display: none; }
+        .hide-numbers .orbit-badge { display: none; }
+        .hide-names.hide-numbers .planet-label:not(.star-label) { display: none; }
+
+        .orbit-badge { background: #fff; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 8px; font-size: 0.65rem; }
+        .star-label { border-color: #ffd700; color: #ffd700; font-weight: bold; font-size: 0.85rem;}
+
+        /* --- Bottom Instructions --- */
+        #instructions {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); padding: 10px 20px;
+            border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem; color: #aaa; pointer-events: none; white-space: nowrap;
+        }
+        #instructions b { color: #fff; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            #ui-panel { top: 10px; left: 5%; width: 90%; max-height: 45vh; overflow-y: auto; padding: 15px; }
+            #instructions { display: none; }
+            #info-card {
+                top: auto; right: 5%; left: 5%; bottom: -100%; width: 90%; max-height: 40vh; overflow-y: auto;
+                transition: bottom 0.4s ease;
+            }
+            #info-card.active { bottom: 15px; right: 5%; top: auto; }
+        }
+    &lt;/style&gt;
+
+    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- Left UI Panel --&gt;
+    &lt;div id=&quot;ui-panel&quot;&gt;
+        &lt;h1&gt;Galaxy &lt;span&gt;Simulator&lt;/span&gt;&lt;/h1&gt;
+        
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Select &amp; Track Target:&lt;/label&gt;
+            &lt;select id=&quot;focusSelect&quot;&gt;
+                &lt;option value=&quot;ALL&quot;&gt;-- Galactic Overview --&lt;/option&gt;
+                &lt;optgroup label=&quot;Sol System (Our System)&quot;&gt;
+                    &lt;option value=&quot;Sol_Sun&quot;&gt;☀️ Sol (The Sun)&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Mercury&quot;&gt;[1] Mercury&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Venus&quot;&gt;[2] Venus&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Earth&quot;&gt;[3] Earth &amp; Moon&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Mars&quot;&gt;[4] Mars&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Jupiter&quot;&gt;[5] Jupiter&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Saturn&quot;&gt;[6] Saturn&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Uranus&quot;&gt;[7] Uranus&lt;/option&gt;
+                    &lt;option value=&quot;Sol_Neptune&quot;&gt;[8] Neptune&lt;/option&gt;
+                &lt;/optgroup&gt;
+                &lt;optgroup label=&quot;Kepler-90 System&quot;&gt;
+                    &lt;option value=&quot;Kepler_Star&quot;&gt;🔷 Kepler-90 Star&lt;/option&gt;
+                    &lt;option value=&quot;Kepler_b&quot;&gt;[1] Kepler-90b&lt;/option&gt;
+                    &lt;option value=&quot;Kepler_c&quot;&gt;[2] Kepler-90c&lt;/option&gt;
+                    &lt;option value=&quot;Kepler_i&quot;&gt;[3] Kepler-90i&lt;/option&gt;
+                &lt;/optgroup&gt;
+                &lt;optgroup label=&quot;Gliese-581 System&quot;&gt;
+                    &lt;option value=&quot;Gliese_Star&quot;&gt;🔴 Gliese-581 Red Dwarf&lt;/option&gt;
+                    &lt;option value=&quot;Gliese_e&quot;&gt;[1] Gliese-581e&lt;/option&gt;
+                    &lt;option value=&quot;Gliese_b&quot;&gt;[2] Gliese-581b&lt;/option&gt;
+                    &lt;option value=&quot;Gliese_c&quot;&gt;[3] Gliese-581c&lt;/option&gt;
+                &lt;/optgroup&gt;
+            &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Time Speed: &lt;span id=&quot;speedVal&quot;&gt;1x&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;speedSlider&quot; min=&quot;0&quot; max=&quot;5&quot; step=&quot;0.1&quot; value=&quot;1&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;checkbox-group&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;toggleOrbits&quot; checked&gt; Show Orbit Paths
+        &lt;/div&gt;
+        &lt;div class=&quot;checkbox-group&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;toggleNames&quot; checked&gt; Show Planet Names
+        &lt;/div&gt;
+        &lt;div class=&quot;checkbox-group&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;toggleNumbers&quot; checked&gt; Show Orbit Numbers
+        &lt;/div&gt;
+
+        &lt;div class=&quot;button-group&quot;&gt;
+            &lt;button id=&quot;pauseBtn&quot;&gt;Pause Time&lt;/button&gt;
+            &lt;button id=&quot;resetCamBtn&quot;&gt;Reset View&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Info Card --&gt;
+    &lt;div id=&quot;info-card&quot;&gt;
+        &lt;h2 id=&quot;info-title&quot;&gt;Earth&lt;/h2&gt;
+        &lt;div id=&quot;info-type&quot;&gt;Terrestrial Planet&lt;/div&gt;
+        
+        &lt;div class=&quot;info-stat&quot;&gt;Parent System: &lt;span id=&quot;info-sys&quot;&gt;Sol&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;info-stat&quot;&gt;Distance from Star: &lt;span id=&quot;info-rad&quot;&gt;149.6M km&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;info-stat&quot;&gt;Orbital Speed: &lt;span id=&quot;info-spd&quot;&gt;29.78 km/s&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;info-stat&quot;&gt;1 Year (Orbit Period): &lt;span id=&quot;info-year&quot;&gt;365.25 Days&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;info-stat&quot;&gt;1 Day (Rotation Time): &lt;span id=&quot;info-day&quot;&gt;24 Hours&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;info-stat&quot;&gt;Known Moons/Objects: &lt;span id=&quot;info-moons&quot;&gt;1&lt;/span&gt;&lt;/div&gt;
+        
+        &lt;div id=&quot;info-desc&quot;&gt;Our home planet is the third planet from the Sun, and the only place we know of so far that&#39;s inhabited by living things.&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;instructions&quot;&gt;
+        🖱️/👆 &lt;b&gt;Rotate:&lt;/b&gt; Drag 1 Finger &amp;nbsp;|&amp;nbsp; 🖐️/✌️ &lt;b&gt;Pan:&lt;/b&gt; Drag 2 Fingers &amp;nbsp;|&amp;nbsp; 🔍 &lt;b&gt;Zoom:&lt;/b&gt; Pinch/Scroll
+    &lt;/div&gt;
+
+    &lt;div id=&quot;labels-container&quot;&gt;&lt;/div&gt;
+    &lt;div id=&quot;canvas-container&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        // --- 1. SCENE SETUP ---
+        const container = document.getElementById(&#39;canvas-container&#39;);
+        const labelsContainer = document.getElementById(&#39;labels-container&#39;);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 15000);
+        camera.position.set(0, 800, 1600);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.maxDistance = 5000; controls.minDistance = 2;
+
+        scene.add(new THREE.AmbientLight(0x404050, 0.8));
+
+        // --- 2. TEXTURES ---
+        function createStarTexture(colorHex) {
+            const canvas = document.createElement(&#39;canvas&#39;); canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext(&#39;2d&#39;);
+            const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            grad.addColorStop(0, &#39;#ffffff&#39;); grad.addColorStop(0.2, colorHex); grad.addColorStop(1, &#39;rgba(0,0,0,0)&#39;);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 256);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createPlanetTexture(baseColor, stripeColor) {
+            const canvas = document.createElement(&#39;canvas&#39;); canvas.width = 256; canvas.height = 128;
+            const ctx = canvas.getContext(&#39;2d&#39;);
+            ctx.fillStyle = baseColor; ctx.fillRect(0, 0, 256, 128);
+            ctx.fillStyle = stripeColor;
+            for (let i = 0; i &lt; 15; i++) ctx.fillRect(0, Math.random() * 128, 256, Math.random() * 10 + 2);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- 3. STARS BACKGROUND ---
+        const starGeo = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(8000 * 3);
+        for (let i = 0; i &lt; 8000 * 3; i++) starPositions[i] = (Math.random() - 0.5) * 8000;
+        starGeo.setAttribute(&#39;position&#39;, new THREE.BufferAttribute(starPositions, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.5 })));
+
+        // --- 4. DATA (Planets, Moons, &amp; Asteroid Belts) ---
+        const systemsData = [
+            {
+                id: &quot;Sol&quot;, position: { x: 0, y: 0, z: 0 },
+                star: { name: &quot;Sun&quot;, radius: 18, color: &quot;#ffaa00&quot;, type: &quot;Yellow Dwarf Star&quot;, year: &quot;Galactic: 230M Yrs&quot;, day: &quot;27 Earth Days&quot;, moons: &quot;8 Planets&quot;, desc: &quot;The heart of our solar system.&quot; },
+                belts: [
+                    { name: &quot;Main Asteroid Belt&quot;, inner: 135, outer: 155, count: 2000, color: 0x888888, speed: 0.005 },
+                    { name: &quot;Kuiper Belt&quot;, inner: 350, outer: 420, count: 2500, color: 0x666677, speed: 0.002 }
+                ],
+                planets: [
+                    { id: &quot;Sol_Mercury&quot;, orbitNum: 1, name: &quot;Mercury&quot;, radius: 1.5, distance: 40, orbitSpeed: 0.04, daySpeed: 0.001, color: &quot;#999&quot;, stripe: &quot;#666&quot;, type: &quot;Terrestrial&quot;, year: &quot;88 Earth Days&quot;, day: &quot;59 Earth Days&quot;, moons: &quot;0&quot;, desc: &quot;Smallest planet, nearest to the Sun.&quot; },
+                    { id: &quot;Sol_Venus&quot;, orbitNum: 2, name: &quot;Venus&quot;, radius: 2.5, distance: 65, orbitSpeed: 0.015, daySpeed: -0.002, color: &quot;#e3bb76&quot;, stripe: &quot;#c29b53&quot;, type: &quot;Terrestrial&quot;, year: &quot;225 Earth Days&quot;, day: &quot;243 Earth Days&quot;, moons: &quot;0&quot;, desc: &quot;Spins backwards; the hottest planet.&quot; },
+                    { id: &quot;Sol_Earth&quot;, orbitNum: 3, name: &quot;Earth&quot;, radius: 2.8, distance: 90, orbitSpeed: 0.01, daySpeed: 0.02, color: &quot;#2233ff&quot;, stripe: &quot;#22aa55&quot;, type: &quot;Terrestrial&quot;, year: &quot;365.25 Days&quot;, day: &quot;24 Hours&quot;, moons: &quot;1 (The Moon)&quot;, desc: &quot;Our home planet.&quot;, 
+                      satellites: [{ name: &quot;Luna (Moon)&quot;, radius: 0.6, distance: 6, speed: 0.05, color: &quot;#cccccc&quot; }] },
+                    { id: &quot;Sol_Mars&quot;, orbitNum: 4, name: &quot;Mars&quot;, radius: 2.0, distance: 120, orbitSpeed: 0.008, daySpeed: 0.019, color: &quot;#c1440e&quot;, stripe: &quot;#8a2e07&quot;, type: &quot;Terrestrial&quot;, year: &quot;687 Earth Days&quot;, day: &quot;24.6 Hours&quot;, moons: &quot;2 (Phobos, Deimos)&quot;, desc: &quot;A dusty, cold, desert world.&quot;,
+                      satellites: [{ name: &quot;Phobos&quot;, radius: 0.3, distance: 4, speed: 0.06, color: &quot;#998877&quot; }, { name: &quot;Deimos&quot;, radius: 0.2, distance: 6, speed: 0.04, color: &quot;#887766&quot; }] },
+                    { id: &quot;Sol_Jupiter&quot;, orbitNum: 5, name: &quot;Jupiter&quot;, radius: 8.0, distance: 180, orbitSpeed: 0.003, daySpeed: 0.04, color: &quot;#b07f35&quot;, stripe: &quot;#5e3e14&quot;, type: &quot;Gas Giant&quot;, year: &quot;12 Earth Years&quot;, day: &quot;9.9 Hours&quot;, moons: &quot;95 Known&quot;, desc: &quot;Twice as massive as all other planets combined.&quot;,
+                      satellites: [{ name: &quot;Io&quot;, radius: 0.7, distance: 11, speed: 0.04, color: &quot;#ffffaa&quot; }, { name: &quot;Europa&quot;, radius: 0.6, distance: 13, speed: 0.03, color: &quot;#ffffff&quot; }, { name: &quot;Ganymede&quot;, radius: 0.9, distance: 16, speed: 0.02, color: &quot;#aaaaaa&quot; }, { name: &quot;Callisto&quot;, radius: 0.8, distance: 19, speed: 0.015, color: &quot;#888888&quot; }] },
+                    { id: &quot;Sol_Saturn&quot;, orbitNum: 6, name: &quot;Saturn&quot;, radius: 6.5, distance: 240, orbitSpeed: 0.002, daySpeed: 0.038, color: &quot;#e2bf7d&quot;, stripe: &quot;#b59353&quot;, type: &quot;Gas Giant&quot;, year: &quot;29.5 Earth Years&quot;, day: &quot;10.7 Hours&quot;, moons: &quot;146 Known&quot;, desc: &quot;Adorned with a dazzling system of icy rings.&quot;,
+                      satellites: [{ name: &quot;Titan&quot;, radius: 1.0, distance: 14, speed: 0.03, color: &quot;#ffcc66&quot; }, { name: &quot;Rhea&quot;, radius: 0.5, distance: 11, speed: 0.04, color: &quot;#dddddd&quot; }] },
+                    { id: &quot;Sol_Uranus&quot;, orbitNum: 7, name: &quot;Uranus&quot;, radius: 4.5, distance: 290, orbitSpeed: 0.001, daySpeed: 0.025, color: &quot;#4b70dd&quot;, stripe: &quot;#2b4080&quot;, type: &quot;Ice Giant&quot;, year: &quot;84 Earth Years&quot;, day: &quot;17.2 Hours&quot;, moons: &quot;28&quot;, desc: &quot;Rotates at a nearly 90-degree angle.&quot; },
+                    { id: &quot;Sol_Neptune&quot;, orbitNum: 8, name: &quot;Neptune&quot;, radius: 4.2, distance: 330, orbitSpeed: 0.0008, daySpeed: 0.026, color: &quot;#274687&quot;, stripe: &quot;#122244&quot;, type: &quot;Ice Giant&quot;, year: &quot;165 Earth Years&quot;, day: &quot;16.1 Hours&quot;, moons: &quot;16&quot;, desc: &quot;Dark, cold, and whipped by supersonic winds.&quot; }
+                ]
+            },
+            {
+                id: &quot;Kepler&quot;, position: { x: 1000, y: 150, z: -800 },
+                star: { name: &quot;Kepler-90 Star&quot;, radius: 20, color: &quot;#00d2ff&quot;, type: &quot;F-type Main Sequence&quot;, year: &quot;Unknown&quot;, day: &quot;9 Earth Days&quot;, moons: &quot;8 Planets&quot;, desc: &quot;Distant star hosting an 8-planet system.&quot; },
+                belts: [],
+                planets: [
+                    { id: &quot;Kepler_b&quot;, orbitNum: 1, name: &quot;Kepler-90b&quot;, radius: 2.0, distance: 45, orbitSpeed: 0.03, daySpeed: 0.01, color: &quot;#00bfff&quot;, stripe: &quot;#005f7f&quot;, type: &quot;Rocky&quot;, year: &quot;7 Earth Days&quot;, day: &quot;Tidally Locked&quot;, moons: &quot;?&quot;, desc: &quot;Scorching hot.&quot; },
+                    { id: &quot;Kepler_c&quot;, orbitNum: 2, name: &quot;Kepler-90c&quot;, radius: 2.5, distance: 75, orbitSpeed: 0.018, daySpeed: 0.01, color: &quot;#1e90ff&quot;, stripe: &quot;#104e8b&quot;, type: &quot;Super-Earth&quot;, year: &quot;8.7 Earth Days&quot;, day: &quot;Tidally Locked&quot;, moons: &quot;?&quot;, desc: &quot;A rocky world slightly larger than Earth.&quot; },
+                    { id: &quot;Kepler_i&quot;, orbitNum: 3, name: &quot;Kepler-90i&quot;, radius: 3.0, distance: 110, orbitSpeed: 0.01, daySpeed: 0.01, color: &quot;#00ffff&quot;, stripe: &quot;#008b8b&quot;, type: &quot;Hot Super-Earth&quot;, year: &quot;14.4 Earth Days&quot;, day: &quot;Tidally Locked&quot;, moons: &quot;?&quot;, desc: &quot;Discovered using AI.&quot; }
+                ]
+            }
+        ];
+
+        // --- 5. BUILD SYSTEMS ---
+        const interactables = {}; 
+        const labelElements = [];
+        const orbitLines = [];
+        const rotatingObjects = []; // Stores meshes that rotate on their own axis (Days)
+        const orbitingPivots = []; // Stores pivots that revolve around parents (Years/Moons)
+
+        systemsData.forEach(sys =&gt; {
+            const sysGroup = new THREE.Group();
+            sysGroup.position.set(sys.position.x, sys.position.y, sys.position.z);
+            scene.add(sysGroup);
+
+            // Star
+            sysGroup.add(new THREE.PointLight(sys.star.color, 2, 2000));
+            const starMesh = new THREE.Mesh(new THREE.SphereGeometry(sys.star.radius, 32, 32), new THREE.MeshBasicMaterial({ map: createStarTexture(sys.star.color) }));
+            sysGroup.add(starMesh);
+
+            interactables[sys.id + (sys.id === &quot;Sol&quot; ? &quot;_Sun&quot; : &quot;_Star&quot;)] = { mesh: starMesh, radius: sys.star.radius, data: { name: sys.star.name, type: sys.star.type, sys: sys.id, rad: sys.star.radius*10000+&#39; km&#39;, spd: &#39;Stationary&#39;, year: sys.star.year, day: sys.star.day, moons: sys.star.moons, desc: sys.star.desc }};
+            createHtmlLabel(starMesh, sys.star.name, null, true);
+
+            // Asteroid Belts (Stones)
+            if(sys.belts) {
+                sys.belts.forEach(belt =&gt; {
+                    const astGeo = new THREE.DodecahedronGeometry(0.5, 0);
+                    const astMat = new THREE.MeshStandardMaterial({ color: belt.color, roughness: 1 });
+                    const astMesh = new THREE.InstancedMesh(astGeo, astMat, belt.count);
+                    
+                    const dummy = new THREE.Object3D();
+                    for(let i=0; i&lt;belt.count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const r = belt.inner + Math.random() * (belt.outer - belt.inner);
+                        dummy.position.set(Math.cos(angle)*r, (Math.random()-0.5)*4, Math.sin(angle)*r);
+                        dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+                        const s = Math.random() * 0.8 + 0.2;
+                        dummy.scale.set(s, s, s);
+                        dummy.updateMatrix();
+                        astMesh.setMatrixAt(i, dummy.matrix);
+                    }
+                    astMesh.userData = { speed: belt.speed }; // Asteroid belt slow rotation
+                    sysGroup.add(astMesh);
+                    orbitingPivots.push(astMesh);
+                });
+            }
+
+            // Planets
+            sys.planets.forEach(p =&gt; {
+                const pivot = new THREE.Group();
+                pivot.userData = { speed: p.orbitSpeed };
+                sysGroup.add(pivot);
+                orbitingPivots.push(pivot);
+
+                // Container holds planet and moons (moves along orbit, doesn&#39;t spin on axis)
+                const pContainer = new THREE.Group();
+                pContainer.position.x = p.distance;
+                pivot.add(pContainer);
+
+                // Actual Planet Mesh (Spins on its own axis for Day Cycle)
+                const pMesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(p.radius, 32, 32),
+                    new THREE.MeshStandardMaterial({ map: createPlanetTexture(p.color, p.stripe), roughness: 0.7 })
+                );
+                pMesh.userData = { daySpeed: p.daySpeed };
+                rotatingObjects.push(pMesh);
+                pContainer.add(pMesh);
+
+                interactables[p.id] = { mesh: pMesh, radius: p.radius, data: { name: p.name, type: p.type, sys: sys.id, rad: p.distance+&#39;M km&#39;, spd: (p.orbitSpeed*1000).toFixed(1)+&#39; km/s&#39;, year: p.year, day: p.day, moons: p.moons, desc: p.desc }};
+
+                // Moons
+                if (p.satellites) {
+                    p.satellites.forEach(moon =&gt; {
+                        const moonPivot = new THREE.Group();
+                        moonPivot.userData = { speed: moon.speed };
+                        pContainer.add(moonPivot);
+                        orbitingPivots.push(moonPivot);
+
+                        const moonMesh = new THREE.Mesh(
+                            new THREE.SphereGeometry(moon.radius, 16, 16),
+                            new THREE.MeshStandardMaterial({ color: moon.color, roughness: 0.9 })
+                        );
+                        moonMesh.position.x = moon.distance;
+                        moonPivot.add(moonMesh);
+
+                        // Thin moon orbit line
+                        const mOrbit = new THREE.Mesh(new THREE.TorusGeometry(moon.distance, 0.02, 4, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 }));
+                        mOrbit.rotation.x = Math.PI / 2;
+                        pContainer.add(mOrbit);
+                        orbitLines.push(mOrbit);
+                    });
+                }
+
+                // ULTRA-THIN WHITE ORBIT (Reduced thickness to 0.04)
+                const orbitMesh = new THREE.Mesh(
+                    new THREE.TorusGeometry(p.distance, 0.04, 8, 128),
+                    new THREE.MeshBasicMaterial({ color: 0xffffff })
+                );
+                orbitMesh.rotation.x = Math.PI / 2; 
+                sysGroup.add(orbitMesh);
+                orbitLines.push(orbitMesh);
+
+                createHtmlLabel(pMesh, p.name, p.orbitNum, false);
+            });
+        });
+
+        function createHtmlLabel(mesh, name, orbitNum, isStar) {
+            const div = document.createElement(&#39;div&#39;);
+            div.className = `planet-label ${isStar ? &#39;star-label&#39; : &#39;&#39;}`;
+            
+            if (orbitNum) {
+                const badge = document.createElement(&#39;span&#39;);
+                badge.className = &#39;orbit-badge&#39;; badge.innerText = `Orbit #${orbitNum}`;
+                div.appendChild(badge);
+            }
+            const text = document.createElement(&#39;span&#39;);
+            text.className = &#39;planet-name-text&#39;; text.innerText = name;
+            div.appendChild(text);
+
+            labelsContainer.appendChild(div);
+            labelElements.push({ element: div, mesh: mesh });
+        }
+
+        // --- 6. UI &amp; CAMERA LOGIC ---
+        let speedMultiplier = 1; let isPaused = false;
+        let trackedObject = null; let trackingRadius = 10;
+        let isFlyingTo = false; let lastTrackedPos = new THREE.Vector3();
+
+        document.getElementById(&#39;speedSlider&#39;).addEventListener(&#39;input&#39;, e =&gt; {
+            speedMultiplier = parseFloat(e.target.value);
+            document.getElementById(&#39;speedVal&#39;).innerText = speedMultiplier + &#39;x&#39;;
+        });
+        document.getElementById(&#39;pauseBtn&#39;).addEventListener(&#39;click&#39;, e =&gt; {
+            isPaused = !isPaused; e.target.innerText = isPaused ? &#39;Play Time&#39; : &#39;Pause Time&#39;;
+        });
+
+        document.getElementById(&#39;toggleOrbits&#39;).addEventListener(&#39;change&#39;, e =&gt; orbitLines.forEach(l =&gt; l.visible = e.target.checked));
+        document.getElementById(&#39;toggleNames&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            if(e.target.checked) labelsContainer.classList.remove(&#39;hide-names&#39;); else labelsContainer.classList.add(&#39;hide-names&#39;);
+        });
+        document.getElementById(&#39;toggleNumbers&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            if(e.target.checked) labelsContainer.classList.remove(&#39;hide-numbers&#39;); else labelsContainer.classList.add(&#39;hide-numbers&#39;);
+        });
+
+        const infoCard = document.getElementById(&#39;info-card&#39;);
+        document.getElementById(&#39;focusSelect&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            const val = e.target.value;
+            if (val === &quot;ALL&quot;) {
+                trackedObject = null; infoCard.classList.remove(&#39;active&#39;);
+                controls.target.set(0, 0, 0); camera.position.set(0, 800, 1600);
+            } else {
+                const obj = interactables[val];
+                trackedObject = obj.mesh;
+                trackingRadius = obj.radius;
+                isFlyingTo = true;
+                
+                document.getElementById(&#39;info-title&#39;).innerText = obj.data.name;
+                document.getElementById(&#39;info-type&#39;).innerText = obj.data.type;
+                document.getElementById(&#39;info-sys&#39;).innerText = obj.data.sys;
+                document.getElementById(&#39;info-rad&#39;).innerText = obj.data.rad;
+                document.getElementById(&#39;info-spd&#39;).innerText = obj.data.spd;
+                document.getElementById(&#39;info-year&#39;).innerText = obj.data.year;
+                document.getElementById(&#39;info-day&#39;).innerText = obj.data.day;
+                document.getElementById(&#39;info-moons&#39;).innerText = obj.data.moons;
+                document.getElementById(&#39;info-desc&#39;).innerText = obj.data.desc;
+                infoCard.classList.add(&#39;active&#39;);
+            }
+        });
+
+        document.getElementById(&#39;resetCamBtn&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            document.getElementById(&#39;focusSelect&#39;).value = &quot;ALL&quot;;
+            trackedObject = null; infoCard.classList.remove(&#39;active&#39;);
+            controls.target.set(0, 0, 0); camera.position.set(0, 800, 1600);
+        });
+
+        // --- 7. ANIMATION LOOP ---
+        const tempV = new THREE.Vector3();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isPaused) {
+                // 1. Orbital Revolution (Years &amp; Moons &amp; Asteroid Belts)
+                orbitingPivots.forEach(pivot =&gt; {
+                    pivot.rotation.y += pivot.userData.speed * 0.5 * speedMultiplier;
+                });
+                
+                // 2. Axial Rotation (Days)
+                rotatingObjects.forEach(mesh =&gt; {
+                    mesh.rotation.y += mesh.userData.daySpeed * 5 * speedMultiplier; 
+                });
+            }
+
+            // Camera Tracking
+            if (trackedObject) {
+                const currentPos = new THREE.Vector3();
+                trackedObject.getWorldPosition(currentPos);
+
+                if (isFlyingTo) {
+                    const offset = new THREE.Vector3(trackingRadius * 5, trackingRadius * 3, trackingRadius * 5);
+                    const targetCamPos = currentPos.clone().add(offset);
+                    camera.position.lerp(targetCamPos, 0.05);
+                    controls.target.lerp(currentPos, 0.05);
+                    if (camera.position.distanceTo(targetCamPos) &lt; trackingRadius * 0.5) isFlyingTo = false; 
+                } else {
+                    const moveDelta = currentPos.clone().sub(lastTrackedPos);
+                    camera.position.add(moveDelta);
+                    controls.target.copy(currentPos);
+                }
+                lastTrackedPos.copy(currentPos);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            // Update 2D Labels
+            labelElements.forEach(item =&gt; {
+                item.mesh.getWorldPosition(tempV);
+                tempV.project(camera);
+
+                if (tempV.z &gt; 1) { 
+                    item.element.style.opacity = &#39;0&#39;;
+                } else {
+                    const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+                    item.element.style.opacity = &#39;1&#39;;
+                    item.element.style.left = `${x}px`;
+                    item.element.style.top = `${y - 15}px`;
+                }
+            });
+        }
+
+        animate();
+
+        window.addEventListener(&#39;resize&#39;, () =&gt; {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
