@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>sedimentation, decantation, filtration</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1417px;
+    height: 797px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Interactive Sandbox Chemistry Lab&lt;/title&gt;
+    &lt;style&gt;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif; user-select: none; -webkit-user-select: none; }
+        body { background-color: #12141d; color: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; touch-action: none; }
+        
+        header { background: #1e2230; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d3245; z-index: 10; }
+        .title { font-size: 1.25rem; font-weight: 700; color: #00d2d3; display: flex; align-items: center; gap: 10px; }
+
+        .main-layout { display: flex; flex: 1; position: relative; overflow: hidden; }
+        
+        /* Shelf Panel */
+        .shelf { width: 280px; background: #1a1d29; border-right: 2px solid #2d3245; padding: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 5; overflow-y: auto; }
+        .shelf-title { font-size: 0.85rem; text-transform: uppercase; color: #8892b0; font-weight: 700; margin-top: 5px; }
+        
+        .shelf-buttons { display: flex; flex-direction: column; gap: 8px; margin-bottom: 5px; }
+        .btn-action { 
+            border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; 
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.88rem;
+        }
+        .btn-delete { background: #ff4757; color: #fff; box-shadow: 0 4px 12px rgba(255, 71, 87, 0.25); }
+        .btn-delete:hover { background: #ff6b81; transform: translateY(-1px); }
+        .btn-clear { background: #3a405a; color: #e0e6ed; border: 1px solid #4a5270; }
+        .btn-clear:hover { background: #4a5270; }
+        .btn-action:active { transform: translateY(1px); }
+
+        .shelf-item { 
+            background: #252a3b; border: 1px solid #3b4259; border-radius: 8px; padding: 10px 12px; 
+            display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s; 
+        }
+        .shelf-item:hover { border-color: #00d2d3; background: #2f354a; transform: translateX(4px); }
+        .shelf-item:active { transform: scale(0.96); }
+        .shelf-icon { font-size: 1.7rem; width: 35px; text-align: center; }
+        .shelf-info { display: flex; flex-direction: column; }
+        .shelf-name { font-size: 0.92rem; font-weight: 600; color: #e0e6ed; pointer-events: none; }
+        .shelf-desc { font-size: 0.73rem; color: #8892b0; pointer-events: none; }
+
+        /* Stage Canvas &amp; Floating Overlays */
+        .stage-container { flex: 1; position: relative; background: radial-gradient(circle at center, #232838 0%, #0d0f16 100%); }
+        canvas { display: block; touch-action: none; width: 100%; height: 100%; }
+
+        .help-badge { 
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); 
+            background: rgba(30, 34, 48, 0.88); backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.15); padding: 10px 22px; 
+            border-radius: 30px; font-size: 0.85rem; color: #a8b2d1; pointer-events: none; 
+            line-height: 1.4; box-shadow: 0 8px 25px rgba(0,0,0,0.5); z-index: 10;
+            text-align: center; white-space: nowrap;
+        }
+        .help-badge b { color: #00d2d3; }
+
+        /* Warning Alert Banner */
+        .warning-banner {
+            position: absolute; top: 65px; left: 50%; transform: translateX(-50%);
+            background: rgba(235, 77, 75, 0.92); backdrop-filter: blur(8px);
+            color: #ffffff; border: 1px solid #ff7979; padding: 12px 24px;
+            border-radius: 25px; font-weight: 700; font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(235, 77, 75, 0.4);
+            display: none; z-index: 20; animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.03); } 100% { transform: translateX(-50%) scale(1); } }
+
+        @media (max-width: 900px) {
+            .main-layout { flex-direction: column-reverse; }
+            .shelf { width: 100%; height: 230px; flex-direction: row; flex-wrap: wrap; gap: 8px; padding: 10px; border-right: none; border-top: 2px solid #2d3245; }
+            .shelf-buttons { width: 100%; flex-direction: row; gap: 8px; }
+            .btn-action { flex: 1; }
+            .shelf-title { display: none; }
+            .shelf-item { width: calc(50% - 4px); padding: 8px; }
+            .help-badge { white-space: normal; width: 92%; border-radius: 12px; font-size: 0.8rem; }
+            .warning-banner { width: 90%; text-align: center; top: 90px; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;div class=&quot;title&quot;&gt;🧪 ( SEDIMENTATION, DECANTATION, FILTRATION ) Chemistry Lab&lt;/div&gt;
+    &lt;/header&gt;
+
+    &lt;div class=&quot;main-layout&quot;&gt;
+        &lt;!-- Shelf Panel --&gt;
+        &lt;div class=&quot;shelf&quot;&gt;
+            &lt;div class=&quot;shelf-buttons&quot;&gt;
+                &lt;button class=&quot;btn-action btn-delete&quot; onclick=&quot;deleteSelectedComponent()&quot;&gt;🗑️ Delete Selected&lt;/button&gt;
+                &lt;button class=&quot;btn-action btn-clear&quot; onclick=&quot;clearWorkbench()&quot;&gt;🧹 Clear Canvas&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;shelf-title&quot;&gt;Tap to Spawn Items&lt;/div&gt;
+            
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;beaker_water&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;💧&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;100ml Water&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Beaker with water&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;beaker_empty&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🥛&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;100ml Empty&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Receiving beaker&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;mud_cup&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🥣&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Glass Dish&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Mud sample dish&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;spatula&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🥄&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Spatula&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Scoop solids&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;stirring_rod&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🥢&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Stirring Rod&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Mix solutions&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;retort_stand&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🏗️&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Tall Stand&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Retort clamp support&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;funnel&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;🔻&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Glass Funnel&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;For filtration&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;shelf-item&quot; onclick=&quot;spawnItem(&#39;filter_paper&#39;)&quot;&gt;
+                &lt;div class=&quot;shelf-icon&quot;&gt;⚪&lt;/div&gt;&lt;div class=&quot;shelf-info&quot;&gt;&lt;span class=&quot;shelf-name&quot;&gt;Filter Paper&lt;/span&gt;&lt;span class=&quot;shelf-desc&quot;&gt;Tap to fold&lt;/span&gt;&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Workbench Stage --&gt;
+        &lt;div class=&quot;stage-container&quot; id=&quot;stage&quot;&gt;
+            &lt;div class=&quot;help-badge&quot;&gt;
+                💡 &lt;b&gt;Hands-On Guide:&lt;/b&gt; Tap to spawn &amp;nbsp;|&amp;nbsp; Drag &lt;b&gt;any component&lt;/b&gt; to move &amp;nbsp;|&amp;nbsp; Select a Beaker and drag its &lt;b&gt;Rotation Knob&lt;/b&gt; to pour manually
+            &lt;/div&gt;
+
+            &lt;div class=&quot;warning-banner&quot; id=&quot;warningBanner&quot;&gt;⚠️ Warning Message&lt;/div&gt;
+
+            &lt;canvas id=&quot;labCanvas&quot;&gt;&lt;/canvas&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;labCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const stage = document.getElementById(&#39;stage&#39;);
+        const warningBanner = document.getElementById(&#39;warningBanner&#39;);
+
+        let objects = [];
+        let draggedObj = null;
+        let selectedObj = null;
+        
+        let isRotating = false;
+        let rotatingObj = null;
+
+        let dragOffX = 0, dragOffY = 0;
+        let splashes = [];
+        let spawnOffset = 0;
+
+        function resize() {
+            canvas.width = stage.clientWidth;
+            canvas.height = stage.clientHeight;
+        }
+        window.addEventListener(&#39;resize&#39;, resize);
+        resize();
+
+        function clearWorkbench() {
+            objects = [];
+            splashes = [];
+            selectedObj = null;
+            draggedObj = null;
+            isRotating = false;
+            rotatingObj = null;
+            spawnOffset = 0;
+            hideWarning();
+        }
+
+        function deleteSelectedComponent() {
+            if (selectedObj) {
+                const idx = objects.indexOf(selectedObj);
+                if (idx !== -1) objects.splice(idx, 1);
+                if (rotatingObj === selectedObj) { isRotating = false; rotatingObj = null; }
+                selectedObj = null;
+                draggedObj = null;
+                hideWarning();
+            }
+        }
+
+        function showWarning(msg) {
+            warningBanner.innerText = msg;
+            warningBanner.style.display = &#39;block&#39;;
+        }
+
+        function hideWarning() {
+            warningBanner.style.display = &#39;none&#39;;
+        }
+
+        // --- CALLOUT ENGINE ---
+        function drawCallout(targetX, targetY, labelX, labelY, text, badgeColor = &#39;#00d2d3&#39;) {
+            ctx.save();
+            ctx.fillStyle = badgeColor;
+            ctx.beginPath(); ctx.arc(targetX, targetY, 4, 0, Math.PI * 2); ctx.fill();
+
+            ctx.strokeStyle = badgeColor; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(targetX, targetY); ctx.lineTo(labelX, labelY); ctx.stroke();
+
+            ctx.font = &#39;bold 11px sans-serif&#39;;
+            const rectW = ctx.measureText(text).width + 12;
+            const rectX = labelX &gt; targetX ? labelX : labelX - rectW;
+            const rectY = labelY - 10;
+
+            ctx.fillStyle = &#39;rgba(20, 24, 36, 0.9)&#39;; ctx.strokeStyle = badgeColor; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.roundRect(rectX, rectY, rectW, 20, 5); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = &#39;#ffffff&#39;; ctx.textAlign = &#39;left&#39;; ctx.textBaseline = &#39;middle&#39;;
+            ctx.fillText(text, rectX + 6, labelY);
+            ctx.restore();
+        }
+
+        // --- APPARATUS CLASSES ---
+
+        class Beaker {
+            constructor(x, y, hasWater) {
+                this.type = &#39;beaker&#39;;
+                this.x = x; this.y = y;
+                this.lastX = x;
+                this.w = 120; this.h = 160; 
+                this.angle = 0;
+                this.liquidAmt = hasWater ? 0.65 : 0;
+                
+                this.sloshAngle = 0;
+                this.sloshVelocity = 0;
+                this.wavePhase = 0;
+                
+                this.pureColor = [150, 210, 255, 0.4];
+                this.murkyColor = [130, 110, 70, 0.75];
+                this.contamRatio = 0; 
+                this.isDecanted = false;
+                this.isFiltrate = false;
+
+                this.isPouring = false;
+                this.pourTarget = null;
+                this.pourSpout = { x: 0, y: 0 };
+                this.pourColor = &#39;&#39;;
+
+                this.heavyParticles = [];
+                this.fineParticles = [];
+            }
+
+            containsPoint(px, py) {
+                return (px &gt;= this.x - this.w / 2 - 12 &amp;&amp; px &lt;= this.x + this.w / 2 + 12 &amp;&amp;
+                        py &gt;= this.y - this.h - 12 &amp;&amp; py &lt;= this.y + 12);
+            }
+
+            getHandlePos() {
+                const cx = this.x;
+                const cy = this.y - this.h / 2;
+                const r = 110; 
+                const hx = cx + Math.sin(this.angle) * r;
+                const hy = cy - Math.cos(this.angle) * r;
+                return { x: hx, y: hy, cx: cx, cy: cy, r: r };
+            }
+
+            addMud() {
+                this.contamRatio = Math.min(this.contamRatio + 0.5, 1);
+                const liqH = this.h * this.liquidAmt;
+
+                for (let i = 0; i &lt; 160; i++) {
+                    this.heavyParticles.push({
+                        x: (Math.random() - 0.5) * (this.w - 20),
+                        y: -(Math.random() * (liqH - 10)) - 5,
+                        vx: (Math.random() - 0.5) * 1.5, vy: Math.random() * 0.5,
+                        settleSpeed: 0.15 + Math.random() * 0.1,
+                        settled: false
+                    });
+                }
+                for (let i = 0; i &lt; 80; i++) {
+                    this.fineParticles.push({
+                        x: (Math.random() - 0.5) * (this.w - 20),
+                        y: -(Math.random() * (liqH - 10)) - 5,
+                        vx: (Math.random() - 0.5) * 1.0, vy: (Math.random() - 0.5) * 0.5
+                    });
+                }
+                this.applySloshForce(0.15);
+            }
+
+            stir() {
+                const liqH = this.h * this.liquidAmt;
+                this.heavyParticles.forEach(p =&gt; {
+                    p.settled = false; p.y = -(Math.random() * (liqH - 15) + 10); 
+                    p.vx = (Math.random() - 0.5) * 6; p.vy = (Math.random() - 0.5) * 3;
+                });
+                this.fineParticles.forEach(p =&gt; {
+                    p.y = -(Math.random() * (liqH - 15) + 10);
+                    p.vx = (Math.random() - 0.5) * 5; p.vy = (Math.random() - 0.5) * 5;
+                });
+                this.applySloshForce((Math.random() - 0.5) * 0.2);
+            }
+
+            applySloshForce(force) {
+                this.sloshVelocity += force;
+            }
+
+            update() {
+                this.isPouring = false;
+
+                if (this.liquidAmt &lt;= 0) {
+                    this.liquidAmt = 0;
+                    this.contamRatio = 0;
+                    this.isDecanted = false;
+                    this.isFiltrate = false;
+                }
+
+                const accelX = this.x - this.lastX;
+                this.lastX = this.x;
+                this.sloshVelocity += ((-accelX * 0.005) - this.sloshAngle) * 0.15;
+                this.sloshVelocity *= 0.88;
+                this.sloshAngle += this.sloshVelocity;
+                this.wavePhase += 0.05 + Math.abs(this.sloshVelocity);
+
+                if (rotatingObj !== this) {
+                    this.angle *= 0.85; 
+                }
+
+                const pourThreshold = Math.PI / 2.2 - (this.liquidAmt * Math.PI / 3.5);
+                
+                if (Math.abs(this.angle) &gt; pourThreshold &amp;&amp; this.liquidAmt &gt; 0) {
+                    this.pourTarget = null;
+                    const dir = this.angle &gt; 0 ? 1 : -1;
+                    const lipX = (this.w / 2 - 5) * dir;
+                    const spoutX = this.x + (lipX * Math.cos(this.angle)) - (-this.h * Math.sin(this.angle));
+                    const spoutY = this.y + (lipX * Math.sin(this.angle)) + (-this.h * Math.cos(this.angle));
+
+                    let potentialTargets = [];
+                    objects.forEach(obj =&gt; {
+                        if (obj !== this) {
+                            let topEdgeY = (obj.type === &#39;beaker&#39;) ? obj.y - obj.h : (obj.type === &#39;funnel&#39;) ? obj.y - 50 : 0;
+                            let tWidth = (obj.type === &#39;beaker&#39;) ? obj.w : 100;
+                            if (topEdgeY !== 0 &amp;&amp; Math.abs(spoutX - obj.x) &lt; tWidth / 2 + 50 &amp;&amp; spoutY &lt; topEdgeY + 80 &amp;&amp; spoutY &gt; topEdgeY - 150) {
+                                potentialTargets.push(obj);
+                            }
+                        }
+                    });
+
+                    if (potentialTargets.length &gt; 0) {
+                        const funnelTarget = potentialTargets.find(o =&gt; o.type === &#39;funnel&#39;);
+                        this.pourTarget = funnelTarget ? funnelTarget : potentialTargets[0];
+                    }
+
+                    if (this.pourTarget &amp;&amp; this.pourTarget.type === &#39;funnel&#39;) {
+                        const funnel = this.pourTarget;
+                        let beakerUnder = false;
+                        objects.forEach(o =&gt; {
+                            if (o.type === &#39;beaker&#39; &amp;&amp; Math.abs(funnel.x - o.x) &lt; 60 &amp;&amp; o.y &gt; funnel.y + 40 &amp;&amp; o.y &lt; funnel.y + 260) {
+                                beakerUnder = true;
+                            }
+                        });
+
+                        if (!funnel.hasFilter) {
+                            showWarning(&quot;⚠️ Warning: Fold and insert Filter Paper into the Funnel first!&quot;);
+                            return; 
+                        } else if (!beakerUnder) {
+                            showWarning(&quot;⚠️ Warning: Place a Beaker under the Funnel stem to collect filtrate!&quot;);
+                            return; 
+                        } else {
+                            hideWarning();
+                        }
+                    } else {
+                        hideWarning();
+                    }
+
+                    this.pour(dir, spoutX, spoutY);
+                } else {
+                    hideWarning();
+                }
+
+                const liqHeight = this.h * this.liquidAmt;
+                this.heavyParticles.forEach(p =&gt; {
+                    if (!p.settled) {
+                        p.vy = Math.min(p.vy + 0.005, p.settleSpeed);
+                        p.x += p.vx; p.y += p.vy;
+                        p.vx *= 0.95; p.vx += (Math.random() - 0.5) * 0.04;
+                        
+                        if (p.x &lt; -this.w / 2 + 8) { p.x = -this.w / 2 + 8; p.vx *= -0.5; }
+                        if (p.x &gt; this.w / 2 - 8) { p.x = this.w / 2 - 8; p.vx *= -0.5; }
+                        if (p.y &lt; -liqHeight + 8) { p.y = -liqHeight + 8; p.vy = Math.abs(p.vy) * 0.5; }
+                        if (p.y &gt;= -8 - Math.random() * 6) { p.y = -8 - Math.random() * 6; p.settled = true; p.vy = 0; p.vx = 0; }
+                    }
+                });
+
+                this.fineParticles.forEach(p =&gt; {
+                    p.x += p.vx; p.y += p.vy;
+                    p.vx += (Math.random() - 0.5) * 0.4; p.vy += (Math.random() - 0.5) * 0.4 - 0.01;
+                    p.vx *= 0.9; p.vy *= 0.9;
+                    if (p.x &lt; -this.w / 2 + 8) { p.x = -this.w / 2 + 8; p.vx *= -0.5; }
+                    if (p.x &gt; this.w / 2 - 8) { p.x = this.w / 2 - 8; p.vx *= -0.5; }
+                    if (p.y &gt; -8) p.y = -8;
+                    if (p.y &lt; -liqHeight + 8) { p.y = -liqHeight + 8; p.vy = Math.abs(p.vy) * 0.5; }
+                });
+            }
+
+            pour(dir, spoutX, spoutY) {
+                this.isPouring = true;
+                const pourRate = 0.0045;
+                this.liquidAmt -= pourRate;
+                if (this.liquidAmt &lt; 0) this.liquidAmt = 0;
+
+                this.pourSpout.x = spoutX;
+                this.pourSpout.y = spoutY;
+
+                const r = (this.pureColor[0] * (1 - this.contamRatio)) + (this.murkyColor[0] * this.contamRatio);
+                const g = (this.pureColor[1] * (1 - this.contamRatio)) + (this.murkyColor[1] * this.contamRatio);
+                const b = (this.pureColor[2] * (1 - this.contamRatio)) + (this.murkyColor[2] * this.contamRatio);
+                this.pourColor = `rgba(${r},${g},${b},0.85)`;
+
+                let fineTrans = false;
+                if (this.fineParticles.length &gt; 0 &amp;&amp; Math.random() &lt; 0.35) { this.fineParticles.pop(); fineTrans = true; }
+
+                if (this.pourTarget) {
+                    if (this.pourTarget.type === &#39;beaker&#39;) {
+                        this.pourTarget.liquidAmt = Math.min(this.pourTarget.liquidAmt + pourRate, 0.95);
+                        this.pourTarget.contamRatio = (this.pourTarget.contamRatio + this.contamRatio) / 2;
+                        this.pourTarget.isDecanted = true;
+                        this.pourTarget.applySloshForce(dir * 0.03);
+                        if (fineTrans) this.pourTarget.fineParticles.push({ x: 0, y: -this.pourTarget.h / 2, vx: 0, vy: 0 });
+                        createSplashes(this.pourTarget.x, this.pourTarget.y - (this.pourTarget.h * this.pourTarget.liquidAmt), this.pourColor);
+                    } else if (this.pourTarget.type === &#39;funnel&#39;) {
+                        this.pourTarget.receive(pourRate, this.contamRatio, fineTrans);
+                        createSplashes(this.pourTarget.x, this.pourTarget.y - 20, this.pourColor);
+                    }
+                } else {
+                    createSplashes(this.pourSpout.x, canvas.height - 120, this.pourColor);
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                ctx.save();
+                ctx.rotate(this.angle);
+                ctx.beginPath();
+                ctx.moveTo(-this.w / 2 + 5, -this.h + 5);
+                ctx.lineTo(-this.w / 2 + 5, -5);
+                ctx.arcTo(-this.w / 2 + 5, 0, -this.w / 2 + 10, 0, 5);
+                ctx.lineTo(this.w / 2 - 10, 0);
+                ctx.arcTo(this.w / 2 - 5, 0, this.w / 2 - 5, -5, 5);
+                ctx.lineTo(this.w / 2 - 5, -this.h + 5);
+                ctx.clip();
+
+                if (this.liquidAmt &gt; 0) {
+                    const worldDepth = this.h * this.liquidAmt;
+                    
+                    ctx.save();
+                    ctx.rotate(-this.angle + this.sloshAngle); 
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(-this.h * 3, -worldDepth);
+                    for (let i = -this.h * 3; i &lt;= this.h * 3; i += 10) {
+                        const waveY = -worldDepth + Math.sin(this.wavePhase + i * 0.05) * (Math.abs(this.sloshVelocity) * 20 + 1);
+                        ctx.lineTo(i, waveY);
+                    }
+                    ctx.lineTo(this.h * 3, this.h * 3);
+                    ctx.lineTo(-this.h * 3, this.h * 3);
+                    ctx.closePath();
+                    
+                    ctx.clip(); 
+
+                    const r = (this.pureColor[0] * (1 - this.contamRatio)) + (this.murkyColor[0] * this.contamRatio);
+                    const g = (this.pureColor[1] * (1 - this.contamRatio)) + (this.murkyColor[1] * this.contamRatio);
+                    const b = (this.pureColor[2] * (1 - this.contamRatio)) + (this.murkyColor[2] * this.contamRatio);
+                    
+                    ctx.fillStyle = `rgba(${r},${g},${b},0.75)`;
+                    ctx.fillRect(-this.h * 3, -this.h * 3, this.h * 6, this.h * 6);
+
+                    ctx.strokeStyle = `rgba(255,255,255,0.5)`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = -this.h * 3; i &lt;= this.h * 3; i += 10) {
+                        const waveY = -worldDepth + Math.sin(this.wavePhase + i * 0.05) * (Math.abs(this.sloshVelocity) * 20 + 1);
+                        if (i === -this.h * 3) ctx.moveTo(i, waveY); else ctx.lineTo(i, waveY);
+                    }
+                    ctx.stroke();
+
+                    ctx.rotate(this.angle - this.sloshAngle);
+
+                    ctx.fillStyle = &#39;#4a2f13&#39;;
+                    this.heavyParticles.forEach(p =&gt; ctx.fillRect(p.x, p.y, 4, 4));
+                    ctx.fillStyle = &#39;rgba(74, 47, 19, 0.7)&#39;;
+                    this.fineParticles.forEach(p =&gt; ctx.fillRect(p.x, p.y, 2.5, 2.5));
+
+                    ctx.restore();
+                }
+                
+                if (this.liquidAmt &lt;= 0) {
+                    ctx.fillStyle = &#39;#4a2f13&#39;;
+                    this.heavyParticles.forEach(p =&gt; ctx.fillRect(p.x, p.y, 4, 4));
+                }
+
+                ctx.restore();
+
+                ctx.rotate(this.angle);
+                ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.85)&#39;;
+                ctx.lineWidth = 4;
+                ctx.fillStyle = &#39;rgba(255, 255, 255, 0.05)&#39;;
+                ctx.beginPath();
+                ctx.moveTo(-this.w / 2 - 6, -this.h); 
+                ctx.lineTo(-this.w / 2, -this.h + 6);
+                ctx.lineTo(-this.w / 2, -6);
+                ctx.arcTo(-this.w / 2, 0, -this.w / 2 + 6, 0, 6);
+                ctx.lineTo(this.w / 2 - 6, 0);
+                ctx.arcTo(this.w / 2, 0, this.w / 2, -6, 6);
+                ctx.lineTo(this.w / 2, -this.h + 6);
+                ctx.lineTo(this.w / 2 + 6, -this.h); 
+                ctx.stroke(); ctx.fill();
+
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([6, 6]);
+                    ctx.strokeRect(-this.w / 2 - 12, -this.h - 10, this.w + 24, this.h + 20);
+                    ctx.setLineDash([]);
+                }
+
+                ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.6)&#39;; ctx.lineWidth = 2; ctx.fillStyle = &#39;rgba(255, 255, 255, 0.6)&#39;; ctx.font = &#39;10px sans-serif&#39;;
+                for (let i = 1; i &lt;= 4; i++) {
+                    const my = - (i * 35);
+                    ctx.beginPath(); ctx.moveTo(-this.w / 2 + 5, my); ctx.lineTo(-this.w / 2 + 20, my); ctx.stroke();
+                    if (i === 4) ctx.fillText(&#39;100ml&#39;, -this.w / 2 + 25, my + 3);
+                }
+                ctx.restore();
+
+                if (selectedObj === this) {
+                    const h = this.getHandlePos();
+                    ctx.save();
+                    ctx.beginPath(); ctx.arc(h.cx, h.cy, h.r, -Math.PI, 0);
+                    ctx.strokeStyle = &#39;rgba(0, 210, 211, 0.3)&#39;; ctx.lineWidth = 2; ctx.stroke();
+                    
+                    ctx.beginPath(); ctx.arc(h.cx, h.cy, 3, 0, Math.PI * 2); ctx.fillStyle = &#39;rgba(0, 210, 211, 0.5)&#39;; ctx.fill();
+
+                    ctx.beginPath(); ctx.arc(h.x, h.y, 18, 0, Math.PI * 2);
+                    ctx.fillStyle = rotatingObj === this ? &#39;#00d2d3&#39; : &#39;rgba(30, 34, 48, 0.9)&#39;;
+                    ctx.fill();
+                    ctx.lineWidth = 2; ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.stroke();
+                    ctx.fillStyle = rotatingObj === this ? &#39;#000&#39; : &#39;#00d2d3&#39;;
+                    ctx.font = &#39;18px sans-serif&#39;; ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;;
+                    ctx.fillText(&#39;🔄&#39;, h.x, h.y);
+                    ctx.restore();
+                }
+
+                if (this.isPouring &amp;&amp; this.pourTarget) {
+                    const targetCenterX = this.pourTarget.x;
+                    const targetY = this.pourTarget.type === &#39;beaker&#39; 
+                        ? this.pourTarget.y - (this.pourTarget.h * this.pourTarget.liquidAmt) 
+                        : this.pourTarget.y - 20;
+
+                    ctx.save();
+                    ctx.strokeStyle = this.pourColor; ctx.lineWidth = 10; ctx.lineCap = &#39;round&#39;;
+                    ctx.beginPath(); ctx.moveTo(this.pourSpout.x, this.pourSpout.y);
+                    ctx.quadraticCurveTo(this.pourSpout.x, targetY - 30, targetCenterX, targetY); ctx.stroke();
+                    ctx.strokeStyle = &#39;rgba(255,255,255,0.4)&#39;; ctx.lineWidth = 3; ctx.stroke();
+                    ctx.restore();
+                }
+
+                if (this.angle === 0) {
+                    const settledCount = this.heavyParticles.filter(p =&gt; p.settled).length;
+                    if (this.liquidAmt &gt; 0.15 &amp;&amp; settledCount &gt; 40) {
+                        drawCallout(this.x, this.y - 12, this.x + 85, this.y - 10, &#39;Sediment&#39;, &#39;#e67e22&#39;);
+                        drawCallout(this.x, this.y - (this.h * this.liquidAmt) + 20, this.x + 85, this.y - (this.h * this.liquidAmt) + 10, &#39;Supernatant Liquid&#39;, &#39;#00d2d3&#39;);
+                    } else if (this.isFiltrate &amp;&amp; this.liquidAmt &gt; 0.05) {
+                        drawCallout(this.x, this.y - (this.h * this.liquidAmt / 2), this.x + 85, this.y - (this.h * this.liquidAmt / 2), &#39;Filtrate (Purified)&#39;, &#39;#2ecc71&#39;);
+                    } else if (this.isDecanted &amp;&amp; this.liquidAmt &gt; 0.05) {
+                        drawCallout(this.x, this.y - (this.h * this.liquidAmt / 2), this.x + 85, this.y - (this.h * this.liquidAmt / 2), &#39;Decanted Liquid&#39;, &#39;#3498db&#39;);
+                    } else {
+                        drawCallout(this.x - this.w / 2, this.y - this.h / 2, this.x - this.w / 2 - 75, this.y - this.h / 2, &#39;100mL Beaker&#39;, &#39;#9b59b6&#39;);
+                    }
+                }
+            }
+        }
+
+        class MudCup {
+            constructor(x, y) { 
+                this.type = &#39;mud_cup&#39;; 
+                this.x = x; 
+                this.y = y; 
+                this.w = 120; // Big glass dish width
+                this.h = 45;  // Dish height
+            }
+            
+            containsPoint(px, py) { 
+                return (px &gt;= this.x - this.w / 2 - 10 &amp;&amp; px &lt;= this.x + this.w / 2 + 10 &amp;&amp; py &gt;= this.y - this.h - 10 &amp;&amp; py &lt;= this.y + 10); 
+            }
+            
+            update() {}
+            
+            draw() {
+                ctx.save(); 
+                ctx.translate(this.x, this.y);
+
+                // --- MUD CONTENT (Inside Dish) ---
+                ctx.fillStyle = &#39;#4a2f13&#39;;
+                ctx.beginPath();
+                ctx.ellipse(0, -18, 52, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Texture details on mud surface
+                ctx.fillStyle = &#39;#321f0b&#39;;
+                ctx.beginPath(); ctx.arc(-20, -20, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(15, -16, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, -14, 5, 0, Math.PI * 2); ctx.fill();
+
+                // --- GLASS DISH BODY ---
+                ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.85)&#39;; 
+                ctx.lineWidth = 3.5;
+                ctx.fillStyle = &#39;rgba(255, 255, 255, 0.08)&#39;;
+
+                // Shallow glass bowl curve
+                ctx.beginPath();
+                ctx.moveTo(-this.w / 2, -this.h);
+                ctx.lineTo(-this.w / 2 + 6, -this.h);
+                ctx.quadraticCurveTo(-this.w / 2 + 10, 0, 0, 0);
+                ctx.quadraticCurveTo(this.w / 2 - 10, 0, this.w / 2 - 6, -this.h);
+                ctx.lineTo(this.w / 2, -this.h);
+                ctx.stroke(); 
+                ctx.fill();
+
+                // Glass Rim Highlight
+                ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.4)&#39;;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.ellipse(0, -this.h, this.w / 2, 8, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; 
+                    ctx.lineWidth = 2.5; 
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-this.w / 2 - 10, -this.h - 12, this.w + 20, this.h + 20);
+                }
+                ctx.restore();
+
+                drawCallout(this.x - 30, this.y - 15, this.x - 90, this.y - 15, &#39;Dish (Mud)&#39;, &#39;#e67e22&#39;);
+            }
+        }
+
+        class Spatula {
+            constructor(x, y) { this.type = &#39;spatula&#39;; this.x = x; this.y = y; this.isLoaded = false; }
+            containsPoint(px, py) { return (px &gt;= this.x - 20 &amp;&amp; px &lt;= this.x + 95 &amp;&amp; py &gt;= this.y - 95 &amp;&amp; py &lt;= this.y + 20); }
+            update() {
+                if (draggedObj === this) {
+                    objects.forEach(obj =&gt; {
+                        if (obj.type === &#39;mud_cup&#39; &amp;&amp; Math.hypot(this.x - obj.x, this.y - obj.y) &lt; 65) this.isLoaded = true;
+                        if (obj.type === &#39;beaker&#39; &amp;&amp; this.isLoaded &amp;&amp; Math.abs(this.x - obj.x) &lt; 50 &amp;&amp; this.y &gt; obj.y - obj.h - 30 &amp;&amp; this.y &lt; obj.y) {
+                            this.isLoaded = false; obj.addMud();
+                        }
+                    });
+                }
+            }
+            draw() {
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.strokeStyle = &#39;#b2bec3&#39;; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(80, -80); ctx.stroke();
+                ctx.fillStyle = &#39;#dfe6e9&#39;; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                if (this.isLoaded) { ctx.fillStyle = &#39;#4a2f13&#39;; ctx.beginPath(); ctx.arc(-2, -3, 8, 0, Math.PI * 2); ctx.fill(); }
+                
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-12, -90, 100, 105);
+                }
+                ctx.restore();
+                drawCallout(this.x + 10, this.y - 10, this.x + 65, this.y - 25, &#39;Spatula&#39;, &#39;#f1c40f&#39;);
+            }
+        }
+
+        class StirringRod {
+            constructor(x, y) { this.type = &#39;stirring_rod&#39;; this.x = x; this.y = y; }
+            containsPoint(px, py) { return (px &gt;= this.x - 20 &amp;&amp; px &lt;= this.x + 20 &amp;&amp; py &gt;= this.y - 10 &amp;&amp; py &lt;= this.y + 150); }
+            update() {
+                if (draggedObj === this) {
+                    objects.forEach(obj =&gt; {
+                        if (obj.type === &#39;beaker&#39; &amp;&amp; this.x &gt; obj.x - obj.w / 2 &amp;&amp; this.x &lt; obj.x + obj.w / 2 &amp;&amp; this.y + 100 &gt; obj.y - obj.h &amp;&amp; this.y + 100 &lt; obj.y) obj.stir();
+                    });
+                }
+            }
+            draw() {
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.strokeStyle = &#39;rgba(200, 230, 255, 0.85)&#39;; ctx.lineWidth = 8; ctx.lineCap = &#39;round&#39;;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 140); ctx.stroke();
+                
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-12, -8, 24, 156);
+                }
+                ctx.restore();
+                drawCallout(this.x, this.y + 70, this.x + 65, this.y + 70, &#39;Stirring Rod&#39;, &#39;#3498db&#39;);
+            }
+        }
+
+        class RetortStand {
+            constructor(x, y) { this.type = &#39;retort_stand&#39;; this.x = x; this.y = y; }
+            containsPoint(px, py) { return (px &gt;= this.x - 75 &amp;&amp; px &lt;= this.x + 75 &amp;&amp; py &gt;= this.y - 310 &amp;&amp; py &lt;= this.y + 20); }
+            update() {}
+            draw() {
+                ctx.save(); ctx.fillStyle = &#39;#2d3436&#39;; ctx.strokeStyle = &#39;#636e72&#39;; ctx.lineWidth = 8;
+                ctx.fillRect(this.x - 70, this.y, 140, 16);
+                ctx.beginPath(); ctx.moveTo(this.x + 40, this.y); ctx.lineTo(this.x + 40, this.y - 300); ctx.stroke();
+                ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(this.x + 40, this.y - 220); ctx.lineTo(this.x - 35, this.y - 220); ctx.stroke();
+                
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(this.x - 75, this.y - 308, 150, 330);
+                }
+                ctx.restore();
+                drawCallout(this.x + 40, this.y - 150, this.x + 115, this.y - 150, &#39;Retort Stand&#39;, &#39;#1abc9c&#39;);
+            }
+        }
+
+        class Funnel {
+            constructor(x, y) { this.type = &#39;funnel&#39;; this.x = x; this.y = y; this.hasFilter = false; this.liquidAmt = 0; this.residue = 0; this.contamRatio = 0; }
+            containsPoint(px, py) { return (px &gt;= this.x - 60 &amp;&amp; px &lt;= this.x + 60 &amp;&amp; py &gt;= this.y - 60 &amp;&amp; py &lt;= this.y + 60); }
+            
+            receive(amt, contam, hasFine) {
+                this.liquidAmt = Math.min(this.liquidAmt + amt, 0.5);
+                this.contamRatio = (this.contamRatio + contam) / 2;
+                if (this.hasFilter &amp;&amp; hasFine) this.residue = Math.min(this.residue + 0.08, 1);
+            }
+
+            update() {
+                if (this.liquidAmt &gt; 0) {
+                    this.liquidAmt -= 0.003;
+                    if(this.liquidAmt &lt; 0.001) this.liquidAmt = 0;
+
+                    let targetBeaker = null;
+                    objects.forEach(obj =&gt; { if (obj.type === &#39;beaker&#39; &amp;&amp; Math.abs(this.x - obj.x) &lt; 50 &amp;&amp; this.y + 50 &lt; obj.y) targetBeaker = obj; });
+                    
+                    if (targetBeaker) {
+                        targetBeaker.liquidAmt = Math.min(targetBeaker.liquidAmt + 0.003, 0.95);
+                        targetBeaker.applySloshForce(0.01);
+                        
+                        if (this.hasFilter) { 
+                            targetBeaker.isFiltrate = true; 
+                            targetBeaker.contamRatio = Math.max(0, targetBeaker.contamRatio * 0.9 - 0.02); 
+                            if (targetBeaker.contamRatio &lt; 0.02) targetBeaker.contamRatio = 0; 
+                        } else {
+                            targetBeaker.contamRatio = (targetBeaker.contamRatio + this.contamRatio) / 2;
+                            if (Math.random() &lt; 0.2) targetBeaker.fineParticles.push({ x: 0, y: -targetBeaker.h / 2, vx: 0, vy: 0 });
+                        }
+                    }
+                    if (Math.random() &lt; (this.hasFilter ? 0.3 : 0.8)) createSplashes(this.x, this.y + 50, this.hasFilter ? &#39;rgba(150,210,255,0.8)&#39; : &#39;rgba(130,110,70,0.8)&#39;, true);
+                }
+            }
+
+            draw() {
+                ctx.save(); ctx.translate(this.x, this.y);
+                if (this.hasFilter) {
+                    ctx.fillStyle = &#39;#f5f6fa&#39;; ctx.beginPath(); ctx.moveTo(-45, -45); ctx.lineTo(45, -45); ctx.lineTo(0, 0); ctx.fill();
+                    if (this.residue &gt; 0) {
+                        ctx.fillStyle = &#39;#4a2f13&#39;; const rh = 45 * this.residue;
+                        ctx.beginPath(); ctx.moveTo(-rh, -rh); ctx.lineTo(rh, -rh); ctx.lineTo(0, 0); ctx.fill();
+                    }
+                    if (this.liquidAmt &gt; 0) {
+                        const r = (150 * (1 - this.contamRatio)) + (130 * this.contamRatio);
+                        const g = (210 * (1 - this.contamRatio)) + (110 * this.contamRatio);
+                        const b = (255 * (1 - this.contamRatio)) + (70 * this.contamRatio);
+                        ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+                        const lh = 40 * (this.liquidAmt * 2);
+                        ctx.beginPath(); ctx.moveTo(-lh, -lh); ctx.lineTo(lh, -lh); ctx.lineTo(0, 0); ctx.fill();
+                    }
+                }
+                ctx.strokeStyle = &#39;rgba(255,255,255,0.8)&#39;; ctx.fillStyle = &#39;rgba(255,255,255,0.1)&#39;; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(-50, -50); ctx.lineTo(50, -50); ctx.lineTo(8, 0); ctx.lineTo(8, 50); ctx.lineTo(-8, 50); ctx.lineTo(-8, 0); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-55, -55, 110, 110);
+                }
+                ctx.restore();
+
+                drawCallout(this.x - 30, this.y + 10, this.x - 95, this.y + 10, &#39;Glass Funnel&#39;, &#39;#e74c3c&#39;);
+                if (this.hasFilter) drawCallout(this.x + 20, this.y - 30, this.x + 85, this.y - 30, this.residue &gt; 0.1 ? &#39;Residue (Mud)&#39; : &#39;Filter Paper&#39;, &#39;#2ecc71&#39;);
+            }
+        }
+
+        class FilterPaper {
+            constructor(x, y) { this.type = &#39;filter_paper&#39;; this.x = x; this.y = y; this.folded = false; this.used = false; }
+            containsPoint(px, py) { return (px &gt;= this.x - 40 &amp;&amp; px &lt;= this.x + 40 &amp;&amp; py &gt;= this.y - 40 &amp;&amp; py &lt;= this.y + 40); }
+            update() {
+                if (draggedObj === this &amp;&amp; this.folded) {
+                    objects.forEach(obj =&gt; {
+                        if (obj.type === &#39;funnel&#39; &amp;&amp; Math.hypot(this.x - obj.x, this.y - (obj.y - 25)) &lt; 40) { obj.hasFilter = true; this.used = true; draggedObj = null; selectedObj = null; }
+                    });
+                }
+            }
+            draw() {
+                if (this.used) return;
+                ctx.save(); ctx.translate(this.x, this.y);
+                ctx.fillStyle = &#39;#f5f6fa&#39;; ctx.strokeStyle = &#39;#dcdde1&#39;; ctx.lineWidth = 2;
+                if (!this.folded) {
+                    ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = &#39;#000&#39;; ctx.font = &#39;11px sans-serif&#39;; ctx.textAlign = &#39;center&#39;; ctx.fillText(&#39;Tap&#39;, 0, 4);
+                } else {
+                    ctx.beginPath(); ctx.moveTo(-30, -15); ctx.lineTo(30, -15); ctx.lineTo(0, 30); ctx.closePath(); ctx.fill(); ctx.stroke();
+                }
+                if (selectedObj === this) {
+                    ctx.strokeStyle = &#39;#00d2d3&#39;; ctx.lineWidth = 2.5; ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-38, -38, 76, 76);
+                }
+                ctx.restore();
+                drawCallout(this.x, this.y - 20, this.x + 65, this.y - 35, &#39;Filter Paper&#39;, &#39;#f39c12&#39;);
+            }
+        }
+
+        // --- SPLASH ENGINE ---
+        function createSplashes(x, y, color, isDrip = false) {
+            for (let i = 0; i &lt; (isDrip ? 1 : 3); i++) splashes.push({ x: x + (Math.random() - 0.5) * 12, y: y, vx: (Math.random() - 0.5) * 2, vy: isDrip ? Math.random() * 4 + 2 : -(Math.random() * 3 + 1), color: color, life: 1.0 });
+        }
+        function updateSplashes() {
+            for (let i = splashes.length - 1; i &gt;= 0; i--) {
+                let s = splashes[i]; s.x += s.vx; s.y += s.vy; s.vy += 0.2; s.life -= 0.05;
+                ctx.fillStyle = s.color; ctx.globalAlpha = Math.max(0, s.life);
+                ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1.0;
+                if (s.life &lt;= 0 || s.y &gt; canvas.height) splashes.splice(i, 1);
+            }
+        }
+
+        // --- INTERACTION &amp; CLICK-TO-SPAWN ---
+        function spawnItem(type) {
+            const x = canvas.width / 2 + spawnOffset;
+            const y = canvas.height - 130;
+            spawnOffset = (spawnOffset + 45) % 180 - 90;
+
+            let n;
+            if (type === &#39;beaker_water&#39;) n = new Beaker(x, y, true);
+            if (type === &#39;beaker_empty&#39;) n = new Beaker(x, y, false);
+            if (type === &#39;mud_cup&#39;) n = new MudCup(x, y);
+            if (type === &#39;spatula&#39;) n = new Spatula(x, y - 100);
+            if (type === &#39;stirring_rod&#39;) n = new StirringRod(x, y - 100);
+            if (type === &#39;retort_stand&#39;) n = new RetortStand(x, y);
+            if (type === &#39;funnel&#39;) n = new Funnel(x, y - 100);
+            if (type === &#39;filter_paper&#39;) n = new FilterPaper(x, y - 100);
+            
+            objects.push(n);
+            selectedObj = n;
+        }
+
+        function getEvtCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left, y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top };
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, down); canvas.addEventListener(&#39;touchstart&#39;, down, { passive: false });
+        canvas.addEventListener(&#39;mousemove&#39;, move); canvas.addEventListener(&#39;touchmove&#39;, move, { passive: false });
+        window.addEventListener(&#39;mouseup&#39;, up); window.addEventListener(&#39;touchend&#39;, up);
+
+        function down(e) {
+            const { x, y } = getEvtCoords(e);
+            
+            if (selectedObj &amp;&amp; selectedObj.type === &#39;beaker&#39;) {
+                const handle = selectedObj.getHandlePos();
+                if (Math.hypot(x - handle.x, y - handle.y) &lt; 30) {
+                    isRotating = true;
+                    rotatingObj = selectedObj;
+                    return;
+                }
+            }
+
+            let found = null;
+            for (let i = objects.length - 1; i &gt;= 0; i--) {
+                const obj = objects[i];
+                if (obj.used) continue;
+                if (obj.containsPoint &amp;&amp; obj.containsPoint(x, y)) {
+                    found = obj;
+                    break;
+                }
+            }
+
+            selectedObj = found;
+
+            if (found) {
+                if (found.type === &#39;filter_paper&#39; &amp;&amp; !found.folded) { found.folded = true; return; }
+                draggedObj = found; dragOffX = x - found.x; dragOffY = y - found.y;
+                objects.splice(objects.indexOf(found), 1); objects.push(found);
+            }
+        }
+
+        function move(e) {
+            const { x, y } = getEvtCoords(e);
+
+            if (isRotating &amp;&amp; rotatingObj) {
+                e.preventDefault();
+                const handle = rotatingObj.getHandlePos();
+                let dx = x - handle.cx;
+                let dy = y - handle.cy;
+                let angle = Math.atan2(dy, dx) + Math.PI / 2;
+                
+                if (angle &gt; Math.PI) angle -= Math.PI * 2;
+                if (angle &lt; -Math.PI) angle += Math.PI * 2;
+                
+                const maxTilt = Math.PI * 0.70;
+                if (angle &gt; maxTilt) angle = maxTilt;
+                if (angle &lt; -maxTilt) angle = -maxTilt;
+
+                rotatingObj.angle = angle;
+                return;
+            }
+
+            if (!draggedObj) return;
+            e.preventDefault();
+            draggedObj.x = x - dragOffX; draggedObj.y = y - dragOffY;
+
+            if (draggedObj.type === &#39;funnel&#39;) {
+                objects.forEach(obj =&gt; {
+                    if (obj.type === &#39;retort_stand&#39; &amp;&amp; Math.hypot(draggedObj.x - (obj.x - 35), draggedObj.y - (obj.y - 220)) &lt; 40) { 
+                        draggedObj.x = obj.x - 35; 
+                        draggedObj.y = obj.y - 220; 
+                    }
+                });
+            }
+        }
+
+        function up() { 
+            draggedObj = null; 
+            isRotating = false;
+            rotatingObj = null;
+        }
+
+        // --- MAIN RENDER LOOP ---
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const ty = canvas.height - 120;
+            const grad = ctx.createLinearGradient(0, ty, 0, canvas.height);
+            grad.addColorStop(0, &#39;#2d3436&#39;); grad.addColorStop(1, &#39;#0f141a&#39;);
+            ctx.fillStyle = grad; ctx.fillRect(0, ty, canvas.width, 120);
+            ctx.strokeStyle = &#39;#485460&#39;; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(canvas.width, ty); ctx.stroke();
+
+            objects.forEach(obj =&gt; { if (obj.update) obj.update(); obj.draw(); });
+            updateSplashes();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1417;
+  const STAGE_H = 797;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
