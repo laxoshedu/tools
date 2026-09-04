@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>3d atomic structure and shapes of orbitals</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1920px;
+    height: 1080px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;3D Atomic Structure Simulation&lt;/title&gt;
+    &lt;style&gt;
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            overflow: hidden; 
+            background-color: #050508; 
+            color: #fff; 
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- Left Side Control Panel (Sidebar) --- */
+        #ui-panel {
+            width: 410px;
+            min-width: 360px;
+            height: 100vh;
+            background: rgba(12, 12, 20, 0.98);
+            padding: 20px;
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.6);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* --- Right Side Simulation Viewport --- */
+        #viewport-container {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+            background: #050508;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 { font-size: 1.3rem; color: #00ffcc; text-transform: uppercase; letter-spacing: 1px; }
+        .element-info { font-size: 1.6rem; font-weight: bold; color: #ffffff; }
+        
+        .particle-stats {
+            display: flex; justify-content: space-between;
+            background: rgba(0,0,0,0.5); padding: 10px 12px; border-radius: 8px;
+            font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.08);
+        }
+        .stat-p { color: #ff4757; font-weight: bold; }
+        .stat-n { color: #70a1ff; font-weight: bold; }
+        .stat-e { color: #ffffff; font-weight: bold; }
+
+        .controls { display: flex; gap: 8px; }
+        button {
+            flex: 1; padding: 10px 6px; border: none; border-radius: 6px;
+            font-weight: bold; cursor: pointer; transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+        .btn-add { background: #00ffcc; color: #000; }
+        .btn-add:hover { background: #00cca3; box-shadow: 0 0 10px rgba(0,255,204,0.4); }
+        .btn-remove { background: #ff4757; color: #fff; }
+        .btn-remove:hover { background: #ff6b81; }
+        .btn-reset { background: #57606f; color: #fff; }
+        .btn-reset:hover { background: #747d8c; }
+
+        .config-header {
+            font-size: 0.85rem; color: #888; margin-top: 5px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;
+        }
+
+        /* --- Custom Sliding Pill Toggle Switches --- */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #2c2c38; transition: .3s; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .slider:before {
+            position: absolute; content: &quot;&quot;; height: 14px; width: 14px; left: 2px; bottom: 2px;
+            background-color: #888; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #00ffcc; border-color: #00ffcc; }
+        input:checked + .slider:before { transform: translateX(18px); background-color: #000; }
+
+        /* Specific Switch Colors */
+        .switch-red input:checked + .slider { background-color: #ff4757; border-color: #ff4757; }
+        .switch-red input:checked + .slider:before { background-color: #fff; }
+
+        /* Grid for Global Toggles */
+        .global-toggles-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .global-toggle-card {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;
+            font-size: 0.8rem; font-weight: 600;
+        }
+
+        /* Shells &amp; Subshells Display Container */
+        .shell-container {
+            background: rgba(255,255,255,0.02); border-radius: 8px; padding: 10px;
+            margin-bottom: 8px; border-left: 4px solid #fff;
+        }
+        .shell-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .shell-title { font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+
+        .subshell-item {
+            display: flex; flex-direction: column; background: rgba(0,0,0,0.35); 
+            padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem;
+        }
+        .subshell-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px; }
+        .subshell-label { display: flex; align-items: center; gap: 8px; }
+        .subshell-label.disabled { opacity: 0.4; pointer-events: none; }
+
+        .orbital-toggles { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 24px; }
+        
+        .shape-toggle {
+            display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #ddd;
+            background: rgba(255,255,255,0.06); padding: 4px 8px;
+            border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); transition: 0.2s;
+        }
+        .shape-toggle.disabled { opacity: 0.3; pointer-events: none; }
+
+        /* Bottom-Right Mini Bohr Diagram Panel */
+        #mini-bohr-panel {
+            position: absolute; bottom: 20px; right: 20px; background: rgba(15, 15, 25, 0.92);
+            padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6); text-align: center; z-index: 10; width: 220px;
+        }
+        .mini-title { font-size: 0.8rem; color: #00ffcc; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 6px; }
+        #bohr-canvas { background: rgba(0,0,0,0.4); border-radius: 8px; display: block; margin: 0 auto 6px auto; }
+        .shell-counts-summary { font-size: 0.78rem; font-family: monospace; color: #ffaa00; margin-bottom: 4px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    &lt;/style&gt;
+    &lt;!-- Three.js and OrbitControls --&gt;
+    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- LEFT SIDE: Controls Panel --&gt;
+    &lt;div id=&quot;ui-panel&quot;&gt;
+        &lt;div&gt;
+            &lt;h1&gt;Atomic Structure&lt;/h1&gt;
+            &lt;div class=&quot;element-info&quot; id=&quot;element-display&quot;&gt;1. Hydrogen (H)&lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;div class=&quot;particle-stats&quot;&gt;
+            &lt;span class=&quot;stat-p&quot; id=&quot;p-count&quot;&gt;Protons: 1&lt;/span&gt;
+            &lt;span class=&quot;stat-n&quot; id=&quot;n-count&quot;&gt;Neutrons: 0&lt;/span&gt;
+            &lt;span class=&quot;stat-e&quot; id=&quot;e-count&quot;&gt;Electrons: 1&lt;/span&gt;
+        &lt;/div&gt;
+        
+        &lt;div class=&quot;controls&quot;&gt;
+            &lt;button class=&quot;btn-add&quot; onclick=&quot;addElectron()&quot;&gt;+ Electron&lt;/button&gt;
+            &lt;button class=&quot;btn-remove&quot; onclick=&quot;removeElectron()&quot;&gt;- Remove&lt;/button&gt;
+            &lt;button class=&quot;btn-reset&quot; onclick=&quot;resetAtom()&quot;&gt;🔄 Reset&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;config-header&quot;&gt;Global Display Controls&lt;/div&gt;
+        &lt;div class=&quot;global-toggles-grid&quot;&gt;
+            &lt;div class=&quot;global-toggle-card&quot;&gt;
+                &lt;span style=&quot;color: #00ffcc;&quot;&gt;Normal View&lt;/span&gt;
+                &lt;label class=&quot;switch&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;normal-view-toggle&quot; onchange=&quot;toggleNormalView(this.checked)&quot;&gt;
+                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                &lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;global-toggle-card&quot;&gt;
+                &lt;span style=&quot;color: #ff4757;&quot;&gt;Pause Motion&lt;/span&gt;
+                &lt;label class=&quot;switch switch-red&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;pause-toggle&quot; onchange=&quot;togglePause(this.checked)&quot;&gt;
+                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                &lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;global-toggle-card&quot;&gt;
+                &lt;span&gt;Show Labels&lt;/span&gt;
+                &lt;label class=&quot;switch&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;global-labels-toggle&quot; onchange=&quot;toggleGlobalLabels(this.checked)&quot; checked&gt;
+                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                &lt;/label&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;global-toggle-card&quot;&gt;
+                &lt;span&gt;Show Paths&lt;/span&gt;
+                &lt;label class=&quot;switch&quot;&gt;
+                    &lt;input type=&quot;checkbox&quot; id=&quot;global-paths-toggle&quot; onchange=&quot;toggleGlobalPaths(this.checked)&quot; checked&gt;
+                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                &lt;/label&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;config-header&quot;&gt;Shells &amp; Subshells&lt;/div&gt;
+        &lt;div id=&quot;configuration-display&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- RIGHT SIDE: 3D Simulation Viewport --&gt;
+    &lt;div id=&quot;viewport-container&quot;&gt;
+        &lt;div id=&quot;canvas-container&quot;&gt;&lt;/div&gt;
+
+        &lt;!-- Bottom-Right 2D Bohr Diagram --&gt;
+        &lt;div id=&quot;mini-bohr-panel&quot;&gt;
+            &lt;div class=&quot;mini-title&quot;&gt;Main Shell Distribution&lt;/div&gt;
+            &lt;canvas id=&quot;bohr-canvas&quot; width=&quot;180&quot; height=&quot;180&quot;&gt;&lt;/canvas&gt;
+            &lt;div class=&quot;shell-counts-summary&quot; id=&quot;shell-summary-text&quot;&gt;K:1 | L:0 | M:0 | N:0&lt;/div&gt;
+            &lt;div style=&quot;font-size: 0.7rem; color: #aaa;&quot;&gt;Electrons match orbital colors&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const ELEMENTS = [
+            &quot;Hydrogen&quot;, &quot;Helium&quot;, &quot;Lithium&quot;, &quot;Beryllium&quot;, &quot;Boron&quot;, &quot;Carbon&quot;, &quot;Nitrogen&quot;, &quot;Oxygen&quot;, &quot;Fluorine&quot;, &quot;Neon&quot;,
+            &quot;Sodium&quot;, &quot;Magnesium&quot;, &quot;Aluminium&quot;, &quot;Silicon&quot;, &quot;Phosphorus&quot;, &quot;Sulfur&quot;, &quot;Chlorine&quot;, &quot;Argon&quot;, &quot;Potassium&quot;, &quot;Calcium&quot;,
+            &quot;Scandium&quot;, &quot;Titanium&quot;, &quot;Vanadium&quot;, &quot;Chromium&quot;, &quot;Manganese&quot;, &quot;Iron&quot;, &quot;Cobalt&quot;, &quot;Nickel&quot;, &quot;Copper&quot;, &quot;Zinc&quot;
+        ];
+        const SYMBOLS = [
+            &quot;H&quot;, &quot;He&quot;, &quot;Li&quot;, &quot;Be&quot;, &quot;B&quot;, &quot;C&quot;, &quot;N&quot;, &quot;O&quot;, &quot;F&quot;, &quot;Ne&quot;,
+            &quot;Na&quot;, &quot;Mg&quot;, &quot;Al&quot;, &quot;Si&quot;, &quot;P&quot;, &quot;S&quot;, &quot;Cl&quot;, &quot;Ar&quot;, &quot;K&quot;, &quot;Ca&quot;,
+            &quot;Sc&quot;, &quot;Ti&quot;, &quot;V&quot;, &quot;Cr&quot;, &quot;Mn&quot;, &quot;Fe&quot;, &quot;Co&quot;, &quot;Ni&quot;, &quot;Cu&quot;, &quot;Zn&quot;
+        ];
+        const MASS_NUMBERS = [1, 4, 7, 9, 11, 12, 14, 16, 19, 20, 23, 24, 27, 28, 31, 32, 35, 40, 39, 40, 45, 48, 51, 52, 55, 56, 59, 59, 64, 65];
+        const SHELL_NAMES = { 1: &quot;K&quot;, 2: &quot;L&quot;, 3: &quot;M&quot;, 4: &quot;N&quot; };
+        const MAIN_SHELL_RADII = { 1: 5, 2: 10, 3: 17, 4: 22 };
+
+        const SUBSHELL_ORDER = [
+            { name: &quot;1s&quot;, mainShell: 1, type: &#39;s&#39;, max: 2, radius: 5 },
+            { name: &quot;2s&quot;, mainShell: 2, type: &#39;s&#39;, max: 2, radius: 9 },
+            { name: &quot;2p&quot;, mainShell: 2, type: &#39;p&#39;, max: 6, radius: 11 },
+            { name: &quot;3s&quot;, mainShell: 3, type: &#39;s&#39;, max: 2, radius: 15 },
+            { name: &quot;3p&quot;, mainShell: 3, type: &#39;p&#39;, max: 6, radius: 17 },
+            { name: &quot;4s&quot;, mainShell: 4, type: &#39;s&#39;, max: 2, radius: 22 },
+            { name: &quot;3d&quot;, mainShell: 3, type: &#39;d&#39;, max: 10, radius: 19 }
+        ];
+
+        const ORBITAL_COLORS = {
+            s: [&#39;#00ffff&#39;],
+            p: [&#39;#ff00ff&#39;, &#39;#00ff00&#39;, &#39;#0088ff&#39;], // px, py, pz
+            d: [&#39;#ffff00&#39;, &#39;#ff8800&#39;, &#39;#ff0088&#39;, &#39;#8800ff&#39;, &#39;#ff0000&#39;] // dx2-y2, dxy, dxz, dyz, dz2
+        };
+        const ORBITAL_SUFFIXES = { s: [&#39;&#39;], p: [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;], d: [&#39;x²-y²&#39;, &#39;xy&#39;, &#39;xz&#39;, &#39;yz&#39;, &#39;z²&#39;] };
+        const SHELL_COLORS = { 1: &#39;#ff9ff3&#39;, 2: &#39;#feca57&#39;, 3: &#39;#48dbfb&#39;, 4: &#39;#1dd1a1&#39; };
+        const PATH_COUNTS = { s: 1, p: 3, d: 5 }; 
+
+        // State Trackers
+        let isNormalView = false;
+        let isPaused = false; 
+        let globalShowLabels = true;
+        let globalShowPaths = true;
+        
+        const shellVisibility = {}; 
+        const shellPathsVisibility = {}; 
+        const subshellVisibility = {}; 
+        const orbitalShapeVisibility = {}; 
+        
+        let currentElectrons = 1;
+        let scene, camera, renderer, controls;
+        let nucleusGroup, mainShellsGroup, orbitalsGroup, shapesGroup, electronsGroup, labelsGroup;
+        let electronData = [];
+
+        init();
+        animate();
+
+        function init() {
+            const container = document.getElementById(&#39;canvas-container&#39;);
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 15, 45);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
+            pointLight.position.set(10, 20, 15);
+            scene.add(pointLight);
+
+            nucleusGroup = new THREE.Group();
+            mainShellsGroup = new THREE.Group();
+            orbitalsGroup = new THREE.Group();
+            shapesGroup = new THREE.Group(); 
+            electronsGroup = new THREE.Group();
+            labelsGroup = new THREE.Group();
+            scene.add(nucleusGroup, mainShellsGroup, orbitalsGroup, shapesGroup, electronsGroup, labelsGroup);
+
+            updateAtom();
+            window.addEventListener(&#39;resize&#39;, onWindowResize);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById(&#39;canvas-container&#39;);
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function distributeElectrons(count, numPaths) {
+            let dist = new Array(numPaths).fill(0);
+            for(let i=0; i&lt;count; i++) dist[i % numPaths]++;
+            return dist;
+        }
+
+        function getPathPoint(type, radius, pathIdx, t) {
+            if (type === &#39;s&#39;) { return new THREE.Vector3(radius * Math.cos(t), 0, radius * Math.sin(t)); } 
+            else if (type === &#39;p&#39;) {
+                let r = radius * (0.75 + 0.25 * Math.abs(Math.cos(t)));
+                let a = r * Math.cos(t), b = r * Math.sin(t);
+                if (pathIdx === 0) return new THREE.Vector3(a, b, 0);       
+                if (pathIdx === 1) return new THREE.Vector3(0, a, b);       
+                if (pathIdx === 2) return new THREE.Vector3(b, 0, a);       
+            } 
+            else if (type === &#39;d&#39;) {
+                let r = radius * (0.75 + 0.25 * Math.abs(Math.cos(2 * t)));
+                let x = r * Math.cos(t), y = r * Math.sin(t);
+                let xRot = x * 0.707 - y * 0.707, yRot = x * 0.707 + y * 0.707;
+                if (pathIdx === 0) return new THREE.Vector3(x, y, 0); 
+                if (pathIdx === 1) return new THREE.Vector3(xRot, yRot, 0); 
+                if (pathIdx === 2) return new THREE.Vector3(xRot, 0, yRot); 
+                if (pathIdx === 3) return new THREE.Vector3(0, xRot, yRot); 
+                if (pathIdx === 4) { let rZ = radius * (0.75 + 0.25 * Math.abs(Math.cos(t))); return new THREE.Vector3(rZ * Math.sin(t), 0, rZ * Math.cos(t)); }
+            }
+            return new THREE.Vector3(0, 0, 0);
+        }
+
+        function createAxisLine(start, end) {
+            const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const mat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.5, gapSize: 0.3, transparent: true, opacity: 0.4 });
+            const line = new THREE.Line(geo, mat);
+            line.computeLineDistances();
+            return line;
+        }
+
+        function createSingleOrbitalShape(type, radius, pathIdx, orbName, eCount, colorHex) {
+            const group = new THREE.Group();
+            const axisLength = radius + 3;
+            const mat = new THREE.MeshStandardMaterial({ color: colorHex, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending });
+            
+            const addLobe = (dir, scaleY) =&gt; {
+                let geo = new THREE.SphereGeometry(radius * (type===&#39;d&#39;?0.35:0.4), 32, 16);
+                if(type !== &#39;s&#39;) geo.scale(1, scaleY, 1);
+                let mesh = new THREE.Mesh(geo, mat);
+                mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+                mesh.position.copy(dir.clone().multiplyScalar(radius * 0.5));
+                group.add(mesh);
+            };
+
+            const lblText = `${orbName} (${eCount}e⁻)`;
+            let lblPos = new THREE.Vector3();
+
+            if (type === &#39;s&#39;) {
+                group.add(new THREE.Mesh(new THREE.SphereGeometry(radius, 32, 32), mat));
+                lblPos.set(radius + 1.5, 0, 0);
+            } 
+            else if (type === &#39;p&#39;) {
+                if (pathIdx === 0) {
+                    group.add(createAxisLine(new THREE.Vector3(-axisLength,0,0), new THREE.Vector3(axisLength,0,0)));
+                    addLobe(new THREE.Vector3(1,0,0), 2.2); addLobe(new THREE.Vector3(-1,0,0), 2.2);
+                    lblPos.set(axisLength, 0, 0);
+                } else if (pathIdx === 1) {
+                    group.add(createAxisLine(new THREE.Vector3(0,-axisLength,0), new THREE.Vector3(0,axisLength,0)));
+                    addLobe(new THREE.Vector3(0,1,0), 2.2); addLobe(new THREE.Vector3(0,-1,0), 2.2);
+                    lblPos.set(0, axisLength, 0);
+                } else if (pathIdx === 2) {
+                    group.add(createAxisLine(new THREE.Vector3(0,0,-axisLength), new THREE.Vector3(0,0,axisLength)));
+                    addLobe(new THREE.Vector3(0,0,1), 2.2); addLobe(new THREE.Vector3(0,0,-1), 2.2);
+                    lblPos.set(0, 0, axisLength);
+                }
+            } 
+            else if (type === &#39;d&#39;) {
+                let dS = 2.5; let c = 0.707;
+                if (pathIdx === 0) {
+                    group.add(createAxisLine(new THREE.Vector3(-axisLength,0,0), new THREE.Vector3(axisLength,0,0)));
+                    group.add(createAxisLine(new THREE.Vector3(0,-axisLength,0), new THREE.Vector3(0,axisLength,0)));
+                    [new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0)].forEach(d =&gt; addLobe(d, dS));
+                    lblPos.set(axisLength, 0, 0);
+                } else if (pathIdx === 1) {
+                    group.add(createAxisLine(new THREE.Vector3(-axisLength,0,0), new THREE.Vector3(axisLength,0,0)));
+                    group.add(createAxisLine(new THREE.Vector3(0,-axisLength,0), new THREE.Vector3(0,axisLength,0)));
+                    [new THREE.Vector3(c,c,0), new THREE.Vector3(-c,-c,0), new THREE.Vector3(-c,c,0), new THREE.Vector3(c,-c,0)].forEach(d =&gt; addLobe(d, dS));
+                    lblPos.set(axisLength*c, axisLength*c, 0);
+                } else if (pathIdx === 2) {
+                    group.add(createAxisLine(new THREE.Vector3(-axisLength,0,0), new THREE.Vector3(axisLength,0,0)));
+                    group.add(createAxisLine(new THREE.Vector3(0,0,-axisLength), new THREE.Vector3(0,0,axisLength)));
+                    [new THREE.Vector3(c,0,c), new THREE.Vector3(-c,0,-c), new THREE.Vector3(-c,0,c), new THREE.Vector3(c,0,-c)].forEach(d =&gt; addLobe(d, dS));
+                    lblPos.set(axisLength*c, 0, axisLength*c);
+                } else if (pathIdx === 3) {
+                    group.add(createAxisLine(new THREE.Vector3(0,-axisLength,0), new THREE.Vector3(0,axisLength,0)));
+                    group.add(createAxisLine(new THREE.Vector3(0,0,-axisLength), new THREE.Vector3(0,0,axisLength)));
+                    [new THREE.Vector3(0,c,c), new THREE.Vector3(0,-c,-c), new THREE.Vector3(0,-c,c), new THREE.Vector3(0,c,-c)].forEach(d =&gt; addLobe(d, dS));
+                    lblPos.set(0, axisLength*c, axisLength*c);
+                } else if (pathIdx === 4) {
+                    group.add(createAxisLine(new THREE.Vector3(0,0,-axisLength), new THREE.Vector3(0,0,axisLength)));
+                    addLobe(new THREE.Vector3(0,0,1), dS); addLobe(new THREE.Vector3(0,0,-1), dS);
+                    const torus = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.4, radius * 0.1, 16, 64), mat);
+                    torus.rotation.x = Math.PI / 2; group.add(torus);
+                    lblPos.set(0, 0, axisLength);
+                }
+            }
+
+            const lbl = create3DLabel(lblText, colorHex, 0.6);
+            lbl.position.copy(lblPos);
+            lbl.userData = { isShapeSpecificLabel: true };
+            group.add(lbl);
+            return group;
+        }
+
+        function create3DLabel(text, colorHex, scale = 1.0) {
+            const canvas = document.createElement(&#39;canvas&#39;);
+            canvas.width = 512; canvas.height = 128;
+            const ctx = canvas.getContext(&#39;2d&#39;);
+            ctx.font = &#39;900 48px &quot;Segoe UI&quot;, sans-serif&#39;;
+            ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;;
+            ctx.shadowColor = colorHex; ctx.shadowBlur = 12;
+            ctx.strokeStyle = colorHex; ctx.lineWidth = 5;
+            ctx.strokeText(text, 256, 64);
+            ctx.fillStyle = &#39;#ffffff&#39;; ctx.fillText(text, 256, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(10 * scale, 2.5 * scale, 1);
+            return sprite;
+        }
+
+        function updateAtom() {
+            const elemName = ELEMENTS[currentElectrons - 1] || `Element ${currentElectrons}`;
+            document.getElementById(&#39;element-display&#39;).innerText = `${currentElectrons}. ${elemName}`;
+            
+            let pCount = currentElectrons;
+            let nCount = MASS_NUMBERS[currentElectrons - 1] - pCount;
+            document.getElementById(&#39;p-count&#39;).innerText = `Protons: ${pCount}`;
+            document.getElementById(&#39;n-count&#39;).innerText = `Neutrons: ${nCount}`;
+            document.getElementById(&#39;e-count&#39;).innerText = `Electrons: ${pCount}`;
+
+            let remaining = currentElectrons;
+            let activeSubshells = [];
+            let shellData = { 1: [], 2: [], 3: [], 4: [] };
+
+            for (let sub of SUBSHELL_ORDER) {
+                if (remaining &lt;= 0) break;
+                let count = Math.min(remaining, sub.max);
+                activeSubshells.push({ ...sub, count: count });
+                shellData[sub.mainShell].push({ name: sub.name, type: sub.type, count: count, max: sub.max });
+                remaining -= count;
+                
+                if (shellVisibility[sub.mainShell] === undefined) shellVisibility[sub.mainShell] = true;
+                if (shellPathsVisibility[sub.mainShell] === undefined) shellPathsVisibility[sub.mainShell] = true;
+                if (subshellVisibility[sub.name] === undefined) subshellVisibility[sub.name] = true;
+                
+                let suffixes = ORBITAL_SUFFIXES[sub.type];
+                for(let i=0; i&lt;PATH_COUNTS[sub.type]; i++) {
+                    let orbName = sub.name + suffixes[i];
+                    if (orbitalShapeVisibility[orbName] === undefined) orbitalShapeVisibility[orbName] = false;
+                }
+            }
+
+            updateUI(shellData);
+            buildNucleus(pCount, nCount);
+            build3DStructure(activeSubshells);
+            applyVisibility();
+            draw2DBohrModel(shellData);
+        }
+
+        function updateUI(shellData) {
+            const container = document.getElementById(&#39;configuration-display&#39;);
+            container.innerHTML = &quot;&quot;;
+            let disableSubshells = isNormalView ? &quot;disabled&quot; : &quot;&quot;;
+
+            for (let n = 1; n &lt;= 4; n++) {
+                if (shellData[n].length === 0) continue;
+                let isShellChecked = shellVisibility[n] ? &quot;checked&quot; : &quot;&quot;;
+                let isPathChecked = shellPathsVisibility[n] ? &quot;checked&quot; : &quot;&quot;;
+                
+                let shellHTML = `
+                &lt;div class=&quot;shell-container&quot; style=&quot;border-left-color: ${SHELL_COLORS[n]}&quot;&gt;
+                    &lt;div class=&quot;shell-header&quot;&gt;
+                        &lt;label class=&quot;shell-title&quot; style=&quot;color: ${SHELL_COLORS[n]}&quot;&gt;
+                            &lt;label class=&quot;switch&quot;&gt;
+                                &lt;input type=&quot;checkbox&quot; onchange=&quot;toggleMainShell(${n}, this.checked)&quot; ${isShellChecked}&gt;
+                                &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                            &lt;/label&gt;
+                            Main Shell n=${n} (${SHELL_NAMES[n]})
+                        &lt;/label&gt;
+                        &lt;label class=&quot;shape-toggle ${disableSubshells}&quot;&gt;
+                            &lt;label class=&quot;switch&quot;&gt;
+                                &lt;input type=&quot;checkbox&quot; onchange=&quot;toggleShellPaths(${n}, this.checked)&quot; ${isPathChecked} ${disableSubshells}&gt;
+                                &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                            &lt;/label&gt;
+                            Paths
+                        &lt;/label&gt;
+                    &lt;/div&gt;`;
+                
+                shellData[n].forEach(sub =&gt; {
+                    let primaryColorHex = ORBITAL_COLORS[sub.type][0];
+                    let isSubChecked = subshellVisibility[sub.name] ? &quot;checked&quot; : &quot;&quot;;
+                    
+                    shellHTML += `
+                        &lt;div class=&quot;subshell-item&quot;&gt;
+                            &lt;div class=&quot;subshell-header&quot;&gt;
+                                &lt;label class=&quot;subshell-label ${disableSubshells}&quot;&gt;
+                                    &lt;label class=&quot;switch&quot;&gt;
+                                        &lt;input type=&quot;checkbox&quot; onchange=&quot;toggleSubshell(&#39;${sub.name}&#39;, this.checked)&quot; ${isSubChecked} ${disableSubshells}&gt;
+                                        &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                    &lt;/label&gt;
+                                    &lt;strong style=&quot;color: ${primaryColorHex}; font-size: 1rem;&quot;&gt;${sub.name}&lt;/strong&gt;
+                                &lt;/label&gt;
+                                &lt;span&gt;${sub.count} / ${sub.max} e⁻&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;orbital-toggles&quot;&gt;`;
+                            
+                    let suffixes = ORBITAL_SUFFIXES[sub.type];
+                    for(let i=0; i&lt;PATH_COUNTS[sub.type]; i++) {
+                        let orbName = sub.name + suffixes[i];
+                        let isOrbChecked = orbitalShapeVisibility[orbName] ? &quot;checked&quot; : &quot;&quot;;
+                        shellHTML += `
+                            &lt;label class=&quot;shape-toggle ${disableSubshells}&quot;&gt;
+                                &lt;label class=&quot;switch&quot;&gt;
+                                    &lt;input type=&quot;checkbox&quot; onchange=&quot;toggleOrbitalShape(&#39;${orbName}&#39;, this.checked)&quot; ${isOrbChecked} ${disableSubshells}&gt;
+                                    &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+                                &lt;/label&gt;
+                                &lt;span style=&quot;color:${ORBITAL_COLORS[sub.type][i]}&quot;&gt;${suffixes[i] || &#39;Shape&#39;}&lt;/span&gt;
+                            &lt;/label&gt;`;
+                    }
+                    shellHTML += `&lt;/div&gt;&lt;/div&gt;`;
+                });
+                shellHTML += `&lt;/div&gt;`;
+                container.innerHTML += shellHTML;
+            }
+        }
+
+        // --- RESET ATOM FUNCTION ---
+        function resetAtom() {
+            currentElectrons = 1;
+            isNormalView = false;
+            isPaused = false;
+            globalShowLabels = true;
+            globalShowPaths = true;
+
+            // Reset UI switches
+            document.getElementById(&#39;normal-view-toggle&#39;).checked = false;
+            document.getElementById(&#39;pause-toggle&#39;).checked = false;
+            document.getElementById(&#39;global-labels-toggle&#39;).checked = true;
+            document.getElementById(&#39;global-paths-toggle&#39;).checked = true;
+
+            // Clear shape toggles
+            Object.keys(orbitalShapeVisibility).forEach(k =&gt; orbitalShapeVisibility[k] = false);
+
+            // Reset Camera &amp; Viewport
+            camera.position.set(0, 15, 45);
+            controls.target.set(0, 0, 0);
+            controls.update();
+
+            updateAtom();
+        }
+
+        function toggleNormalView(checked) { isNormalView = checked; updateAtom(); }
+        function togglePause(checked) { isPaused = checked; }
+        function toggleGlobalLabels(checked) { globalShowLabels = checked; applyVisibility(); }
+        function toggleGlobalPaths(checked) { globalShowPaths = checked; applyVisibility(); }
+        
+        function toggleMainShell(n, isVisible) { shellVisibility[n] = isVisible; applyVisibility(); }
+        function toggleShellPaths(n, isVisible) { shellPathsVisibility[n] = isVisible; applyVisibility(); }
+        function toggleSubshell(subName, isVisible) { subshellVisibility[subName] = isVisible; applyVisibility(); }
+        function toggleOrbitalShape(orbName, isVisible) { orbitalShapeVisibility[orbName] = isVisible; applyVisibility(); }
+
+        function applyVisibility() {
+            mainShellsGroup.children.forEach(c =&gt; { 
+                c.visible = shellVisibility[c.userData.mainShell] &amp;&amp; globalShowPaths &amp;&amp; shellPathsVisibility[c.userData.mainShell]; 
+            });
+            
+            labelsGroup.children.forEach(c =&gt; {
+                if (!globalShowLabels) {
+                    c.visible = false;
+                } else if (c.userData.isSubshellGeneral) {
+                    let anyShapeVisible = Object.keys(orbitalShapeVisibility).some(k =&gt; k.startsWith(c.userData.subName) &amp;&amp; orbitalShapeVisibility[k]);
+                    c.visible = shellVisibility[c.userData.mainShell] &amp;&amp; subshellVisibility[c.userData.subName] &amp;&amp; !anyShapeVisible &amp;&amp; !isNormalView;
+                } else {
+                    c.visible = shellVisibility[c.userData.mainShell];
+                }
+            });
+
+            orbitalsGroup.children.forEach(c =&gt; {
+                if (isNormalView || !globalShowPaths || !shellPathsVisibility[c.userData.mainShell]) { 
+                    c.visible = false; 
+                } else {
+                    let nVisible = shellVisibility[c.userData.mainShell];
+                    let subVisible = subshellVisibility[c.userData.subName];
+                    c.visible = nVisible &amp;&amp; subVisible;
+                }
+            });
+            
+            shapesGroup.children.forEach(c =&gt; {
+                if (isNormalView) { 
+                    c.visible = false; 
+                } else {
+                    let nVisible = shellVisibility[c.userData.mainShell];
+                    let subVisible = subshellVisibility[c.userData.subName];
+                    let shapeVisible = orbitalShapeVisibility[c.userData.orbName];
+                    c.visible = nVisible &amp;&amp; subVisible &amp;&amp; shapeVisible;
+                    
+                    c.children.forEach(subC =&gt; {
+                        if (subC.userData &amp;&amp; subC.userData.isShapeSpecificLabel) {
+                            subC.visible = globalShowLabels;
+                        }
+                    });
+                }
+            });
+
+            electronsGroup.children.forEach(c =&gt; {
+                let nVisible = shellVisibility[c.userData.mainShell];
+                let subVisible = isNormalView ? true : subshellVisibility[c.userData.subName];
+                c.visible = nVisible &amp;&amp; subVisible;
+            });
+        }
+
+        function buildNucleus(pCount, nCount) {
+            nucleusGroup.clear();
+            const total = pCount + nCount;
+            const pMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+            const nMat = new THREE.MeshStandardMaterial({ color: 0x70a1ff });
+            const geo = new THREE.SphereGeometry(0.5, 16, 16);
+            let particles = [];
+            for(let i=0; i&lt;pCount; i++) particles.push(pMat);
+            for(let i=0; i&lt;nCount; i++) particles.push(nMat);
+            particles.sort(() =&gt; Math.random() - 0.5); 
+            for (let i = 0; i &lt; total; i++) {
+                const mesh = new THREE.Mesh(geo, particles[i]);
+                const phi = Math.acos(-1 + (2 * i) / total);
+                const theta = Math.sqrt(total * Math.PI) * phi;
+                const r = Math.pow(i / total, 0.5) * (1.0 + total * 0.012);
+                mesh.position.set(r * Math.cos(theta) * Math.sin(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(phi));
+                nucleusGroup.add(mesh);
+            }
+        }
+
+        function build3DStructure(activeSubshells) {
+            mainShellsGroup.clear(); orbitalsGroup.clear(); shapesGroup.clear();
+            electronsGroup.clear(); labelsGroup.clear(); electronData = [];
+
+            let mainShellCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            activeSubshells.forEach(sub =&gt; mainShellCounts[sub.mainShell] += sub.count);
+            let mainShellIterators = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+            const drawnShells = new Set();
+            activeSubshells.forEach(sub =&gt; {
+                if (!drawnShells.has(sub.mainShell)) {
+                    drawnShells.add(sub.mainShell);
+                    let sr = MAIN_SHELL_RADII[sub.mainShell];
+                    const torus = new THREE.Mesh(new THREE.TorusGeometry(sr, 0.15, 16, 100), new THREE.MeshBasicMaterial({ color: parseInt(SHELL_COLORS[sub.mainShell].replace(&#39;#&#39;,&#39;0x&#39;)), transparent: true, opacity: 0.5 }));
+                    torus.rotation.x = Math.PI / 2; torus.userData = { mainShell: sub.mainShell };
+                    mainShellsGroup.add(torus);
+                    
+                    const labelSprite = create3DLabel(`n=${sub.mainShell} (${SHELL_NAMES[sub.mainShell]})`, SHELL_COLORS[sub.mainShell], 0.8);
+                    labelSprite.position.set(-sr, 1.5, 0); 
+                    labelSprite.userData = { mainShell: sub.mainShell };
+                    labelsGroup.add(labelSprite);
+                }
+
+                const eDist = distributeElectrons(sub.count, PATH_COUNTS[sub.type]);
+                
+                const genLabelSprite = create3DLabel(`${sub.name} (${sub.count}e⁻)`, ORBITAL_COLORS[sub.type][0], 0.6);
+                genLabelSprite.position.set(-sub.radius, -1.5, 0);
+                genLabelSprite.userData = { mainShell: sub.mainShell, subName: sub.name, isSubshellGeneral: true };
+                labelsGroup.add(genLabelSprite);
+
+                let suffixes = ORBITAL_SUFFIXES[sub.type];
+                for(let p = 0; p &lt; PATH_COUNTS[sub.type]; p++) {
+                    let orbName = sub.name + suffixes[p];
+                    
+                    const points = [];
+                    for(let t = 0; t &lt;= Math.PI * 2 + 0.1; t += (Math.PI * 2) / 100) points.push(getPathPoint(sub.type, sub.radius, p, t));
+                    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: ORBITAL_COLORS[sub.type][p], transparent: true, opacity: 0.5 }));
+                    line.userData = { mainShell: sub.mainShell, subName: sub.name };
+                    orbitalsGroup.add(line);
+
+                    let colPos = ORBITAL_COLORS[sub.type][p];
+                    const shapeGroup = createSingleOrbitalShape(sub.type, sub.radius, p, orbName, eDist[p], colPos);
+                    shapeGroup.userData = { mainShell: sub.mainShell, subName: sub.name, orbName: orbName };
+                    shapesGroup.add(shapeGroup);
+                }
+
+                const eGeo = new THREE.SphereGeometry(0.35, 16, 16);
+                for (let i = 0; i &lt; sub.count; i++) {
+                    let pathIdx = sub.type === &#39;s&#39; ? 0 : (i % PATH_COUNTS[sub.type]);
+                    let startAngle3D = sub.type === &#39;s&#39; ? (i * Math.PI) : (Math.floor(i / PATH_COUNTS[sub.type]) * Math.PI);
+                    let n = sub.mainShell;
+                    let startAngleNormal = (mainShellIterators[n] / mainShellCounts[n]) * Math.PI * 2;
+                    mainShellIterators[n]++;
+
+                    const eMesh = new THREE.Mesh(eGeo, new THREE.MeshBasicMaterial({ color: ORBITAL_COLORS[sub.type][pathIdx] }));
+                    eMesh.userData = { mainShell: sub.mainShell, subName: sub.name };
+                    electronsGroup.add(eMesh);
+                    
+                    electronData.push({
+                        mesh: eMesh, type: sub.type, radius: sub.radius, mainShell: n, pathIdx: pathIdx,
+                        angle3D: startAngle3D, angleNormal: startAngleNormal, speed3D: 0.015, speedNormal: 0.015 / Math.sqrt(n) 
+                    });
+                }
+            });
+        }
+
+        function draw2DBohrModel(shellData) {
+            const canvas = document.getElementById(&#39;bohr-canvas&#39;);
+            const ctx = canvas.getContext(&#39;2d&#39;);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath(); ctx.arc(90, 90, 14, 0, Math.PI * 2); ctx.fillStyle = &#39;#ff3333&#39;; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = &#39;#ffffff&#39;; ctx.stroke();
+            ctx.fillStyle = &#39;#ffffff&#39;; ctx.font = &#39;bold 11px sans-serif&#39;; ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;; ctx.fillText(SYMBOLS[currentElectrons - 1] || &quot;?&quot;, 90, 90);
+
+            let mainShellCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+            for (let n = 1; n &lt;= 4; n++) {
+                let eColors = [];
+                shellData[n].forEach(sub =&gt; {
+                    let eDist = distributeElectrons(sub.count, PATH_COUNTS[sub.type]);
+                    for(let p=0; p &lt; PATH_COUNTS[sub.type]; p++) { for(let k=0; k &lt; eDist[p]; k++) eColors.push(ORBITAL_COLORS[sub.type][p]); }
+                });
+                let count = eColors.length; mainShellCounts[n] = count;
+                if (count === 0 &amp;&amp; n &gt; 1 &amp;&amp; mainShellCounts[n-1] === 0) continue;
+                
+                let r = n * 18.75 + 8;
+                ctx.beginPath(); ctx.arc(90, 90, r, 0, Math.PI * 2);
+                ctx.strokeStyle = SHELL_COLORS[n]; ctx.globalAlpha = count &gt; 0 ? 0.6 : 0.2; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.stroke();
+                ctx.setLineDash([]); ctx.globalAlpha = 1.0;
+
+                for (let e = 0; e &lt; count; e++) {
+                    let angle = (e / count) * Math.PI * 2 - Math.PI / 2;
+                    ctx.beginPath(); ctx.arc(90 + r * Math.cos(angle), 90 + r * Math.sin(angle), 4, 0, Math.PI * 2);
+                    ctx.fillStyle = eColors[e]; ctx.fill(); ctx.strokeStyle = &#39;#000&#39;; ctx.lineWidth = 0.8; ctx.stroke();
+                }
+            }
+            document.getElementById(&#39;shell-summary-text&#39;).innerHTML = `K:${mainShellCounts[1]} | L:${mainShellCounts[2]} | M:${mainShellCounts[3]} | N:${mainShellCounts[4]}`;
+        }
+
+        function addElectron() { if (currentElectrons &lt; 30) { currentElectrons++; updateAtom(); } }
+        function removeElectron() { if (currentElectrons &gt; 1) { currentElectrons--; updateAtom(); } }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isPaused) {
+                nucleusGroup.rotation.y += 0.005; orbitalsGroup.rotation.y += 0.001; shapesGroup.rotation.y += 0.001;
+                mainShellsGroup.rotation.y += 0.001; electronsGroup.rotation.y += 0.001; labelsGroup.rotation.y += 0.001; 
+            }
+            electronData.forEach(e =&gt; {
+                if (e.mesh.visible) {
+                    if (isNormalView) {
+                        if (!isPaused) e.angleNormal += e.speedNormal;
+                        e.mesh.position.set(MAIN_SHELL_RADII[e.mainShell] * Math.cos(e.angleNormal), 0, MAIN_SHELL_RADII[e.mainShell] * Math.sin(e.angleNormal));
+                    } else {
+                        if (!isPaused) e.angle3D += e.speed3D;
+                        e.mesh.position.copy(getPathPoint(e.type, e.radius, e.pathIdx, e.angle3D));
+                    }
+                }
+            });
+            controls.update(); renderer.render(scene, camera);
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1920;
+  const STAGE_H = 1080;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
