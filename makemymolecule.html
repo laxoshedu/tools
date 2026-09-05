@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>make my molecule</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Make My Molecule - Smooth Electron Bonding&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0d0d12;
+            --panel-bg: #16161f;
+            --text-light: #f5f5f5;
+            --accent: #4caf50;
+            --accent-yellow: #ffeb3b;
+            --accent-blue: #00e5ff;
+            --accent-purple: #ab47bc;
+            --accent-red: #ff5252;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            display: flex;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile browsers */
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* Sidebar &amp; Periodic Table */
+        #sidebar {
+            width: 440px;
+            background-color: var(--panel-bg);
+            padding: 15px;
+            box-shadow: 3px 0 15px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+
+        .instructions {
+            font-size: 0.78rem;
+            color: #bbb;
+            margin-bottom: 12px;
+            line-height: 1.4;
+            background: rgba(0,0,0,0.35);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .instructions span.highlight { color: var(--accent-yellow); font-weight: bold; }
+
+        /* Toggle Section */
+        .toggle-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.4);
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #2a2a38;
+        }
+
+        .toggle-title {
+            font-size: 0.82rem;
+            font-weight: bold;
+            color: var(--accent-yellow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toggle-title.purple { color: #e1bee7; }
+        .toggle-title.red { color: #ff8a80; }
+
+        .toggle-subtitle {
+            font-size: 0.68rem;
+            color: #aaa;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        /* Toggle Switch UI */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #38384d;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: &quot;&quot;;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+        }
+
+        input:checked + .slider.purple-slider {
+            background-color: var(--accent-purple);
+        }
+
+        input:checked + .slider.red-slider {
+            background-color: var(--accent-red);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .section-title {
+            font-size: 0.82rem;
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+            margin: 8px 0 8px 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* Periodic Table Grid */
+        #pt-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            background: rgba(0,0,0,0.25);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #2a2a38;
+        }
+
+        .pt-header {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #777;
+            font-weight: bold;
+            padding-bottom: 4px;
+        }
+
+        .pt-cell {
+            aspect-ratio: 1;
+            background-color: #222230;
+            border: 1px solid #38384d;
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .pt-cell:hover, .pt-cell:active {
+            border-color: var(--accent);
+            transform: scale(1.1);
+            z-index: 5;
+            background-color: #2f2f44;
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
+        }
+
+        .pt-num {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 0.55rem;
+            color: #777;
+        }
+
+        .pt-sym {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .pt-empty {
+            visibility: hidden;
+        }
+
+        /* Lewis Dots on Periodic Table Tiles */
+        .pt-dot-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .pt-dot-group {
+            position: absolute;
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pt-dot-group.top { top: 2px; left: 0; width: 100%; }
+        .pt-dot-group.bottom { bottom: 2px; left: 0; width: 100%; }
+        .pt-dot-group.left { left: 2px; top: 0; height: 100%; flex-direction: column; }
+        .pt-dot-group.right { right: 2px; top: 0; height: 100%; flex-direction: column; }
+
+        .pt-dot {
+            width: 3px;
+            height: 3px;
+            background-color: var(--accent-yellow);
+            border-radius: 50%;
+        }
+
+        /* Workspace Canvas */
+        #workspace-container {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle, #181824 0%, #08080c 100%);
+            touch-action: none;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        #clear-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #c62828;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            transition: background 0.2s;
+        }
+
+        #clear-btn:hover { background: #b71c1c; }
+
+        /* Mode Indicator Banner */
+        #mode-banner {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 235, 59, 0.15);
+            border: 1px solid var(--accent-yellow);
+            color: var(--accent-yellow);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.2);
+            z-index: 10;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        /* MOBILE RESPONSIVE LAYOUT */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column-reverse;
+            }
+
+            #sidebar {
+                width: 100%;
+                height: 42vh;
+                padding: 10px;
+                box-shadow: 0 -3px 15px rgba(0,0,0,0.8);
+            }
+
+            #workspace-container {
+                height: 58vh;
+                width: 100%;
+            }
+
+            h1 { font-size: 1rem; margin-bottom: 6px; }
+            .instructions { font-size: 0.7rem; padding: 6px 8px; margin-bottom: 8px; }
+            .toggle-section { padding: 6px 10px; margin-bottom: 6px; }
+            .toggle-title { font-size: 0.75rem; }
+            .toggle-subtitle { font-size: 0.6rem; }
+            .pt-sym { font-size: 0.8rem; }
+            .pt-num { font-size: 0.45rem; }
+            #clear-btn { padding: 6px 12px; font-size: 0.75rem; top: 10px; right: 10px; }
+            #mode-banner { font-size: 0.7rem; padding: 4px 10px; top: 10px; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;h1&gt;Make My Molecule&lt;/h1&gt;
+        
+        &lt;!-- Pause Simulation Toggle --&gt;
+        &lt;div class=&quot;toggle-section&quot;&gt;
+            &lt;div class=&quot;toggle-title red&quot;&gt;
+                Pause Simulation
+                &lt;span class=&quot;toggle-subtitle&quot;&gt;Freeze motion &amp; inspect paths&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;label class=&quot;switch&quot;&gt;
+                &lt;input type=&quot;checkbox&quot; id=&quot;pause-toggle&quot; onchange=&quot;togglePause(this.checked)&quot;&gt;
+                &lt;span class=&quot;slider red-slider&quot;&gt;&lt;/span&gt;
+            &lt;/label&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Selective Bonding Toggle --&gt;
+        &lt;div class=&quot;toggle-section&quot;&gt;
+            &lt;div class=&quot;toggle-title&quot;&gt;
+                Selective Bonding Mode
+                &lt;span class=&quot;toggle-subtitle&quot;&gt;Manual electron-to-slot connection&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;label class=&quot;switch&quot;&gt;
+                &lt;input type=&quot;checkbox&quot; id=&quot;selective-toggle&quot; onchange=&quot;toggleSelectiveBonding(this.checked)&quot;&gt;
+                &lt;span class=&quot;slider&quot;&gt;&lt;/span&gt;
+            &lt;/label&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Auto-Molecule Attraction Toggle --&gt;
+        &lt;div class=&quot;toggle-section&quot;&gt;
+            &lt;div class=&quot;toggle-title purple&quot;&gt;
+                Auto-Molecule Construction
+                &lt;span class=&quot;toggle-subtitle&quot;&gt;Curved navigation &amp; Mass-weighted pull&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;label class=&quot;switch&quot;&gt;
+                &lt;input type=&quot;checkbox&quot; id=&quot;auto-toggle&quot; onchange=&quot;toggleAutoMolecule(this.checked)&quot;&gt;
+                &lt;span class=&quot;slider purple-slider&quot;&gt;&lt;/span&gt;
+            &lt;/label&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;instructions&quot; id=&quot;instructions-text&quot;&gt;
+            • &lt;strong&gt;Drag atoms near each other:&lt;/strong&gt; Watch the electrons and holes slowly rotate to lock perfectly into place.&lt;br&gt;
+            • &lt;strong&gt;Double/Triple Bonds:&lt;/strong&gt; Watch the electrons literally &lt;span class=&quot;highlight&quot;&gt;slide around the atom&lt;/span&gt; to form the 2nd and 3rd bonds!&lt;br&gt;
+            • &lt;strong&gt;Double-click / Double-tap&lt;/strong&gt; an atom on the canvas to delete it.
+        &lt;/div&gt;
+
+        &lt;div class=&quot;section-title&quot;&gt;Main Group Periodic Table (Lewis Structures)&lt;/div&gt;
+        &lt;div id=&quot;pt-grid&quot;&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;1&lt;br&gt;IA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;2&lt;br&gt;IIA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;13&lt;br&gt;IIIA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;14&lt;br&gt;IVA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;15&lt;br&gt;VA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;16&lt;br&gt;VIA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;17&lt;br&gt;VIIA&lt;/div&gt;
+            &lt;div class=&quot;pt-header&quot;&gt;18&lt;br&gt;VIIIA&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;workspace-container&quot;&gt;
+        &lt;div id=&quot;mode-banner&quot;&gt;SELECTIVE BONDING ACTIVE&lt;/div&gt;
+        &lt;button id=&quot;clear-btn&quot; onclick=&quot;clearCanvas()&quot;&gt;Clear Canvas&lt;/button&gt;
+        &lt;canvas id=&quot;simCanvas&quot;&gt;&lt;/canvas&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- PERIODIC TABLE DATA WITH CHARGE TENDENCIES &amp; ATOMIC MASS ---
+        const ptElements = [
+            { z: 1, sym: &#39;H&#39;, val: 1, group: 1, period: 1, col: &#39;#ffffff&#39;, type: &#39;nonmetal&#39;, cT: 1, mass: 1.0 },
+            { z: 2, sym: &#39;He&#39;, val: 2, group: 18, period: 1, col: &#39;#7be5ff&#39;, type: &#39;nonmetal&#39;, cT: 0, mass: 4.0 },
+            { z: 3, sym: &#39;Li&#39;, val: 1, group: 1, period: 2, col: &#39;#cc88ff&#39;, type: &#39;metal&#39;, cT: 1, mass: 6.9 },
+            { z: 4, sym: &#39;Be&#39;, val: 2, group: 2, period: 2, col: &#39;#c2ff28&#39;, type: &#39;metal&#39;, cT: 1, mass: 9.0 },
+            { z: 5, sym: &#39;B&#39;, val: 3, group: 13, period: 2, col: &#39;#ffb5b5&#39;, type: &#39;metalloid&#39;, cT: 1, mass: 10.8 },
+            { z: 6, sym: &#39;C&#39;, val: 4, group: 14, period: 2, col: &#39;#a0a0a0&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 12.0 },
+            { z: 7, sym: &#39;N&#39;, val: 5, group: 15, period: 2, col: &#39;#6688ff&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 14.0 },
+            { z: 8, sym: &#39;O&#39;, val: 6, group: 16, period: 2, col: &#39;#ff4444&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 16.0 },
+            { z: 9, sym: &#39;F&#39;, val: 7, group: 17, period: 2, col: &#39;#88ff88&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 19.0 },
+            { z: 10, sym: &#39;Ne&#39;, val: 8, group: 18, period: 2, col: &#39;#7be5ff&#39;, type: &#39;nonmetal&#39;, cT: 0, mass: 20.2 },
+            { z: 11, sym: &#39;Na&#39;, val: 1, group: 1, period: 3, col: &#39;#cc88ff&#39;, type: &#39;metal&#39;, cT: 1, mass: 23.0 },
+            { z: 12, sym: &#39;Mg&#39;, val: 2, group: 2, period: 3, col: &#39;#c2ff28&#39;, type: &#39;metal&#39;, cT: 1, mass: 24.3 },
+            { z: 13, sym: &#39;Al&#39;, val: 3, group: 13, period: 3, col: &#39;#ffb5b5&#39;, type: &#39;metal&#39;, cT: 1, mass: 27.0 },
+            { z: 14, sym: &#39;Si&#39;, val: 4, group: 14, period: 3, col: &#39;#a0a0a0&#39;, type: &#39;metalloid&#39;, cT: -1, mass: 28.1 },
+            { z: 15, sym: &#39;P&#39;, val: 5, group: 15, period: 3, col: &#39;#ffaa22&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 31.0 },
+            { z: 16, sym: &#39;S&#39;, val: 6, group: 16, period: 3, col: &#39;#ffff22&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 32.1 },
+            { z: 17, sym: &#39;Cl&#39;, val: 7, group: 17, period: 3, col: &#39;#88ff88&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 35.5 },
+            { z: 18, sym: &#39;Ar&#39;, val: 8, group: 18, period: 3, col: &#39;#7be5ff&#39;, type: &#39;nonmetal&#39;, cT: 0, mass: 39.9 },
+            { z: 19, sym: &#39;K&#39;, val: 1, group: 1, period: 4, col: &#39;#cc88ff&#39;, type: &#39;metal&#39;, cT: 1, mass: 39.1 },
+            { z: 20, sym: &#39;Ca&#39;, val: 2, group: 2, period: 4, col: &#39;#c2ff28&#39;, type: &#39;metal&#39;, cT: 1, mass: 40.1 },
+            { z: 31, sym: &#39;Ga&#39;, val: 3, group: 13, period: 4, col: &#39;#ffb5b5&#39;, type: &#39;metal&#39;, cT: 1, mass: 69.7 },
+            { z: 32, sym: &#39;Ge&#39;, val: 4, group: 14, period: 4, col: &#39;#a0a0a0&#39;, type: &#39;metalloid&#39;, cT: -1, mass: 72.6 },
+            { z: 33, sym: &#39;As&#39;, val: 5, group: 15, period: 4, col: &#39;#ffaa22&#39;, type: &#39;metalloid&#39;, cT: -1, mass: 74.9 },
+            { z: 34, sym: &#39;Se&#39;, val: 6, group: 16, period: 4, col: &#39;#ffff22&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 79.0 },
+            { z: 35, sym: &#39;Br&#39;, val: 7, group: 17, period: 4, col: &#39;#88ff88&#39;, type: &#39;nonmetal&#39;, cT: -1, mass: 79.9 },
+            { z: 36, sym: &#39;Kr&#39;, val: 8, group: 18, period: 4, col: &#39;#7be5ff&#39;, type: &#39;nonmetal&#39;, cT: 0, mass: 83.8 }
+        ];
+
+        // --- RENDER PERIODIC TABLE ---
+        const ptGrid = document.getElementById(&#39;pt-grid&#39;);
+        const groups = [1, 2, 13, 14, 15, 16, 17, 18];
+        const periods = [1, 2, 3, 4];
+
+        periods.forEach(p =&gt; {
+            groups.forEach(g =&gt; {
+                const el = ptElements.find(e =&gt; e.period === p &amp;&amp; e.group === g);
+                if (el) {
+                    const cell = document.createElement(&#39;div&#39;);
+                    cell.className = &#39;pt-cell&#39;;
+                    cell.onclick = () =&gt; spawnAtom(el);
+                    cell.innerHTML = `&lt;div class=&quot;pt-num&quot;&gt;${el.z}&lt;/div&gt;&lt;div class=&quot;pt-sym&quot; style=&quot;color:${el.col}&quot;&gt;${el.sym}&lt;/div&gt;&lt;div class=&quot;pt-dot-container&quot;&gt;&lt;/div&gt;`;
+                    renderTileLewisDots(cell.querySelector(&#39;.pt-dot-container&#39;), el.val);
+                    ptGrid.appendChild(cell);
+                } else {
+                    const empty = document.createElement(&#39;div&#39;);
+                    empty.className = &#39;pt-empty&#39;;
+                    ptGrid.appendChild(empty);
+                }
+            });
+        });
+
+        function renderTileLewisDots(container, valency) {
+            const topDots = valency &gt;= 5 ? 2 : (valency &gt;= 1 ? 1 : 0);
+            const rightDots = valency &gt;= 6 ? 2 : (valency &gt;= 2 ? 1 : 0);
+            const bottomDots = valency &gt;= 7 ? 2 : (valency &gt;= 3 ? 1 : 0);
+            const leftDots = valency &gt;= 8 ? 2 : (valency &gt;= 4 ? 1 : 0);
+            const positions = [{ pos: &#39;top&#39;, count: topDots }, { pos: &#39;right&#39;, count: rightDots }, { pos: &#39;bottom&#39;, count: bottomDots }, { pos: &#39;left&#39;, count: leftDots }];
+            positions.forEach(p =&gt; {
+                if (p.count &gt; 0) {
+                    const group = document.createElement(&#39;div&#39;);
+                    group.className = `pt-dot-group ${p.pos}`;
+                    for (let i = 0; i &lt; p.count; i++) {
+                        const dot = document.createElement(&#39;div&#39;);
+                        dot.className = &#39;pt-dot&#39;;
+                        group.appendChild(dot);
+                    }
+                    container.appendChild(group);
+                }
+            });
+        }
+
+        // --- CANVAS SETUP ---
+        const canvas = document.getElementById(&#39;simCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        let width, height;
+        function resize() { width = canvas.width = canvas.parentElement.clientWidth; height = canvas.height = canvas.parentElement.clientHeight; }
+        window.addEventListener(&#39;resize&#39;, resize);
+        window.addEventListener(&#39;orientationchange&#39;, resize);
+        resize();
+
+        let atoms = [], bonds = [], attractionBeams = [];
+        let draggingAtom = null, dragOffsetX = 0, dragOffsetY = 0;
+        let dragStartX = 0, dragStartY = 0;
+
+        // Touch double tap tracking
+        let lastTapTime = 0;
+        let lastTapAtom = null;
+
+        // --- MODE STATES ---
+        let selectiveMode = false;
+        let autoMoleculeMode = false;
+        let isPaused = false; 
+        let selectedDonor = null; 
+        let currentMousePos = { x: 0, y: 0 };
+        let hoveredSlot = null;
+
+        const MAGNETIC_RADIUS = 150; 
+        const SNAP_DISTANCE = 90; 
+
+        class Atom {
+            constructor(data, x, y) {
+                this.id = Math.random().toString(36).substring(2, 9);
+                this.sym = data.sym;
+                this.val = data.val;
+                this.col = data.col;
+                this.type = data.type;
+                this.cT = data.cT;
+                this.mass = data.mass || 12.0;
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.slotAngle = Math.random() * Math.PI * 2; 
+                this.bondCooldown = 0; 
+                
+                // Animation smoothing targets
+                this.renderBase = this.slotAngle;
+                this.renderStep = 0;
+
+                if (this.sym === &#39;H&#39; || this.sym === &#39;He&#39;) {
+                    this.unpaired = this.val === 1 ? 1 : 0;
+                } else {
+                    this.unpaired = this.val &lt;= 4 ? this.val : 8 - this.val;
+                }
+            }
+
+            get bonds() { return bonds.filter(b =&gt; b.a === this || b.b === this); }
+            get remainingSlots() { return this.unpaired - this.bonds.length; }
+            get lonePairs() {
+                if (this.sym === &#39;H&#39; || this.sym === &#39;He&#39;) return this.val === 2 ? 1 : 0;
+                return (this.val - this.unpaired) / 2;
+            }
+
+            get acceptorPower() {
+                let base = this.type === &#39;nonmetal&#39; ? 20 : (this.type === &#39;metalloid&#39; ? 10 : 0);
+                return base + this.val;
+            }
+        }
+
+        // --- HELPER: MOLECULE MASS CALCULATION ---
+        function getMoleculeAtoms(startAtom) {
+            let mol = [], q = [startAtom], visited = new Set([startAtom]);
+            while (q.length &gt; 0) {
+                let curr = q.shift();
+                mol.push(curr);
+                curr.bonds.forEach(b =&gt; {
+                    let neighbor = b.a === curr ? b.b : b.a;
+                    if (!visited.has(neighbor)) { visited.add(neighbor); q.push(neighbor); }
+                });
+            }
+            return mol;
+        }
+
+        function getMoleculeMass(atom) {
+            const mol = getMoleculeAtoms(atom);
+            return mol.reduce((sum, a) =&gt; sum + a.mass, 0);
+        }
+
+        // --- TOGGLE CONTROLLER ---
+        function togglePause(enabled) {
+            isPaused = enabled;
+            updateModeUI();
+        }
+
+        function toggleSelectiveBonding(enabled) {
+            selectiveMode = enabled;
+            if (enabled) {
+                autoMoleculeMode = false;
+                document.getElementById(&#39;auto-toggle&#39;).checked = false;
+            }
+            updateModeUI();
+        }
+
+        function toggleAutoMolecule(enabled) {
+            autoMoleculeMode = enabled;
+            if (enabled) {
+                selectiveMode = false;
+                document.getElementById(&#39;selective-toggle&#39;).checked = false;
+                selectedDonor = null;
+            }
+            updateModeUI();
+        }
+
+        function updateModeUI() {
+            const banner = document.getElementById(&#39;mode-banner&#39;);
+            const inst = document.getElementById(&#39;instructions-text&#39;);
+
+            if (isPaused) {
+                banner.style.display = &#39;block&#39;;
+                banner.innerText = &#39;⏸ SIMULATION PAUSED: Motion Frozen — Paths &amp; Connections Visible&#39;;
+                banner.style.borderColor = &#39;#ff5252&#39;;
+                banner.style.color = &#39;#ff8a80&#39;;
+                banner.style.background = &#39;rgba(255, 82, 82, 0.2)&#39;;
+            } else if (selectiveMode) {
+                banner.style.display = &#39;block&#39;;
+                banner.innerText = &#39;SELECTIVE BONDING ACTIVE: Click Donor Electron ➔ Click Acceptor Place&#39;;
+                banner.style.borderColor = &#39;var(--accent-yellow)&#39;;
+                banner.style.color = &#39;var(--accent-yellow)&#39;;
+                banner.style.background = &#39;rgba(255, 235, 59, 0.15)&#39;;
+                inst.innerHTML = `• &lt;span class=&quot;highlight&quot;&gt;Selective Mode Active:&lt;/span&gt; Tap an open donor electron slot on an atom, then tap an accepting slot on another atom.&lt;br&gt;• Automatic attraction &amp; auto-bonding are &lt;strong style=&quot;color:#ff4444;&quot;&gt;DISABLED&lt;/strong&gt;.&lt;br&gt;• Double-tap an atom to delete it.`;
+            } else if (autoMoleculeMode) {
+                banner.style.display = &#39;block&#39;;
+                banner.innerText = &#39;AUTO-MOLECULE MODE: Dynamic Curved Navigation &amp; Molecular Mass Preference Active!&#39;;
+                banner.style.borderColor = &#39;var(--accent-purple)&#39;;
+                banner.style.color = &#39;#e1bee7&#39;;
+                banner.style.background = &#39;rgba(171, 71, 188, 0.2)&#39;;
+                inst.innerHTML = `• &lt;strong style=&quot;color:#e1bee7;&quot;&gt;Curved Navigation &amp; Mass Preference:&lt;/strong&gt;&lt;br&gt;` +
+                    `1. Atoms navigate around blocking obstacles along &lt;span class=&quot;highlight&quot;&gt;flexibly curved paths&lt;/span&gt; without getting stuck.&lt;br&gt;` +
+                    `2. Donors are attracted &lt;strong style=&quot;color:#00e5ff;&quot;&gt;faster to higher Molecular Mass targets&lt;/strong&gt;.&lt;br&gt;` +
+                    `3. All molecules attract simultaneously according to local perception.`;
+            } else {
+                banner.style.display = &#39;none&#39;;
+                selectedDonor = null;
+                inst.innerHTML = `• &lt;strong&gt;Drag atoms near each other:&lt;/strong&gt; Watch the electrons and holes slowly rotate to lock perfectly into place.&lt;br&gt;• &lt;strong&gt;Double/Triple Bonds:&lt;/strong&gt; Watch the electrons literally &lt;span class=&quot;highlight&quot;&gt;slide around the atom&lt;/span&gt; to form the 2nd and 3rd bonds!&lt;br&gt;• &lt;strong&gt;Double-tap / Double-click&lt;/strong&gt; an atom on the canvas to delete it.`;
+            }
+        }
+
+        function spawnAtom(data) {
+            const padding = 60;
+            const x = padding + Math.random() * (width - padding * 2);
+            const y = padding + Math.random() * (height - padding * 2);
+            atoms.push(new Atom(data, x, y));
+        }
+
+        function clearCanvas() { atoms = []; bonds = []; selectedDonor = null; }
+
+        // --- SLOT HELPER FOR SELECTIVE BONDING ---
+        function getAllAvailableSlots() {
+            let slots = [];
+            atoms.forEach(a =&gt; {
+                if (a.remainingSlots &gt; 0) {
+                    let totalSpots = a.lonePairs + a.remainingSlots;
+                    let step = a.renderStep || ((Math.PI * 2) / (totalSpots || 1));
+                    let base = a.renderBase;
+
+                    for (let i = 0; i &lt; a.remainingSlots; i++) {
+                        let spotIdx = a.lonePairs + i;
+                        let ang = base + (spotIdx * step);
+                        let sx = a.x + Math.cos(ang) * 35;
+                        let sy = a.y + Math.sin(ang) * 35;
+                        slots.push({ atom: a, slotIdx: i, x: sx, y: sy });
+                    }
+                }
+            });
+            return slots;
+        }
+
+        function findClosestSlot(mx, my, maxDist = 38) {
+            const slots = getAllAvailableSlots();
+            let closest = null, minD = maxDist;
+            slots.forEach(s =&gt; {
+                let d = Math.sqrt((mx - s.x)**2 + (my - s.y)**2);
+                if (d &lt; minD) { minD = d; closest = s; }
+            });
+            return closest;
+        }
+
+        // --- UNIFIED TOUCH &amp; MOUSE POSITION HELPER ---
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            if (e.touches &amp;&amp; e.touches.length &gt; 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches &amp;&amp; e.changedTouches.length &gt; 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        // --- INPUT EVENT HANDLERS (TOUCH &amp; MOUSE) ---
+        function handleStart(x, y) {
+            dragStartX = x; dragStartY = y;
+            currentMousePos = { x, y };
+
+            let touchedAtom = null;
+            for (let i = atoms.length - 1; i &gt;= 0; i--) {
+                const a = atoms[i];
+                if (Math.sqrt((x - a.x)**2 + (y - a.y)**2) &lt; 35) {
+                    touchedAtom = a;
+                    draggingAtom = a;
+                    dragOffsetX = x - a.x;
+                    dragOffsetY = y - a.y;
+                    break;
+                }
+            }
+
+            // Mobile Double Tap Detection
+            const now = Date.now();
+            if (touchedAtom &amp;&amp; lastTapAtom === touchedAtom &amp;&amp; (now - lastTapTime) &lt; 300) {
+                bonds = bonds.filter(b =&gt; b.a !== touchedAtom &amp;&amp; b.b !== touchedAtom);
+                if (selectedDonor &amp;&amp; selectedDonor.atom === touchedAtom) selectedDonor = null;
+                atoms = atoms.filter(a =&gt; a !== touchedAtom);
+                draggingAtom = null;
+                lastTapAtom = null;
+                return;
+            }
+            lastTapTime = now;
+            lastTapAtom = touchedAtom;
+        }
+
+        function handleMove(x, y) {
+            currentMousePos = { x, y };
+
+            if (draggingAtom) {
+                draggingAtom.x = x - dragOffsetX;
+                draggingAtom.y = y - dragOffsetY;
+                draggingAtom.vx = 0; draggingAtom.vy = 0;
+            }
+
+            if (selectiveMode) {
+                hoveredSlot = findClosestSlot(x, y);
+            }
+        }
+
+        function handleEnd(x, y) {
+            const clickDist = Math.sqrt((x - dragStartX)**2 + (y - dragStartY)**2);
+
+            if (clickDist &lt; 8 &amp;&amp; selectiveMode) {
+                let clickedSlot = findClosestSlot(x, y);
+                let clickedAtom = null;
+                if (!clickedSlot) {
+                    atoms.forEach(a =&gt; {
+                        if (Math.sqrt((x - a.x)**2 + (y - a.y)**2) &lt; 35 &amp;&amp; a.remainingSlots &gt; 0) {
+                            clickedAtom = a;
+                        }
+                    });
+                }
+
+                let targetAtom = clickedSlot ? clickedSlot.atom : clickedAtom;
+
+                if (targetAtom) {
+                    if (!selectedDonor) {
+                        let slotToUse = clickedSlot || { atom: targetAtom, slotIdx: 0, x: targetAtom.x, y: targetAtom.y };
+                        selectedDonor = slotToUse;
+                    } else {
+                        if (selectedDonor.atom === targetAtom) {
+                            selectedDonor = null;
+                        } else {
+                            let a = selectedDonor.atom;
+                            let b = targetAtom;
+
+                            let sharedBonds = bonds.filter(bond =&gt; (bond.a === a &amp;&amp; bond.b === b) || (bond.a === b &amp;&amp; bond.b === a)).length;
+
+                            if (a.remainingSlots &gt; 0 &amp;&amp; b.remainingSlots &gt; 0 &amp;&amp; sharedBonds &lt; 3) {
+                                bonds.push({ a, b });
+                                a.bondCooldown = 40;
+                                b.bondCooldown = 40;
+                            }
+                            selectedDonor = null;
+                        }
+                    }
+                } else {
+                    selectedDonor = null;
+                }
+            }
+
+            draggingAtom = null;
+        }
+
+        // --- MOUSE LISTENERS ---
+        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; { const p = getPos(e); handleStart(p.x, p.y); });
+        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; { const p = getPos(e); handleMove(p.x, p.y); });
+        canvas.addEventListener(&#39;mouseup&#39;, (e) =&gt; { const p = getPos(e); handleEnd(p.x, p.y); });
+        canvas.addEventListener(&#39;mouseleave&#39;, () =&gt; draggingAtom = null);
+
+        // --- TOUCH LISTENERS (MOBILE SUPPORT) ---
+        canvas.addEventListener(&#39;touchstart&#39;, (e) =&gt; {
+            e.preventDefault();
+            const p = getPos(e);
+            handleStart(p.x, p.y);
+        }, { passive: false });
+
+        canvas.addEventListener(&#39;touchmove&#39;, (e) =&gt; {
+            e.preventDefault();
+            const p = getPos(e);
+            handleMove(p.x, p.y);
+        }, { passive: false });
+
+        canvas.addEventListener(&#39;touchend&#39;, (e) =&gt; {
+            e.preventDefault();
+            const p = getPos(e);
+            handleEnd(p.x, p.y);
+        }, { passive: false });
+
+        // --- PHYSICS, ROTATION, MASS ATTRACTION &amp; CURVED PATHFINDING ---
+        function applyPhysics() {
+            attractionBeams = []; 
+
+            if (!isPaused) {
+                atoms.forEach(a =&gt; { 
+                    if (a !== draggingAtom) { a.vx *= 0.82; a.vy *= 0.82; } 
+                    if (a.bondCooldown &gt; 0) a.bondCooldown--; 
+                });
+            }
+
+            // Standard spring forces for already bonded atoms
+            for (let i = 0; i &lt; atoms.length; i++) {
+                for (let j = i + 1; j &lt; atoms.length; j++) {
+                    const a = atoms[i];
+                    const b = atoms[j];
+                    let sharedBonds = bonds.filter(bond =&gt; (bond.a === a &amp;&amp; bond.b === b) || (bond.a === b &amp;&amp; bond.b === a)).length;
+                    
+                    if (sharedBonds &gt; 0) {
+                        if (!isPaused) {
+                            let dx = b.x - a.x;
+                            let dy = b.y - a.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                            const targetLength = 95 - (sharedBonds * 12); 
+                            const force = (dist - targetLength) * 0.05;
+                            if (a !== draggingAtom) { a.vx += (dx/dist)*force; a.vy += (dy/dist)*force; }
+                            if (b !== draggingAtom) { b.vx -= (dx/dist)*force; b.vy -= (dy/dist)*force; }
+                        }
+                    } else {
+                        if (!isPaused) {
+                            let dx = b.x - a.x, dy = b.y - a.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                            if (dist &lt; 75 &amp;&amp; a.remainingSlots === 0 &amp;&amp; b.remainingSlots === 0) {
+                                const pushForce = (75 - dist) * 0.04;
+                                if (a !== draggingAtom) { a.vx -= (dx/dist)*pushForce; a.vy -= (dy/dist)*pushForce; }
+                                if (b !== draggingAtom) { b.vx += (dx/dist)*pushForce; b.vy += (dy/dist)*pushForce; }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- AUTO-MOLECULE &amp; STANDARD ATTRACTION LOGIC ---
+            if (!selectiveMode) {
+                if (autoMoleculeMode) {
+                    atoms.forEach(donor =&gt; {
+                        if (donor.remainingSlots &lt;= 0 || donor === draggingAtom) return;
+
+                        let bestTarget = null;
+                        let bestScore = -Infinity;
+                        let bestDist = 0;
+                        let bestTargetMolMass = 0;
+
+                        atoms.forEach(acceptor =&gt; {
+                            if (acceptor === donor || acceptor.remainingSlots &lt;= 0) return;
+
+                            let sharedBonds = bonds.filter(b =&gt; (b.a === donor &amp;&amp; b.b === acceptor) || (b.a === acceptor &amp;&amp; b.b === donor)).length;
+                            if (sharedBonds &gt;= 3) return;
+
+                            let targetMolMass = getMoleculeMass(acceptor);
+                            let dx = acceptor.x - donor.x;
+                            let dy = acceptor.y - donor.y;
+                            let dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                            let score = (1 + targetMolMass * 0.08) / Math.pow(dist, 1.15);
+
+                            if (score &gt; bestScore) {
+                                bestScore = score;
+                                bestTarget = acceptor;
+                                bestDist = dist;
+                                bestTargetMolMass = targetMolMass;
+                            }
+                        });
+
+                        if (bestTarget) {
+                            let acceptor = bestTarget;
+                            let dist = bestDist;
+                            let dx = acceptor.x - donor.x;
+                            let dy = acceptor.y - donor.y;
+                            let dirX = dx / dist;
+                            let dirY = dy / dist;
+
+                            if (!isPaused) {
+                                if (donor.bonds.length === 0) {
+                                    let tA = donor.lonePairs + donor.remainingSlots;
+                                    let stepA = (Math.PI * 2) / (tA || 1);
+                                    let angleToB = Math.atan2(dy, dx);
+                                    let diffA = (angleToB - ((tA - 1) * stepA)) - donor.slotAngle;
+                                    while (diffA &lt; -Math.PI) diffA += 2 * Math.PI;
+                                    while (diffA &gt; Math.PI) diffA -= 2 * Math.PI;
+                                    donor.slotAngle += diffA * 0.12;
+                                }
+                            }
+
+                            let perpX = -dirY;
+                            let perpY = dirX;
+
+                            let steerX = 0;
+                            let steerY = 0;
+                            let avoidRadius = 85;
+                            let donorMol = getMoleculeAtoms(donor);
+                            let acceptorMol = getMoleculeAtoms(acceptor);
+
+                            atoms.forEach(obs =&gt; {
+                                if (!donorMol.includes(obs) &amp;&amp; !acceptorMol.includes(obs)) {
+                                    let vox = obs.x - donor.x;
+                                    let voy = obs.y - donor.y;
+                                    let proj = vox * dirX + voy * dirY;
+
+                                    if (proj &gt; 25 &amp;&amp; proj &lt; dist - 35) {
+                                        let perpDist = vox * perpX + voy * perpY;
+                                        if (Math.abs(perpDist) &lt; avoidRadius) {
+                                            let detourSide = perpDist &gt;= 0 ? -1 : 1;
+                                            let mag = (avoidRadius - Math.abs(perpDist)) / avoidRadius;
+                                            steerX += perpX * detourSide * mag * 0.35;
+                                            steerY += perpY * detourSide * mag * 0.35;
+                                        }
+                                    }
+                                }
+                            });
+
+                            if (!isPaused) {
+                                let massSpeedMultiplier = 1 + (bestTargetMolMass * 0.022);
+                                let basePull = 0.05 * massSpeedMultiplier;
+
+                                donor.vx += (dirX * basePull) + steerX;
+                                donor.vy += (dirY * basePull) + steerY;
+                            }
+
+                            let ctrlX = (donor.x + acceptor.x) / 2 + steerX * 160;
+                            let ctrlY = (donor.y + acceptor.y) / 2 + steerY * 160;
+
+                            attractionBeams.push({
+                                x1: donor.x, y1: donor.y,
+                                x2: acceptor.x, y2: acceptor.y,
+                                ctrlX: ctrlX, ctrlY: ctrlY,
+                                isCurved: Math.abs(steerX) &gt; 0.01 || Math.abs(steerY) &gt; 0.01,
+                                dist: dist
+                            });
+
+                            if (!isPaused) {
+                                if (dist &lt; SNAP_DISTANCE &amp;&amp; donor.bondCooldown &lt;= 0 &amp;&amp; acceptor.bondCooldown &lt;= 0) {
+                                    bonds.push({ a: donor, b: acceptor });
+                                    donor.bondCooldown = 85;
+                                    acceptor.bondCooldown = 85;
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    for (let i = 0; i &lt; atoms.length; i++) {
+                        for (let j = i + 1; j &lt; atoms.length; j++) {
+                            const a = atoms[i];
+                            const b = atoms[j];
+                            let dx = b.x - a.x;
+                            let dy = b.y - a.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+
+                            let sharedBonds = bonds.filter(bond =&gt; (bond.a === a &amp;&amp; bond.b === b) || (bond.a === b &amp;&amp; bond.b === a)).length;
+                            let canBondMore = a.remainingSlots &gt; 0 &amp;&amp; b.remainingSlots &gt; 0 &amp;&amp; sharedBonds &lt; 3;
+
+                            if (canBondMore &amp;&amp; dist &lt; MAGNETIC_RADIUS) {
+                                attractionBeams.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, dist: dist, isCurved: false });
+
+                                if (!isPaused) {
+                                    const angleToB = Math.atan2(dy, dx);
+                                    const angleToA = Math.atan2(-dy, -dx);
+
+                                    if (a.bonds.length === 0) {
+                                        let tA = a.lonePairs + a.remainingSlots;
+                                        let stepA = (Math.PI * 2) / (tA || 1);
+                                        let diffA = (angleToB - ((tA - 1) * stepA)) - a.slotAngle;
+                                        while (diffA &lt; -Math.PI) diffA += 2 * Math.PI;
+                                        while (diffA &gt; Math.PI) diffA -= 2 * Math.PI;
+                                        a.slotAngle += diffA * 0.12;
+                                    }
+                                    if (b.bonds.length === 0) {
+                                        let tB = b.lonePairs + b.remainingSlots;
+                                        let stepB = (Math.PI * 2) / (tB || 1);
+                                        let diffB = (angleToA - ((tB - 1) * stepB)) - b.slotAngle;
+                                        while (diffB &lt; -Math.PI) diffB += 2 * Math.PI;
+                                        while (diffB &gt; Math.PI) diffB -= 2 * Math.PI;
+                                        b.slotAngle += diffB * 0.12;
+                                    }
+
+                                    const pullForce = 0.07;
+                                    if (a !== draggingAtom) { a.vx += (dx/dist)*pullForce; a.vy += (dy/dist)*pullForce; }
+                                    if (b !== draggingAtom) { b.vx -= (dx/dist)*pullForce; b.vy -= (dy/dist)*pullForce; }
+
+                                    if (dist &lt; SNAP_DISTANCE &amp;&amp; a.bondCooldown &lt;= 0 &amp;&amp; b.bondCooldown &lt;= 0) {
+                                        bonds.push({ a, b });
+                                        a.bondCooldown = 85; 
+                                        b.bondCooldown = 85;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!isPaused) {
+                atoms.forEach(a =&gt; {
+                    if (a !== draggingAtom) {
+                        a.x += a.vx; a.y += a.vy;
+                        if (a.x &lt; 35) a.x = 35; if (a.x &gt; width - 35) a.x = width - 35;
+                        if (a.y &lt; 35) a.y = 35; if (a.y &gt; height - 35) a.y = height - 35;
+                    }
+                });
+            }
+        }
+
+        // --- FORMULA GENERATOR ---
+        function getMolecules() {
+            let visited = new Set(), molecules = [];
+            atoms.forEach(start =&gt; {
+                if (!visited.has(start)) {
+                    let comp = getMoleculeAtoms(start);
+                    comp.forEach(a =&gt; visited.add(a));
+                    molecules.push(comp);
+                }
+            });
+            return molecules;
+        }
+
+        function toSubscript(num) {
+            const subs = {&#39;0&#39;:&#39;₀&#39;,&#39;1&#39;:&#39;₁&#39;,&#39;2&#39;:&#39;₂&#39;,&#39;3&#39;:&#39;₃&#39;,&#39;4&#39;:&#39;₄&#39;,&#39;5&#39;:&#39;₅&#39;,&#39;6&#39;:&#39;₆&#39;,&#39;7&#39;:&#39;₇&#39;,&#39;8&#39;:&#39;₈&#39;,&#39;9&#39;:&#39;₉&#39;};
+            return num.toString().split(&#39;&#39;).map(c =&gt; subs[c] || c).join(&#39;&#39;);
+        }
+
+        function getChemicalFormula(atomGroup) {
+            const counts = {}, typeMap = {};
+            let netCharge = 0;
+
+            atomGroup.forEach(a =&gt; { 
+                counts[a.sym] = (counts[a.sym] || 0) + 1;
+                typeMap[a.sym] = a.type;
+                netCharge += (a.remainingSlots * a.cT); 
+            });
+
+            const elements = Object.keys(counts);
+            elements.sort((a, b) =&gt; {
+                const typeOrder = { &#39;metal&#39;: 1, &#39;metalloid&#39;: 2, &#39;nonmetal&#39;: 3 };
+                const orderA = typeOrder[typeMap[a]] || 3;
+                const orderB = typeOrder[typeMap[b]] || 3;
+
+                if (orderA !== orderB) return orderA - orderB; 
+                if (typeMap[a] === &#39;nonmetal&#39; &amp;&amp; typeMap[b] === &#39;nonmetal&#39;) {
+                    if (counts[&#39;C&#39;]) {
+                        if (a === &#39;C&#39;) return -1; if (b === &#39;C&#39;) return 1;
+                        if (a === &#39;H&#39;) return -1; if (b === &#39;H&#39;) return 1;
+                    }
+                }
+                return a.localeCompare(b);
+            });
+
+            let formula = &#39;&#39;;
+            elements.forEach(sym =&gt; { formula += sym + (counts[sym] &gt; 1 ? toSubscript(counts[sym]) : &#39;&#39;); });
+
+            if (netCharge !== 0) {
+                const sign = netCharge &gt; 0 ? &#39;⁺&#39; : &#39;⁻&#39;;
+                const abs = Math.abs(netCharge);
+                const sups = {&#39;0&#39;:&#39;⁰&#39;,&#39;1&#39;:&#39;¹&#39;,&#39;2&#39;:&#39;²&#39;,&#39;3&#39;:&#39;³&#39;,&#39;4&#39;:&#39;⁴&#39;,&#39;5&#39;:&#39;⁵&#39;,&#39;6&#39;:&#39;⁶&#39;,&#39;7&#39;:&#39;⁷&#39;,&#39;8&#39;:&#39;⁸&#39;,&#39;9&#39;:&#39;⁹&#39;};
+                let supNum = (abs === 1 ? &#39;&#39; : abs.toString()).split(&#39;&#39;).map(c =&gt; sups[c] || c).join(&#39;&#39;);
+                formula = `[${formula}]${supNum}${sign}`;
+            }
+
+            return { formula, isStable: netCharge === 0 &amp;&amp; atomGroup.every(a =&gt; a.remainingSlots === 0) };
+        }
+
+        // --- RENDER LOOP ---
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // 0. Attraction Beams
+            if (!selectiveMode) {
+                attractionBeams.forEach(beam =&gt; {
+                    let alpha = autoMoleculeMode ? 0.45 : (1 - beam.dist / MAGNETIC_RADIUS) * 0.8;
+                    ctx.strokeStyle = autoMoleculeMode ? `rgba(171, 71, 188, ${alpha})` : `rgba(0, 229, 255, ${alpha})`;
+                    ctx.lineWidth = autoMoleculeMode ? 2.5 : 3; 
+                    ctx.setLineDash([6, 6]);
+                    
+                    ctx.beginPath(); 
+                    ctx.moveTo(beam.x1, beam.y1);
+                    if (beam.isCurved) {
+                        ctx.quadraticCurveTo(beam.ctrlX, beam.ctrlY, beam.x2, beam.y2);
+                    } else {
+                        ctx.lineTo(beam.x2, beam.y2);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]); 
+                });
+            }
+
+            // 1. Bonds
+            let bondGroups = {};
+            bonds.forEach(b =&gt; {
+                let key = b.a.id &lt; b.b.id ? b.a.id + &#39;_&#39; + b.b.id : b.b.id + &#39;_&#39; + b.a.id;
+                if (!bondGroups[key]) bondGroups[key] = { a: b.a, b: b.b, count: 0 };
+                bondGroups[key].count++;
+            });
+
+            Object.values(bondGroups).forEach(group =&gt; {
+                const { a, b, count } = group;
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const nx = dx/dist, ny = dy/dist, px = -ny, py = nx;       
+
+                const offsets = count === 1 ? [0] : (count === 2 ? [-9, 9] : [-14, 0, 14]);
+
+                offsets.forEach(offset =&gt; {
+                    let sX = a.x + px*offset, sY = a.y + py*offset;
+                    let eX = b.x + px*offset, eY = b.y + py*offset;
+
+                    ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.25)&#39;; ctx.lineWidth = 6;
+                    ctx.beginPath(); ctx.moveTo(sX, sY); ctx.lineTo(eX, eY); ctx.stroke();
+
+                    const mx = sX + (eX - sX)/2, my = sY + (eY - sY)/2;
+                    ctx.fillStyle = a.col; ctx.beginPath(); ctx.arc(mx + px*5, my + py*5, 4.5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(mx - px*5, my - py*5, 4.5, 0, Math.PI*2); ctx.fill();
+                });
+            });
+
+            // 2. Atoms &amp; SMOOTH ELECTRON ANIMATION
+            atoms.forEach(a =&gt; {
+                let targetBase = a.slotAngle;
+                let totalSpots = a.lonePairs + a.remainingSlots;
+                let targetStep = (Math.PI * 2) / (totalSpots || 1);
+
+                if (a.bonds.length &gt; 0) {
+                    let vecX = 0, vecY = 0;
+                    a.bonds.forEach(b =&gt; {
+                        let other = (b.a === a) ? b.b : b.a;
+                        vecX += (other.x - a.x); vecY += (other.y - a.y);
+                    });
+                    let oppAngle = Math.atan2(vecY, vecX) + Math.PI; 
+                    if (totalSpots &gt; 1) targetStep = Math.PI / totalSpots;
+
+                    let normalBase = oppAngle - (targetStep * (totalSpots - 1)) / 2;
+                    targetBase = normalBase;
+
+                    let multiPartner = null;
+                    for (let b of a.bonds) {
+                        let p = b.a === a ? b.b : b.a;
+                        let shBonds = bonds.filter(x =&gt; (x.a===a &amp;&amp; x.b===p) || (x.a===p &amp;&amp; x.b===a)).length;
+                        if (shBonds &lt; 3 &amp;&amp; a.remainingSlots &gt; 0 &amp;&amp; p.remainingSlots &gt; 0) { multiPartner = p; break; }
+                    }
+
+                    if (multiPartner) {
+                        let angleToPartner = Math.atan2(multiPartner.y - a.y, multiPartner.x - a.x);
+                        let sweptBase = angleToPartner - (totalSpots - 1) * targetStep;
+                        
+                        let sweepFactor = 1 - (a.bondCooldown / 85); 
+                        sweepFactor = Math.max(0, Math.min(1, sweepFactor));
+
+                        let diff = sweptBase - normalBase;
+                        while(diff &lt; -Math.PI) diff += 2*Math.PI; while(diff &gt; Math.PI) diff -= 2*Math.PI;
+                        targetBase = normalBase + diff * sweepFactor;
+                    }
+                }
+
+                if (!isPaused) {
+                    let dBase = targetBase - a.renderBase;
+                    while(dBase &lt; -Math.PI) dBase += 2*Math.PI; while(dBase &gt; Math.PI) dBase -= 2*Math.PI;
+                    a.renderBase += dBase * 0.15;
+                    a.renderStep += (targetStep - a.renderStep) * 0.15;
+                }
+
+                // Draw Atom Body
+                ctx.beginPath(); ctx.arc(a.x, a.y, 25, 0, Math.PI * 2);
+                ctx.fillStyle = a.col; ctx.fill();
+                ctx.strokeStyle = &#39;#000&#39;; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = &#39;#000&#39;; ctx.font = &#39;bold 17px Arial&#39;;
+                ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;; ctx.fillText(a.sym, a.x, a.y);
+
+                let currentSpot = 0;
+
+                // Draw Lone Pairs
+                for (let i = 0; i &lt; a.lonePairs; i++) {
+                    const ang = a.renderBase + (currentSpot * a.renderStep);
+                    const ex = a.x + Math.cos(ang) * 35, ey = a.y + Math.sin(ang) * 35;
+                    const px = Math.cos(ang + Math.PI/2) * 4.5, py = Math.sin(ang + Math.PI/2) * 4.5;
+                    ctx.fillStyle = &#39;#fff&#39;;
+                    ctx.beginPath(); ctx.arc(ex + px, ey + py, 3.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(ex - px, ey - py, 3.5, 0, Math.PI*2); ctx.fill();
+                    currentSpot++;
+                }
+
+                // Draw Remaining Slots
+                for (let i = 0; i &lt; a.remainingSlots; i++) {
+                    const ang = a.renderBase + (currentSpot * a.renderStep);
+                    const ex = a.x + Math.cos(ang) * 35, ey = a.y + Math.sin(ang) * 35;
+                    const px = Math.cos(ang + Math.PI/2) * 4.5, py = Math.sin(ang + Math.PI/2) * 4.5;
+                    
+                    ctx.fillStyle = &#39;#fff&#39;;
+                    ctx.beginPath(); ctx.arc(ex + px, ey + py, 3.5, 0, Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = &#39;#ffeb3b&#39;; ctx.setLineDash([2, 2]); ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.arc(ex - px, ey - py, 4.5, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+                    currentSpot++;
+                }
+            });
+
+            // 3. Selective Bonding Mode Visual Highlights
+            if (selectiveMode) {
+                const slots = getAllAvailableSlots();
+
+                slots.forEach(s =&gt; {
+                    ctx.strokeStyle = &#39;rgba(255, 235, 59, 0.5)&#39;;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+
+                if (hoveredSlot) {
+                    ctx.strokeStyle = &#39;#00e5ff&#39;;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(hoveredSlot.x, hoveredSlot.y, 11, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                if (selectedDonor) {
+                    let donorAtom = selectedDonor.atom;
+                    let donorX = selectedDonor.x, donorY = selectedDonor.y;
+                    
+                    let totalSpots = donorAtom.lonePairs + donorAtom.remainingSlots;
+                    let step = donorAtom.renderStep || ((Math.PI * 2) / (totalSpots || 1));
+                    let spotIdx = donorAtom.lonePairs + Math.min(selectedDonor.slotIdx, donorAtom.remainingSlots - 1);
+                    let ang = donorAtom.renderBase + (spotIdx * step);
+                    donorX = donorAtom.x + Math.cos(ang) * 35;
+                    donorY = donorAtom.y + Math.sin(ang) * 35;
+
+                    ctx.strokeStyle = &#39;#ffeb3b&#39;;
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(donorX, donorY);
+                    ctx.lineTo(currentMousePos.x, currentMousePos.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.fillStyle = &#39;rgba(255, 235, 59, 0.3)&#39;;
+                    ctx.beginPath();
+                    ctx.arc(donorX, donorY, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = &#39;#ffeb3b&#39;;
+                    ctx.stroke();
+                }
+            }
+
+            // 4. Chemical Formula Labels
+            getMolecules().forEach(mol =&gt; {
+                let cx = 0, minY = height;
+                mol.forEach(a =&gt; { cx += a.x; if (a.y &lt; minY) minY = a.y; });
+                cx /= mol.length;
+                const { formula, isStable } = getChemicalFormula(mol);
+                const labelY = Math.max(35, minY - 60);
+
+                ctx.font = &#39;bold 22px sans-serif&#39;; ctx.textAlign = &#39;center&#39;;
+                const tW = ctx.measureText(formula).width;
+                ctx.fillStyle = &#39;rgba(0, 0, 0, 0.6)&#39;;
+                ctx.beginPath(); ctx.roundRect(cx - (tW/2) - 10, labelY - 22, tW + 20, 30, 8); ctx.fill();
+                ctx.fillStyle = isStable ? &#39;#00ff88&#39; : &#39;#ffea00&#39;;
+                ctx.fillText(formula, cx, labelY);
+            });
+        }
+
+        function loop() { applyPhysics(); render(); requestAnimationFrame(loop); }
+        loop();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
