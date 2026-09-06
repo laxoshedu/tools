@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>simple pendulum lab</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Physics Lab: Simple Pendulum Simulation&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #e2e8f0;
+            --panel-bg: #ffffff;
+            --dark-panel: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #2563eb;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --text-main: #334155;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: &#39;Segoe UI&#39;, system-ui, sans-serif;
+            /* Prevent touch highlights on mobile */
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--dark-panel);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+            overflow: hidden;
+        }
+
+        /* LEFT SIDE: Pendulum Only */
+        .left-split {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--panel-bg);
+            border-right: 2px solid var(--border-color);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        #simCanvas {
+            width: 100%;
+            height: 100%;
+            background-color: #f8fafc;
+            cursor: grab;
+            /* Disable default touch actions so we can drag the bob without scrolling */
+            touch-action: none; 
+        }
+        
+        #simCanvas:active {
+            cursor: grabbing;
+        }
+
+        .drag-prompt {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            pointer-events: none;
+            animation: pulse 2s infinite;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+            50% { opacity: 0.85; transform: translateX(-50%) scale(1.03); }
+        }
+
+        .canvas-overlay-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+
+        /* RIGHT SIDE: Everything Else */
+        .right-split {
+            flex: 1.1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            overflow-y: auto;
+            background: var(--bg-color);
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            height: 150px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-top: 5px;
+        }
+
+        .control-group { margin-bottom: 10px; }
+        .control-group label {
+            display: flex; justify-content: space-between;
+            font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;
+        }
+        input[type=&quot;range&quot;] {
+            width: 100%; height: 6px; background: #e2e8f0;
+            border-radius: 3px; outline: none; accent-color: var(--primary);
+        }
+        .checkbox-group {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin-top: 10px; font-size: 0.8rem; font-weight: 600;
+        }
+
+        select {
+            padding: 4px 8px; border-radius: 6px;
+            border: 1px solid var(--border-color); font-weight: 600; font-size: 0.8rem;
+        }
+        .timer-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;
+        }
+        .timer-card {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px;
+        }
+        .timer-card .val { font-size: 1.15rem; font-weight: 800; color: var(--dark-panel); font-family: monospace; }
+        .timer-card .lbl { font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700; }
+
+        .analysis-box {
+            background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+            padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; display: none;
+        }
+        .analysis-box h4 { color: #1e40af; margin-bottom: 6px; font-size: 0.9rem; text-transform: uppercase; }
+        .analysis-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed #bfdbfe; padding-bottom: 2px;}
+
+        /* Calculations Engine Layout */
+        .calc-panel { background: var(--dark-panel); color: #f1f5f9; }
+        .calc-panel .panel-title { color: #38bdf8; border-bottom-color: #334155; }
+        .calc-box {
+            background: var(--card-bg); border-radius: 6px; padding: 12px; margin-bottom: 10px;
+            border-left: 4px solid var(--primary); box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+        .calc-box.force { border-left-color: var(--accent-red); }
+        .calc-box.energy { border-left-color: var(--accent-green); }
+        .calc-box.period { border-left-color: var(--accent-purple); }
+        
+        .calc-label { font-size: 0.8rem; color: #94a3b8; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;}
+        .calc-formula { 
+            background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; 
+            color: #e2e8f0; margin-bottom: 6px; overflow-x: auto; 
+        }
+        .calc-value { font-size: 1rem; font-weight: bold; color: #38bdf8; font-family: monospace; margin-top: 4px; text-align: right;}
+
+        .status-badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 12px; font-weight: bold; }
+        .status-badge.live { background: #dcfce7; color: #15803d; }
+        .status-badge.paused { background: #fef3c7; color: #b45309; }
+        .status-badge.ready { background: #dbeafe; color: #1e40af; }
+
+        /* ================= REALISTIC MATH CSS ENGINE ================= */
+        .math-text { font-family: &#39;Cambria Math&#39;, &#39;Times New Roman&#39;, serif; font-size: 1.1rem; }
+        .math-inline { display: inline-flex; align-items: center; vertical-align: middle; }
+        .math-frac { display: inline-flex; flex-direction: column; align-items: center; margin: 0 6px; vertical-align: middle;}
+        .math-frac .num { font-size: 0.85em; padding: 0 4px; line-height: 1.1; }
+        .math-frac .den { font-size: 0.85em; padding: 0 4px; border-top: 1px solid currentColor; line-height: 1.1; }
+        .math-sqrt { display: inline-flex; align-items: stretch; margin-left: 4px; }
+        .math-sqrt-sign { display: flex; align-items: center; font-size: 1.25em; font-family: Arial, sans-serif; font-weight: 300; padding-right: 1px; }
+        .math-sqrt-content { border-top: 1px solid currentColor; padding-top: 1px; margin-top: 3px; padding-left: 2px; padding-right: 3px;}
+
+        /* ================= MOBILE RESPONSIVE FIXES ================= */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .left-split {
+                flex: none;
+                height: 45vh; /* Takes up 45% of the screen height on mobile */
+                border-right: none;
+                border-bottom: 2px solid var(--border-color);
+            }
+            .right-split {
+                flex: none;
+                height: 55vh; /* Takes up remaining height and scrolls */
+            }
+            .canvas-overlay-controls {
+                bottom: 10px;
+                padding: 8px 12px;
+                width: 90%;
+                justify-content: center;
+            }
+            .timer-grid {
+                grid-template-columns: 1fr; /* Stack timer cards on small screens */
+            }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;🔬 Simple Pendulum Lab&lt;/h1&gt;
+        &lt;div id=&quot;status-tag&quot; class=&quot;status-badge ready&quot;&gt;● WAITING FOR DRAG&lt;/div&gt;
+    &lt;/header&gt;
+
+    &lt;div class=&quot;main-container&quot;&gt;
+        
+        &lt;!-- LEFT SIDE --&gt;
+        &lt;div class=&quot;left-split&quot;&gt;
+            &lt;div id=&quot;dragPrompt&quot; class=&quot;drag-prompt&quot;&gt;👈 Drag the red bob to an angle and release!&lt;/div&gt;
+            &lt;canvas id=&quot;simCanvas&quot; width=&quot;600&quot; height=&quot;800&quot;&gt;&lt;/canvas&gt;
+            &lt;div class=&quot;canvas-overlay-controls&quot;&gt;
+                &lt;button id=&quot;playBtn&quot; class=&quot;btn btn-primary&quot;&gt;▶ Start / Pause&lt;/button&gt;
+                &lt;button id=&quot;resetBtn&quot; class=&quot;btn btn-secondary&quot;&gt;🔄 Reset Position&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- RIGHT SIDE --&gt;
+        &lt;div class=&quot;right-split&quot;&gt;
+            
+            &lt;!-- Real-Time Graph --&gt;
+            &lt;div class=&quot;panel graph-container&quot;&gt;
+                &lt;div class=&quot;panel-title&quot;&gt;
+                    &lt;span&gt;📈 Motion Graph: Angle (θ) vs Time (t)&lt;/span&gt;
+                    &lt;span id=&quot;graphTimeLbl&quot; style=&quot;font-size:0.75rem; color:#64748b;&quot;&gt;Duration: 60s&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;canvas id=&quot;graphCanvas&quot; width=&quot;600&quot; height=&quot;150&quot;&gt;&lt;/canvas&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Lab Controls --&gt;
+            &lt;div class=&quot;panel&quot;&gt;
+                &lt;div class=&quot;panel-title&quot;&gt;Lab Controls&lt;/div&gt;
+                
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;String Length (&lt;i&gt;L&lt;/i&gt;): &lt;span id=&quot;lbl-length&quot;&gt;1.00 m&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;slider-length&quot; min=&quot;0.3&quot; max=&quot;2.0&quot; step=&quot;0.05&quot; value=&quot;1.00&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Bob Mass (&lt;i&gt;m&lt;/i&gt;): &lt;span id=&quot;lbl-mass&quot;&gt;1.00 kg&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;slider-mass&quot; min=&quot;0.1&quot; max=&quot;5.0&quot; step=&quot;0.1&quot; value=&quot;1.00&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Gravity (&lt;i&gt;g&lt;/i&gt;): &lt;span id=&quot;lbl-gravity&quot;&gt;9.81 m/s²&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;slider-gravity&quot; min=&quot;1.0&quot; max=&quot;25.0&quot; step=&quot;0.1&quot; value=&quot;9.81&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;control-group&quot;&gt;
+                    &lt;label&gt;Air Resistance (Damping): &lt;span id=&quot;lbl-damping&quot;&gt;0.10&lt;/span&gt;&lt;/label&gt;
+                    &lt;input type=&quot;range&quot; id=&quot;slider-damping&quot; min=&quot;0&quot; max=&quot;1.0&quot; step=&quot;0.01&quot; value=&quot;0.10&quot;&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;checkbox-group&quot;&gt;
+                    &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chk-vectors&quot; checked&gt; Show Forces&lt;/label&gt;
+                    &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chk-components&quot; checked&gt; Components&lt;/label&gt;
+                    &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chk-labels&quot; checked&gt; Diagram Labels&lt;/label&gt;
+                    &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;chk-path&quot; checked&gt; Trace Path&lt;/label&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Timer Setup --&gt;
+            &lt;div class=&quot;panel&quot;&gt;
+                &lt;div class=&quot;panel-title&quot;&gt;
+                    Timed Experiment Setup
+                    &lt;select id=&quot;select-timer-limit&quot;&gt;
+                        &lt;option value=&quot;10&quot;&gt;10 Seconds&lt;/option&gt;
+                        &lt;option value=&quot;30&quot;&gt;30 Seconds&lt;/option&gt;
+                        &lt;option value=&quot;60&quot; selected&gt;1 Minute (60s)&lt;/option&gt;
+                        &lt;option value=&quot;120&quot;&gt;2 Minutes (120s)&lt;/option&gt;
+                        &lt;option value=&quot;0&quot;&gt;Continuous&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/div&gt;
+                
+                &lt;div class=&quot;timer-grid&quot;&gt;
+                    &lt;div class=&quot;timer-card&quot;&gt;
+                        &lt;div class=&quot;val&quot; id=&quot;val-stopwatch&quot;&gt;00:00.00&lt;/div&gt;
+                        &lt;div class=&quot;lbl&quot;&gt;Elapsed Time&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;timer-card&quot;&gt;
+                        &lt;div class=&quot;val&quot; id=&quot;val-count&quot;&gt;0&lt;/div&gt;
+                        &lt;div class=&quot;lbl&quot;&gt;Oscillations (&lt;i&gt;N&lt;/i&gt;)&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;timer-card&quot;&gt;
+                        &lt;div class=&quot;val&quot; id=&quot;val-exp-period&quot;&gt;0.00s&lt;/div&gt;
+                        &lt;div class=&quot;lbl&quot;&gt;Exp. Period (&lt;i&gt;T&lt;sub&gt;exp&lt;/sub&gt;&lt;/i&gt;)&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- Analysis Summary --&gt;
+                &lt;div id=&quot;analysisBox&quot; class=&quot;analysis-box&quot;&gt;
+                    &lt;h4&gt;📊 Timed Experiment Results Summary&lt;/h4&gt;
+                    &lt;div class=&quot;analysis-row&quot;&gt;&lt;span&gt;Total Duration (t):&lt;/span&gt; &lt;b id=&quot;sum-time&quot;&gt;60.00 s&lt;/b&gt;&lt;/div&gt;
+                    &lt;div class=&quot;analysis-row&quot;&gt;&lt;span&gt;Counted Cycles (N):&lt;/span&gt; &lt;b id=&quot;sum-count&quot;&gt;30&lt;/b&gt;&lt;/div&gt;
+                    &lt;div class=&quot;analysis-row&quot;&gt;&lt;span&gt;Measured Period (T&lt;sub&gt;exp&lt;/sub&gt; = t/N):&lt;/span&gt; &lt;b id=&quot;sum-texp&quot;&gt;2.00 s&lt;/b&gt;&lt;/div&gt;
+                    &lt;div class=&quot;analysis-row&quot;&gt;&lt;span&gt;Theoretical Period (T&lt;sub&gt;theo&lt;/sub&gt;):&lt;/span&gt; &lt;b id=&quot;sum-ttheo&quot;&gt;2.01 s&lt;/b&gt;&lt;/div&gt;
+                    &lt;div class=&quot;analysis-row&quot;&gt;&lt;span&gt;Experimental Error:&lt;/span&gt; &lt;b id=&quot;sum-error&quot; style=&quot;color:#d97706;&quot;&gt;0.50%&lt;/b&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Real-Time Mathematics --&gt;
+            &lt;div class=&quot;panel calc-panel&quot;&gt;
+                &lt;div class=&quot;panel-title&quot;&gt;Real-Time Math &amp; Physics&lt;/div&gt;
+
+                &lt;div class=&quot;calc-box force&quot;&gt;
+                    &lt;div class=&quot;calc-label&quot;&gt;1. Weight Force &lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;(&lt;i&gt;W = mg&lt;/i&gt;)&lt;/span&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-formula&quot; id=&quot;eq-weight-sub&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-value&quot; id=&quot;val-weight&quot;&gt;9.81 N&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;calc-box force&quot;&gt;
+                    &lt;div class=&quot;calc-label&quot;&gt;2. Restoring Force &lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;(&lt;i&gt;F&lt;sub&gt;r&lt;/sub&gt; = mg&lt;/i&gt; sin &lt;i&gt;θ&lt;/i&gt;)&lt;/span&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-formula&quot; id=&quot;eq-restoring-sub&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-value&quot; id=&quot;val-restoring&quot;&gt;0.00 N&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;calc-box force&quot;&gt;
+                    &lt;div class=&quot;calc-label math-inline&quot;&gt;
+                        3. String Tension &amp;nbsp;&lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;(&lt;i&gt;T = mg&lt;/i&gt; cos &lt;i&gt;θ&lt;/i&gt; + &lt;/span&gt;
+                        &lt;div class=&quot;math-frac math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;
+                            &lt;div class=&quot;num&quot;&gt;&lt;i&gt;mv²&lt;/i&gt;&lt;/div&gt;
+                            &lt;div class=&quot;den&quot;&gt;&lt;i&gt;L&lt;/i&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;)&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;calc-formula&quot; id=&quot;eq-tension-sub&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-value&quot; id=&quot;val-tension&quot;&gt;9.81 N&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;calc-box energy&quot;&gt;
+                    &lt;div class=&quot;calc-label&quot;&gt;4. Energy Breakdown &lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;(&lt;i&gt;KE + PE = E&lt;sub&gt;total&lt;/sub&gt;&lt;/i&gt;)&lt;/span&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-formula&quot; id=&quot;eq-energy-sub&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-value&quot; id=&quot;val-energy&quot;&gt;Total: 0.00 J&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;calc-box period&quot;&gt;
+                    &lt;div class=&quot;calc-label math-inline&quot;&gt;
+                        5. Theoretical Period &amp;nbsp;&lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;(&lt;i&gt;T&lt;/i&gt; = 2&lt;i&gt;π&lt;/i&gt;&lt;/span&gt;
+                        &lt;div class=&quot;math-sqrt math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;
+                            &lt;div class=&quot;math-sqrt-sign&quot;&gt;√&lt;/div&gt;
+                            &lt;div class=&quot;math-sqrt-content&quot;&gt;
+                                &lt;div class=&quot;math-frac&quot;&gt;
+                                    &lt;div class=&quot;num&quot;&gt;&lt;i&gt;L&lt;/i&gt;&lt;/div&gt;
+                                    &lt;div class=&quot;den&quot;&gt;&lt;i&gt;g&lt;/i&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;span class=&quot;math-text&quot; style=&quot;color:#cbd5e1;&quot;&gt;)&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;calc-formula&quot; id=&quot;eq-period-sub&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;calc-value&quot; id=&quot;val-period&quot;&gt;2.01 s&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div style=&quot;height: 30px;&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // --- Canvas Setup ---
+        const canvas = document.getElementById(&#39;simCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const graphCanvas = document.getElementById(&#39;graphCanvas&#39;);
+        const gctx = graphCanvas.getContext(&#39;2d&#39;);
+
+        const dpr = window.devicePixelRatio || 1;
+        function resizeCanvases() {
+            canvas.width = 600;
+            canvas.height = 800;
+            
+            const rect = graphCanvas.getBoundingClientRect();
+            graphCanvas.width = rect.width * dpr;
+            graphCanvas.height = 150 * dpr;
+            gctx.scale(dpr, dpr);
+        }
+        window.addEventListener(&#39;resize&#39;, resizeCanvases);
+        resizeCanvases(); 
+
+        // --- Physics Variables ---
+        let L = 1.0;          
+        let m = 1.0;          
+        let g = 9.81;         
+        let damping = 0.10; 
+
+        let theta = 0.0;       
+        let omega = 0.0;       
+        let alpha = 0.0;       
+
+        const origin = { x: 300, y: 50 }; 
+        const meterToPixels = 250; 
+
+        let isRunning = false;            
+        let isDragging = false;
+        let hasBeenReleased = false;      
+        let trailPoints = [];
+        let graphData = [];               
+
+        let elapsedTime = 0;
+        let oscillationCount = 0;
+        let previousTheta = 0;
+        let targetDuration = 60;          
+        let experimentFinished = false;
+
+        // UI DOM Elements
+        const sliderLength = document.getElementById(&#39;slider-length&#39;);
+        const sliderMass = document.getElementById(&#39;slider-mass&#39;);
+        const sliderGravity = document.getElementById(&#39;slider-gravity&#39;);
+        const sliderDamping = document.getElementById(&#39;slider-damping&#39;);
+        
+        const lblLength = document.getElementById(&#39;lbl-length&#39;);
+        const lblMass = document.getElementById(&#39;lbl-mass&#39;);
+        const lblGravity = document.getElementById(&#39;lbl-gravity&#39;);
+        const lblDamping = document.getElementById(&#39;lbl-damping&#39;);
+
+        const playBtn = document.getElementById(&#39;playBtn&#39;);
+        const resetBtn = document.getElementById(&#39;resetBtn&#39;);
+        const statusTag = document.getElementById(&#39;status-tag&#39;);
+        const dragPrompt = document.getElementById(&#39;dragPrompt&#39;);
+        const selectTimerLimit = document.getElementById(&#39;select-timer-limit&#39;);
+
+        const chkVectors = document.getElementById(&#39;chk-vectors&#39;);
+        const chkComponents = document.getElementById(&#39;chk-components&#39;);
+        const chkLabels = document.getElementById(&#39;chk-labels&#39;);
+        const chkPath = document.getElementById(&#39;chk-path&#39;);
+
+        const eqWeightSub = document.getElementById(&#39;eq-weight-sub&#39;);
+        const valWeight = document.getElementById(&#39;val-weight&#39;);
+        const eqRestoringSub = document.getElementById(&#39;eq-restoring-sub&#39;);
+        const valRestoring = document.getElementById(&#39;val-restoring&#39;);
+        const eqTensionSub = document.getElementById(&#39;eq-tension-sub&#39;);
+        const valTension = document.getElementById(&#39;val-tension&#39;);
+        const eqEnergySub = document.getElementById(&#39;eq-energy-sub&#39;);
+        const valEnergy = document.getElementById(&#39;val-energy&#39;);
+        const eqPeriodSub = document.getElementById(&#39;eq-period-sub&#39;);
+        const valPeriod = document.getElementById(&#39;val-period&#39;);
+
+        const valStopwatch = document.getElementById(&#39;val-stopwatch&#39;);
+        const valCount = document.getElementById(&#39;val-count&#39;);
+        const valExpPeriod = document.getElementById(&#39;val-exp-period&#39;);
+
+        const analysisBox = document.getElementById(&#39;analysisBox&#39;);
+        const sumTime = document.getElementById(&#39;sum-time&#39;);
+        const sumCount = document.getElementById(&#39;sum-count&#39;);
+        const sumTexp = document.getElementById(&#39;sum-texp&#39;);
+        const sumTtheo = document.getElementById(&#39;sum-ttheo&#39;);
+        const sumError = document.getElementById(&#39;sum-error&#39;);
+
+        // --- Event Listeners ---
+        sliderLength.addEventListener(&#39;input&#39;, (e) =&gt; {
+            L = parseFloat(e.target.value);
+            lblLength.innerText = `${L.toFixed(2)} m`;
+            trailPoints = []; updateCalculations();
+        });
+        sliderMass.addEventListener(&#39;input&#39;, (e) =&gt; {
+            m = parseFloat(e.target.value);
+            lblMass.innerText = `${m.toFixed(2)} kg`;
+            updateCalculations();
+        });
+        sliderGravity.addEventListener(&#39;input&#39;, (e) =&gt; {
+            g = parseFloat(e.target.value);
+            lblGravity.innerText = `${g.toFixed(2)} m/s²`;
+            updateCalculations();
+        });
+        sliderDamping.addEventListener(&#39;input&#39;, (e) =&gt; {
+            damping = parseFloat(e.target.value);
+            lblDamping.innerText = damping.toFixed(2);
+        });
+
+        selectTimerLimit.addEventListener(&#39;change&#39;, (e) =&gt; {
+            targetDuration = parseInt(e.target.value);
+            document.getElementById(&#39;graphTimeLbl&#39;).innerText = targetDuration &gt; 0 ? `Duration: ${targetDuration}s` : `Continuous`;
+            resetSimulation();
+        });
+
+        playBtn.addEventListener(&#39;click&#39;, () =&gt; {
+            if (!hasBeenReleased &amp;&amp; theta === 0) {
+                theta = Math.PI / 6; 
+                hasBeenReleased = true;
+                dragPrompt.style.display = &#39;none&#39;;
+            }
+            isRunning = !isRunning;
+            playBtn.innerText = isRunning ? &quot;⏸ Pause&quot; : &quot;▶ Start / Resume&quot;;
+            playBtn.className = isRunning ? &quot;btn btn-primary&quot; : &quot;btn btn-danger&quot;;
+            statusTag.innerText = isRunning ? &quot;● RUNNING&quot; : &quot;⏸ PAUSED&quot;;
+            statusTag.className = isRunning ? &quot;status-badge live&quot; : &quot;status-badge paused&quot;;
+        });
+
+        resetBtn.addEventListener(&#39;click&#39;, resetSimulation);
+
+        function resetSimulation() {
+            theta = 0.0; omega = 0.0; alpha = 0.0;
+            isRunning = false; hasBeenReleased = false; experimentFinished = false;
+            elapsedTime = 0; oscillationCount = 0; trailPoints = []; graphData = [];
+
+            dragPrompt.style.display = &#39;block&#39;;
+            analysisBox.style.display = &#39;none&#39;;
+
+            playBtn.innerText = &quot;▶ Start / Pause&quot;;
+            playBtn.className = &quot;btn btn-primary&quot;;
+            statusTag.innerText = &quot;● WAITING FOR DRAG&quot;;
+            statusTag.className = &quot;status-badge ready&quot;;
+
+            valStopwatch.innerText = &quot;00:00.00&quot;;
+            valCount.innerText = &quot;0&quot;;
+            valExpPeriod.innerText = &quot;0.00s&quot;;
+            updateCalculations();
+        }
+
+        // ================= TOUCH AND MOUSE EVENTS FOR MOBILE COMPATIBILITY =================
+        function getEventPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+
+            // Handle touch events
+            if (evt.touches &amp;&amp; evt.touches.length &gt; 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleDragStart(e) {
+            const pos = getEventPos(e);
+            const bobX = origin.x + L * meterToPixels * Math.sin(theta);
+            const bobY = origin.y + L * meterToPixels * Math.cos(theta);
+
+            // Increased hitbox from 40 to 60 for easier finger tapping on mobile
+            if (Math.hypot(pos.x - bobX, pos.y - bobY) &lt; 60) {
+                isDragging = true; 
+                omega = 0; 
+                isRunning = false;
+                
+                // Prevent scrolling the page while grabbing the pendulum
+                if (e.type === &#39;touchstart&#39; &amp;&amp; e.cancelable) {
+                    e.preventDefault(); 
+                }
+            }
+        }
+
+        function handleDragMove(e) {
+            if (isDragging) {
+                // Prevent scrolling the screen while dragging the bob
+                if (e.type === &#39;touchmove&#39; &amp;&amp; e.cancelable) {
+                    e.preventDefault(); 
+                }
+
+                const pos = getEventPos(e);
+                const dx = pos.x - origin.x;
+                const dy = pos.y - origin.y;
+                theta = Math.atan2(dx, dy);
+                
+                const maxAngle = (85 * Math.PI) / 180;
+                if (theta &gt; maxAngle) theta = maxAngle;
+                if (theta &lt; -maxAngle) theta = -maxAngle;
+
+                omega = 0; trailPoints = []; updateCalculations();
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (isDragging) {
+                isDragging = false;
+                if (Math.abs(theta) &gt; 0.03) {
+                    hasBeenReleased = true; isRunning = true;
+                    dragPrompt.style.display = &#39;none&#39;;
+                    statusTag.innerText = &quot;● RUNNING&quot;;
+                    statusTag.className = &quot;status-badge live&quot;;
+                    playBtn.innerText = &quot;⏸ Pause&quot;;
+                }
+            }
+        }
+
+        // Attach Mouse Listeners
+        canvas.addEventListener(&#39;mousedown&#39;, handleDragStart);
+        window.addEventListener(&#39;mousemove&#39;, handleDragMove);
+        window.addEventListener(&#39;mouseup&#39;, handleDragEnd);
+
+        // Attach Touch Listeners with passive: false to allow preventDefault()
+        canvas.addEventListener(&#39;touchstart&#39;, handleDragStart, { passive: false });
+        window.addEventListener(&#39;touchmove&#39;, handleDragMove, { passive: false });
+        window.addEventListener(&#39;touchend&#39;, handleDragEnd);
+
+        // ================= PHYSICS AND RENDERING =================
+        const dt = 0.016; 
+        function stepPhysics() {
+            if (!isRunning || isDragging || experimentFinished) return;
+
+            alpha = -(g / L) * Math.sin(theta) - (damping / m) * omega;
+            omega += alpha * dt;
+            theta += omega * dt;
+
+            if (damping &gt; 0 &amp;&amp; Math.abs(theta) &lt; 0.0005 &amp;&amp; Math.abs(omega) &lt; 0.005) {
+                theta = 0; omega = 0;
+            }
+
+            elapsedTime += dt;
+            if (previousTheta &lt; 0 &amp;&amp; theta &gt;= 0 &amp;&amp; omega &gt; 0) oscillationCount++;
+            previousTheta = theta;
+
+            graphData.push({ time: elapsedTime, theta: theta * (180 / Math.PI) });
+
+            const T_exp = oscillationCount &gt; 0 ? (elapsedTime / oscillationCount) : 0;
+            const mins = Math.floor(elapsedTime / 60).toString().padStart(2, &#39;0&#39;);
+            const secs = Math.floor(elapsedTime % 60).toString().padStart(2, &#39;0&#39;);
+            const millis = Math.floor((elapsedTime % 1) * 100).toString().padStart(2, &#39;0&#39;);
+            
+            valStopwatch.innerText = `${mins}:${secs}.${millis}`;
+            valCount.innerText = oscillationCount;
+            valExpPeriod.innerText = T_exp &gt; 0 ? `${T_exp.toFixed(2)}s` : &quot;0.00s&quot;;
+
+            if (targetDuration &gt; 0 &amp;&amp; elapsedTime &gt;= targetDuration) finishExperiment(T_exp);
+        }
+
+        function finishExperiment(T_exp) {
+            experimentFinished = true; isRunning = false;
+            statusTag.innerText = &quot;✔ EXPERIMENT FINISHED&quot;;
+            statusTag.className = &quot;status-badge paused&quot;;
+            playBtn.innerText = &quot;▶ Finished&quot;;
+
+            const T_theo = 2 * Math.PI * Math.sqrt(L / g);
+            const error = T_exp &gt; 0 ? Math.abs((T_exp - T_theo) / T_theo) * 100 : 0;
+
+            sumTime.innerText = `${elapsedTime.toFixed(2)} s`;
+            sumCount.innerText = oscillationCount;
+            sumTexp.innerText = `${T_exp.toFixed(2)} s`;
+            sumTtheo.innerText = `${T_theo.toFixed(2)} s`;
+            sumError.innerText = `${error.toFixed(2)} %`;
+            analysisBox.style.display = &#39;block&#39;;
+        }
+
+        function updateCalculations() {
+            const weight = m * g;
+            const restoringForce = m * g * Math.sin(theta);
+            const velocity = L * omega;
+            const tension = m * g * Math.cos(theta) + (m * Math.pow(velocity, 2) / L);
+            const height = L * (1 - Math.cos(theta));
+            const PE = m * g * height;
+            const KE = 0.5 * m * Math.pow(velocity, 2);
+            const E_total = PE + KE;
+            const T_theo = 2 * Math.PI * Math.sqrt(L / g);
+            const degAngle = (theta * (180 / Math.PI)).toFixed(1);
+
+            eqWeightSub.innerHTML = `&lt;span class=&quot;math-text&quot;&gt;&lt;i&gt;W&lt;/i&gt; = ${m.toFixed(2)} &amp;middot; ${g.toFixed(2)}&lt;/span&gt;`;
+            valWeight.innerText = `${weight.toFixed(2)} N`;
+
+            eqRestoringSub.innerHTML = `&lt;span class=&quot;math-text&quot;&gt;&lt;i&gt;F&lt;sub&gt;r&lt;/sub&gt;&lt;/i&gt; = ${weight.toFixed(2)} &amp;middot; sin(${degAngle}&amp;deg;)&lt;/span&gt;`;
+            valRestoring.innerText = `${restoringForce.toFixed(2)} N`;
+
+            const velStr = Math.abs(velocity).toFixed(2);
+            eqTensionSub.innerHTML = `
+                &lt;div class=&quot;math-inline math-text&quot;&gt;
+                    &lt;i&gt;T&lt;/i&gt; = ${weight.toFixed(2)} &amp;middot; cos(${degAngle}&amp;deg;) &amp;nbsp;+&amp;nbsp; 
+                    &lt;div class=&quot;math-frac&quot;&gt;
+                        &lt;div class=&quot;num&quot;&gt;${m.toFixed(2)} &amp;middot; (${velStr})&amp;sup2;&lt;/div&gt;
+                        &lt;div class=&quot;den&quot;&gt;${L.toFixed(2)}&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;`;
+            valTension.innerText = `${tension.toFixed(2)} N`;
+
+            eqEnergySub.innerHTML = `&lt;span class=&quot;math-text&quot;&gt;&lt;i&gt;KE&lt;/i&gt;: ${KE.toFixed(2)} J &amp;nbsp;|&amp;nbsp; &lt;i&gt;PE&lt;/i&gt;: ${PE.toFixed(2)} J&lt;/span&gt;`;
+            valEnergy.innerText = `Total: ${E_total.toFixed(2)} J`;
+
+            eqPeriodSub.innerHTML = `
+                &lt;div class=&quot;math-inline math-text&quot;&gt;
+                    &lt;i&gt;T&lt;/i&gt; = 2&lt;i&gt;π&lt;/i&gt; 
+                    &lt;div class=&quot;math-sqrt&quot;&gt;
+                        &lt;div class=&quot;math-sqrt-sign&quot;&gt;&amp;radic;&lt;/div&gt;
+                        &lt;div class=&quot;math-sqrt-content&quot;&gt;
+                            &lt;div class=&quot;math-frac&quot;&gt;
+                                &lt;div class=&quot;num&quot;&gt;${L.toFixed(2)}&lt;/div&gt;
+                                &lt;div class=&quot;den&quot;&gt;${g.toFixed(2)}&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;`;
+            valPeriod.innerText = `${T_theo.toFixed(2)} s`;
+        }
+
+        function renderSimulation() {
+            ctx.clearRect(0, 0, 600, 800);
+
+            const bobRadius = 18 + (m * 3);
+            const currentPixelLength = L * meterToPixels;
+            const bobX = origin.x + currentPixelLength * Math.sin(theta);
+            const bobY = origin.y + currentPixelLength * Math.cos(theta);
+
+            // Wood Support
+            ctx.fillStyle = &quot;#8d6e63&quot;; ctx.fillRect(origin.x - 140, origin.y - 18, 280, 14);
+            ctx.fillStyle = &quot;#4e342e&quot;; ctx.fillRect(origin.x - 140, origin.y - 4, 280, 4);
+            if (chkLabels.checked) {
+                ctx.font = &quot;bold 14px sans-serif&quot;; ctx.fillStyle = &quot;#5d4037&quot;;
+                ctx.fillText(&quot;Rigid support&quot;, origin.x - 45, origin.y - 25);
+            }
+
+            // Equilibrium Line
+            ctx.beginPath(); ctx.setLineDash([5, 5]);
+            ctx.moveTo(origin.x, origin.y); ctx.lineTo(origin.x, origin.y + currentPixelLength + 50);
+            ctx.strokeStyle = &quot;#94a3b8&quot;; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+            
+            // Motion Path Trail
+            if (chkPath.checked &amp;&amp; isRunning) {
+                trailPoints.push({ x: bobX, y: bobY });
+                if (trailPoints.length &gt; 70) trailPoints.shift();
+            }
+            if (chkPath.checked &amp;&amp; trailPoints.length &gt; 1) {
+                ctx.beginPath(); ctx.moveTo(trailPoints[0].x, trailPoints[0].y);
+                for (let p of trailPoints) ctx.lineTo(p.x, p.y);
+                ctx.strokeStyle = &quot;rgba(16, 185, 129, 0.4)&quot;; ctx.lineWidth = 4; ctx.stroke();
+            }
+
+            // Angle Displacement Text
+            if (Math.abs(theta) &gt; 0.02) {
+                ctx.beginPath();
+                ctx.arc(origin.x, origin.y, 60, Math.PI / 2, Math.PI / 2 - theta, theta &gt; 0);
+                ctx.strokeStyle = &quot;#2563eb&quot;; ctx.lineWidth = 2; ctx.stroke();
+                
+                if (chkLabels.checked) {
+                    ctx.font = &quot;bold 15px sans-serif&quot;; 
+                    ctx.fillStyle = &quot;#2563eb&quot;;
+                    
+                    const degVal = Math.abs(theta * (180 / Math.PI)).toFixed(1);
+                    const textStr = &quot;θ = &quot; + degVal + &quot;°&quot;;
+                    
+                    const midAngle = Math.PI/2 - theta/2;
+                    const textRadius = 85; 
+                    const textX = origin.x + textRadius * Math.cos(midAngle) - 25;
+                    const textY = origin.y + textRadius * Math.sin(midAngle) + 5;
+                    
+                    ctx.fillText(textStr, textX, textY);
+                    
+                    ctx.font = &quot;12px sans-serif&quot;;
+                    ctx.fillStyle = &quot;#64748b&quot;;
+                    ctx.fillText(&quot;Angular displacement&quot;, origin.x + (theta &gt; 0 ? 80 : -200), origin.y + 55);
+                }
+            }
+
+            // String &amp; Bob
+            ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(bobX, bobY);
+            ctx.strokeStyle = &quot;#334155&quot;; ctx.lineWidth = 3; ctx.stroke();
+            
+            ctx.beginPath(); ctx.arc(origin.x, origin.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;#0f172a&quot;; ctx.fill();
+
+            if (chkLabels.checked) {
+                ctx.font = &quot;13px sans-serif&quot;; ctx.fillStyle = &quot;#334155&quot;;
+                ctx.fillText(`String [L = ${L.toFixed(2)}m]`, (origin.x + bobX)/2 + (theta &gt;= 0 ? 15 : -130), (origin.y + bobY)/2);
+            }
+
+            ctx.beginPath(); ctx.arc(bobX, bobY, bobRadius, 0, Math.PI * 2);
+            ctx.fillStyle = &quot;#ef4444&quot;; ctx.fill(); ctx.strokeStyle = &quot;#b91c1c&quot;;
+            ctx.lineWidth = 2; ctx.stroke();
+            if (chkLabels.checked) {
+                ctx.font = &quot;bold 13px sans-serif&quot;; ctx.fillStyle = &quot;#b91c1c&quot;;
+                ctx.fillText(`Bob [m = ${m.toFixed(1)}kg]`, bobX + bobRadius + 10, bobY + 5);
+            }
+
+            // Real Time Forces
+            if (chkVectors.checked) {
+                const vs = 8;
+                const F_g = m * g;
+                
+                // Gravity
+                drawArrow(ctx, bobX, bobY, bobX, bobY + F_g * vs, &quot;#dc2626&quot;, 2.5);
+                if (chkLabels.checked) {
+                    ctx.fillStyle = &quot;#dc2626&quot;; ctx.font = &quot;bold 13px sans-serif&quot;;
+                    ctx.fillText(`mg = ${F_g.toFixed(2)} N`, bobX + 8, bobY + F_g * vs + 15);
+                }
+
+                // Tension
+                const vel = L * omega;
+                const T_val = m * g * Math.cos(theta) + (m * Math.pow(vel, 2) / L);
+                const tDx = -Math.sin(theta) * T_val * vs; const tDy = -Math.cos(theta) * T_val * vs;
+                drawArrow(ctx, bobX, bobY, bobX + tDx, bobY + tDy, &quot;#2563eb&quot;, 2.5);
+                if (chkLabels.checked) {
+                    ctx.fillStyle = &quot;#2563eb&quot;; ctx.font = &quot;bold 13px sans-serif&quot;;
+                    ctx.fillText(`T = ${T_val.toFixed(2)} N`, bobX + tDx + (theta &gt;= 0 ? 10 : -95), bobY + tDy - 5);
+                }
+
+                if (chkComponents.checked) {
+                    // Radial
+                    const cosV = m * g * Math.cos(theta);
+                    const rDx = Math.sin(theta) * cosV * vs; const rDy = Math.cos(theta) * cosV * vs;
+                    drawArrow(ctx, bobX, bobY, bobX + rDx, bobY + rDy, &quot;#8b5cf6&quot;, 2, true);
+                    if (chkLabels.checked) {
+                        ctx.fillStyle = &quot;#8b5cf6&quot;; ctx.font = &quot;12px sans-serif&quot;;
+                        ctx.fillText(`mg cos θ = ${Math.abs(cosV).toFixed(2)} N`, bobX + rDx + (theta &gt;= 0 ? 8 : -110), bobY + rDy + 5);
+                    }
+
+                    // Tangential
+                    const sinV = m * g * Math.sin(theta);
+                    const tanDx = -Math.cos(theta) * sinV * vs; const tanDy = Math.sin(theta) * sinV * vs;
+                    drawArrow(ctx, bobX, bobY, bobX + tanDx, bobY + tanDy, &quot;#10b981&quot;, 2.5);
+                    if (chkLabels.checked) {
+                        ctx.fillStyle = &quot;#10b981&quot;; ctx.font = &quot;bold 12px sans-serif&quot;;
+                        ctx.fillText(`mg sin θ = ${Math.abs(sinV).toFixed(2)} N`, bobX + tanDx + (theta &gt;= 0 ? -125 : 15), bobY + tanDy + 12);
+                    }
+                }
+            }
+        }
+
+        function renderGraph() {
+            const w = graphCanvas.width / dpr;
+            const h = 150;
+            const centerY = h / 2;
+            gctx.clearRect(0, 0, w, h);
+
+            gctx.strokeStyle = &quot;#f1f5f9&quot;; gctx.lineWidth = 1;
+            gctx.beginPath();
+            gctx.moveTo(0, centerY); gctx.lineTo(w, centerY);
+            gctx.moveTo(0, centerY - 45); gctx.lineTo(w, centerY - 45);
+            gctx.moveTo(0, centerY + 45); gctx.lineTo(w, centerY + 45);
+            gctx.stroke();
+
+            gctx.strokeStyle = &quot;#94a3b8&quot;; gctx.lineWidth = 1.5;
+            gctx.beginPath();
+            gctx.moveTo(40, 10); gctx.lineTo(40, h - 20); 
+            gctx.moveTo(40, centerY); gctx.lineTo(w - 10, centerY); 
+            gctx.stroke();
+
+            gctx.font = &quot;10px monospace&quot;; gctx.fillStyle = &quot;#64748b&quot;;
+            gctx.fillText(&quot;+45°&quot;, 10, centerY - 42);
+            gctx.fillText(&quot;  0°&quot;, 10, centerY + 3);
+            gctx.fillText(&quot;-45°&quot;, 10, centerY + 48);
+
+            const maxWindow = targetDuration &gt; 0 ? targetDuration : 30;
+            const pixelPerSec = (w - 60) / maxWindow;
+            
+            let timeOffset = 0;
+            if (elapsedTime &gt; maxWindow) {
+                timeOffset = elapsedTime - maxWindow;
+            }
+
+            gctx.fillText(`${timeOffset.toFixed(0)}s`, 40, h - 6);
+            gctx.fillText(`${(timeOffset + maxWindow/2).toFixed(0)}s`, 40 + (maxWindow/2) * pixelPerSec, h - 6);
+            gctx.fillText(`${(timeOffset + maxWindow).toFixed(0)}s`, w - 30, h - 6);
+
+            if (graphData.length &gt; 1) {
+                gctx.beginPath();
+                let startedLine = false;
+
+                for (let i = 0; i &lt; graphData.length; i++) {
+                    const pt = graphData[i];
+                    
+                    if (pt.time &lt; timeOffset) continue;
+
+                    const px = 40 + (pt.time - timeOffset) * pixelPerSec;
+                    const py = centerY - (pt.theta / 45) * 45;
+                    
+                    if (px &gt; w - 10) break; 
+                    
+                    if (!startedLine) {
+                        gctx.moveTo(px, py);
+                        startedLine = true;
+                    } else {
+                        gctx.lineTo(px, py);
+                    }
+                }
+                gctx.strokeStyle = &quot;#2563eb&quot;; gctx.lineWidth = 2; gctx.stroke();
+            }
+        }
+
+        function drawArrow(ctx, fromx, fromy, tox, toy, color, width, isDashed = false) {
+            const headlen = 10;
+            const angle = Math.atan2(toy - fromy, tox - fromx);
+            ctx.save();
+            ctx.beginPath(); if (isDashed) ctx.setLineDash([4, 4]);
+            ctx.moveTo(fromx, fromy); ctx.lineTo(tox, toy);
+            ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI/6), toy - headlen * Math.sin(angle - Math.PI/6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI/6), toy - headlen * Math.sin(angle + Math.PI/6));
+            ctx.lineTo(tox, toy); ctx.fillStyle = color; ctx.fill();
+            ctx.restore();
+        }
+
+        function mainLoop() {
+            stepPhysics(); updateCalculations();
+            renderSimulation(); renderGraph();
+            requestAnimationFrame(mainLoop);
+        }
+
+        updateCalculations();
+        mainLoop();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
