@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>spring balance lab</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1527px;
+    height: 859px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;3-Spring Physics Laboratory - Hooke&#39;s Law &amp; Wave Analysis&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --primary: #0f172a;
+            --secondary: #2563eb;
+            --accent: #dc2626;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #cbd5e1;
+            --text: #1e293b;
+            --s1-color: #2563eb;
+            --s2-color: #d97706;
+            --s3-color: #9333ea;
+        }
+
+        body {
+            font-family: &#39;Segoe UI&#39;, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            margin: 0 0 4px 0;
+            color: var(--primary);
+            font-size: 1.5em;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.85em;
+        }
+
+        .lab-container {
+            display: flex;
+            gap: 12px;
+            max-width: 1600px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        /* LEFT COLUMN: SIMULATION CANVAS */
+        .simulation-panel {
+            flex: 0 0 540px;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        canvas#simCanvas {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: grab;
+            touch-action: none; /* Prevents page scroll when dragging on mobile */
+            max-width: 100%;
+            height: auto;
+        }
+        canvas#simCanvas:active { cursor: grabbing; }
+
+        .canvas-toolbar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding: 0 5px;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn-add-weight {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-add-weight:hover { background: #15803d; }
+
+        .instructions {
+            margin-top: 8px;
+            font-size: 0.8em;
+            color: #475569;
+            text-align: center;
+            line-height: 1.35;
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* RIGHT COLUMN: DASHBOARD &amp; CONTROLS */
+        .data-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        /* Controls Toolbar */
+        .graph-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: #f1f5f9;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            font-weight: 600;
+            flex-wrap: wrap;
+        }
+
+        select, input[type=&quot;number&quot;] {
+            padding: 4px 6px;
+            border: 1px solid #94a3b8;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #1d4ed8; }
+        
+        .btn-stop { background: var(--accent); }
+        .btn-stop:hover { background: #b91c1c; }
+
+        .btn-freeze { background: #d97706; }
+        .btn-freeze:hover { background: #b45309; }
+
+        .status-badge {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .status-badge.recording { background: #fee2e2; color: var(--accent); }
+        .status-badge.frozen { background: #fef3c7; color: #b45309; }
+        .status-badge.done { background: #dcfce7; color: var(--success); }
+
+        /* Spring Parameter Sliders */
+        .spring-sliders-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .spring-card-ctrl {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px;
+        }
+        .spring-card-ctrl.s1 { border-top: 4px solid var(--s1-color); }
+        .spring-card-ctrl.s2 { border-top: 4px solid var(--s2-color); }
+        .spring-card-ctrl.s3 { border-top: 4px solid var(--s3-color); }
+
+        .spring-card-ctrl header {
+            font-weight: bold;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .spring-card-ctrl input[type=&quot;range&quot;] {
+            width: 100%;
+        }
+
+        /* DEDICATED CALCULATION TABS */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 10px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .tab-btn {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            padding: 6px 10px;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.82em;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background: #e2e8f0; color: var(--primary); }
+        
+        .tab-btn.active {
+            background: var(--panel);
+            color: var(--primary);
+            border-color: var(--secondary);
+            border-bottom: 2px solid var(--panel);
+            margin-bottom: -2px;
+        }
+        .tab-btn.active.s1-tab { border-top: 3px solid var(--s1-color); color: var(--s1-color); }
+        .tab-btn.active.s2-tab { border-top: 3px solid var(--s2-color); color: var(--s2-color); }
+        .tab-btn.active.s3-tab { border-top: 3px solid var(--s3-color); color: var(--s3-color); }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tab-content.active { display: flex; }
+
+        /* POST-TEST RESULTS CARD */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        .res-box {
+            background: white;
+            padding: 5px;
+            border-radius: 6px;
+            border: 1px solid #dbeafe;
+            text-align: center;
+        }
+        .res-title { font-size: 0.65em; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-bottom: 2px; }
+        .res-val { font-size: 0.95em; font-weight: 800; color: var(--primary); }
+
+        /* EQUATIONS GRID WITH VERTICAL FRACTIONS */
+        .eq-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+        .eq-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--secondary);
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .eq-title { font-size: 0.65em; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+        
+        .eq-formula {
+            font-size: 0.78em;
+            font-weight: bold;
+            color: var(--secondary);
+            margin-bottom: 2px;
+            font-family: &#39;Cambria&#39;, &#39;Times New Roman&#39;, serif;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-height: 24px;
+        }
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.8em;
+            line-height: 1.0;
+            padding: 0 2px;
+        }
+        .numerator { border-bottom: 1.5px solid currentColor; padding-bottom: 1px; }
+        .denominator { padding-top: 1px; }
+
+        .eq-val { font-size: 1em; font-weight: 800; color: var(--primary); }
+
+        /* COMPARATIVE SUMMARY TABLE */
+        .summary-table-wrapper {
+            overflow-x: auto;
+        }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+        }
+        .summary-table th, .summary-table td {
+            border: 1px solid var(--border);
+            padding: 5px 6px;
+            text-align: center;
+        }
+        .summary-table th { background: #f1f5f9; color: var(--primary); font-weight: bold; }
+        .v-s1 { color: var(--s1-color); font-weight: bold; }
+        .v-s2 { color: var(--s2-color); font-weight: bold; }
+        .v-s3 { color: var(--s3-color); font-weight: bold; }
+
+        /* MOBILE RESPONSIVE LAYOUT BREAKPOINTS */
+        @media (max-width: 900px) {
+            .lab-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .simulation-panel {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+            .spring-sliders-grid {
+                grid-template-columns: 1fr;
+            }
+            .results-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .eq-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 600px) {
+            .results-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+            .eq-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;3-Spring Side-by-Side Physics Laboratory&lt;/h1&gt;
+        &lt;p&gt;Comparative Study of Elasticity, Force Vectors, and Damped Harmonic Motion&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;div class=&quot;lab-container&quot;&gt;
+        &lt;!-- ================= LEFT SIDE: 3-SPRING CANVAS ================= --&gt;
+        &lt;div class=&quot;simulation-panel&quot;&gt;
+            &lt;canvas id=&quot;simCanvas&quot; width=&quot;540&quot; height=&quot;660&quot;&gt;&lt;/canvas&gt;
+            
+            &lt;div class=&quot;canvas-toolbar&quot;&gt;
+                &lt;button class=&quot;btn-add-weight&quot; onclick=&quot;addCustomWeight()&quot;&gt;➕ Add Custom Weight&lt;/button&gt;
+                &lt;span style=&quot;font-size:0.75em; color:#64748b; font-weight:600;&quot;&gt;Double-tap weight on spring to remove&lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;instructions&quot;&gt;
+                &lt;b&gt;1. Touch &amp; Drag&lt;/b&gt; weights onto hooks or pull weights directly.&lt;br&gt;
+                &lt;b&gt;2. Double-Tap&lt;/b&gt; attached weight to return it to storage.&lt;br&gt;
+                &lt;b&gt;3. View Dynamic Labels&lt;/b&gt; (x, 2x, F, 2F) &amp; extension ranges in real-time.
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- ================= RIGHT SIDE: DASHBOARD ================= --&gt;
+        &lt;div class=&quot;data-panel&quot;&gt;
+            
+            &lt;!-- Displacement Waveform Graph --&gt;
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;h2&gt;
+                    &lt;span&gt;Displacement Waveform Comparison &lt;i&gt;x(t)&lt;/i&gt;&lt;/span&gt;
+                    &lt;span id=&quot;timerStatus&quot; class=&quot;status-badge&quot;&gt;Ready to Record&lt;/span&gt;
+                &lt;/h2&gt;
+                &lt;div class=&quot;graph-controls&quot;&gt;
+                    &lt;label&gt;Plot View: 
+                        &lt;select id=&quot;graphSelect&quot;&gt;
+                            &lt;option value=&quot;all&quot;&gt;All Springs (S₁, S₂, S₃)&lt;/option&gt;
+                            &lt;option value=&quot;0&quot;&gt;Spring 1 (Blue)&lt;/option&gt;
+                            &lt;option value=&quot;1&quot;&gt;Spring 2 (Orange)&lt;/option&gt;
+                            &lt;option value=&quot;2&quot;&gt;Spring 3 (Purple)&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/label&gt;
+                    &lt;label&gt;Duration: &lt;input type=&quot;number&quot; id=&quot;timeInput&quot; min=&quot;2&quot; max=&quot;120&quot; value=&quot;20&quot; style=&quot;width:45px;&quot;&gt;s&lt;/label&gt;
+                    &lt;button class=&quot;btn btn-freeze&quot; onclick=&quot;toggleFreeze()&quot;&gt;❄️ Freeze&lt;/button&gt;
+                    &lt;button class=&quot;btn btn-stop&quot; onclick=&quot;stopMotion()&quot;&gt;🛑 Stop&lt;/button&gt;
+                    &lt;button class=&quot;btn&quot; onclick=&quot;clearGraph()&quot;&gt;Clear&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;canvas id=&quot;graphCanvas&quot; width=&quot;900&quot; height=&quot;150&quot; style=&quot;background:#0f172a; border-radius:8px; width:100%; display:block;&quot;&gt;&lt;/canvas&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Simulation Parameters Sliders --&gt;
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;h2&gt;Independent Spring Parameters &amp; Global Settings&lt;/h2&gt;
+                &lt;div class=&quot;spring-sliders-grid&quot;&gt;
+                    &lt;div class=&quot;spring-card-ctrl s1&quot;&gt;
+                        &lt;header&gt;&lt;span&gt;Spring 1 (S₁)&lt;/span&gt; &lt;span id=&quot;valK1&quot; class=&quot;v-s1&quot;&gt;30 N/m&lt;/span&gt;&lt;/header&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderK1&quot; min=&quot;10&quot; max=&quot;100&quot; step=&quot;1&quot; value=&quot;30&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;spring-card-ctrl s2&quot;&gt;
+                        &lt;header&gt;&lt;span&gt;Spring 2 (S₂)&lt;/span&gt; &lt;span id=&quot;valK2&quot; class=&quot;v-s2&quot;&gt;50 N/m&lt;/span&gt;&lt;/header&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderK2&quot; min=&quot;10&quot; max=&quot;100&quot; step=&quot;1&quot; value=&quot;50&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;spring-card-ctrl s3&quot;&gt;
+                        &lt;header&gt;&lt;span&gt;Spring 3 (S₃)&lt;/span&gt; &lt;span id=&quot;valK3&quot; class=&quot;v-s3&quot;&gt;80 N/m&lt;/span&gt;&lt;/header&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderK3&quot; min=&quot;10&quot; max=&quot;100&quot; step=&quot;1&quot; value=&quot;80&quot;&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div style=&quot;display:flex; gap:15px; margin-top:8px; background:#f1f5f9; padding:6px 10px; border-radius:6px; font-size:0.82em; font-weight:bold; flex-wrap:wrap;&quot;&gt;
+                    &lt;div style=&quot;flex:1; min-width:140px;&quot;&gt;
+                        Gravity (g): &lt;span id=&quot;valG&quot;&gt;9.8 m/s²&lt;/span&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderG&quot; min=&quot;1.0&quot; max=&quot;25.0&quot; step=&quot;0.1&quot; value=&quot;9.8&quot; style=&quot;width:100%;&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div style=&quot;flex:1; min-width:140px;&quot;&gt;
+                        Air Damping (c): &lt;span id=&quot;valC&quot;&gt;0.20 N·s/m&lt;/span&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderC&quot; min=&quot;0.01&quot; max=&quot;1.0&quot; step=&quot;0.01&quot; value=&quot;0.20&quot; style=&quot;width:100%;&quot;&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- DEDICATED CALCULATION TABS CARD --&gt;
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;div class=&quot;tab-bar&quot;&gt;
+                    &lt;button class=&quot;tab-btn active s1-tab&quot; onclick=&quot;switchTab(0)&quot;&gt;Spring 1 (S₁)&lt;/button&gt;
+                    &lt;button class=&quot;tab-btn s2-tab&quot; onclick=&quot;switchTab(1)&quot;&gt;Spring 2 (S₂)&lt;/button&gt;
+                    &lt;button class=&quot;tab-btn s3-tab&quot; onclick=&quot;switchTab(2)&quot;&gt;Spring 3 (S₃)&lt;/button&gt;
+                    &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab(3)&quot;&gt;Summary&lt;/button&gt;
+                &lt;/div&gt;
+
+                &lt;!-- TAB 0: SPRING 1 --&gt;
+                &lt;div id=&quot;tab0&quot; class=&quot;tab-content active&quot;&gt;
+                    &lt;div class=&quot;results-grid&quot;&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Exp. Period (T&lt;sub&gt;exp&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTexp_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Theo. Period (T&lt;sub&gt;th&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTth_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Calc. Stiffness (k)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resKcalc_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Frequency (f)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resFreq_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Damping Dec. (δ)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resDamp_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;% Error&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resErr_0&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;eq-grid&quot;&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;1. Total Mass&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;m = ∑ m&lt;sub&gt;i&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq1_0&quot;&gt;0.0 kg&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;2. Weight Load&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;W = m · g&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq2_0&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;3. Equil. Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x&lt;sub&gt;0&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;W&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq3_0&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;4. Live Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x = L - L&lt;sub&gt;0&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq4_0&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;5. Restoring Force&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;s&lt;/sub&gt; = -k · x&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq5_0&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;6. Damping Res.&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;d&lt;/sub&gt; = -c · v&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq6_0&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;7. Acceleration&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;a = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;F&lt;sub&gt;net&lt;/sub&gt;&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;m&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq7_0&quot;&gt;0.00 m/s²&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;8. Osc. Period&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;T = 2π √(&lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;)&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq8_0&quot;&gt;N/A&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;9. Potential Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;U&lt;sub&gt;e&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; k x²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq9_0&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;10. Kinetic Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;K = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; m v²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq10_0&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- TAB 1: SPRING 2 --&gt;
+                &lt;div id=&quot;tab1&quot; class=&quot;tab-content&quot;&gt;
+                    &lt;div class=&quot;results-grid&quot;&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Exp. Period (T&lt;sub&gt;exp&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTexp_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Theo. Period (T&lt;sub&gt;th&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTth_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Calc. Stiffness (k)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resKcalc_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Frequency (f)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resFreq_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Damping Dec. (δ)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resDamp_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;% Error&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resErr_1&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;eq-grid&quot;&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;1. Total Mass&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;m = ∑ m&lt;sub&gt;i&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq1_1&quot;&gt;0.0 kg&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;2. Weight Load&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;W = m · g&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq2_1&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;3. Equil. Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x&lt;sub&gt;0&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;W&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq3_1&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;4. Live Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x = L - L&lt;sub&gt;0&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq4_1&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;5. Restoring Force&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;s&lt;/sub&gt; = -k · x&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq5_1&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;6. Damping Res.&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;d&lt;/sub&gt; = -c · v&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq6_1&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;7. Acceleration&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;a = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;F&lt;sub&gt;net&lt;/sub&gt;&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;m&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq7_1&quot;&gt;0.00 m/s²&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;8. Osc. Period&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;T = 2π √(&lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;)&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq8_1&quot;&gt;N/A&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;9. Potential Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;U&lt;sub&gt;e&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; k x²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq9_1&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;10. Kinetic Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;K = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; m v²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq10_1&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- TAB 2: SPRING 3 --&gt;
+                &lt;div id=&quot;tab2&quot; class=&quot;tab-content&quot;&gt;
+                    &lt;div class=&quot;results-grid&quot;&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Exp. Period (T&lt;sub&gt;exp&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTexp_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Theo. Period (T&lt;sub&gt;th&lt;/sub&gt;)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resTth_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Calc. Stiffness (k)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resKcalc_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Frequency (f)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resFreq_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;Damping Dec. (δ)&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resDamp_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;res-box&quot;&gt;&lt;div class=&quot;res-title&quot;&gt;% Error&lt;/div&gt;&lt;div class=&quot;res-val&quot; id=&quot;resErr_2&quot;&gt;--&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;eq-grid&quot;&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;1. Total Mass&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;m = ∑ m&lt;sub&gt;i&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq1_2&quot;&gt;0.0 kg&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;2. Weight Load&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;W = m · g&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq2_2&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;3. Equil. Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x&lt;sub&gt;0&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;W&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq3_2&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;4. Live Stretch&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;x = L - L&lt;sub&gt;0&lt;/sub&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq4_2&quot;&gt;0.000 m&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;5. Restoring Force&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;s&lt;/sub&gt; = -k · x&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq5_2&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;6. Damping Res.&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;F&lt;sub&gt;d&lt;/sub&gt; = -c · v&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq6_2&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;7. Acceleration&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;a = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;F&lt;sub&gt;net&lt;/sub&gt;&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;m&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq7_2&quot;&gt;0.00 m/s²&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;8. Osc. Period&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;T = 2π √(&lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;m&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;)&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq8_2&quot;&gt;N/A&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;9. Potential Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;U&lt;sub&gt;e&lt;/sub&gt; = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; k x²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq9_2&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                        &lt;div class=&quot;eq-box&quot;&gt;&lt;div class=&quot;eq-title&quot;&gt;10. Kinetic Energy&lt;/div&gt;&lt;div class=&quot;eq-formula&quot;&gt;K = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;2&lt;/span&gt;&lt;/div&gt; m v²&lt;/div&gt;&lt;div class=&quot;eq-val&quot; id=&quot;eq10_2&quot;&gt;0.00 J&lt;/div&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- TAB 3: COMPARATIVE SUMMARY TABLE --&gt;
+                &lt;div id=&quot;tab3&quot; class=&quot;tab-content&quot;&gt;
+                    &lt;div class=&quot;summary-table-wrapper&quot;&gt;
+                        &lt;table class=&quot;summary-table&quot;&gt;
+                            &lt;thead&gt;
+                                &lt;tr&gt;
+                                    &lt;th&gt;Physics Parameter&lt;/th&gt;
+                                    &lt;th&gt;Spring 1 (S₁)&lt;/th&gt;
+                                    &lt;th&gt;Spring 2 (S₂)&lt;/th&gt;
+                                    &lt;th&gt;Spring 3 (S₃)&lt;/th&gt;
+                                &lt;/tr&gt;
+                            &lt;/thead&gt;
+                            &lt;tbody&gt;
+                                &lt;tr&gt;&lt;td&gt;Stiffness Constant (k)&lt;/td&gt;&lt;td id=&quot;sumK_0&quot; class=&quot;v-s1&quot;&gt;30 N/m&lt;/td&gt;&lt;td id=&quot;sumK_1&quot; class=&quot;v-s2&quot;&gt;50 N/m&lt;/td&gt;&lt;td id=&quot;sumK_2&quot; class=&quot;v-s3&quot;&gt;80 N/m&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Total Mass (m)&lt;/td&gt;&lt;td id=&quot;sumM_0&quot; class=&quot;v-s1&quot;&gt;0.0 kg&lt;/td&gt;&lt;td id=&quot;sumM_1&quot; class=&quot;v-s2&quot;&gt;0.0 kg&lt;/td&gt;&lt;td id=&quot;sumM_2&quot; class=&quot;v-s3&quot;&gt;0.0 kg&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Weight Force (W)&lt;/td&gt;&lt;td id=&quot;sumW_0&quot; class=&quot;v-s1&quot;&gt;0.00 N&lt;/td&gt;&lt;td id=&quot;sumW_1&quot; class=&quot;v-s2&quot;&gt;0.00 N&lt;/td&gt;&lt;td id=&quot;sumW_2&quot; class=&quot;v-s3&quot;&gt;0.00 N&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Equilibrium Stretch (x₀)&lt;/td&gt;&lt;td id=&quot;sumX0_0&quot; class=&quot;v-s1&quot;&gt;0.000 m&lt;/td&gt;&lt;td id=&quot;sumX0_1&quot; class=&quot;v-s2&quot;&gt;0.000 m&lt;/td&gt;&lt;td id=&quot;sumX0_2&quot; class=&quot;v-s3&quot;&gt;0.000 m&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Live Stretch (x)&lt;/td&gt;&lt;td id=&quot;sumX_0&quot; class=&quot;v-s1&quot;&gt;0.000 m&lt;/td&gt;&lt;td id=&quot;sumX_1&quot; class=&quot;v-s2&quot;&gt;0.000 m&lt;/td&gt;&lt;td id=&quot;sumX_2&quot; class=&quot;v-s3&quot;&gt;0.000 m&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Restoring Force (Fₛ)&lt;/td&gt;&lt;td id=&quot;sumFs_0&quot; class=&quot;v-s1&quot;&gt;0.00 N&lt;/td&gt;&lt;td id=&quot;sumFs_1&quot; class=&quot;v-s2&quot;&gt;0.00 N&lt;/td&gt;&lt;td id=&quot;sumFs_2&quot; class=&quot;v-s3&quot;&gt;0.00 N&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Theoretical Period (T)&lt;/td&gt;&lt;td id=&quot;sumT_0&quot; class=&quot;v-s1&quot;&gt;N/A&lt;/td&gt;&lt;td id=&quot;sumT_1&quot; class=&quot;v-s2&quot;&gt;N/A&lt;/td&gt;&lt;td id=&quot;sumT_2&quot; class=&quot;v-s3&quot;&gt;N/A&lt;/td&gt;&lt;/tr&gt;
+                                &lt;tr&gt;&lt;td&gt;Potential Energy (Uₑ)&lt;/td&gt;&lt;td id=&quot;sumPe_0&quot; class=&quot;v-s1&quot;&gt;0.00 J&lt;/td&gt;&lt;td id=&quot;sumPe_1&quot; class=&quot;v-s2&quot;&gt;0.00 J&lt;/td&gt;&lt;td id=&quot;sumPe_2&quot; class=&quot;v-s3&quot;&gt;0.00 J&lt;/td&gt;&lt;/tr&gt;
+                            &lt;/tbody&gt;
+                        &lt;/table&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+            &lt;/div&gt;
+
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ================= JAVASCRIPT ENGINE ================= --&gt;
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;simCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+        const gCanvas = document.getElementById(&#39;graphCanvas&#39;);
+        const gCtx = gCanvas.getContext(&#39;2d&#39;);
+
+        // Physics Setup
+        let g = 9.8;      // m/s^2
+        let c = 0.20;     // Ns/m damping
+        const pixelScale = 280; // 1 meter = 280 pixels
+        const topY = 60;
+        const baseSpringLen = 85; // Natural length L0
+
+        let isFrozen = false;
+
+        // 3 Parallel Springs Setup
+        const springs = [
+            { id: 0, name: &quot;S₁&quot;, x: 140, k: 30, color: &#39;#2563eb&#39;, hookY: topY + baseSpringLen, vel: 0 },
+            { id: 1, name: &quot;S₂&quot;, x: 280, k: 50, color: &#39;#d97706&#39;, hookY: topY + baseSpringLen, vel: 0 },
+            { id: 2, name: &quot;S₃&quot;, x: 420, k: 80, color: &#39;#9333ea&#39;, hookY: topY + baseSpringLen, vel: 0 }
+        ];
+
+        let activePullingSpringIndex = -1;
+
+        // Slotted Disc Weights Definition
+        let weights = [
+            { id: 1, mass: 1.0, rx: 25, ry: 8,  h: 20, color: &#39;#2563eb&#39;, labelColor: &#39;#ffffff&#39;, x: 50,  y: 615, bx: 50,  by: 615, attachedTo: null, dragging: false },
+            { id: 2, mass: 1.5, rx: 28, ry: 9,  h: 22, color: &#39;#16a34a&#39;, labelColor: &#39;#ffffff&#39;, x: 130, y: 615, bx: 130, by: 615, attachedTo: null, dragging: false },
+            { id: 3, mass: 2.0, rx: 32, ry: 10, h: 25, color: &#39;#d97706&#39;, labelColor: &#39;#ffffff&#39;, x: 220, y: 615, bx: 220, by: 615, attachedTo: null, dragging: false },
+            { id: 4, mass: 2.5, rx: 36, ry: 11, h: 28, color: &#39;#dc2626&#39;, labelColor: &#39;#ffffff&#39;, x: 320, y: 615, bx: 320, by: 615, attachedTo: null, dragging: false },
+            { id: 5, mass: 3.0, rx: 40, ry: 12, h: 32, color: &#39;#9333ea&#39;, labelColor: &#39;#ffffff&#39;, x: 430, y: 615, bx: 430, by: 615, attachedTo: null, dragging: false }
+        ];
+
+        let draggedWeight = null;
+        let mouseOffsetY = 0;
+        let lastTapTime = 0;
+        let lastTappedWeight = null;
+
+        // Graph Engine State
+        let graphData = [];
+        let isRecording = false;
+        let recordTime = 0;
+        let maxTime = 20;
+
+        // Sliders Listeners
+        document.getElementById(&#39;sliderK1&#39;).addEventListener(&#39;input&#39;, e =&gt; { springs[0].k = parseFloat(e.target.value); document.getElementById(&#39;valK1&#39;).innerText = springs[0].k + &quot; N/m&quot;; });
+        document.getElementById(&#39;sliderK2&#39;).addEventListener(&#39;input&#39;, e =&gt; { springs[1].k = parseFloat(e.target.value); document.getElementById(&#39;valK2&#39;).innerText = springs[1].k + &quot; N/m&quot;; });
+        document.getElementById(&#39;sliderK3&#39;).addEventListener(&#39;input&#39;, e =&gt; { springs[2].k = parseFloat(e.target.value); document.getElementById(&#39;valK3&#39;).innerText = springs[2].k + &quot; N/m&quot;; });
+        document.getElementById(&#39;sliderG&#39;).addEventListener(&#39;input&#39;, e =&gt; { g = parseFloat(e.target.value); document.getElementById(&#39;valG&#39;).innerText = g.toFixed(1) + &quot; m/s²&quot;; });
+        document.getElementById(&#39;sliderC&#39;).addEventListener(&#39;input&#39;, e =&gt; { c = parseFloat(e.target.value); document.getElementById(&#39;valC&#39;).innerText = c.toFixed(2) + &quot; N·s/m&quot;; });
+
+        function getSpringMass(springIdx) {
+            return weights.filter(w =&gt; w.attachedTo === springIdx).reduce((sum, w) =&gt; sum + w.mass, 0);
+        }
+
+        // ADD CUSTOM WEIGHT FEATURE
+        function addCustomWeight() {
+            let input = prompt(&quot;Enter custom weight mass in kg (e.g. 0.5 to 5.0):&quot;, &quot;1.2&quot;);
+            if (input === null) return;
+            let val = parseFloat(input);
+            if (isNaN(val) || val &lt;= 0) {
+                alert(&quot;Please enter a valid positive number for weight mass.&quot;);
+                return;
+            }
+
+            let newId = Date.now();
+            let colorPalette = [&#39;#0284c7&#39;, &#39;#059669&#39;, &#39;#d97706&#39;, &#39;#dc2626&#39;, &#39;#7c3aed&#39;, &#39;#db2777&#39;];
+            let chosenColor = colorPalette[weights.length % colorPalette.length];
+            
+            let radius = Math.min(42, Math.max(22, 20 + val * 5));
+            let height = Math.min(34, Math.max(18, 18 + val * 4));
+
+            let newX = 40 + (weights.length % 7) * 70;
+            let newY = 615;
+
+            let newWeight = {
+                id: newId,
+                mass: val,
+                rx: radius,
+                ry: Math.round(radius * 0.3),
+                h: height,
+                color: chosenColor,
+                labelColor: &#39;#ffffff&#39;,
+                x: newX,
+                y: newY,
+                bx: newX,
+                by: newY,
+                attachedTo: null,
+                dragging: false
+            };
+
+            weights.push(newWeight);
+        }
+
+        // TAB SWITCHING FUNCTION
+        function switchTab(tabIdx) {
+            const buttons = document.querySelectorAll(&#39;.tab-btn&#39;);
+            const contents = document.querySelectorAll(&#39;.tab-content&#39;);
+
+            buttons.forEach((btn, idx) =&gt; {
+                if (idx === tabIdx) btn.classList.add(&#39;active&#39;);
+                else btn.classList.remove(&#39;active&#39;);
+            });
+
+            contents.forEach((content, idx) =&gt; {
+                if (idx === tabIdx) content.classList.add(&#39;active&#39;);
+                else content.classList.remove(&#39;active&#39;);
+            });
+        }
+
+        // STOP MOTION &amp; STABILIZE
+        function stopMotion() {
+            springs.forEach(s =&gt; {
+                s.vel = 0;
+                let m = getSpringMass(s.id);
+                let x0 = (m * g) / s.k;
+                s.hookY = topY + baseSpringLen + x0 * pixelScale;
+            });
+            isRecording = false;
+            isFrozen = false;
+            document.getElementById(&#39;timerStatus&#39;).innerText = &quot;Motion Stopped (At Equilibrium)&quot;;
+            document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge&quot;;
+        }
+
+        // TOGGLE FREEZE / DIAGRAM LABELS MODE
+        function toggleFreeze() {
+            isFrozen = !isFrozen;
+            if (isFrozen) {
+                stopMotion();
+                document.getElementById(&#39;timerStatus&#39;).innerText = &quot;Simulation Frozen (Diagram Labels Active)&quot;;
+                document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge frozen&quot;;
+            } else {
+                document.getElementById(&#39;timerStatus&#39;).innerText = &quot;Ready to Record&quot;;
+                document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge&quot;;
+            }
+        }
+
+        function clearGraph() {
+            graphData = [];
+            recordTime = 0;
+            isRecording = false;
+            document.getElementById(&#39;timerStatus&#39;).innerText = &quot;Ready to Record&quot;;
+            document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge&quot;;
+            resetResultsDisplay();
+            drawGraph();
+        }
+
+        function resetResultsDisplay() {
+            for (let i = 0; i &lt; 3; i++) {
+                document.getElementById(`resTexp_${i}`).innerText = &quot;--&quot;;
+                document.getElementById(`resTth_${i}`).innerText = &quot;--&quot;;
+                document.getElementById(`resKcalc_${i}`).innerText = &quot;--&quot;;
+                document.getElementById(`resFreq_${i}`).innerText = &quot;--&quot;;
+                document.getElementById(`resDamp_${i}`).innerText = &quot;--&quot;;
+                document.getElementById(`resErr_${i}`).innerText = &quot;--&quot;;
+            }
+        }
+
+        // HELPER FOR CANVAS COORDINATES FROM MOUSE/TOUCH
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches &amp;&amp; e.touches.length &gt; 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // UNIFIED INPUT DOWN (MOUSE &amp; TOUCH)
+        function handlePointerDown(e) {
+            const coords = getCanvasCoords(e);
+            const mx = coords.x;
+            const my = coords.y;
+
+            const now = Date.now();
+
+            // Check Weight Selection &amp; Double-Tap Logic for Touch/Mouse
+            for (let i = weights.length - 1; i &gt;= 0; i--) {
+                let w = weights[i];
+                if (Math.abs(mx - w.x) &lt; w.rx + 8 &amp;&amp; Math.abs(my - (w.y - w.h/2)) &lt; (w.h/2 + w.ry + 10)) {
+                    
+                    // Double Tap / Double Click Detection
+                    if (w.attachedTo !== null &amp;&amp; lastTappedWeight === w &amp;&amp; (now - lastTapTime) &lt; 300) {
+                        w.attachedTo = null;
+                        w.x = w.bx;
+                        w.y = w.by;
+                        w.dragging = false;
+                        draggedWeight = null;
+                        lastTapTime = 0;
+                        lastTappedWeight = null;
+                        document.getElementById(&#39;timerStatus&#39;).innerText = `Detached ${w.mass}kg weight`;
+                        return;
+                    }
+
+                    lastTapTime = now;
+                    lastTappedWeight = w;
+
+                    draggedWeight = w;
+                    w.dragging = true;
+                    mouseOffsetY = my - w.y;
+                    return;
+                }
+            }
+
+            // Check Pulling Spring Hooks or Attached Weights Area
+            springs.forEach(s =&gt; {
+                let m = getSpringMass(s.id);
+                let checkBottomY = s.hookY + 60 + weights.filter(w=&gt;w.attachedTo===s.id).reduce((sum,w)=&gt;sum+w.h,0);
+                if (Math.abs(mx - s.x) &lt; 45 &amp;&amp; my &gt; s.hookY - 15 &amp;&amp; my &lt; checkBottomY + 50) {
+                    activePullingSpringIndex = s.id;
+                    s.vel = 0;
+                    isRecording = false;
+                    isFrozen = false;
+                    document.getElementById(&#39;timerStatus&#39;).innerText = `Stretching ${s.name}...`;
+                    document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge recording&quot;;
+                }
+            });
+        }
+
+        // UNIFIED INPUT MOVE (MOUSE &amp; TOUCH)
+        function handlePointerMove(e) {
+            if (!draggedWeight &amp;&amp; activePullingSpringIndex === -1) return;
+            
+            // Prevent page scrolling on mobile devices while dragging
+            if (e.cancelable) e.preventDefault();
+
+            const coords = getCanvasCoords(e);
+            const mx = coords.x;
+            const my = coords.y;
+
+            if (draggedWeight) {
+                if (draggedWeight.attachedTo !== null) {
+                    draggedWeight.attachedTo = null;
+                }
+                draggedWeight.x = mx;
+                draggedWeight.y = my - mouseOffsetY;
+            } else if (activePullingSpringIndex !== -1) {
+                let s = springs[activePullingSpringIndex];
+                s.hookY = Math.max(topY + baseSpringLen, Math.min(500, my));
+            }
+        }
+
+        // UNIFIED INPUT UP (MOUSE &amp; TOUCH)
+        function handlePointerUp() {
+            if (draggedWeight) {
+                let dropped = false;
+                springs.forEach(s =&gt; {
+                    if (Math.hypot(draggedWeight.x - s.x, draggedWeight.y - (s.hookY + 40)) &lt; 65) {
+                        draggedWeight.attachedTo = s.id;
+                        dropped = true;
+                    }
+                });
+
+                if (!dropped) {
+                    draggedWeight.x = draggedWeight.bx;
+                    draggedWeight.y = draggedWeight.by;
+                    draggedWeight.attachedTo = null;
+                }
+                draggedWeight.dragging = false;
+                draggedWeight = null;
+            }
+
+            if (activePullingSpringIndex !== -1) {
+                activePullingSpringIndex = -1;
+                startRecording();
+            }
+        }
+
+        // ATTACH MOUSE &amp; TOUCH EVENT LISTENERS
+        canvas.addEventListener(&#39;mousedown&#39;, handlePointerDown);
+        canvas.addEventListener(&#39;mousemove&#39;, handlePointerMove);
+        canvas.addEventListener(&#39;mouseup&#39;, handlePointerUp);
+
+        canvas.addEventListener(&#39;touchstart&#39;, e =&gt; { handlePointerDown(e); }, { passive: false });
+        canvas.addEventListener(&#39;touchmove&#39;, e =&gt; { handlePointerMove(e); }, { passive: false });
+        canvas.addEventListener(&#39;touchend&#39;, handlePointerUp);
+
+        // ================= GRAPH ENGINE &amp; POST-TEST ANALYSIS =================
+        function startRecording() {
+            maxTime = parseFloat(document.getElementById(&#39;timeInput&#39;).value) || 20;
+            recordTime = 0;
+            graphData = [];
+            isRecording = true;
+            document.getElementById(&#39;timerStatus&#39;).innerText = &quot;Recording Waveforms...&quot;;
+            document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge recording&quot;;
+            resetResultsDisplay();
+        }
+
+        function updateGraph(dt) {
+            if (!isRecording || isFrozen) return;
+            recordTime += dt;
+
+            if (recordTime &gt;= maxTime) {
+                recordTime = maxTime;
+                isRecording = false;
+                document.getElementById(&#39;timerStatus&#39;).innerText = `Completed (${maxTime}s)`;
+                document.getElementById(&#39;timerStatus&#39;).className = &quot;status-badge done&quot;;
+                analyzeAllGraphData();
+            } else {
+                document.getElementById(&#39;timerStatus&#39;).innerText = `Recording: ${recordTime.toFixed(1)}s / ${maxTime}s`;
+            }
+
+            let restY = topY + baseSpringLen;
+            let dataPoint = {
+                t: recordTime,
+                x0: ((springs[0].hookY - restY) / pixelScale) - ((getSpringMass(0) * g) / springs[0].k),
+                x1: ((springs[1].hookY - restY) / pixelScale) - ((getSpringMass(1) * g) / springs[1].k),
+                x2: ((springs[2].hookY - restY) / pixelScale) - ((getSpringMass(2) * g) / springs[2].k)
+            };
+
+            graphData.push(dataPoint);
+            drawGraph();
+        }
+
+        function analyzeAllGraphData() {
+            for (let sIdx = 0; sIdx &lt; 3; sIdx++) {
+                let m = getSpringMass(sIdx);
+                let k_val = springs[sIdx].k;
+                let prop = `x${sIdx}`;
+
+                if (m === 0 || graphData.length &lt; 10) continue;
+
+                let peaks = [];
+                for (let i = 1; i &lt; graphData.length - 1; i++) {
+                    if (graphData[i][prop] &gt; graphData[i-1][prop] &amp;&amp; graphData[i][prop] &gt; graphData[i+1][prop] &amp;&amp; graphData[i][prop] &gt; 0.008) {
+                        peaks.push(graphData[i]);
+                    }
+                }
+
+                if (peaks.length &gt;= 2) {
+                    let periodSum = 0;
+                    for (let i = 1; i &lt; peaks.length; i++) {
+                        periodSum += (peaks[i].t - peaks[i-1].t);
+                    }
+                    let T_exp = periodSum / (peaks.length - 1);
+                    let T_th = 2 * Math.PI * Math.sqrt(m / k_val);
+                    let k_calc = (4 * Math.PI * Math.PI * m) / (T_exp * T_exp);
+                    let freq = 1 / T_exp;
+                    let damp = Math.log(peaks[0][prop] / peaks[1][prop]);
+                    let err = Math.abs((T_exp - T_th) / T_th) * 100;
+
+                    document.getElementById(`resTexp_${sIdx}`).innerText = `${T_exp.toFixed(3)} s`;
+                    document.getElementById(`resTth_${sIdx}`).innerText = `${T_th.toFixed(3)} s`;
+                    document.getElementById(`resKcalc_${sIdx}`).innerText = `${k_calc.toFixed(1)} N/m`;
+                    document.getElementById(`resFreq_${sIdx}`).innerText = `${freq.toFixed(2)} Hz`;
+                    document.getElementById(`resDamp_${sIdx}`).innerText = `${damp.toFixed(3)}`;
+                    document.getElementById(`resErr_${sIdx}`).innerText = `${err.toFixed(1)} %`;
+                } else {
+                    document.getElementById(`resTexp_${sIdx}`).innerText = &quot;Low Swings&quot;;
+                }
+            }
+        }
+
+        function drawGraph() {
+            gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+            let midY = gCanvas.height / 2;
+
+            gCtx.strokeStyle = &#39;#334155&#39;; gCtx.lineWidth = 1;
+            gCtx.beginPath(); gCtx.moveTo(0, midY); gCtx.lineTo(gCanvas.width, midY); gCtx.stroke();
+
+            gCtx.fillStyle = &#39;#94a3b8&#39;; gCtx.font = &#39;11px Arial&#39;;
+            gCtx.fillText(&quot;0s&quot;, 5, gCanvas.height - 6);
+            gCtx.fillText(maxTime + &quot;s&quot;, gCanvas.width - 32, gCanvas.height - 6);
+            gCtx.fillText(&quot;+0.40m&quot;, 5, 14);
+            gCtx.fillText(&quot;-0.40m&quot;, 5, gCanvas.height - 18);
+
+            if (graphData.length &lt; 2) return;
+
+            let viewSelection = document.getElementById(&#39;graphSelect&#39;).value;
+
+            const drawCurve = (prop, color) =&gt; {
+                gCtx.strokeStyle = color; gCtx.lineWidth = 2;
+                gCtx.beginPath();
+                for (let i = 0; i &lt; graphData.length; i++) {
+                    let pt = graphData[i];
+                    let px = (pt.t / maxTime) * gCanvas.width;
+                    let py = midY - (pt[prop] / 0.40) * (midY - 12);
+                    if (i === 0) gCtx.moveTo(px, py);
+                    else gCtx.lineTo(px, py);
+                }
+                gCtx.stroke();
+            };
+
+            if (viewSelection === &quot;all&quot;) {
+                drawCurve(&quot;x0&quot;, springs[0].color);
+                drawCurve(&quot;x1&quot;, springs[1].color);
+                drawCurve(&quot;x2&quot;, springs[2].color);
+            } else {
+                let idx = parseInt(viewSelection);
+                drawCurve(`x${idx}`, springs[idx].color);
+            }
+        }
+
+        // ================= CANVAS DRAWING FUNCTIONS =================
+
+        function drawSideScale() {
+            const rulerX = 58;
+            const startY = topY;
+            const endY = 520;
+
+            ctx.fillStyle = &#39;#f1f5f9&#39;; ctx.fillRect(4, startY - 15, 68, endY - startY + 28);
+            ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 1.5; ctx.strokeRect(4, startY - 15, 68, endY - startY + 28);
+
+            ctx.fillStyle = &#39;#0f172a&#39;; ctx.font = &#39;bold 10px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;SCALE (m)&quot;, 38, startY - 4);
+
+            const restY = topY + baseSpringLen;
+
+            for (let y = startY; y &lt;= endY; y += 6) {
+                let distPixels = y - restY;
+                let meters = distPixels / pixelScale;
+
+                ctx.beginPath(); 
+                
+                if (Math.abs(distPixels % 28) &lt; 1.2) {
+                    ctx.moveTo(rulerX, y);
+                    ctx.lineTo(rulerX - 14, y);
+                    ctx.strokeStyle = &#39;#0f172a&#39;; ctx.lineWidth = 1.5; ctx.stroke();
+
+                    ctx.fillStyle = &#39;#0f172a&#39;; ctx.font = &#39;bold 10px Arial&#39;; ctx.textAlign = &#39;right&#39;;
+                    let labelText = (meters &gt;= 0 ? &quot;+&quot; : &quot;&quot;) + meters.toFixed(2);
+                    ctx.fillText(labelText, rulerX - 16, y + 3.5);
+                } else if (Math.abs(distPixels % 14) &lt; 1.2) {
+                    ctx.moveTo(rulerX, y);
+                    ctx.lineTo(rulerX - 9, y);
+                    ctx.strokeStyle = &#39;#475569&#39;; ctx.lineWidth = 1; ctx.stroke();
+                } else {
+                    ctx.moveTo(rulerX, y);
+                    ctx.lineTo(rulerX - 5, y);
+                    ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 0.8; ctx.stroke();
+                }
+            }
+            ctx.textAlign = &#39;left&#39;;
+        }
+
+        function draw3DSpring(startX, startY, endY, springColor) {
+            let coils = 15;
+            let radius = 18;
+            let segments = coils * 30;
+            let h = (endY - startY) / segments;
+
+            ctx.lineWidth = 4.5; ctx.lineJoin = &#39;round&#39;;
+
+            for (let i = 0; i &lt; segments; i++) {
+                let angle1 = (i / segments) * Math.PI * 2 * coils;
+                let angle2 = ((i + 1) / segments) * Math.PI * 2 * coils;
+
+                let x1 = startX + Math.sin(angle1) * radius;
+                let y1 = startY + i * h;
+                let z1 = Math.cos(angle1);
+
+                let x2 = startX + Math.sin(angle2) * radius;
+                let y2 = startY + (i + 1) * h;
+
+                let shade = Math.floor(130 + z1 * 80);
+                ctx.strokeStyle = `rgb(${shade-30}, ${shade-10}, ${shade+40})`;
+
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            }
+        }
+
+        function drawSpringBottomHook(centerX, bottomY) {
+            ctx.lineCap = &#39;round&#39;; ctx.lineJoin = &#39;round&#39;;
+            ctx.strokeStyle = &#39;#334155&#39;; ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(centerX, bottomY + 6, 7, -Math.PI/2, Math.PI/2, false);
+            ctx.arc(centerX, bottomY + 20, 7, -Math.PI/2, Math.PI/2, true);
+            ctx.stroke();
+
+            ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(centerX - 1, bottomY + 6, 6, -Math.PI/2, Math.PI/2, false);
+            ctx.arc(centerX - 1, bottomY + 20, 6, -Math.PI/2, Math.PI/2, true);
+            ctx.stroke();
+        }
+
+        function draw3DWeightDisc(x, y, rx, ry, h, color, textColor, massText) {
+            ctx.fillStyle = &#39;rgba(0,0,0,0.15)&#39;;
+            ctx.beginPath(); ctx.ellipse(x + 3, y + 3, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = &#39;#0f172a&#39;;
+            ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+
+            let grad = ctx.createLinearGradient(x - rx, 0, x + rx, 0);
+            grad.addColorStop(0, &#39;#0f172a&#39;); grad.addColorStop(0.35, color); grad.addColorStop(0.8, color); grad.addColorStop(1, &#39;#0f172a&#39;);
+
+            ctx.fillStyle = grad; ctx.fillRect(x - rx, y - h, rx * 2, h);
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(x, y - h, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = &#39;#ffffff&#39;; ctx.lineWidth = 1; ctx.stroke();
+
+            ctx.fillStyle = textColor; ctx.font = &#39;bold 11px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(massText, x, y - h / 2 + 4);
+            ctx.textAlign = &#39;left&#39;;
+        }
+
+        function drawStackedWeightsOnSprings() {
+            springs.forEach(s =&gt; {
+                let attachedWeights = weights.filter(w =&gt; w.attachedTo === s.id &amp;&amp; !w.dragging);
+                let totalH = attachedWeights.reduce((sum, w) =&gt; sum + w.h, 0);
+                let hookCatchY = s.hookY + 27;
+                let hangerBaseY = hookCatchY + 30 + totalH;
+
+                if (attachedWeights.length &gt; 0 || activePullingSpringIndex === s.id) {
+                    ctx.strokeStyle = &#39;#475569&#39;; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(s.x, hookCatchY + 6, 6, 0, Math.PI * 2); ctx.stroke();
+
+                    ctx.strokeStyle = &#39;#94a3b8&#39;; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(s.x, hookCatchY + 12); ctx.lineTo(s.x, hangerBaseY + 8); ctx.stroke();
+
+                    ctx.fillStyle = &#39;#475569&#39;;
+                    ctx.beginPath(); ctx.ellipse(s.x, hangerBaseY + 8, 26, 8, 0, 0, Math.PI * 2); ctx.fill();
+                }
+
+                let currentY = hangerBaseY + 6;
+                attachedWeights.forEach(w =&gt; {
+                    w.x = s.x; w.y = currentY;
+                    draw3DWeightDisc(w.x, w.y, w.rx, w.ry, w.h, w.color, w.labelColor, `${w.mass.toFixed(1)}kg`);
+                    currentY -= w.h;
+                });
+            });
+
+            weights.filter(w =&gt; w.attachedTo === null || w.dragging).forEach(w =&gt; {
+                draw3DWeightDisc(w.x, w.y, w.rx, w.ry, w.h, w.color, w.labelColor, `${w.mass.toFixed(1)}kg`);
+            });
+        }
+
+        function drawAllDiagramLabels() {
+            let restY = topY + baseSpringLen;
+
+            // Support Beam
+            ctx.fillStyle = &#39;#475569&#39;; ctx.fillRect(100, topY - 18, 360, 18);
+            ctx.fillStyle = &#39;#ffffff&#39;; ctx.font = &#39;bold 11px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;Rigid Support Ceiling Anchor&quot;, 280, topY - 5); ctx.textAlign = &#39;left&#39;;
+
+            // Equilibrium Baseline
+            ctx.strokeStyle = &#39;#2563eb&#39;; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(78, restY); ctx.lineTo(510, restY); ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = &#39;#2563eb&#39;; ctx.font = &#39;bold 11px Arial&#39;;
+            ctx.fillText(&quot;L₀ (Rest Position = 0.00m)&quot;, 210, restY - 5);
+
+            springs.forEach(s =&gt; {
+                let m = getSpringMass(s.id);
+                let x_meters = (s.hookY - restY) / pixelScale;
+                let Fs = -s.k * x_meters;
+                let W = m * g;
+
+                // Spring Stiffness Tag
+                ctx.fillStyle = &#39;#f8fafc&#39;; ctx.strokeStyle = s.color; ctx.lineWidth = 1.5;
+                ctx.fillRect(s.x - 28, topY + 8, 56, 18); ctx.strokeRect(s.x - 28, topY + 8, 56, 18);
+                ctx.fillStyle = s.color; ctx.font = &#39;bold 10px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+                ctx.fillText(`k=${s.k}N/m`, s.x, topY + 21); ctx.textAlign = &#39;left&#39;;
+
+                // Extension Indicator Pointer Line
+                ctx.fillStyle = &#39;#dc2626&#39;;
+                ctx.beginPath(); ctx.moveTo(s.x, s.hookY); ctx.lineTo(76, s.hookY); ctx.lineTo(84, s.hookY-4); ctx.lineTo(84, s.hookY+4); ctx.fill();
+
+                if (Math.abs(x_meters) &gt; 0.005) {
+                    // Extension Arrow
+                    ctx.strokeStyle = &#39;#0f172a&#39;; ctx.lineWidth = 1.2;
+                    ctx.beginPath(); ctx.moveTo(s.x + 25, restY); ctx.lineTo(s.x + 25, s.hookY); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(s.x + 21, restY+5); ctx.lineTo(s.x + 25, restY); ctx.lineTo(s.x + 29, restY+5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(s.x + 21, s.hookY-5); ctx.lineTo(s.x + 25, s.hookY); ctx.lineTo(s.x + 29, s.hookY-5); ctx.stroke();
+
+                    ctx.fillStyle = &#39;#0f172a&#39;; ctx.font = &#39;bold 10px Arial&#39;;
+                    ctx.fillText(`x=${x_meters.toFixed(2)}m`, s.x + 30, restY + (s.hookY - restY)/2 + 4);
+
+                    // Hooke&#39;s Law Proportional Labels (x, 2x, F, 2F)
+                    let baselineX = 0.10;
+                    let ratio = Math.abs(x_meters) / baselineX;
+                    let xLabel = &quot;&quot;;
+                    let fLabel = &quot;&quot;;
+
+                    if (ratio &gt;= 0.7 &amp;&amp; ratio &lt; 1.5) {
+                        xLabel = &quot;x&quot;;
+                        fLabel = &quot;F&quot;;
+                    } else if (ratio &gt;= 1.5 &amp;&amp; ratio &lt; 2.5) {
+                        xLabel = &quot;2x&quot;;
+                        fLabel = &quot;2F&quot;;
+                    } else if (ratio &gt;= 2.5) {
+                        let factor = Math.round(ratio);
+                        xLabel = `${factor}x`;
+                        fLabel = `${factor}F`;
+                    }
+
+                    if (xLabel !== &quot;&quot;) {
+                        ctx.fillStyle = &#39;#2563eb&#39;; ctx.font = &#39;bold 12px Arial&#39;;
+                        ctx.fillText(`[${xLabel}, ${fLabel}]`, s.x + 30, restY + (s.hookY - restY)/2 + 18);
+                    }
+
+                    // Extension Range Badge
+                    let extCategory = Math.abs(x_meters) &lt; 0.15 ? &quot;Small Ext.&quot; : &quot;Large Ext.&quot;;
+                    let extBgColor = Math.abs(x_meters) &lt; 0.15 ? &quot;#dcfce7&quot; : &quot;#fee2e2&quot;;
+                    let extTextColor = Math.abs(x_meters) &lt; 0.15 ? &quot;#15803d&quot; : &quot;#b91c1c&quot;;
+
+                    ctx.fillStyle = extBgColor;
+                    ctx.fillRect(s.x - 30, s.hookY + 12, 60, 16);
+                    ctx.strokeStyle = extTextColor; ctx.lineWidth = 1;
+                    ctx.strokeRect(s.x - 30, s.hookY + 12, 60, 16);
+
+                    ctx.fillStyle = extTextColor; ctx.font = &#39;bold 9px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+                    ctx.fillText(extCategory, s.x, s.hookY + 23); ctx.textAlign = &#39;left&#39;;
+                }
+
+                // Force Vector Arrows
+                if (m &gt; 0 || activePullingSpringIndex === s.id) {
+                    let hangerBaseY = s.hookY + 50 + weights.filter(w=&gt;w.attachedTo===s.id).reduce((sum,w)=&gt;sum+w.h,0);
+
+                    // Gravity Force Vector W
+                    ctx.strokeStyle = &#39;#dc2626&#39;; ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.moveTo(s.x, hangerBaseY + 12); ctx.lineTo(s.x, hangerBaseY + 45); ctx.stroke();
+                    ctx.fillStyle = &#39;#dc2626&#39;;
+                    ctx.beginPath(); ctx.moveTo(s.x - 5, hangerBaseY + 37); ctx.lineTo(s.x + 5, hangerBaseY + 37); ctx.lineTo(s.x, hangerBaseY + 45); ctx.fill();
+                    ctx.font = &#39;bold 10px Arial&#39;; ctx.fillText(`W=${W.toFixed(1)}N`, s.x + 8, hangerBaseY + 35);
+
+                    // Restoring Force Vector Fs
+                    ctx.strokeStyle = &#39;#16a34a&#39;; ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.moveTo(s.x - 22, s.hookY); ctx.lineTo(s.x - 22, s.hookY - 35); ctx.stroke();
+                    ctx.fillStyle = &#39;#16a34a&#39;;
+                    ctx.beginPath(); ctx.moveTo(s.x - 27, s.hookY - 27); ctx.lineTo(s.x - 17, s.hookY - 27); ctx.lineTo(s.x - 22, s.hookY - 35); ctx.fill();
+                    ctx.fillText(`Fₛ=${Math.abs(Fs).toFixed(1)}N`, s.x - 65, s.hookY - 15);
+
+                    ctx.fillStyle = &#39;#1e293b&#39;; ctx.font = &#39;bold 10px Arial&#39;;
+                    ctx.fillText(`m=${m.toFixed(1)}kg`, s.x - 20, hangerBaseY + 22);
+                }
+            });
+        }
+
+        // ================= PHYSICS ENGINE &amp; MAIN LOOP =================
+        let lastTime = performance.now();
+
+        function animate() {
+            let now = performance.now();
+            let dt = Math.min((now - lastTime) / 1000, 0.04);
+            lastTime = now;
+
+            let restY = topY + baseSpringLen;
+
+            springs.forEach(s =&gt; {
+                let m = getSpringMass(s.id);
+                let W = m * g;
+
+                if (m &gt; 0 &amp;&amp; !isFrozen &amp;&amp; activePullingSpringIndex !== s.id) {
+                    let x_meters = (s.hookY - restY) / pixelScale;
+                    let v_mps = s.vel / pixelScale;
+
+                    let Fs = -s.k * x_meters;
+                    let Fd = -c * v_mps;
+                    let Fnet = W + Fs + Fd;
+                    let accel = Fnet / m;
+
+                    s.vel += (accel * pixelScale) * dt;
+                    s.hookY += s.vel * dt;
+                } else if (m === 0 &amp;&amp; !isFrozen &amp;&amp; activePullingSpringIndex !== s.id) {
+                    let dispPx = s.hookY - restY;
+                    s.vel += (-35 * (dispPx / pixelScale) * pixelScale - 6 * s.vel) * dt;
+                    s.hookY += s.vel * dt;
+                }
+            });
+
+            // Update Calculations across all Dedicated Tabs &amp; Summary View
+            for (let i = 0; i &lt; 3; i++) {
+                let s = springs[i];
+                let m = getSpringMass(i);
+                let W = m * g;
+                let x0 = W / s.k;
+                let x_live = (s.hookY - restY) / pixelScale;
+                let v_live = s.vel / pixelScale;
+                let Fs = -s.k * x_live;
+                let Fd = -c * v_live;
+                let Fnet = W + Fs + Fd;
+                let accel = (m &gt; 0) ? (Fnet / m) : 0;
+                let T = (m &gt; 0) ? (2 * Math.PI * Math.sqrt(m / s.k)) : 0;
+                let PE = 0.5 * s.k * x_live * x_live;
+                let KE = (m &gt; 0) ? (0.5 * m * v_live * v_live) : 0;
+
+                // Dedicated Tab Elements
+                document.getElementById(`eq1_${i}`).innerText = `${m.toFixed(1)} kg`;
+                document.getElementById(`eq2_${i}`).innerText = `${W.toFixed(2)} N`;
+                document.getElementById(`eq3_${i}`).innerText = `${x0.toFixed(3)} m`;
+                document.getElementById(`eq4_${i}`).innerText = `${x_live.toFixed(3)} m`;
+                document.getElementById(`eq5_${i}`).innerText = `${Fs.toFixed(2)} N`;
+                document.getElementById(`eq6_${i}`).innerText = `${Fd.toFixed(2)} N`;
+                document.getElementById(`eq7_${i}`).innerText = `${(activePullingSpringIndex === i ? 0 : accel).toFixed(2)} m/s²`;
+                document.getElementById(`eq8_${i}`).innerText = m &gt; 0 ? `${T.toFixed(2)} s` : &quot;N/A&quot;;
+                document.getElementById(`eq9_${i}`).innerText = `${PE.toFixed(2)} J`;
+                document.getElementById(`eq10_${i}`).innerText = `${KE.toFixed(2)} J`;
+
+                // Summary Table Elements
+                document.getElementById(`sumK_${i}`).innerText = `${s.k} N/m`;
+                document.getElementById(`sumM_${i}`).innerText = `${m.toFixed(1)} kg`;
+                document.getElementById(`sumW_${i}`).innerText = `${W.toFixed(2)} N`;
+                document.getElementById(`sumX0_${i}`).innerText = `${x0.toFixed(3)} m`;
+                document.getElementById(`sumX_${i}`).innerText = `${x_live.toFixed(3)} m`;
+                document.getElementById(`sumFs_${i}`).innerText = `${Fs.toFixed(2)} N`;
+                document.getElementById(`sumT_${i}`).innerText = m &gt; 0 ? `${T.toFixed(2)} s` : &quot;N/A&quot;;
+                document.getElementById(`sumPe_${i}`).innerText = `${PE.toFixed(2)} J`;
+            }
+
+            updateGraph(dt);
+
+            // RENDER CANVAS
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = &#39;#e2e8f0&#39;; ctx.fillRect(0, 555, canvas.width, 110);
+            ctx.fillStyle = &#39;#94a3b8&#39;; ctx.fillRect(0, 555, canvas.width, 4);
+            ctx.fillStyle = &#39;#475569&#39;; ctx.font = &#39;bold 11px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;WEIGHT STORAGE BENCH&quot;, 280, 573); ctx.textAlign = &#39;left&#39;;
+
+            drawSideScale();
+
+            springs.forEach(s =&gt; {
+                draw3DSpring(s.x, topY, s.hookY, s.color);
+                drawSpringBottomHook(s.x, s.hookY);
+            });
+
+            drawAllDiagramLabels();
+            drawStackedWeightsOnSprings();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize Simulation
+        drawGraph();
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1527;
+  const STAGE_H = 859;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
