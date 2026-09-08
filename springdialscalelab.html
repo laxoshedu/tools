@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>spring dial scale lab</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Spring Dial Scale Laboratory - Precision Mechanism&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --primary: #0f172a;
+            --secondary: #2563eb;
+            --accent: #dc2626;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #cbd5e1;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: &#39;Segoe UI&#39;, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        header h1 {
+            margin: 0 0 2px 0;
+            color: var(--primary);
+            font-size: 1.4em;
+        }
+
+        header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.85em;
+        }
+
+        .lab-container {
+            display: flex;
+            gap: 12px;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        /* LEFT COLUMN: CANVAS SIMULATION */
+        .simulation-panel {
+            flex: 0 0 540px;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        canvas#scaleCanvas {
+            background: #dbeafe;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: grab;
+            touch-action: none;
+            max-width: 100%;
+            height: auto;
+        }
+        canvas#scaleCanvas:active { cursor: grabbing; }
+
+        .canvas-toolbar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            padding: 0 4px;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn-add-weight {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-add-weight:hover { background: #15803d; }
+
+        .btn-stabilize {
+            background: #d97706;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.82em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-stabilize:hover { background: #b45309; }
+
+        .instructions {
+            margin-top: 6px;
+            font-size: 0.78em;
+            color: #475569;
+            text-align: center;
+            line-height: 1.35;
+            background: #f1f5f9;
+            padding: 6px 8px;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* RIGHT COLUMN: DASHBOARD */
+        .data-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            margin: 0 0 8px 0;
+            font-size: 0.98em;
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ctrl-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 0.82em;
+            font-weight: 600;
+        }
+
+        .ctrl-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ctrl-box select {
+            padding: 4px;
+            font-weight: bold;
+            border-radius: 4px;
+            border: 1px solid #94a3b8;
+        }
+
+        .ctrl-box input[type=&quot;range&quot;] {
+            width: 100%;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .data-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 6px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .data-title { font-size: 0.68em; font-weight: bold; color: #1e40af; text-transform: uppercase; }
+        .data-val { font-size: 1.05em; font-weight: 800; color: var(--primary); margin-top: 2px; }
+
+        .btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-stop { background: var(--accent); }
+
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.85em;
+            line-height: 1.0;
+            padding: 0 2px;
+        }
+        .numerator { border-bottom: 1.5px solid currentColor; padding-bottom: 1px; }
+        .denominator { padding-top: 1px; }
+
+        @media (max-width: 900px) {
+            .lab-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .simulation-panel {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+            .ctrl-grid {
+                grid-template-columns: 1fr;
+            }
+            .data-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;header&gt;
+        &lt;h1&gt;Spring Dial Scale Laboratory&lt;/h1&gt;
+        &lt;p&gt;Interactive Internal Rack &amp; Pinion Drive Mechanism&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;div class=&quot;lab-container&quot;&gt;
+        &lt;!-- ================= LEFT COLUMN: CANVAS ================= --&gt;
+        &lt;div class=&quot;simulation-panel&quot;&gt;
+            &lt;canvas id=&quot;scaleCanvas&quot; width=&quot;540&quot; height=&quot;660&quot;&gt;&lt;/canvas&gt;
+            
+            &lt;div class=&quot;canvas-toolbar&quot;&gt;
+                &lt;button class=&quot;btn-add-weight&quot; onclick=&quot;addCustomWeight()&quot;&gt;➕ Add Custom Weight&lt;/button&gt;
+                &lt;button class=&quot;btn-stabilize&quot; onclick=&quot;stopSwingsFast()&quot;&gt;🛑 Stop Swings Fast&lt;/button&gt;
+                &lt;button class=&quot;btn btn-stop&quot; onclick=&quot;clearPanWeights()&quot;&gt;Empty Pan&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;instructions&quot;&gt;
+                &lt;b&gt;1. Click &quot;Stop Swings Fast&quot;&lt;/b&gt; to instantly freeze oscillations at equilibrium.&lt;br&gt;
+                &lt;b&gt;2. Drag &amp; Drop&lt;/b&gt; weights onto the weighing pan or pull down directly.&lt;br&gt;
+                &lt;b&gt;3. Double-Tap / Double-Click&lt;/b&gt; any weight on the pan to return it to the storage bench.
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- ================= RIGHT COLUMN: DASHBOARD ================= --&gt;
+        &lt;div class=&quot;data-panel&quot;&gt;
+            
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;h2&gt;Scale Parameters &amp; Capacity Controls&lt;/h2&gt;
+                &lt;div class=&quot;ctrl-grid&quot;&gt;
+                    &lt;div class=&quot;ctrl-box&quot;&gt;
+                        &lt;label for=&quot;selectCapacity&quot;&gt;Scale Max Capacity:&lt;/label&gt;
+                        &lt;select id=&quot;selectCapacity&quot;&gt;
+                            &lt;option value=&quot;10&quot;&gt;10 kg (Max)&lt;/option&gt;
+                            &lt;option value=&quot;20&quot; selected&gt;20 kg (Max)&lt;/option&gt;
+                            &lt;option value=&quot;50&quot;&gt;50 kg (Max)&lt;/option&gt;
+                            &lt;option value=&quot;100&quot;&gt;100 kg (Max)&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;ctrl-box&quot;&gt;
+                        Spring Constant (k total): &lt;span id=&quot;valK&quot;&gt;100 N/m&lt;/span&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderK&quot; min=&quot;20&quot; max=&quot;300&quot; step=&quot;5&quot; value=&quot;100&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;ctrl-box&quot;&gt;
+                        Gravity (g): &lt;span id=&quot;valG&quot;&gt;9.8 m/s²&lt;/span&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderG&quot; min=&quot;1.0&quot; max=&quot;25.0&quot; step=&quot;0.1&quot; value=&quot;9.8&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;ctrl-box&quot;&gt;
+                        Mechanical Damping (c): &lt;span id=&quot;valC&quot;&gt;0.35 N·s/m&lt;/span&gt;
+                        &lt;input type=&quot;range&quot; id=&quot;sliderC&quot; min=&quot;0.05&quot; max=&quot;1.50&quot; step=&quot;0.05&quot; value=&quot;0.35&quot;&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;h2&gt;Real-Time Mechanical Readings&lt;/h2&gt;
+                &lt;div class=&quot;data-grid&quot;&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Total Mass (m)&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispMass&quot;&gt;0.0 kg&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Load Force (W = mg)&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispForce&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Dial Reading&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispDial&quot;&gt;0.0 kg&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Spring Stretch (x)&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispStretch&quot;&gt;0.00 cm&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Restoring Force (Fₛ)&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispFs&quot;&gt;0.00 N&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;data-box&quot;&gt;&lt;div class=&quot;data-title&quot;&gt;Pointer Angle (θ)&lt;/div&gt;&lt;div class=&quot;data-val&quot; id=&quot;dispAngle&quot;&gt;0.0°&lt;/div&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;card&quot;&gt;
+                &lt;h2&gt;Internal Mechanism Principles&lt;/h2&gt;
+                &lt;div style=&quot;font-size:0.8em; line-height:1.5; color:#334155;&quot;&gt;
+                    • &lt;b&gt;Equilibrium Stabilization:&lt;/b&gt; Clicking &lt;i&gt;Stop Swings Fast&lt;/i&gt; sets rack acceleration and velocity to zero at x₀ = &lt;div class=&quot;frac&quot;&gt;&lt;span class=&quot;numerator&quot;&gt;m · g&lt;/span&gt;&lt;span class=&quot;denominator&quot;&gt;k&lt;/span&gt;&lt;/div&gt;.&lt;br&gt;
+                    • &lt;b&gt;Rack and Pinion Dynamics:&lt;/b&gt; The linear translation of the &lt;i&gt;toothed rack&lt;/i&gt; directly rotates the central &lt;i&gt;pinion gear&lt;/i&gt; and pointer needle.
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ================= JAVASCRIPT ENGINE ================= --&gt;
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;scaleCanvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+
+        // Physics Parameters
+        let g = 9.8;          // m/s^2
+        let kTotal = 100;     // N/m combined spring stiffness
+        let cDamping = 0.35;  // Mechanical damping
+        let maxCapacity = 20; // Default max capacity in kg
+
+        const dialCenterX = 270;
+        const dialCenterY = 240;
+        const dialRadius = 180;
+        const pixelScale = 220; // 1 meter = 220 pixels on canvas
+        const pinionRadius = 18; // Pinion pitch radius in px
+
+        let springRestLen = 85;
+        let topAnchorY = dialCenterY - 95;
+        let rackY = topAnchorY + springRestLen; // Live Y position of crossbar
+        let rackVel = 0;                        // Live velocity of rack
+        let isUserPulling = false;
+
+        // Weights Definition
+        let weights = [
+            { id: 1, mass: 1.0, rx: 22, ry: 7, h: 18, color: &#39;#2563eb&#39;, labelColor: &#39;#fff&#39;, x: 50,  y: 620, bx: 50,  by: 620, onPan: false, dragging: false },
+            { id: 2, mass: 2.0, rx: 26, ry: 8, h: 22, color: &#39;#16a34a&#39;, labelColor: &#39;#fff&#39;, x: 120, y: 620, bx: 120, by: 620, onPan: false, dragging: false },
+            { id: 3, mass: 5.0, rx: 32, ry: 10, h: 28, color: &#39;#d97706&#39;, labelColor: &#39;#fff&#39;, x: 200, y: 620, bx: 200, by: 620, onPan: false, dragging: false },
+            { id: 4, mass: 10.0, rx: 38, ry: 12, h: 34, color: &#39;#dc2626&#39;, labelColor: &#39;#fff&#39;, x: 290, y: 620, bx: 290, by: 620, onPan: false, dragging: false }
+        ];
+
+        let draggedWeight = null;
+        let mouseOffsetY = 0;
+        let lastTapTime = 0;
+        let lastTappedWeight = null;
+
+        // Dashboard Controls Listeners
+        document.getElementById(&#39;selectCapacity&#39;).addEventListener(&#39;change&#39;, e =&gt; {
+            maxCapacity = parseFloat(e.target.value);
+        });
+        document.getElementById(&#39;sliderK&#39;).addEventListener(&#39;input&#39;, e =&gt; { kTotal = parseFloat(e.target.value); document.getElementById(&#39;valK&#39;).innerText = kTotal + &quot; N/m&quot;; });
+        document.getElementById(&#39;sliderG&#39;).addEventListener(&#39;input&#39;, e =&gt; { g = parseFloat(e.target.value); document.getElementById(&#39;valG&#39;).innerText = g.toFixed(1) + &quot; m/s²&quot;; });
+        document.getElementById(&#39;sliderC&#39;).addEventListener(&#39;input&#39;, e =&gt; { cDamping = parseFloat(e.target.value); document.getElementById(&#39;valC&#39;).innerText = cDamping.toFixed(2) + &quot; N·s/m&quot;; });
+
+        function getTotalPanMass() {
+            return weights.filter(w =&gt; w.onPan).reduce((sum, w) =&gt; sum + w.mass, 0);
+        }
+
+        // INSTANTLY STABILIZE SWINGS AND CALCULATE MASS FAST
+        function stopSwingsFast() {
+            let m = getTotalPanMass();
+            let eqStretchMeters = (m * g) / kTotal;
+            let eqStretchPx = eqStretchMeters * pixelScale;
+
+            rackY = topAnchorY + springRestLen + eqStretchPx;
+            rackVel = 0;
+            isUserPulling = false;
+        }
+
+        function clearPanWeights() {
+            weights.forEach(w =&gt; {
+                w.onPan = false;
+                w.x = w.bx;
+                w.y = w.by;
+                w.dragging = false;
+            });
+            rackVel = 0;
+        }
+
+        function addCustomWeight() {
+            let input = prompt(`Enter custom weight in kg (e.g. 0.5 to ${maxCapacity}):`, &quot;1.5&quot;);
+            if (input === null) return;
+            let val = parseFloat(input);
+            if (isNaN(val) || val &lt;= 0) {
+                alert(&quot;Please enter a valid positive number.&quot;);
+                return;
+            }
+
+            let newId = Date.now();
+            let colors = [&#39;#0284c7&#39;, &#39;#059669&#39;, &#39;#d97706&#39;, &#39;#dc2626&#39;, &#39;#7c3aed&#39;, &#39;#db2777&#39;];
+            let chosenColor = colors[weights.length % colors.length];
+
+            let radius = Math.min(42, Math.max(20, 18 + val * 2.5));
+            let height = Math.min(36, Math.max(16, 16 + val * 2.2));
+
+            let newX = 40 + (weights.length % 7) * 70;
+            let newY = 620;
+
+            weights.push({
+                id: newId,
+                mass: val,
+                rx: radius,
+                ry: Math.round(radius * 0.3),
+                h: height,
+                color: chosenColor,
+                labelColor: &#39;#ffffff&#39;,
+                x: newX,
+                y: newY,
+                bx: newX,
+                by: newY,
+                onPan: false,
+                dragging: false
+            });
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches &amp;&amp; e.touches.length &gt; 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handlePointerDown(e) {
+            const coords = getCanvasCoords(e);
+            const mx = coords.x;
+            const my = coords.y;
+            const now = Date.now();
+
+            for (let i = weights.length - 1; i &gt;= 0; i--) {
+                let w = weights[i];
+                if (Math.abs(mx - w.x) &lt; w.rx + 8 &amp;&amp; Math.abs(my - (w.y - w.h/2)) &lt; (w.h/2 + w.ry + 8)) {
+                    
+                    if (w.onPan &amp;&amp; lastTappedWeight === w &amp;&amp; (now - lastTapTime) &lt; 300) {
+                        w.onPan = false;
+                        w.x = w.bx;
+                        w.y = w.by;
+                        w.dragging = false;
+                        draggedWeight = null;
+                        lastTapTime = 0;
+                        lastTappedWeight = null;
+                        return;
+                    }
+
+                    lastTapTime = now;
+                    lastTappedWeight = w;
+
+                    draggedWeight = w;
+                    w.dragging = true;
+                    w.onPan = false;
+                    mouseOffsetY = my - w.y;
+                    return;
+                }
+            }
+
+            let panY = rackY + 220;
+            if (Math.abs(mx - dialCenterX) &lt; 120 &amp;&amp; Math.abs(my - panY) &lt; 60) {
+                isUserPulling = true;
+                rackVel = 0;
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!draggedWeight &amp;&amp; !isUserPulling) return;
+            if (e.cancelable) e.preventDefault();
+
+            const coords = getCanvasCoords(e);
+            const mx = coords.x;
+            const my = coords.y;
+
+            if (draggedWeight) {
+                draggedWeight.x = mx;
+                draggedWeight.y = my - mouseOffsetY;
+            } else if (isUserPulling) {
+                let targetPanY = Math.max(300, Math.min(560, my));
+                rackY = targetPanY - 220;
+            }
+        }
+
+        function handlePointerUp() {
+            if (draggedWeight) {
+                let currentPanY = rackY + 220;
+                if (Math.abs(draggedWeight.x - dialCenterX) &lt; 90 &amp;&amp; Math.abs(draggedWeight.y - currentPanY) &lt; 60) {
+                    draggedWeight.onPan = true;
+                } else {
+                    draggedWeight.x = draggedWeight.bx;
+                    draggedWeight.y = draggedWeight.by;
+                    draggedWeight.onPan = false;
+                }
+                draggedWeight.dragging = false;
+                draggedWeight = null;
+            }
+
+            isUserPulling = false;
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, handlePointerDown);
+        canvas.addEventListener(&#39;mousemove&#39;, handlePointerMove);
+        canvas.addEventListener(&#39;mouseup&#39;, handlePointerUp);
+
+        canvas.addEventListener(&#39;touchstart&#39;, e =&gt; { handlePointerDown(e); }, { passive: false });
+        canvas.addEventListener(&#39;touchmove&#39;, e =&gt; { handlePointerMove(e); }, { passive: false });
+        canvas.addEventListener(&#39;touchend&#39;, handlePointerUp);
+
+        // ================= DRAWING FUNCTIONS =================
+
+        function drawCeilingAnchor() {
+            ctx.fillStyle = &#39;#475569&#39;;
+            ctx.fillRect(dialCenterX - 110, 0, 220, 16);
+            ctx.strokeStyle = &#39;#1e293b&#39;; ctx.lineWidth = 2;
+            ctx.strokeRect(dialCenterX - 110, 0, 220, 16);
+
+            ctx.fillStyle = &#39;#334155&#39;;
+            ctx.fillRect(dialCenterX - 22, 16, 44, 10);
+
+            ctx.strokeStyle = &#39;#1d4ed8&#39;; ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(dialCenterX, 32, 10, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawCircularDial() {
+            ctx.fillStyle = &#39;#fffbeb&#39;;
+            ctx.beginPath(); ctx.arc(dialCenterX, dialCenterY, dialRadius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = &#39;#d97706&#39;; ctx.lineWidth = 6; ctx.stroke();
+
+            ctx.fillStyle = &#39;#bae6fd&#39;;
+            ctx.beginPath();
+            ctx.arc(dialCenterX, dialCenterY, dialRadius - 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            let stepVal = maxCapacity &lt;= 10 ? 1 : (maxCapacity &lt;= 20 ? 2 : (maxCapacity &lt;= 50 ? 5 : 10));
+            let totalTicks = maxCapacity / (stepVal / 2);
+
+            ctx.fillStyle = &#39;#78350f&#39;;
+            ctx.font = &#39;bold 11px Arial&#39;;
+            ctx.textAlign = &#39;center&#39;; ctx.textBaseline = &#39;middle&#39;;
+
+            for (let i = 0; i &lt; totalTicks; i++) {
+                let val = i * (stepVal / 2);
+                let angle = (val / maxCapacity) * Math.PI * 2 - Math.PI / 2;
+                
+                let outerR = dialRadius - 10;
+                let innerR = (i % 2 === 0) ? dialRadius - 24 : dialRadius - 16;
+
+                let x1 = dialCenterX + Math.cos(angle) * outerR;
+                let y1 = dialCenterY + Math.sin(angle) * outerR;
+                let x2 = dialCenterX + Math.cos(angle) * innerR;
+                let y2 = dialCenterY + Math.sin(angle) * innerR;
+
+                ctx.strokeStyle = &#39;#92400e&#39;;
+                ctx.lineWidth = (i % 2 === 0) ? 2.5 : 1.2;
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+
+                if (i % 2 === 0) {
+                    let textR = dialRadius - 38;
+                    let tx = dialCenterX + Math.cos(angle) * textR;
+                    let ty = dialCenterY + Math.sin(angle) * textR;
+                    ctx.fillText(`${val.toFixed(val % 1 === 0 ? 0 : 1)}kg`, tx, ty);
+                }
+            }
+        }
+
+        function drawInternalMechanics(currentCrossbarY) {
+            let s1X = dialCenterX - 50;
+            let s2X = dialCenterX + 50;
+
+            // Top Hanging Hook
+            ctx.strokeStyle = &#39;#1d4ed8&#39;; ctx.lineWidth = 5; ctx.lineCap = &#39;round&#39;;
+            ctx.beginPath();
+            ctx.arc(dialCenterX, dialCenterY - dialRadius - 16, 14, 0, Math.PI, true);
+            ctx.lineTo(dialCenterX, topAnchorY);
+            ctx.stroke();
+
+            // Casing Frame
+            ctx.strokeStyle = &#39;#1d4ed8&#39;; ctx.lineWidth = 6; ctx.lineJoin = &#39;miter&#39;;
+            ctx.beginPath();
+            ctx.moveTo(s1X - 16, topAnchorY);
+            ctx.lineTo(s2X + 16, topAnchorY);
+            ctx.lineTo(s2X + 16, topAnchorY + 125);
+            ctx.moveTo(s1X - 16, topAnchorY);
+            ctx.lineTo(s1X - 16, topAnchorY + 125);
+            ctx.stroke();
+
+            // Dual Springs
+            drawCoilSpring(s1X, topAnchorY, currentCrossbarY);
+            drawCoilSpring(s2X, topAnchorY, currentCrossbarY);
+
+            // Green Crossbar
+            ctx.fillStyle = &#39;#059669&#39;; ctx.strokeStyle = &#39;#065f46&#39;; ctx.lineWidth = 2;
+            ctx.fillRect(s1X - 22, currentCrossbarY, 144, 14);
+            ctx.strokeRect(s1X - 22, currentCrossbarY, 144, 14);
+
+            // Toothed Rack
+            let rackX = dialCenterX - pinionRadius;
+            let rackTopY = currentCrossbarY - 110;
+            let rackH = 110;
+
+            ctx.fillStyle = &#39;#059669&#39;;
+            ctx.fillRect(rackX - 10, rackTopY, 10, rackH);
+            ctx.strokeRect(rackX - 10, rackTopY, 10, rackH);
+
+            ctx.fillStyle = &#39;#047857&#39;;
+            let toothPitch = 8;
+            for (let ty = rackTopY + 2; ty &lt;= rackTopY + rackH - 4; ty += toothPitch) {
+                ctx.fillRect(rackX, ty, 5, 4);
+            }
+
+            // Calibrated Rotation Engine
+            let stretchPx = currentCrossbarY - (topAnchorY + springRestLen);
+            let stretchMeters = stretchPx / pixelScale;
+            let forceN = kTotal * stretchMeters;
+            let calculatedMassKg = forceN / g;
+
+            let pointerAngleRad = (calculatedMassKg / maxCapacity) * Math.PI * 2;
+
+            ctx.save();
+            ctx.translate(dialCenterX, dialCenterY);
+            ctx.rotate(pointerAngleRad);
+
+            // Pinion Body
+            ctx.fillStyle = &#39;#dc2626&#39;; ctx.strokeStyle = &#39;#991b1b&#39;; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, pinionRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // Gear Teeth
+            let numTeeth = 12;
+            for (let i = 0; i &lt; numTeeth; i++) {
+                let ta = (i / numTeeth) * Math.PI * 2;
+                let tx = Math.cos(ta) * (pinionRadius + 4);
+                let ty = Math.sin(ta) * (pinionRadius + 4);
+                ctx.beginPath(); ctx.arc(tx, ty, 3.5, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // Rotating Red Pointer
+            ctx.strokeStyle = &#39;#dc2626&#39;; ctx.lineWidth = 4; ctx.lineCap = &#39;round&#39;;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -(dialRadius - 22));
+            ctx.stroke();
+
+            // Center Cap
+            ctx.fillStyle = &#39;#ffffff&#39;;
+            ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore();
+
+            // Bottom Hanging Hook &amp; Weighing Pan
+            let bottomHookTopY = currentCrossbarY + 14;
+            let panY = currentCrossbarY + 220;
+
+            ctx.strokeStyle = &#39;#059669&#39;; ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(dialCenterX, bottomHookTopY);
+            ctx.lineTo(dialCenterX, panY - 35);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(dialCenterX, panY - 25, 12, Math.PI, 0, true);
+            ctx.stroke();
+
+            // Support Wires
+            ctx.strokeStyle = &#39;#b45309&#39;; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(dialCenterX - 10, panY - 22); ctx.lineTo(dialCenterX - 65, panY);
+            ctx.moveTo(dialCenterX - 5, panY - 22);  ctx.lineTo(dialCenterX - 20, panY);
+            ctx.moveTo(dialCenterX + 5, panY - 22);  ctx.lineTo(dialCenterX + 20, panY);
+            ctx.moveTo(dialCenterX + 10, panY - 22); ctx.lineTo(dialCenterX + 65, panY);
+            ctx.stroke();
+
+            // Weighing Pan
+            ctx.fillStyle = &#39;#f59e0b&#39;; ctx.strokeStyle = &#39;#b45309&#39;; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(dialCenterX, panY + 6, 75, 12, 0, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // Stacked Pan Weights
+            let panWeights = weights.filter(w =&gt; w.onPan &amp;&amp; !w.dragging);
+            let stackY = panY + 2;
+
+            panWeights.forEach(w =&gt; {
+                w.x = dialCenterX;
+                w.y = stackY;
+                drawWeightDisc(w.x, w.y, w.rx, w.ry, w.h, w.color, w.labelColor, `${w.mass}kg`);
+                stackY -= w.h;
+            });
+
+            // Storage Bench / Dragging Weights
+            weights.filter(w =&gt; !w.onPan || w.dragging).forEach(w =&gt; {
+                drawWeightDisc(w.x, w.y, w.rx, w.ry, w.h, w.color, w.labelColor, `${w.mass}kg`);
+            });
+
+            drawDiagramLabels(currentCrossbarY, panY, pointerAngleRad);
+        }
+
+        function drawCoilSpring(x, topY, bottomY) {
+            let coils = 13;
+            let radius = 12;
+            let len = bottomY - topY;
+            let step = len / coils;
+
+            ctx.strokeStyle = &#39;#d97706&#39;; ctx.lineWidth = 3; ctx.lineJoin = &#39;round&#39;;
+            ctx.beginPath();
+            ctx.moveTo(x, topY);
+
+            for (let i = 0; i &lt; coils; i++) {
+                let y1 = topY + i * step + step * 0.25;
+                let y2 = topY + i * step + step * 0.75;
+                ctx.lineTo(x + radius, y1);
+                ctx.lineTo(x - radius, y2);
+            }
+            ctx.lineTo(x, bottomY);
+            ctx.stroke();
+        }
+
+        function drawWeightDisc(x, y, rx, ry, h, color, textColor, massText) {
+            ctx.fillStyle = &#39;rgba(0,0,0,0.15)&#39;;
+            ctx.beginPath(); ctx.ellipse(x + 2, y + 2, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = &#39;#0f172a&#39;;
+            ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+
+            let grad = ctx.createLinearGradient(x - rx, 0, x + rx, 0);
+            grad.addColorStop(0, &#39;#0f172a&#39;); grad.addColorStop(0.3, color); grad.addColorStop(0.8, color); grad.addColorStop(1, &#39;#0f172a&#39;);
+
+            ctx.fillStyle = grad; ctx.fillRect(x - rx, y - h, rx * 2, h);
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.ellipse(x, y - h, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = &#39;#ffffff&#39;; ctx.lineWidth = 1; ctx.stroke();
+
+            ctx.fillStyle = textColor; ctx.font = &#39;bold 10px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(massText, x, y - h / 2 + 3);
+            ctx.textAlign = &#39;left&#39;;
+        }
+
+        function drawDiagramLabels(crossbarY, panY, pointerAngleRad) {
+            ctx.font = &#39;bold 11px Arial&#39;;
+
+            const drawCallout = (text, targetX, targetY, labelX, labelY) =&gt; {
+                ctx.fillStyle = &#39;#0f172a&#39;;
+                ctx.strokeStyle = &#39;#0f172a&#39;;
+                ctx.lineWidth = 1.2;
+
+                ctx.beginPath();
+                ctx.moveTo(labelX, labelY);
+                ctx.lineTo(targetX, targetY);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                let textWidth = ctx.measureText(text).width;
+                let boxX = labelX &lt; targetX ? labelX - textWidth - 10 : labelX;
+                
+                ctx.fillStyle = &#39;#ffffff&#39;;
+                ctx.fillRect(boxX, labelY - 10, textWidth + 8, 16);
+                ctx.strokeStyle = &#39;#cbd5e1&#39;; ctx.lineWidth = 1;
+                ctx.strokeRect(boxX, labelY - 10, textWidth + 8, 16);
+
+                ctx.fillStyle = &#39;#0f172a&#39;;
+                ctx.textAlign = &#39;left&#39;;
+                ctx.fillText(text, boxX + 4, labelY + 2);
+            };
+
+            let pointerTipX = dialCenterX + Math.sin(pointerAngleRad) * (dialRadius - 60);
+            let pointerTipY = dialCenterY - Math.cos(pointerAngleRad) * (dialRadius - 60);
+
+            drawCallout(&quot;pinion&quot;, dialCenterX - 2, dialCenterY - 2, dialCenterX - 150, dialCenterY - 90);
+            drawCallout(&quot;dial&quot;, dialCenterX - dialRadius + 12, dialCenterY - 30, dialCenterX - 200, dialCenterY - 30);
+            drawCallout(&quot;casing&quot;, dialCenterX - 66, dialCenterY - 20, dialCenterX - 200, dialCenterY + 40);
+            drawCallout(&quot;pointer&quot;, pointerTipX, pointerTipY, dialCenterX - 150, dialCenterY + 120);
+
+            drawCallout(&quot;toothed rack&quot;, dialCenterX - pinionRadius - 5, dialCenterY - 40, dialCenterX + 140, dialCenterY - 100);
+            drawCallout(&quot;crossbar&quot;, dialCenterX + 35, crossbarY + 7, dialCenterX + 140, dialCenterY + 80);
+            drawCallout(&quot;weighing pan&quot;, dialCenterX + 68, panY + 6, dialCenterX + 140, panY + 10);
+
+            let mass = getTotalPanMass();
+            if (mass &gt; 0.05 || isUserPulling) {
+                let arrowX = dialCenterX + 110;
+                let arrowY = panY - 35;
+
+                ctx.strokeStyle = &#39;#dc2626&#39;; ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(arrowX, arrowY);
+                ctx.lineTo(arrowX, arrowY + 35);
+                ctx.stroke();
+
+                ctx.fillStyle = &#39;#dc2626&#39;;
+                ctx.beginPath();
+                ctx.moveTo(arrowX - 6, arrowY + 30);
+                ctx.lineTo(arrowX + 6, arrowY + 30);
+                ctx.lineTo(arrowX, arrowY + 42);
+                ctx.fill();
+
+                ctx.fillStyle = &#39;#dc2626&#39;; ctx.font = &#39;bold 12px Arial&#39;; ctx.textAlign = &#39;left&#39;;
+                ctx.fillText(&quot;load&quot;, arrowX + 10, arrowY + 20);
+            }
+        }
+
+        // ================= PHYSICS ENGINE LOOP =================
+        let lastTime = performance.now();
+
+        function animate() {
+            let now = performance.now();
+            let dt = Math.min((now - lastTime) / 1000, 0.04);
+            lastTime = now;
+
+            let m = getTotalPanMass();
+            let W = m * g;
+
+            if (!isUserPulling) {
+                let stretchPx = rackY - (topAnchorY + springRestLen);
+                let stretchMeters = stretchPx / pixelScale;
+
+                let Fs = -kTotal * stretchMeters;
+                let Fd = -cDamping * (rackVel / pixelScale);
+                let Fnet = W + Fs + Fd;
+
+                let effectiveMass = Math.max(0.8, m);
+                let accel = Fnet / effectiveMass;
+
+                rackVel += (accel * pixelScale) * dt;
+                rackY += rackVel * dt;
+
+                if (rackY &lt; topAnchorY + springRestLen) {
+                    rackY = topAnchorY + springRestLen;
+                    rackVel = 0;
+                }
+            }
+
+            // Calculations for Dashboard
+            let currentStretchPx = Math.max(0, rackY - (topAnchorY + springRestLen));
+            let currentStretchMeters = currentStretchPx / pixelScale;
+            let currentFs = kTotal * currentStretchMeters;
+            let calculatedMassKg = currentFs / g;
+            let pinionAngleDeg = (calculatedMassKg / maxCapacity) * 360;
+
+            document.getElementById(&#39;dispMass&#39;).innerText = `${m.toFixed(1)} kg`;
+            document.getElementById(&#39;dispForce&#39;).innerText = `${W.toFixed(2)} N`;
+            document.getElementById(&#39;dispDial&#39;).innerText = `${calculatedMassKg.toFixed(1)} kg`;
+            document.getElementById(&#39;dispStretch&#39;).innerText = `${(currentStretchMeters * 100).toFixed(1)} cm`;
+            document.getElementById(&#39;dispFs&#39;).innerText = `${currentFs.toFixed(2)} N`;
+            document.getElementById(&#39;dispAngle&#39;).innerText = `${(pinionAngleDeg % 360).toFixed(1)}°`;
+
+            // Clear &amp; Render Frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawCeilingAnchor();
+
+            // Storage Bench
+            ctx.fillStyle = &#39;#cbd5e1&#39;; ctx.fillRect(0, 570, canvas.width, 90);
+            ctx.fillStyle = &#39;#94a3b8&#39;; ctx.fillRect(0, 570, canvas.width, 4);
+            ctx.fillStyle = &#39;#475569&#39;; ctx.font = &#39;bold 11px Arial&#39;; ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;WEIGHT STORAGE BENCH&quot;, 270, 586); ctx.textAlign = &#39;left&#39;;
+
+            drawCircularDial();
+            drawInternalMechanics(rackY);
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
