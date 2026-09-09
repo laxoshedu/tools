@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Handwriting Notes Studio</title>
+    <title>Pro Mobile Handwriting Notes Studio</title>
     
     <!-- jsPDF Library for Multi-Page PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,8 +14,8 @@
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            touch-action: none;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
@@ -23,20 +23,21 @@
             background-color: #2a2d30;
             width: 100vw;
             height: 100vh;
+            touch-action: none; /* Prevents mobile browser pull-to-refresh & native page gestures */
         }
 
-        /* Sleek Floating Glassmorphism Toolbar */
+        /* Sleek Floating Glassmorphism Toolbar (Mobile Touch Optimized) */
         #toolbar {
             position: fixed;
-            top: 12px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.94);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            padding: 5px 12px;
+            padding: 6px 12px;
             border-radius: 30px;
             display: flex;
             align-items: center;
@@ -44,23 +45,25 @@
             z-index: 1000;
             max-width: 96vw;
             
-            /* Hidden Horizontal Scrollbar for Mobile Screens */
+            /* Crucial for finger scrolling on mobile screens */
+            touch-action: pan-x;
             overflow-x: auto;
             white-space: nowrap;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
         }
         #toolbar::-webkit-scrollbar {
-            display: none;
+            display: none; /* Chrome, Safari, Opera */
         }
 
         .tool-group {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             border-right: 1px solid #e5e7eb;
             padding-right: 8px;
             flex-shrink: 0;
+            touch-action: pan-x;
         }
         .tool-group:last-child {
             border-right: none;
@@ -69,11 +72,11 @@
 
         /* Active Document Title Badge */
         #docTitleBadge {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 700;
             color: #2563eb;
             background: #eff6ff;
-            padding: 4px 10px;
+            padding: 5px 10px;
             border-radius: 12px;
             border: 1px solid #bfdbfe;
             cursor: pointer;
@@ -81,16 +84,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            touch-action: manipulation;
         }
 
         button, select {
             background: #f3f4f6;
             border: 1px solid #d1d5db;
-            padding: 5px 9px;
+            padding: 6px 10px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 11.5px;
+            font-size: 12px;
             color: #1f2937;
             transition: all 0.15s ease;
             outline: none;
@@ -98,52 +102,54 @@
             align-items: center;
             gap: 4px;
             white-space: nowrap;
+            touch-action: manipulation;
+            min-height: 32px; /* Touch friendly height */
         }
 
         button:hover, select:hover { background: #e5e7eb; }
+        button:active { transform: scale(0.96); }
         button.active { background: #2563eb; color: white; border-color: #1d4ed8; }
         button.new-btn { background: #3b82f6; color: white; border-color: #2563eb; }
-        button.new-btn:hover { background: #2563eb; }
         button.open-btn { background: #8b5cf6; color: white; border-color: #7c3aed; }
-        button.open-btn:hover { background: #7c3aed; }
         button.save-btn { background: #059669; color: white; border-color: #047857; }
-        button.save-btn:hover { background: #047857; }
         button.export-btn { background: #d97706; color: white; border-color: #b45309; }
-        button.export-btn:hover { background: #b45309; }
 
         /* Color Swatches */
         .color-palette {
             display: flex;
-            gap: 3px;
+            gap: 4px;
             align-items: center;
+            touch-action: pan-x;
         }
         .swatch {
-            width: 18px;
-            height: 18px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid transparent;
             transition: transform 0.1s;
+            touch-action: manipulation;
         }
-        .swatch.active { border: 2px solid #000; transform: scale(1.2); }
+        .swatch.active { border: 2px solid #000; transform: scale(1.25); }
 
         input[type="color"] {
             -webkit-appearance: none;
             border: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             cursor: pointer;
             background: none;
+            touch-action: manipulation;
         }
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: 1px solid #ccc; border-radius: 50%; }
-        input[type="range"] { width: 55px; }
+        input[type="range"] { width: 55px; touch-action: pan-x; }
 
         /* Page Tools Popover Menu */
         .popover-menu {
             position: fixed;
-            top: 52px;
+            top: 54px;
             background: white;
             border-radius: 12px;
             box-shadow: 0 12px 30px rgba(0,0,0,0.3);
@@ -154,12 +160,13 @@
             z-index: 2500;
             min-width: 190px;
             border: 1px solid #e5e7eb;
+            touch-action: auto;
         }
         .popover-menu button, .popover-menu select {
             width: 100%;
             border-radius: 8px;
             justify-content: flex-start;
-            padding: 7px 10px;
+            padding: 8px 10px;
         }
 
         /* Viewport Container (Pan & Zoom Workspace) */
@@ -171,6 +178,7 @@
             height: 100vh;
             overflow: hidden;
             cursor: crosshair;
+            touch-action: none;
         }
 
         /* Multi-Page Vertical Stack */
@@ -182,6 +190,7 @@
             align-items: center;
             gap: 40px;
             padding: 80px 0;
+            touch-action: none;
         }
 
         /* Page Card */
@@ -191,6 +200,7 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.4);
             border-radius: 2px;
             box-sizing: content-box;
+            touch-action: none;
         }
 
         /* Page Number Tag (Top Right Corner inside Page) */
@@ -207,6 +217,7 @@
             padding: 2px 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
+            pointer-events: none;
         }
 
         .margin-overlay {
@@ -223,6 +234,7 @@
             top: 0; left: 0;
             z-index: 1;
             background: #ffffff;
+            pointer-events: none;
         }
 
         canvas.ink-canvas {
@@ -231,6 +243,7 @@
             top: 0; left: 0;
             z-index: 2;
             background: transparent;
+            touch-action: none;
         }
 
         /* Draggable Textboxes */
@@ -244,10 +257,11 @@
             background: rgba(255, 255, 255, 0.9);
             padding: 4px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            touch-action: none;
         }
 
         .textbox-header {
-            height: 16px;
+            height: 18px;
             background: #2563eb;
             cursor: move;
             border-radius: 2px 2px 0 0;
@@ -257,9 +271,10 @@
             padding: 0 4px;
             color: white;
             font-size: 10px;
+            touch-action: none;
         }
 
-        .textbox-close { cursor: pointer; font-weight: bold; }
+        .textbox-close { cursor: pointer; font-weight: bold; padding: 0 4px; }
 
         .textbox-content {
             outline: none;
@@ -268,8 +283,10 @@
             color: #000;
             min-height: 30px;
             user-select: text;
+            -webkit-user-select: text;
             white-space: pre-wrap;
             word-break: break-word;
+            touch-action: auto;
         }
 
         /* Draggable & Croppable Image Widget */
@@ -280,43 +297,45 @@
             background: rgba(255, 255, 255, 0.2);
             box-shadow: 0 6px 18px rgba(0,0,0,0.25);
             cursor: move;
+            touch-action: none;
         }
 
         .image-delete-btn {
             position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 22px;
-            height: 22px;
+            top: -12px;
+            right: -12px;
+            width: 26px;
+            height: 26px;
             background: #dc2626;
             color: white;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 15;
             border: 2px solid white;
+            touch-action: manipulation;
         }
-        .image-delete-btn:hover { background: #b91c1c; }
 
         .image-crop-btn {
             position: absolute;
-            top: -10px;
-            left: -10px;
+            top: -12px;
+            left: -12px;
             background: #1f2937;
             color: white;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 10px;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             z-index: 15;
             border: 1.5px solid white;
+            touch-action: manipulation;
         }
 
         .image-container {
@@ -324,6 +343,7 @@
             height: 100%;
             overflow: hidden;
             position: relative;
+            pointer-events: none;
         }
 
         .image-container img {
@@ -334,16 +354,17 @@
         }
 
         .resize-handle {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             background: #2563eb;
             position: absolute;
-            right: -7px;
-            bottom: -7px;
+            right: -9px;
+            bottom: -9px;
             cursor: nwse-resize;
             border-radius: 50%;
             border: 2px solid white;
             z-index: 15;
+            touch-action: none;
         }
 
         /* Modals */
@@ -355,23 +376,26 @@
             justify-content: center;
             align-items: center;
             z-index: 3000;
+            touch-action: auto;
         }
         .modal {
             background: white;
-            padding: 22px;
+            padding: 20px;
             border-radius: 16px;
-            width: 380px;
+            width: 90vw;
+            max-width: 380px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.35);
             max-height: 85vh;
             display: flex;
             flex-direction: column;
+            touch-action: auto;
         }
-        .modal h3 { margin-bottom: 14px; color: #111; font-size: 16px; }
+        .modal h3 { margin-bottom: 12px; color: #111; font-size: 16px; }
         .modal-field { margin-bottom: 10px; }
         .modal-field label { display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 4px; }
-        .modal-field select, .modal-field input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; }
+        .modal-field select, .modal-field input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 13px; touch-action: auto; }
         .modal-row { display: flex; gap: 10px; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
         /* Saved Notes List Styling */
         .saved-notes-list {
@@ -379,15 +403,17 @@
             flex-direction: column;
             gap: 8px;
             overflow-y: auto;
-            max-height: 280px;
+            max-height: 260px;
             padding-right: 4px;
             margin: 10px 0;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
         }
         .saved-note-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 10px;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
             background: #f9fafb;
@@ -414,7 +440,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin: 15px 0;
+            margin: 12px 0;
         }
 
         .export-option-card {
@@ -426,6 +452,7 @@
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.15s ease;
+            touch-action: manipulation;
         }
 
         .export-option-card:hover {
@@ -451,6 +478,7 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 4000;
+            pointer-events: none;
         }
         #toast.show {
             transform: translateX(-50%) translateY(0);
@@ -459,9 +487,9 @@
 </head>
 <body>
 
-    <!-- Sleek Floating Studio Toolbar -->
+    <!-- Sleek Floating Mobile-Friendly Toolbar -->
     <div id="toolbar">
-        <!-- Document Management Actions -->
+        <!-- Document Actions -->
         <div class="tool-group">
             <button id="newNoteBtn" class="new-btn" title="Create New Note">➕ New</button>
             <button id="openNoteBtn" class="open-btn" title="Open Saved Note">📂 Open</button>
@@ -527,7 +555,7 @@
         <button id="deletePageModalBtn" style="color: #dc2626;">🗑️ Clear / Delete Page</button>
     </div>
 
-    <!-- Hidden Input for File Selector -->
+    <!-- Hidden Input for Image File Selector -->
     <input type="file" id="imageInput" accept="image/*" style="display:none;">
 
     <!-- Workspace Container -->
@@ -590,16 +618,16 @@
 
             <div class="modal-row">
                 <div class="modal-field" style="flex:1;">
-                    <label>Ruled Lines Count / Page</label>
+                    <label>Ruled Line Count</label>
                     <input type="number" id="ruledLineCountInput" min="10" max="50" value="25" title="Top 2 and bottom 2 lines are skipped automatically">
                 </div>
                 <div class="modal-field" style="flex:1;">
-                    <label>Page Margin Guide</label>
+                    <label>Margin Guide</label>
                     <select id="pageMarginGuideSelect">
                         <option value="none">None</option>
-                        <option value="notebook">Notebook (Red Left Line)</option>
-                        <option value="header">Notebook (Top + Left)</option>
-                        <option value="box">Full Box Padding</option>
+                        <option value="notebook">Notebook Line</option>
+                        <option value="header">Header + Left</option>
+                        <option value="box">Box Padding</option>
                     </select>
                 </div>
             </div>
@@ -695,7 +723,7 @@
     <div id="toast">Saved Successfully!</div>
 
     <script>
-        // --- Page Size Definitions (Base 96 DPI) ---
+        // --- Page Size Specifications (Base 96 DPI) ---
         const PAGE_SIZES = {
             A4: { width: 794, height: 1123 },
             LETTER: { width: 816, height: 1056 },
@@ -749,13 +777,13 @@
             pagesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
         }
 
-        // --- AUTOMATIC CENTERING ENGINE ---
+        // --- AUTOMATIC MOBILE & DESKTOP CENTERING ENGINE ---
         function centerPages() {
             const dims = getPageDimensions();
             const windowW = window.innerWidth;
             
             if (windowW < dims.width * 0.85) {
-                scale = (windowW - 24) / dims.width;
+                scale = (windowW - 20) / dims.width;
             } else {
                 scale = 0.8;
             }
@@ -1091,9 +1119,11 @@
             };
         }
 
-        // --- Pointer Event Gestures ---
+        // --- MOBILE TOUCH & POINTER EVENT ENGINE ---
         viewport.addEventListener('pointerdown', (e) => {
             if (e.target.closest('.textbox-wrapper') || e.target.closest('.image-box') || e.target.closest('#toolbar') || e.target.closest('.popover-menu')) return;
+            
+            // Add pointer to multi-touch array
             pointers.push(e);
 
             if (pointers.length === 1) {
@@ -1115,7 +1145,23 @@
                 currentStrokePoints = [coords];
 
                 renderSmoothStroke(page.ctx, currentStrokePoints);
-            } else if (pointers.length === 2) {
+            } else if (pointers.length >= 2) {
+                // Instantly cancel drawing if a second finger touches the screen
+                if (isDrawing && activePageIndex !== null) {
+                    // Remove accidental dot drawn on 1st finger touch
+                    const page = pages[activePageIndex];
+                    if (undoStack.length > 0) {
+                        const lastState = undoStack[undoStack.length - 1];
+                        const img = new Image();
+                        img.src = lastState.data;
+                        img.onload = () => {
+                            const dims = getPageDimensions();
+                            page.ctx.clearRect(0, 0, dims.width, dims.height);
+                            page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
+                        };
+                    }
+                }
+
                 isDrawing = false;
                 hasZoomedOrPanned = true;
                 currentStrokePoints = [];
@@ -1139,7 +1185,7 @@
                 currentStrokePoints.push(coords);
                 renderSmoothStroke(page.ctx, currentStrokePoints);
 
-            } else if (pointers.length === 2) {
+            } else if (pointers.length >= 2) {
                 hasZoomedOrPanned = true;
                 const currentCenter = {
                     x: (pointers[0].clientX + pointers[1].clientX) / 2,
@@ -1150,7 +1196,7 @@
                     pointers[0].clientY - pointers[1].clientY
                 );
 
-                const deltaScale = currentDist / initialZoomDist;
+                const deltaScale = currentDist / (initialZoomDist || currentDist);
                 const newScale = Math.min(Math.max(initialScale * deltaScale, 0.2), 4.5);
 
                 const prevCanvasPos = {
@@ -1228,7 +1274,7 @@
             page.card.appendChild(wrapper);
 
             if (!initialText) {
-                content.focus();
+                setTimeout(() => content.focus(), 50);
             }
 
             let isDragging = false, dragX = 0, dragY = 0;
@@ -1249,7 +1295,7 @@
 
             header.addEventListener('pointerup', (e) => {
                 isDragging = false;
-                header.releasePointerCapture(e.pointerId);
+                try { header.releasePointerCapture(e.pointerId); } catch(err){}
             });
 
             header.querySelector('.textbox-close').addEventListener('click', () => {
@@ -1260,7 +1306,7 @@
             page.textBoxes.push({ elem: wrapper, contentElem: content });
         }
 
-        // --- IMAGE ENGINE (SUPPORT FOR SAVE & RESTORE STATE) ---
+        // --- IMAGE ENGINE (FULL SAVE & RESTORE STATE) ---
         const imageInput = document.getElementById('imageInput');
         document.getElementById('imgBtn').addEventListener('click', () => imageInput.click());
 
@@ -1458,7 +1504,7 @@
         function positionPopover() {
             const rect = pageMenuToggleBtn.getBoundingClientRect();
             pageMenuPopover.style.top = (rect.bottom + 6) + 'px';
-            pageMenuPopover.style.left = rect.left + 'px';
+            pageMenuPopover.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
         }
 
         pageMenuToggleBtn.addEventListener('pointerdown', (e) => {
@@ -1558,7 +1604,6 @@
             }
         }
 
-        // RECONSTRUCTS INK, IMAGES AND TEXTBOXES ACCURATELY
         function loadSavedProject(key) {
             const rawData = localStorage.getItem(key);
             if (!rawData) return;
@@ -1687,7 +1732,6 @@
             currentDocumentTitle = title;
             docTitleBadge.innerText = title;
 
-            // Serialize complete project state including ink, images, and text boxes
             const projectData = {
                 title: currentDocumentTitle,
                 pageSettings: pageSettings,
