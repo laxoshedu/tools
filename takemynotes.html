@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>take my notes</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
+    &lt;title&gt;Pro Handwriting Notes Studio&lt;/title&gt;
+    
+    &lt;!-- jsPDF Library for Multi-Page PDF Export --&gt;
+    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js&quot;&gt;&lt;/script&gt;
+
+    &lt;style&gt;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        input, select, .textbox-content, .card-title {
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #1e2124;
+            color: #f3f4f6;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- DASHBOARD / FOLDER EXPLORER VIEW --- */
+        #dashboardView {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #181a1b;
+            z-index: 100;
+        }
+
+        .dash-header {
+            padding: 16px 24px;
+            background: #222528;
+            border-bottom: 1px solid #33373b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dash-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb {
+            padding: 12px 24px;
+            background: #1e2124;
+            font-size: 13px;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid #2a2e33;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        .breadcrumb-item:hover { text-decoration: underline; }
+        .breadcrumb-separator { color: #4b5563; }
+
+        .dash-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+            align-content: start;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .item-card {
+            background: #25282c;
+            border: 1px solid #34383e;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+            background: #2d3136;
+        }
+
+        .item-icon { font-size: 38px; margin-bottom: 8px; }
+        .item-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #e5e7eb;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .item-meta {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .item-del-btn {
+            position: absolute;
+            top: 6px; right: 6px;
+            background: rgba(220, 38, 38, 0.8);
+            color: white;
+            border: none;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            font-size: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .item-card:hover .item-del-btn { display: flex; }
+
+        /* Floating Action Button (FAB) */
+        .fab-btn {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #2563eb;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 200;
+            border: none;
+            transition: transform 0.2s ease;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+
+        .fab-popover {
+            position: fixed;
+            bottom: 80px;
+            right: 28px;
+            background: #25282c;
+            border: 1px solid #3e434a;
+            border-radius: 14px;
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            z-index: 201;
+            min-width: 160px;
+        }
+        .fab-option {
+            background: #1e2124;
+            border: 1px solid #34383e;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-align: left;
+        }
+        .fab-option:hover { background: #2b2f35; color: #60a5fa; }
+
+        /* --- STUDIO / CANVAS NOTE VIEW --- */
+        #studioView {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: none;
+        }
+
+        /* Sleek Floating Glassmorphism Toolbar - ULTRA COMPACT ICON-ONLY */
+        #toolbar {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 1000;
+            max-width: 96vw;
+            
+            /* Native Horizontal Scroll for Mobile */
+            overflow-x: auto;
+            white-space: nowrap;
+            touch-action: pan-x;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #toolbar::-webkit-scrollbar { display: none; }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-right: 1px solid #e5e7eb;
+            padding-right: 6px;
+            flex-shrink: 0;
+        }
+        .tool-group:last-child {
+            border-right: none;
+            padding-right: 0;
+        }
+
+        #docTitleBadge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
+            cursor: pointer;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        button, select {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 6px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 12px;
+            color: #1f2937;
+            transition: all 0.15s ease;
+            outline: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        button:hover, select:hover { background: #e5e7eb; }
+        button.active { background: #2563eb; color: white; border-color: #1d4ed8; }
+        button.back-btn { background: #4b5563; color: white; border-color: #374151; }
+        button.save-btn { background: #059669; color: white; border-color: #047857; }
+        button.export-btn { background: #d97706; color: white; border-color: #b45309; }
+
+        /* Color Swatches */
+        .color-palette {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+        .swatch {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s;
+        }
+        .swatch.active { border: 2px solid #000; transform: scale(1.2); }
+
+        input[type=&quot;color&quot;] {
+            -webkit-appearance: none;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+        input[type=&quot;color&quot;]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type=&quot;color&quot;]::-webkit-color-swatch { border: 1px solid #ccc; border-radius: 50%; }
+        input[type=&quot;range&quot;] { width: 50px; }
+
+        /* Page Tools Popover Menu */
+        .popover-menu {
+            position: fixed;
+            top: 52px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 2500;
+            min-width: 190px;
+            border: 1px solid #e5e7eb;
+        }
+        .popover-menu button, .popover-menu select {
+            width: 100%;
+            border-radius: 8px;
+            justify-content: flex-start;
+            padding: 7px 10px;
+            color: #111;
+        }
+
+        /* Viewport &amp; Canvas Stack */
+        #viewport {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            cursor: crosshair;
+            touch-action: none; 
+            overscroll-behavior: none;
+        }
+
+        #pagesContainer {
+            position: absolute;
+            transform-origin: 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 80px 0;
+        }
+
+        .page-card {
+            position: relative;
+            background: white;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            border-radius: 2px;
+            box-sizing: content-box;
+        }
+
+        .page-number-tag {
+            position: absolute;
+            top: 12px; right: 18px;
+            font-size: 11px;
+            font-weight: 800;
+            color: #6b7280;
+            letter-spacing: 1px;
+            z-index: 5;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px 8px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .margin-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        canvas.bg-canvas {
+            display: block;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+            background: #ffffff;
+        }
+
+        canvas.ink-canvas {
+            display: block;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+            background: transparent;
+        }
+
+        /* Draggable Textboxes &amp; Images */
+        .textbox-wrapper {
+            position: absolute;
+            z-index: 10;
+            min-width: 120px; min-height: 40px;
+            border: 1.5px dashed #2563eb;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .textbox-header {
+            height: 16px;
+            background: #2563eb;
+            cursor: move;
+            border-radius: 2px 2px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px;
+            color: white;
+            font-size: 10px;
+        }
+
+        .textbox-close { cursor: pointer; font-weight: bold; }
+
+        .textbox-content {
+            outline: none;
+            padding: 4px;
+            font-size: 16px;
+            color: #000;
+            min-height: 30px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .image-box {
+            position: absolute;
+            z-index: 9;
+            border: 2px solid #2563eb;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+            cursor: move;
+        }
+
+        .image-delete-btn {
+            position: absolute;
+            top: -10px; right: -10px;
+            width: 22px; height: 22px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 15;
+            border: 2px solid white;
+        }
+
+        .image-crop-btn {
+            position: absolute;
+            top: -10px; left: -10px;
+            background: #1f2937;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 15;
+            border: 1.5px solid white;
+        }
+
+        .image-container {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-container img {
+            width: 100%; height: 100%;
+            object-fit: fill;
+            pointer-events: none;
+        }
+
+        .resize-handle {
+            width: 14px; height: 14px;
+            background: #2563eb;
+            position: absolute;
+            right: -7px; bottom: -7px;
+            cursor: nwse-resize;
+            border-radius: 50%;
+            border: 2px solid white;
+            z-index: 15;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.65);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .modal {
+            background: #222528;
+            color: #f3f4f6;
+            padding: 22px;
+            border-radius: 16px;
+            width: 360px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #33373b;
+        }
+        .modal-body-scroll {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .modal h3 { margin-bottom: 14px; color: #60a5fa; font-size: 16px; }
+        .modal-field { margin-bottom: 10px; }
+        .modal-field label { display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 4px; }
+        .modal-field select, .modal-field input { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #3a3f44; background: #181a1b; color: white; font-size: 13px; }
+        .modal-row { display: flex; gap: 10px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-shrink: 0; }
+
+        .export-options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .export-option-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #3a3f44;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #181a1b;
+        }
+        .export-option-card:hover { border-color: #3b82f6; background: #25282c; }
+        .export-option-card h4 { font-size: 13px; color: #f3f4f6; }
+        .export-option-card p { font-size: 11px; color: #9ca3af; }
+
+        #toast {
+            position: fixed;
+            bottom: 25px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 4000;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;!-- ================= DASHBOARD / FOLDER EXPLORER VIEW ================= --&gt;
+    &lt;div id=&quot;dashboardView&quot;&gt;
+        &lt;div class=&quot;dash-header&quot;&gt;
+            &lt;div class=&quot;dash-title&quot;&gt;📚 Pro Studio Notes&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;
+            &lt;!-- Dynamically populated breadcrumb items --&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;dash-content&quot; id=&quot;folderContentGrid&quot;&gt;
+            &lt;!-- Dynamic Folder &amp; Note Cards --&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Floating Action Button (FAB) --&gt;
+        &lt;button class=&quot;fab-btn&quot; id=&quot;fabBtn&quot;&gt;➕ Create&lt;/button&gt;
+        &lt;div class=&quot;fab-popover&quot; id=&quot;fabPopover&quot;&gt;
+            &lt;button class=&quot;fab-option&quot; id=&quot;fabNewFolderBtn&quot;&gt;📁 Create Folder&lt;/button&gt;
+            &lt;button class=&quot;fab-option&quot; id=&quot;fabNewNoteBtn&quot;&gt;📝 Create Note&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ================= STUDIO / CANVAS NOTE VIEW ================= --&gt;
+    &lt;div id=&quot;studioView&quot;&gt;
+        &lt;!-- Sleek Ultra-Compact Toolbar --&gt;
+        &lt;div id=&quot;toolbar&quot;&gt;
+            &lt;div class=&quot;tool-group&quot;&gt;
+                &lt;button id=&quot;backToDashBtn&quot; class=&quot;back-btn&quot; title=&quot;Back to Dashboard (Auto-Saves)&quot;&gt;⬅️&lt;/button&gt;
+                &lt;button id=&quot;quickSaveBtn&quot; class=&quot;save-btn&quot; title=&quot;Save Note&quot;&gt;💾&lt;/button&gt;
+                &lt;div id=&quot;docTitleBadge&quot; title=&quot;Click to rename note&quot;&gt;Untitled Note&lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- Icon-Only Drawing Tools --&gt;
+            &lt;div class=&quot;tool-group&quot;&gt;
+                &lt;button id=&quot;penBtn&quot; class=&quot;active&quot; title=&quot;Pen Tool&quot;&gt;✏️&lt;/button&gt;
+                &lt;button id=&quot;eraserBtn&quot; title=&quot;Eraser Tool&quot;&gt;🧹&lt;/button&gt;
+                &lt;button id=&quot;textBtn&quot; title=&quot;Add Text Box&quot;&gt;🔤&lt;/button&gt;
+                &lt;button id=&quot;imgBtn&quot; title=&quot;Add Image&quot;&gt;🖼️&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;tool-group&quot;&gt;
+                &lt;select id=&quot;penStyle&quot; title=&quot;Pen Style&quot;&gt;
+                    &lt;option value=&quot;fineliner&quot;&gt;Fineliner&lt;/option&gt;
+                    &lt;option value=&quot;ballpoint&quot;&gt;Ballpoint&lt;/option&gt;
+                    &lt;option value=&quot;fountain&quot;&gt;Fountain&lt;/option&gt;
+                    &lt;option value=&quot;calligraphy&quot;&gt;Calligraphy&lt;/option&gt;
+                    &lt;option value=&quot;brush&quot;&gt;Brush Pen&lt;/option&gt;
+                    &lt;option value=&quot;marker&quot;&gt;Marker&lt;/option&gt;
+                    &lt;option value=&quot;highlighter&quot;&gt;Highlighter&lt;/option&gt;
+                    &lt;option value=&quot;pencil&quot;&gt;Pencil&lt;/option&gt;
+                    &lt;option value=&quot;neon&quot;&gt;Neon Glow&lt;/option&gt;
+                    &lt;option value=&quot;charcoal&quot;&gt;Charcoal&lt;/option&gt;
+                &lt;/select&gt;
+                &lt;input type=&quot;range&quot; id=&quot;sizePicker&quot; min=&quot;1&quot; max=&quot;60&quot; value=&quot;4&quot; title=&quot;Stroke Thickness&quot;&gt;
+                &lt;div class=&quot;color-palette&quot; id=&quot;palette&quot;&gt;
+                    &lt;div class=&quot;swatch active&quot; style=&quot;background: #000000;&quot; data-color=&quot;#000000&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;swatch&quot; style=&quot;background: #2563eb;&quot; data-color=&quot;#2563eb&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;swatch&quot; style=&quot;background: #059669;&quot; data-color=&quot;#059669&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;swatch&quot; style=&quot;background: #dc2626;&quot; data-color=&quot;#dc2626&quot;&gt;&lt;/div&gt;
+                    &lt;input type=&quot;color&quot; id=&quot;colorPicker&quot; value=&quot;#000000&quot; title=&quot;Custom Color&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;tool-group&quot;&gt;
+                &lt;button id=&quot;pageMenuToggleBtn&quot;&gt;📄 Pages ▼&lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;tool-group&quot;&gt;
+                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo&quot;&gt;↩️&lt;/button&gt;
+                &lt;button id=&quot;recenterBtn&quot; title=&quot;Recenter Workspace&quot;&gt;🎯&lt;/button&gt;
+                &lt;button id=&quot;exportModalBtn&quot; class=&quot;export-btn&quot; title=&quot;Export Note&quot;&gt;📤&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div id=&quot;pageMenuPopover&quot; class=&quot;popover-menu&quot;&gt;
+            &lt;select id=&quot;bgSelect&quot; title=&quot;Page Pattern&quot;&gt;
+                &lt;option value=&quot;bg-blank&quot;&gt;Blank Page&lt;/option&gt;
+                &lt;option value=&quot;bg-ruled&quot;&gt;Ruled Lines&lt;/option&gt;
+                &lt;option value=&quot;bg-grid&quot;&gt;Grid Pattern&lt;/option&gt;
+                &lt;option value=&quot;bg-dotted&quot;&gt;Dotted Pattern&lt;/option&gt;
+            &lt;/select&gt;
+            &lt;button id=&quot;pageSetupBtn&quot;&gt;⚙️ Page Setup&lt;/button&gt;
+            &lt;button id=&quot;addPageBtn&quot; style=&quot;color: #059669;&quot;&gt;➕ Add Page&lt;/button&gt;
+            &lt;button id=&quot;deletePageModalBtn&quot; style=&quot;color: #dc2626;&quot;&gt;🗑️ Delete Page&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;input type=&quot;file&quot; id=&quot;imageInput&quot; accept=&quot;image/*&quot; style=&quot;display:none;&quot;&gt;
+
+        &lt;div id=&quot;viewport&quot;&gt;
+            &lt;div id=&quot;pagesContainer&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ================= MODALS ================= --&gt;
+    &lt;!-- New Folder Modal --&gt;
+    &lt;div id=&quot;createFolderModal&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot;&gt;
+            &lt;h3&gt;Create Folder&lt;/h3&gt;
+            &lt;div class=&quot;modal-field&quot;&gt;
+                &lt;label&gt;Folder Name&lt;/label&gt;
+                &lt;input type=&quot;text&quot; id=&quot;folderNameInput&quot; placeholder=&quot;e.g. Physics Notes&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot;&gt;
+                &lt;button id=&quot;cancelFolderBtn&quot;&gt;Cancel&lt;/button&gt;
+                &lt;button id=&quot;saveFolderBtn&quot; style=&quot;background:#2563eb; color:white;&quot;&gt;Create&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- New Note Modal --&gt;
+    &lt;div id=&quot;createNoteModal&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot;&gt;
+            &lt;h3&gt;Create New Note&lt;/h3&gt;
+            &lt;div class=&quot;modal-field&quot;&gt;
+                &lt;label&gt;Document Title (Optional)&lt;/label&gt;
+                &lt;input type=&quot;text&quot; id=&quot;noteTitleInput&quot; placeholder=&quot;e.g. Quantum Mechanics Lecture&quot;&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot;&gt;
+                &lt;button id=&quot;cancelNoteBtn&quot;&gt;Cancel&lt;/button&gt;
+                &lt;button id=&quot;saveNoteBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;🚀 Start Note Taking&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Page Setup Modal --&gt;
+    &lt;div id=&quot;modalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot;&gt;
+            &lt;h3&gt;Page &amp; Margin Setup&lt;/h3&gt;
+            &lt;div class=&quot;modal-body-scroll&quot;&gt;
+                &lt;div class=&quot;modal-row&quot;&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Page Size&lt;/label&gt;
+                        &lt;select id=&quot;pageSizeSelect&quot;&gt;
+                            &lt;option value=&quot;A4&quot;&gt;A4 Standard&lt;/option&gt;
+                            &lt;option value=&quot;LETTER&quot;&gt;US Letter&lt;/option&gt;
+                            &lt;option value=&quot;A3&quot;&gt;A3 Large&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Orientation&lt;/label&gt;
+                        &lt;select id=&quot;pageOrientationSelect&quot;&gt;
+                            &lt;option value=&quot;portrait&quot;&gt;Portrait&lt;/option&gt;
+                            &lt;option value=&quot;landscape&quot;&gt;Landscape&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;modal-row&quot;&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Ruled Line Count&lt;/label&gt;
+                        &lt;input type=&quot;number&quot; id=&quot;ruledLineCountInput&quot; min=&quot;10&quot; max=&quot;50&quot; value=&quot;25&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Margin Guide&lt;/label&gt;
+                        &lt;select id=&quot;pageMarginGuideSelect&quot;&gt;
+                            &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
+                            &lt;option value=&quot;notebook&quot;&gt;Notebook (Left Red)&lt;/option&gt;
+                            &lt;option value=&quot;header&quot;&gt;Notebook (Top + Left)&lt;/option&gt;
+                            &lt;option value=&quot;box&quot;&gt;Full Box Padding&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;modal-row&quot;&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Border Style&lt;/label&gt;
+                        &lt;select id=&quot;borderStyleSelect&quot;&gt;
+                            &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
+                            &lt;option value=&quot;thin&quot;&gt;Thin Solid&lt;/option&gt;
+                            &lt;option value=&quot;thick&quot;&gt;Thick Solid&lt;/option&gt;
+                            &lt;option value=&quot;double&quot;&gt;Double Line&lt;/option&gt;
+                            &lt;option value=&quot;dashed&quot;&gt;Dashed Line&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
+                        &lt;label&gt;Border Color&lt;/label&gt;
+                        &lt;input type=&quot;color&quot; id=&quot;borderColorInput&quot; value=&quot;#333333&quot;&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;modal-field&quot;&gt;
+                    &lt;label&gt;Border Padding (px)&lt;/label&gt;
+                    &lt;input type=&quot;number&quot; id=&quot;borderMarginInput&quot; min=&quot;0&quot; max=&quot;60&quot; value=&quot;0&quot;&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot;&gt;
+                &lt;button id=&quot;closeModalBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;Apply &amp; Close&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Clear/Delete Page Modal --&gt;
+    &lt;div id=&quot;deleteModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot;&gt;
+            &lt;h3&gt;Clear / Delete Page&lt;/h3&gt;
+            &lt;div class=&quot;modal-field&quot;&gt;
+                &lt;label&gt;Select Page Number&lt;/label&gt;
+                &lt;select id=&quot;deletePageSelect&quot;&gt;&lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot; style=&quot;justify-content: space-between;&quot;&gt;
+                &lt;button id=&quot;confirmClearInkBtn&quot;&gt;🧹 Clear Ink&lt;/button&gt;
+                &lt;button id=&quot;confirmDeletePageBtn&quot; style=&quot;background:#dc2626; color:white;&quot;&gt;🗑️ Delete Page&lt;/button&gt;
+            &lt;/div&gt;
+            &lt;div style=&quot;margin-top: 10px; text-align: right;&quot;&gt;
+                &lt;button id=&quot;closeDeleteModalBtn&quot;&gt;Cancel&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Export Modal --&gt;
+    &lt;div id=&quot;exportModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot;&gt;
+            &lt;h3&gt;Export Note Options&lt;/h3&gt;
+            &lt;div class=&quot;export-options-list modal-body-scroll&quot;&gt;
+                &lt;div class=&quot;export-option-card&quot; id=&quot;exportPdfBtn&quot;&gt;
+                    &lt;div style=&quot;font-size: 24px;&quot;&gt;📄&lt;/div&gt;
+                    &lt;div&gt;
+                        &lt;h4&gt;PDF Document&lt;/h4&gt;
+                        &lt;p&gt;Export all pages into a PDF file&lt;/p&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;export-option-card&quot; id=&quot;exportLongImgBtn&quot;&gt;
+                    &lt;div style=&quot;font-size: 24px;&quot;&gt;🖼️&lt;/div&gt;
+                    &lt;div&gt;
+                        &lt;h4&gt;Single Long Image (JPG)&lt;/h4&gt;
+                        &lt;p&gt;Merge all pages vertically&lt;/p&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;export-option-card&quot; id=&quot;exportSepImgBtn&quot;&gt;
+                    &lt;div style=&quot;font-size: 24px;&quot;&gt;🗂️&lt;/div&gt;
+                    &lt;div&gt;
+                        &lt;h4&gt;Separate Page Images&lt;/h4&gt;
+                        &lt;p&gt;Download each page individually&lt;/p&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot;&gt;
+                &lt;button id=&quot;closeExportModalBtn&quot;&gt;Cancel&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;toast&quot;&gt;Saved Successfully!&lt;/div&gt;
+
+    &lt;script&gt;
+        // ================= STATE &amp; FILE SYSTEM STORAGE ENGINE =================
+        const PAGE_SIZES = {
+            A4: { width: 794, height: 1123 },
+            LETTER: { width: 816, height: 1056 },
+            A3: { width: 1123, height: 1587 }
+        };
+
+        const RENDER_SCALE = Math.max(window.devicePixelRatio || 1, 2.5);
+
+        // App Central State Tree
+        let appState = {
+            currentFolderId: &#39;root&#39;, // &#39;root&#39; or folder ID
+            folders: [],
+            notes: []
+        };
+
+        let currentNoteId = null;
+        let currentDocumentTitle = null;
+        let autoSaveIntervalTimer = null;
+
+        let pageSettings = {
+            size: &#39;A4&#39;,
+            orientation: &#39;portrait&#39;,
+            borderStyle: &#39;none&#39;,
+            borderColor: &#39;#333333&#39;,
+            borderMargin: 0,
+            pageMarginGuide: &#39;none&#39;,
+            ruledLineCount: 25,
+            background: &#39;bg-blank&#39;
+        };
+
+        let activeTool = &#39;pen&#39;;
+        let currentColor = &#39;#000000&#39;;
+        let strokeSize = 4;
+        let currentPenStyle = &#39;fineliner&#39;;
+
+        const pagesContainer = document.getElementById(&#39;pagesContainer&#39;);
+        const viewport = document.getElementById(&#39;viewport&#39;);
+        let pages = [];
+        let undoStack = [];
+
+        let currentStrokePoints = [];
+        let preStrokeSnapshot = null;
+
+        let scale = 0.8;
+        let panX = 0, panY = 75;
+        let pointers = [];
+        let initialZoomDist = null, initialScale = scale;
+        let initialPanX = panX, initialPanY = panY, initialCenter = { x: 0, y: 0 };
+        let isDrawing = false, activePageIndex = null, hasZoomedOrPanned = false;
+
+        function showToast(msg) {
+            const toast = document.getElementById(&#39;toast&#39;);
+            toast.innerText = msg;
+            toast.classList.add(&#39;show&#39;);
+            setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
+        }
+
+        // Load App Storage State
+        function loadStorageTree() {
+            const data = localStorage.getItem(&#39;notes_studio_app_state&#39;);
+            if (data) {
+                try {
+                    appState = JSON.parse(data);
+                } catch(e) {}
+            }
+        }
+
+        function saveStorageTree() {
+            localStorage.setItem(&#39;notes_studio_app_state&#39;, JSON.stringify(appState));
+        }
+
+        loadStorageTree();
+
+        // ================= DASHBOARD &amp; FOLDER NAVIGATION =================
+        const dashboardView = document.getElementById(&#39;dashboardView&#39;);
+        const studioView = document.getElementById(&#39;studioView&#39;);
+        const folderContentGrid = document.getElementById(&#39;folderContentGrid&#39;);
+        const breadcrumbBar = document.getElementById(&#39;breadcrumbBar&#39;);
+
+        function renderDashboard() {
+            folderContentGrid.innerHTML = &#39;&#39;;
+            breadcrumbBar.innerHTML = &#39;&#39;;
+
+            // Render Breadcrumbs
+            let path = getFolderPath(appState.currentFolderId);
+            path.forEach((f, idx) =&gt; {
+                const item = document.createElement(&#39;span&#39;);
+                item.className = &#39;breadcrumb-item&#39;;
+                item.innerText = f.name;
+                item.onclick = () =&gt; {
+                    appState.currentFolderId = f.id;
+                    renderDashboard();
+                };
+                breadcrumbBar.appendChild(item);
+
+                if (idx &lt; path.length - 1) {
+                    const sep = document.createElement(&#39;span&#39;);
+                    sep.className = &#39;breadcrumb-separator&#39;;
+                    sep.innerText = &#39; / &#39;;
+                    breadcrumbBar.appendChild(sep);
+                }
+            });
+
+            // Filter items in current folder
+            const currentFolders = appState.folders.filter(f =&gt; f.parentId === appState.currentFolderId);
+            const currentNotes = appState.notes.filter(n =&gt; n.folderId === appState.currentFolderId);
+
+            // Render Folders
+            currentFolders.forEach(f =&gt; {
+                const card = document.createElement(&#39;div&#39;);
+                card.className = &#39;item-card&#39;;
+                card.innerHTML = `
+                    &lt;div class=&quot;item-icon&quot;&gt;📁&lt;/div&gt;
+                    &lt;div class=&quot;item-title&quot;&gt;${f.name}&lt;/div&gt;
+                    &lt;div class=&quot;item-meta&quot;&gt;Folder&lt;/div&gt;
+                    &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Folder&quot;&gt;✕&lt;/button&gt;
+                `;
+                card.onclick = (e) =&gt; {
+                    if (e.target.classList.contains(&#39;item-del-btn&#39;)) return;
+                    appState.currentFolderId = f.id;
+                    renderDashboard();
+                };
+
+                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                    e.stopPropagation();
+                    if (confirm(`Delete folder &quot;${f.name}&quot; and its contents?`)) {
+                        deleteFolderRecursive(f.id);
+                        saveStorageTree();
+                        renderDashboard();
+                    }
+                };
+
+                folderContentGrid.appendChild(card);
+            });
+
+            // Render Notes
+            currentNotes.forEach(n =&gt; {
+                const card = document.createElement(&#39;div&#39;);
+                card.className = &#39;item-card&#39;;
+                card.innerHTML = `
+                    &lt;div class=&quot;item-icon&quot;&gt;📝&lt;/div&gt;
+                    &lt;div class=&quot;item-title&quot;&gt;${n.title}&lt;/div&gt;
+                    &lt;div class=&quot;item-meta&quot;&gt;${n.pageCount || 1} Page(s)&lt;/div&gt;
+                    &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Note&quot;&gt;✕&lt;/button&gt;
+                `;
+                card.onclick = (e) =&gt; {
+                    if (e.target.classList.contains(&#39;item-del-btn&#39;)) return;
+                    openNoteStudio(n.id);
+                };
+
+                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                    e.stopPropagation();
+                    if (confirm(`Delete note &quot;${n.title}&quot;?`)) {
+                        appState.notes = appState.notes.filter(x =&gt; x.id !== n.id);
+                        saveStorageTree();
+                        renderDashboard();
+                    }
+                };
+
+                folderContentGrid.appendChild(card);
+            });
+
+            if (currentFolders.length === 0 &amp;&amp; currentNotes.length === 0) {
+                folderContentGrid.innerHTML = `
+                    &lt;div style=&quot;grid-column: 1/-1; text-align:center; padding: 40px; color: #6b7280; font-size:13px;&quot;&gt;
+                        This folder is empty. Click &lt;b&gt;&quot;➕ Create&quot;&lt;/b&gt; below to add a folder or note!
+                    &lt;/div&gt;
+                `;
+            }
+        }
+
+        function getFolderPath(folderId) {
+            let path = [{ id: &#39;root&#39;, name: &#39;🏠 Home&#39; }];
+            if (folderId === &#39;root&#39;) return path;
+
+            let stack = [];
+            let curr = appState.folders.find(f =&gt; f.id === folderId);
+            while (curr) {
+                stack.unshift(curr);
+                curr = appState.folders.find(f =&gt; f.id === curr.parentId);
+            }
+            return path.concat(stack);
+        }
+
+        function deleteFolderRecursive(folderId) {
+            const subFolders = appState.folders.filter(f =&gt; f.parentId === folderId);
+            subFolders.forEach(sf =&gt; deleteFolderRecursive(sf.id));
+
+            appState.notes = appState.notes.filter(n =&gt; n.folderId !== folderId);
+            appState.folders = appState.folders.filter(f =&gt; f.id !== folderId);
+        }
+
+        // FAB Popover Interactions
+        const fabBtn = document.getElementById(&#39;fabBtn&#39;);
+        const fabPopover = document.getElementById(&#39;fabPopover&#39;);
+
+        fabBtn.onclick = (e) =&gt; {
+            e.stopPropagation();
+            fabPopover.style.display = fabPopover.style.display === &#39;flex&#39; ? &#39;none&#39; : &#39;flex&#39;;
+        };
+
+        document.onclick = (e) =&gt; {
+            if (!fabPopover.contains(e.target) &amp;&amp; e.target !== fabBtn) {
+                fabPopover.style.display = &#39;none&#39;;
+            }
+        };
+
+        // Create Folder Modal Logic
+        const createFolderModal = document.getElementById(&#39;createFolderModal&#39;);
+        const folderNameInput = document.getElementById(&#39;folderNameInput&#39;);
+
+        document.getElementById(&#39;fabNewFolderBtn&#39;).onclick = () =&gt; {
+            fabPopover.style.display = &#39;none&#39;;
+            folderNameInput.value = &#39;&#39;;
+            createFolderModal.style.display = &#39;flex&#39;;
+            setTimeout(() =&gt; folderNameInput.focus(), 100);
+        };
+
+        document.getElementById(&#39;cancelFolderBtn&#39;).onclick = () =&gt; createFolderModal.style.display = &#39;none&#39;;
+        document.getElementById(&#39;saveFolderBtn&#39;).onclick = () =&gt; {
+            const name = folderNameInput.value.trim() || &#39;New Folder&#39;;
+            const newFolder = {
+                id: &#39;folder_&#39; + Date.now(),
+                name: name,
+                parentId: appState.currentFolderId
+            };
+            appState.folders.push(newFolder);
+            saveStorageTree();
+            createFolderModal.style.display = &#39;none&#39;;
+            renderDashboard();
+        };
+
+        // Create Note Modal Logic &amp; DEFAULT FOLDER RULE
+        const createNoteModal = document.getElementById(&#39;createNoteModal&#39;);
+        const noteTitleInput = document.getElementById(&#39;noteTitleInput&#39;);
+
+        document.getElementById(&#39;fabNewNoteBtn&#39;).onclick = () =&gt; {
+            fabPopover.style.display = &#39;none&#39;;
+            noteTitleInput.value = &#39;&#39;;
+            createNoteModal.style.display = &#39;flex&#39;;
+            setTimeout(() =&gt; noteTitleInput.focus(), 100);
+        };
+
+        document.getElementById(&#39;cancelNoteBtn&#39;).onclick = () =&gt; createNoteModal.style.display = &#39;none&#39;;
+        document.getElementById(&#39;saveNoteBtn&#39;).onclick = () =&gt; {
+            let title = noteTitleInput.value.trim();
+            if (!title) {
+                title = &#39;Untitled Note - &#39; + new Date().toLocaleDateString();
+            }
+
+            let targetFolderId = appState.currentFolderId;
+
+            // DEFAULT FOLDER LOGIC: If at root or first time, create/use &quot;General Notes&quot; folder
+            if (targetFolderId === &#39;root&#39;) {
+                let defaultFolder = appState.folders.find(f =&gt; f.name === &#39;General Notes&#39; &amp;&amp; f.parentId === &#39;root&#39;);
+                if (!defaultFolder) {
+                    defaultFolder = {
+                        id: &#39;folder_default_&#39; + Date.now(),
+                        name: &#39;General Notes&#39;,
+                        parentId: &#39;root&#39;
+                    };
+                    appState.folders.push(defaultFolder);
+                }
+                targetFolderId = defaultFolder.id;
+            }
+
+            const newNote = {
+                id: &#39;note_&#39; + Date.now(),
+                title: title,
+                folderId: targetFolderId,
+                pageSettings: Object.assign({}, pageSettings),
+                pageCount: 1,
+                pagesData: []
+            };
+
+            appState.notes.push(newNote);
+            saveStorageTree();
+            createNoteModal.style.display = &#39;none&#39;;
+
+            openNoteStudio(newNote.id);
+        };
+
+        // ================= STUDIO WORKSPACE ENGINE =================
+        function openNoteStudio(noteId) {
+            currentNoteId = noteId;
+            const note = appState.notes.find(n =&gt; n.id === noteId);
+            if (!note) return;
+
+            currentDocumentTitle = note.title;
+            document.getElementById(&#39;docTitleBadge&#39;).innerText = note.title;
+
+            // Load Page Settings
+            if (note.pageSettings) {
+                pageSettings = Object.assign({}, note.pageSettings);
+                document.getElementById(&#39;pageSizeSelect&#39;).value = pageSettings.size;
+                document.getElementById(&#39;pageOrientationSelect&#39;).value = pageSettings.orientation;
+                document.getElementById(&#39;borderStyleSelect&#39;).value = pageSettings.borderStyle;
+                document.getElementById(&#39;borderColorInput&#39;).value = pageSettings.borderColor;
+                document.getElementById(&#39;borderMarginInput&#39;).value = pageSettings.borderMargin;
+                document.getElementById(&#39;pageMarginGuideSelect&#39;).value = pageSettings.pageMarginGuide;
+                document.getElementById(&#39;ruledLineCountInput&#39;).value = pageSettings.ruledLineCount;
+                document.getElementById(&#39;bgSelect&#39;).value = pageSettings.background;
+            }
+
+            // Clear Workspace &amp; Rebuild Pages
+            pagesContainer.innerHTML = &#39;&#39;;
+            pages = [];
+            undoStack = [];
+
+            const count = note.pageCount || 1;
+            for (let i = 0; i &lt; count; i++) {
+                createNewPage();
+                const pData = note.pagesData ? note.pagesData[i] : null;
+                if (pData) {
+                    if (pData.inkData) {
+                        const img = new Image();
+                        const pageCanvas = pages[i].canvas;
+                        const pageCtx = pages[i].ctx;
+                        img.src = pData.inkData;
+                        img.onload = () =&gt; {
+                            const dims = getPageDimensions();
+                            pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
+                        };
+                    }
+                    if (pData.imageBoxes) {
+                        pData.imageBoxes.forEach(sImg =&gt; {
+                            const img = new Image();
+                            img.onload = () =&gt; insertImageToPage(i, img, sImg.src, sImg);
+                            img.src = sImg.src;
+                        });
+                    }
+                    if (pData.textBoxes) {
+                        pData.textBoxes.forEach(sTb =&gt; createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color));
+                    }
+                }
+            }
+
+            dashboardView.style.display = &#39;none&#39;;
+            studioView.style.display = &#39;block&#39;;
+            centerPages();
+
+            startAutoSaveTimer();
+        }
+
+        // --- 1-MINUTE AUTOMATIC SAVING SYSTEM ---
+        function executeNoteSave(isSilent = false) {
+            if (!currentNoteId) return;
+
+            const note = appState.notes.find(n =&gt; n.id === currentNoteId);
+            if (!note) return;
+
+            note.title = currentDocumentTitle;
+            note.pageSettings = Object.assign({}, pageSettings);
+            note.pageCount = pages.length;
+            note.pagesData = pages.map(p =&gt; ({
+                inkData: p.canvas.toDataURL(),
+                imageBoxes: p.imageBoxes.map(ib =&gt; ({
+                    src: ib.imgElem.src,
+                    left: parseFloat(ib.elem.style.left) || 60,
+                    top: parseFloat(ib.elem.style.top) || 60,
+                    width: ib.elem.offsetWidth,
+                    height: ib.elem.offsetHeight,
+                    crop: ib.crop,
+                    isCropping: ib.isCropping
+                })),
+                textBoxes: p.textBoxes.map(tb =&gt; ({
+                    left: parseFloat(tb.elem.style.left) || 60,
+                    top: parseFloat(tb.elem.style.top) || 60,
+                    content: tb.contentElem.innerText,
+                    color: tb.contentElem.style.color || currentColor
+                }))
+            }));
+
+            saveStorageTree();
+
+            if (!isSilent) {
+                showToast(`Saved to &quot;${currentDocumentTitle}&quot;`);
+            }
+        }
+
+        function startAutoSaveTimer() {
+            stopAutoSaveTimer();
+            // Auto save every 60,000ms (1 minute)
+            autoSaveIntervalTimer = setInterval(() =&gt; {
+                executeNoteSave(true);
+                showToast(`Auto-saved at ${new Date().toLocaleTimeString([], {hour: &#39;2-digit&#39;, minute:&#39;2-digit&#39;})}`);
+            }, 60000);
+        }
+
+        function stopAutoSaveTimer() {
+            if (autoSaveIntervalTimer) {
+                clearInterval(autoSaveIntervalTimer);
+                autoSaveIntervalTimer = null;
+            }
+        }
+
+        // Back to Dashboard
+        document.getElementById(&#39;backToDashBtn&#39;).onclick = () =&gt; {
+            executeNoteSave(true);
+            stopAutoSaveTimer();
+            studioView.style.display = &#39;none&#39;;
+            dashboardView.style.display = &#39;flex&#39;;
+            renderDashboard();
+        };
+
+        document.getElementById(&#39;quickSaveBtn&#39;).onclick = () =&gt; executeNoteSave(false);
+
+        // Document Title Rename
+        const docTitleBadge = document.getElementById(&#39;docTitleBadge&#39;);
+        docTitleBadge.onclick = () =&gt; {
+            const newTitle = prompt(&quot;Enter new document title:&quot;, currentDocumentTitle);
+            if (newTitle &amp;&amp; newTitle.trim()) {
+                currentDocumentTitle = newTitle.trim();
+                docTitleBadge.innerText = currentDocumentTitle;
+                executeNoteSave(false);
+            }
+        };
+
+        // --- CANVAS WORKSPACE DRAWING &amp; GESTURE IMPLEMENTATION ---
+        function updateTransform() {
+            pagesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        }
+
+        function centerPages() {
+            const dims = getPageDimensions();
+            const windowW = window.innerWidth;
+            if (windowW &lt; dims.width * 0.85) {
+                scale = (windowW - 24) / dims.width;
+            } else {
+                scale = 0.8;
+            }
+            panX = (windowW - dims.width * scale) / 2;
+            panY = 75;
+            updateTransform();
+        }
+
+        window.addEventListener(&#39;resize&#39;, () =&gt; { if (!hasZoomedOrPanned) centerPages(); });
+        document.getElementById(&#39;recenterBtn&#39;).onclick = () =&gt; { hasZoomedOrPanned = false; centerPages(); };
+
+        function createNewPage() {
+            const pageIndex = pages.length;
+            const card = document.createElement(&#39;div&#39;);
+            card.className = `page-card`;
+            card.dataset.index = pageIndex;
+
+            const pageTag = document.createElement(&#39;div&#39;);
+            pageTag.className = &#39;page-number-tag&#39;;
+            pageTag.innerText = `PAGE ${pageIndex + 1}`;
+            card.appendChild(pageTag);
+
+            const marginOverlay = document.createElement(&#39;div&#39;);
+            marginOverlay.className = &#39;margin-overlay&#39;;
+            card.appendChild(marginOverlay);
+
+            const bgCanvas = document.createElement(&#39;canvas&#39;);
+            bgCanvas.className = &#39;bg-canvas&#39;;
+            card.appendChild(bgCanvas);
+
+            const inkCanvas = document.createElement(&#39;canvas&#39;);
+            inkCanvas.className = &#39;ink-canvas&#39;;
+            card.appendChild(inkCanvas);
+
+            pagesContainer.appendChild(card);
+
+            const pageObj = {
+                card: card,
+                pageTag: pageTag,
+                marginOverlay: marginOverlay,
+                bgCanvas: bgCanvas,
+                bgCtx: bgCanvas.getContext(&#39;2d&#39;),
+                canvas: inkCanvas,
+                ctx: inkCanvas.getContext(&#39;2d&#39;, { willReadFrequently: true }),
+                textBoxes: [],
+                imageBoxes: []
+            };
+
+            pages.push(pageObj);
+            applyLayoutToPage(pageIndex);
+            savePageState(pageIndex);
+        }
+
+        function getPageDimensions() {
+            const base = PAGE_SIZES[pageSettings.size];
+            return pageSettings.orientation === &#39;portrait&#39;
+                ? { width: base.width, height: base.height }
+                : { width: base.height, height: base.width };
+        }
+
+        function applyLayoutToPage(index) {
+            const page = pages[index];
+            const dims = getPageDimensions();
+
+            page.card.style.width = dims.width + &#39;px&#39;;
+            page.card.style.height = dims.height + &#39;px&#39;;
+
+            page.bgCanvas.width = dims.width * RENDER_SCALE;
+            page.bgCanvas.height = dims.height * RENDER_SCALE;
+            page.bgCanvas.style.width = dims.width + &#39;px&#39;;
+            page.bgCanvas.style.height = dims.height + &#39;px&#39;;
+            page.bgCtx.scale(RENDER_SCALE, RENDER_SCALE);
+
+            page.canvas.width = dims.width * RENDER_SCALE;
+            page.canvas.height = dims.height * RENDER_SCALE;
+            page.canvas.style.width = dims.width + &#39;px&#39;;
+            page.canvas.style.height = dims.height + &#39;px&#39;;
+            page.ctx.scale(RENDER_SCALE, RENDER_SCALE);
+
+            const offset = parseInt(pageSettings.borderMargin) || 0;
+            const color = pageSettings.borderColor;
+            page.card.style.padding = offset + &#39;px&#39;;
+
+            switch(pageSettings.borderStyle) {
+                case &#39;thin&#39;: page.card.style.border = `2px solid ${color}`; break;
+                case &#39;thick&#39;: page.card.style.border = `5px solid ${color}`; break;
+                case &#39;double&#39;: page.card.style.border = `7px double ${color}`; break;
+                case &#39;dashed&#39;: page.card.style.border = `3px dashed ${color}`; break;
+                default: page.card.style.border = &#39;none&#39;; break;
+            }
+
+            renderBackgroundPattern(page.bgCtx, dims.width, dims.height);
+            renderMarginGuideOverlay(page.marginOverlay, dims);
+        }
+
+        function getFirstRuledLineY(height) {
+            const lineCount = parseInt(pageSettings.ruledLineCount) || 25;
+            const totalSlots = lineCount + 4;
+            return 2 * (height / totalSlots);
+        }
+
+        function renderBackgroundPattern(ctx, width, height) {
+            ctx.fillStyle = &#39;#ffffff&#39;;
+            ctx.fillRect(0, 0, width, height);
+
+            const pattern = pageSettings.background;
+            ctx.strokeStyle = &#39;#e5e5e5&#39;;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+
+            if (pattern === &#39;bg-ruled&#39;) {
+                const lineCount = parseInt(pageSettings.ruledLineCount) || 25;
+                const totalSlots = lineCount + 4;
+                const stepY = height / totalSlots;
+                ctx.strokeStyle = &#39;#a2bfe0&#39;;
+                for (let k = 2; k &lt;= totalSlots - 2; k++) {
+                    ctx.moveTo(0, k * stepY); ctx.lineTo(width, k * stepY);
+                }
+            } else if (pattern === &#39;bg-grid&#39;) {
+                for (let x = 25; x &lt; width; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+                for (let y = 25; y &lt; height; y += 25) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+            } else if (pattern === &#39;bg-dotted&#39;) {
+                ctx.fillStyle = &#39;#aaaaaa&#39;;
+                for (let x = 25; x &lt; width; x += 25) {
+                    for (let y = 25; y &lt; height; y += 25) { ctx.fillRect(x, y, 1.5, 1.5); }
+                }
+            }
+            ctx.stroke();
+        }
+
+        function renderMarginGuideOverlay(overlayElem, dims) {
+            overlayElem.innerHTML = &#39;&#39;;
+            const type = pageSettings.pageMarginGuide;
+            if (type === &#39;none&#39;) return;
+
+            const svg = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;svg&#39;);
+            svg.setAttribute(&#39;width&#39;, &#39;100%&#39;); svg.setAttribute(&#39;height&#39;, &#39;100%&#39;);
+            svg.style.position = &#39;absolute&#39;;
+
+            if (type === &#39;notebook&#39; || type === &#39;header&#39;) {
+                const redLine = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;line&#39;);
+                redLine.setAttribute(&#39;x1&#39;, &#39;70&#39;); redLine.setAttribute(&#39;y1&#39;, &#39;0&#39;);
+                redLine.setAttribute(&#39;x2&#39;, &#39;70&#39;); redLine.setAttribute(&#39;y2&#39;, dims.height);
+                redLine.setAttribute(&#39;stroke&#39;, &#39;#ef4444&#39;); redLine.setAttribute(&#39;stroke-width&#39;, &#39;2&#39;);
+                svg.appendChild(redLine);
+            }
+
+            if (type === &#39;header&#39;) {
+                const headerY = pageSettings.background === &#39;bg-ruled&#39; ? getFirstRuledLineY(dims.height) : 80;
+                const headerLine = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;line&#39;);
+                headerLine.setAttribute(&#39;x1&#39;, &#39;0&#39;); headerLine.setAttribute(&#39;y1&#39;, headerY);
+                headerLine.setAttribute(&#39;x2&#39;, dims.width); headerLine.setAttribute(&#39;y2&#39;, headerY);
+                headerLine.setAttribute(&#39;stroke&#39;, &#39;#93c5fd&#39;); headerLine.setAttribute(&#39;stroke-width&#39;, &#39;2&#39;);
+                svg.appendChild(headerLine);
+            }
+
+            if (type === &#39;box&#39;) {
+                const rect = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;rect&#39;);
+                rect.setAttribute(&#39;x&#39;, &#39;40&#39;); rect.setAttribute(&#39;y&#39;, &#39;40&#39;);
+                rect.setAttribute(&#39;width&#39;, dims.width - 80); rect.setAttribute(&#39;height&#39;, dims.height - 80);
+                rect.setAttribute(&#39;fill&#39;, &#39;none&#39;); rect.setAttribute(&#39;stroke&#39;, &#39;#ef4444&#39;);
+                rect.setAttribute(&#39;stroke-width&#39;, &#39;1.5&#39;); rect.setAttribute(&#39;stroke-dasharray&#39;, &#39;4 4&#39;);
+                svg.appendChild(rect);
+            }
+
+            overlayElem.appendChild(svg);
+        }
+
+        function drawMarginGuidesOnCanvas(ctx, dims) {
+            const type = pageSettings.pageMarginGuide;
+            if (type === &#39;none&#39;) return;
+
+            ctx.save();
+            if (type === &#39;notebook&#39; || type === &#39;header&#39;) {
+                ctx.strokeStyle = &#39;#ef4444&#39;; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(70, 0); ctx.lineTo(70, dims.height); ctx.stroke();
+            }
+            if (type === &#39;header&#39;) {
+                const headerY = pageSettings.background === &#39;bg-ruled&#39; ? getFirstRuledLineY(dims.height) : 80;
+                ctx.strokeStyle = &#39;#93c5fd&#39;; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, headerY); ctx.lineTo(dims.width, headerY); ctx.stroke();
+            }
+            if (type === &#39;box&#39;) {
+                ctx.strokeStyle = &#39;#ef4444&#39;; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+                ctx.strokeRect(40, 40, dims.width - 80, dims.height - 80);
+            }
+            ctx.restore();
+        }
+
+        function updateAllPagesLayout() {
+            pages.forEach((_, idx) =&gt; {
+                const tempCanvas = document.createElement(&#39;canvas&#39;);
+                tempCanvas.width = pages[idx].canvas.width;
+                tempCanvas.height = pages[idx].canvas.height;
+                tempCanvas.getContext(&#39;2d&#39;).drawImage(pages[idx].canvas, 0, 0);
+
+                applyLayoutToPage(idx);
+                pages[idx].ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width / RENDER_SCALE, tempCanvas.height / RENDER_SCALE);
+            });
+            centerPages();
+        }
+
+        function configurePenStyle(ctx, style, color, width) {
+            ctx.shadowBlur = 0; ctx.shadowColor = &#39;transparent&#39;;
+            if (activeTool === &#39;eraser&#39;) {
+                ctx.globalCompositeOperation = &#39;destination-out&#39;;
+                ctx.strokeStyle = &#39;#000000&#39;; ctx.lineWidth = width * 2.5;
+                ctx.globalAlpha = 1.0; ctx.lineCap = &#39;round&#39;; ctx.lineJoin = &#39;round&#39;;
+                return;
+            }
+            if (style === &#39;highlighter&#39;) {
+                ctx.globalCompositeOperation = &#39;destination-over&#39;;
+                ctx.strokeStyle = color; ctx.lineWidth = width * 4.5;
+                ctx.lineCap = &#39;square&#39;; ctx.lineJoin = &#39;miter&#39;; ctx.globalAlpha = 0.45;
+                return;
+            }
+            ctx.globalCompositeOperation = &#39;source-over&#39;;
+            ctx.strokeStyle = color; ctx.lineCap = &#39;round&#39;; ctx.lineJoin = &#39;round&#39;;
+
+            switch(style) {
+                case &#39;fineliner&#39;: ctx.lineWidth = width * 0.8; ctx.globalAlpha = 1.0; break;
+                case &#39;ballpoint&#39;: ctx.lineWidth = width * 0.95; ctx.globalAlpha = 0.9; break;
+                case &#39;fountain&#39;: ctx.lineWidth = width * 1.3; ctx.globalAlpha = 0.95; break;
+                case &#39;calligraphy&#39;: ctx.lineWidth = width * 2.2; ctx.lineCap = &#39;square&#39;; ctx.globalAlpha = 0.95; break;
+                case &#39;brush&#39;: ctx.lineWidth = width * 1.8; ctx.globalAlpha = 0.88; break;
+                case &#39;marker&#39;: ctx.lineWidth = width * 3.0; ctx.lineCap = &#39;butt&#39;; ctx.globalAlpha = 0.92; break;
+                case &#39;pencil&#39;: ctx.lineWidth = width * 0.75; ctx.globalAlpha = 0.55; break;
+                case &#39;neon&#39;: ctx.lineWidth = width * 1.2; ctx.globalAlpha = 1.0; ctx.shadowColor = color; ctx.shadowBlur = 12; break;
+                case &#39;charcoal&#39;: ctx.lineWidth = width * 2.0; ctx.globalAlpha = 0.65; break;
+            }
+        }
+
+        function renderSmoothStroke(ctx, points) {
+            if (!points || points.length === 0) return;
+            configurePenStyle(ctx, currentPenStyle, currentColor, strokeSize);
+
+            if (points.length === 1) {
+                ctx.beginPath();
+                ctx.arc(points[0].x, points[0].y, ctx.lineWidth / 2, 0, Math.PI * 2);
+                ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+                return;
+            }
+
+            ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+            if (points.length === 2) {
+                ctx.lineTo(points[1].x, points[1].y);
+            } else {
+                for (let i = 1; i &lt; points.length - 1; i++) {
+                    const xc = (points[i].x + points[i + 1].x) / 2;
+                    const yc = (points[i].y + points[i + 1].y) / 2;
+                    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                }
+                ctx.quadraticCurveTo(points[points.length - 2].x, points[points.length - 2].y, points[points.length - 1].x, points[points.length - 1].y);
+            }
+            ctx.stroke();
+        }
+
+        function getCanvasCoords(clientX, clientY, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+        }
+
+        // Pointer Gestures &amp; Dot Prevention
+        viewport.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            if (e.target.closest(&#39;.textbox-wrapper&#39;) || e.target.closest(&#39;.image-box&#39;) || e.target.closest(&#39;#toolbar&#39;) || e.target.closest(&#39;.popover-menu&#39;)) return;
+            pointers.push(e);
+
+            if (pointers.length === 1) {
+                const card = e.target.closest(&#39;.page-card&#39;);
+                if (!card) return;
+
+                activePageIndex = parseInt(card.dataset.index);
+                const page = pages[activePageIndex];
+
+                if (activeTool === &#39;text&#39;) {
+                    const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
+                    createTextBox(activePageIndex, coords.x, coords.y);
+                    return;
+                }
+
+                isDrawing = true;
+                hasZoomedOrPanned = false;
+                preStrokeSnapshot = page.ctx.getImageData(0, 0, page.canvas.width, page.canvas.height);
+
+                const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
+                currentStrokePoints = [coords];
+                renderSmoothStroke(page.ctx, currentStrokePoints);
+            } 
+            else if (pointers.length === 2) {
+                isDrawing = false;
+                hasZoomedOrPanned = true;
+                currentStrokePoints = [];
+
+                if (activePageIndex !== null &amp;&amp; preStrokeSnapshot) {
+                    pages[activePageIndex].ctx.putImageData(preStrokeSnapshot, 0, 0);
+                }
+                preStrokeSnapshot = null;
+
+                initialZoomDist = Math.hypot(pointers[0].clientX - pointers[1].clientX, pointers[0].clientY - pointers[1].clientY);
+                initialScale = scale;
+                initialPanX = panX; initialPanY = panY;
+                initialCenter = { x: (pointers[0].clientX + pointers[1].clientX) / 2, y: (pointers[0].clientY + pointers[1].clientY) / 2 };
+            }
+        });
+
+        viewport.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            const index = pointers.findIndex(p =&gt; p.pointerId === e.pointerId);
+            if (index !== -1) pointers[index] = e;
+
+            if (pointers.length === 1 &amp;&amp; isDrawing &amp;&amp; !hasZoomedOrPanned &amp;&amp; activePageIndex !== null) {
+                const page = pages[activePageIndex];
+                const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
+                currentStrokePoints.push(coords);
+                renderSmoothStroke(page.ctx, currentStrokePoints);
+
+            } else if (pointers.length === 2) {
+                hasZoomedOrPanned = true;
+                const currentCenter = { x: (pointers[0].clientX + pointers[1].clientX) / 2, y: (pointers[0].clientY + pointers[1].clientY) / 2 };
+                const currentDist = Math.hypot(pointers[0].clientX - pointers[1].clientX, pointers[0].clientY - pointers[1].clientY);
+
+                const newScale = Math.min(Math.max(initialScale * (currentDist / initialZoomDist), 0.2), 4.5);
+                scale = newScale;
+                panX = currentCenter.x - ((initialCenter.x - initialPanX) * (newScale / initialScale));
+                panY = currentCenter.y - ((initialCenter.y - initialPanY) * (newScale / initialScale));
+
+                updateTransform();
+            }
+        });
+
+        function handlePointerUp(e) {
+            pointers = pointers.filter(p =&gt; p.pointerId !== e.pointerId);
+            if (pointers.length &lt; 2) initialZoomDist = null;
+
+            if (pointers.length === 0) {
+                if (isDrawing &amp;&amp; activePageIndex !== null &amp;&amp; !hasZoomedOrPanned) {
+                    savePageState(activePageIndex);
+                }
+                isDrawing = false;
+                hasZoomedOrPanned = false;
+                currentStrokePoints = [];
+                activePageIndex = null;
+                preStrokeSnapshot = null;
+            }
+        }
+
+        viewport.addEventListener(&#39;pointerup&#39;, handlePointerUp);
+        viewport.addEventListener(&#39;pointercancel&#39;, handlePointerUp);
+
+        viewport.addEventListener(&#39;wheel&#39;, (e) =&gt; {
+            e.preventDefault();
+            hasZoomedOrPanned = true;
+            if (e.ctrlKey) {
+                const newScale = Math.min(Math.max(scale * (e.deltaY &lt; 0 ? 1.08 : 0.92), 0.2), 4.5);
+                panX = e.clientX - (e.clientX - panX) * (newScale / scale);
+                panY = e.clientY - (e.clientY - panY) * (newScale / scale);
+                scale = newScale;
+            } else {
+                panX -= e.deltaX; panY -= e.deltaY;
+            }
+            updateTransform();
+        }, { passive: false });
+
+        // Text &amp; Image Helpers
+        function createTextBox(pageIdx, x, y, initialText = &#39;&#39;, initialColor = null) {
+            const page = pages[pageIdx];
+            const wrapper = document.createElement(&#39;div&#39;);
+            wrapper.className = &#39;textbox-wrapper&#39;;
+            wrapper.style.left = x + &#39;px&#39;; wrapper.style.top = y + &#39;px&#39;;
+
+            const header = document.createElement(&#39;div&#39;);
+            header.className = &#39;textbox-header&#39;;
+            header.innerHTML = `&lt;span&gt;Text&lt;/span&gt;&lt;span class=&quot;textbox-close&quot;&gt;✕&lt;/span&gt;`;
+
+            const content = document.createElement(&#39;div&#39;);
+            content.className = &#39;textbox-content&#39;;
+            content.contentEditable = &#39;true&#39;;
+            content.innerText = initialText;
+            content.style.color = initialColor || currentColor;
+
+            wrapper.appendChild(header); wrapper.appendChild(content);
+            page.card.appendChild(wrapper);
+            if (!initialText) content.focus();
+
+            let isDragging = false, dragX = 0, dragY = 0;
+            header.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                e.stopPropagation(); isDragging = true;
+                dragX = e.clientX - wrapper.offsetLeft * scale;
+                dragY = e.clientY - wrapper.offsetTop * scale;
+                header.setPointerCapture(e.pointerId);
+            });
+            header.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+                if (!isDragging) return;
+                wrapper.style.left = ((e.clientX - dragX) / scale) + &#39;px&#39;;
+                wrapper.style.top = ((e.clientY - dragY) / scale) + &#39;px&#39;;
+            });
+            header.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; header.releasePointerCapture(e.pointerId); });
+            header.querySelector(&#39;.textbox-close&#39;).onclick = () =&gt; {
+                wrapper.remove();
+                page.textBoxes = page.textBoxes.filter(t =&gt; t.elem !== wrapper);
+            };
+
+            page.textBoxes.push({ elem: wrapper, contentElem: content });
+        }
+
+        const imageInput = document.getElementById(&#39;imageInput&#39;);
+        document.getElementById(&#39;imgBtn&#39;).onclick = () =&gt; imageInput.click();
+        imageInput.onchange = (e) =&gt; {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) =&gt; {
+                const img = new Image();
+                img.onload = () =&gt; insertImageToPage(activePageIndex !== null ? activePageIndex : 0, img, event.target.result);
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+            imageInput.value = &#39;&#39;;
+        };
+
+        function insertImageToPage(pageIdx, imgObj, src, savedState = null) {
+            const page = pages[pageIdx];
+            let initW = savedState ? savedState.width : Math.min(imgObj.width, 300);
+            let initH = savedState ? savedState.height : (imgObj.height / imgObj.width) * initW;
+            let initLeft = savedState ? savedState.left : 60;
+            let initTop = savedState ? savedState.top : 60;
+
+            const box = document.createElement(&#39;div&#39;);
+            box.className = &#39;image-box&#39;;
+            box.style.left = initLeft + &#39;px&#39;; box.style.top = initTop + &#39;px&#39;;
+            box.style.width = initW + &#39;px&#39;; box.style.height = initH + &#39;px&#39;;
+
+            const deleteBtn = document.createElement(&#39;div&#39;);
+            deleteBtn.className = &#39;image-delete-btn&#39;; deleteBtn.innerText = &#39;✕&#39;;
+            const cropBtn = document.createElement(&#39;div&#39;);
+            cropBtn.className = &#39;image-crop-btn&#39;; cropBtn.innerText = &#39;✂️ Crop&#39;;
+
+            const container = document.createElement(&#39;div&#39;);
+            container.className = &#39;image-container&#39;;
+            const img = document.createElement(&#39;img&#39;);
+            img.src = src;
+
+            if (savedState &amp;&amp; savedState.crop) {
+                const crop = savedState.crop;
+                img.style.clipPath = `inset(${crop.top}px ${crop.right}px ${crop.bottom}px ${crop.left}px)`;
+            }
+
+            container.appendChild(img);
+            const resizeHandle = document.createElement(&#39;div&#39;);
+            resizeHandle.className = &#39;resize-handle&#39;;
+
+            box.appendChild(deleteBtn); box.appendChild(cropBtn);
+            box.appendChild(container); box.appendChild(resizeHandle);
+            page.card.appendChild(box);
+
+            const imageEntry = {
+                elem: box, imgElem: img,
+                crop: savedState &amp;&amp; savedState.crop ? Object.assign({}, savedState.crop) : { left: 0, top: 0, right: 0, bottom: 0 },
+                isCropping: savedState ? !!savedState.isCropping : false
+            };
+
+            let isDragging = false, dragX = 0, dragY = 0;
+            box.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                if (e.target === resizeHandle || e.target === deleteBtn || e.target === cropBtn) return;
+                e.stopPropagation(); isDragging = true;
+                dragX = e.clientX - box.offsetLeft * scale;
+                dragY = e.clientY - box.offsetTop * scale;
+                box.setPointerCapture(e.pointerId);
+            });
+            box.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+                if (!isDragging) return;
+                box.style.left = ((e.clientX - dragX) / scale) + &#39;px&#39;;
+                box.style.top = ((e.clientY - dragY) / scale) + &#39;px&#39;;
+            });
+            box.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; try { box.releasePointerCapture(e.pointerId); } catch(err){} });
+
+            let isResizing = false, startW = 0, startH = 0, startX = 0, startY = 0;
+            resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                e.stopPropagation(); isResizing = true;
+                startW = box.offsetWidth; startH = box.offsetHeight;
+                startX = e.clientX; startY = e.clientY;
+                resizeHandle.setPointerCapture(e.pointerId);
+            });
+            resizeHandle.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+                if (!isResizing) return;
+                const dw = (e.clientX - startX) / scale;
+                const dh = (e.clientY - startY) / scale;
+                if (imageEntry.isCropping) {
+                    imageEntry.crop.right = Math.max(0, imageEntry.crop.right - dw * 0.2);
+                    imageEntry.crop.bottom = Math.max(0, imageEntry.crop.bottom - dh * 0.2);
+                    img.style.clipPath = `inset(${imageEntry.crop.top}px ${imageEntry.crop.right}px ${imageEntry.crop.bottom}px ${imageEntry.crop.left}px)`;
+                } else {
+                    box.style.width = Math.max(60, startW + dw) + &#39;px&#39;;
+                    box.style.height = Math.max(60, startH + dh) + &#39;px&#39;;
+                }
+            });
+            resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isResizing = false; try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){} });
+
+            cropBtn.onclick = (e) =&gt; {
+                e.stopPropagation();
+                imageEntry.isCropping = !imageEntry.isCropping;
+                cropBtn.style.background = imageEntry.isCropping ? &#39;#dc2626&#39; : &#39;#1f2937&#39;;
+                cropBtn.innerText = imageEntry.isCropping ? &#39;✔️ Done&#39; : &#39;✂️ Crop&#39;;
+            };
+
+            deleteBtn.onclick = (e) =&gt; {
+                e.stopPropagation(); box.remove();
+                page.imageBoxes = page.imageBoxes.filter(i =&gt; i.elem !== box);
+            };
+
+            page.imageBoxes.push(imageEntry);
+        }
+
+        // Toolbar Controls Routing
+        const penBtn = document.getElementById(&#39;penBtn&#39;);
+        const eraserBtn = document.getElementById(&#39;eraserBtn&#39;);
+        const textBtn = document.getElementById(&#39;textBtn&#39;);
+        const colorPicker = document.getElementById(&#39;colorPicker&#39;);
+        const sizePicker = document.getElementById(&#39;sizePicker&#39;);
+        const penStyleSelect = document.getElementById(&#39;penStyle&#39;);
+        const bgSelect = document.getElementById(&#39;bgSelect&#39;);
+        const swatches = document.querySelectorAll(&#39;.swatch&#39;);
+
+        function setActiveTool(tool) {
+            activeTool = tool;
+            penBtn.classList.toggle(&#39;active&#39;, tool === &#39;pen&#39;);
+            eraserBtn.classList.toggle(&#39;active&#39;, tool === &#39;eraser&#39;);
+            textBtn.classList.toggle(&#39;active&#39;, tool === &#39;text&#39;);
+        }
+
+        penBtn.onclick = () =&gt; setActiveTool(&#39;pen&#39;);
+        eraserBtn.onclick = () =&gt; setActiveTool(&#39;eraser&#39;);
+        textBtn.onclick = () =&gt; setActiveTool(&#39;text&#39;);
+
+        function setColor(hex) {
+            currentColor = hex; colorPicker.value = hex;
+            if (activeTool === &#39;eraser&#39;) setActiveTool(&#39;pen&#39;);
+            swatches.forEach(s =&gt; s.classList.remove(&#39;active&#39;));
+            const matched = document.querySelector(`.swatch[data-color=&quot;${hex}&quot;]`);
+            if (matched) matched.classList.add(&#39;active&#39;);
+        }
+
+        swatches.forEach(s =&gt; s.onclick = () =&gt; setColor(s.dataset.color));
+        colorPicker.oninput = (e) =&gt; setColor(e.target.value);
+        sizePicker.oninput = (e) =&gt; strokeSize = parseInt(e.target.value);
+        penStyleSelect.onchange = (e) =&gt; currentPenStyle = e.target.value;
+
+        bgSelect.onchange = (e) =&gt; {
+            pageSettings.background = e.target.value;
+            updateAllPagesLayout();
+            pageMenuPopover.style.display = &#39;none&#39;;
+        };
+
+        const pageMenuToggleBtn = document.getElementById(&#39;pageMenuToggleBtn&#39;);
+        const pageMenuPopover = document.getElementById(&#39;pageMenuPopover&#39;);
+
+        pageMenuToggleBtn.onpointerdown = (e) =&gt; {
+            e.stopPropagation();
+            const rect = pageMenuToggleBtn.getBoundingClientRect();
+            pageMenuPopover.style.top = (rect.bottom + 6) + &#39;px&#39;;
+            pageMenuPopover.style.left = rect.left + &#39;px&#39;;
+            pageMenuPopover.style.display = pageMenuPopover.style.display === &#39;flex&#39; ? &#39;none&#39; : &#39;flex&#39;;
+        };
+
+        document.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            if (!pageMenuPopover.contains(e.target) &amp;&amp; e.target !== pageMenuToggleBtn) {
+                pageMenuPopover.style.display = &#39;none&#39;;
+            }
+        });
+
+        document.getElementById(&#39;addPageBtn&#39;).onclick = () =&gt; { createNewPage(); centerPages(); pageMenuPopover.style.display = &#39;none&#39;; };
+
+        // Delete Page Modal
+        const deleteModalOverlay = document.getElementById(&#39;deleteModalOverlay&#39;);
+        const deletePageSelect = document.getElementById(&#39;deletePageSelect&#39;);
+
+        document.getElementById(&#39;deletePageModalBtn&#39;).onclick = () =&gt; {
+            pageMenuPopover.style.display = &#39;none&#39;;
+            deletePageSelect.innerHTML = &#39;&#39;;
+            pages.forEach((_, idx) =&gt; {
+                const opt = document.createElement(&#39;option&#39;); opt.value = idx; opt.innerText = `Page ${idx + 1}`;
+                deletePageSelect.appendChild(opt);
+            });
+            deleteModalOverlay.style.display = &#39;flex&#39;;
+        };
+
+        document.getElementById(&#39;closeDeleteModalBtn&#39;).onclick = () =&gt; deleteModalOverlay.style.display = &#39;none&#39;;
+        document.getElementById(&#39;confirmClearInkBtn&#39;).onclick = () =&gt; {
+            const pageIdx = parseInt(deletePageSelect.value);
+            if (!isNaN(pageIdx) &amp;&amp; pages[pageIdx]) {
+                const dims = getPageDimensions();
+                pages[pageIdx].ctx.clearRect(0, 0, dims.width, dims.height);
+                savePageState(pageIdx);
+            }
+            deleteModalOverlay.style.display = &#39;none&#39;;
+        };
+
+        document.getElementById(&#39;confirmDeletePageBtn&#39;).onclick = () =&gt; {
+            const pageIdx = parseInt(deletePageSelect.value);
+            if (!isNaN(pageIdx) &amp;&amp; pages[pageIdx]) {
+                if (pages.length &lt;= 1) {
+                    const dims = getPageDimensions(); pages[0].ctx.clearRect(0, 0, dims.width, dims.height);
+                } else {
+                    pages[pageIdx].card.remove(); pages.splice(pageIdx, 1);
+                    pages.forEach((p, idx) =&gt; { p.card.dataset.index = idx; p.pageTag.innerText = `PAGE ${idx + 1}`; });
+                }
+            }
+            deleteModalOverlay.style.display = &#39;none&#39;;
+        };
+
+        function savePageState(pageIdx) {
+            if (undoStack.length &gt; 30) undoStack.shift();
+            undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
+        }
+
+        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; {
+            if (undoStack.length &gt; 1) {
+                undoStack.pop();
+                const lastState = undoStack[undoStack.length - 1];
+                const page = pages[lastState.pageIndex];
+                if (page) {
+                    const img = new Image(); img.src = lastState.data;
+                    img.onload = () =&gt; {
+                        const dims = getPageDimensions();
+                        page.ctx.clearRect(0, 0, dims.width, dims.height);
+                        page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
+                    };
+                }
+            }
+        };
+
+        // Export Modal &amp; Functions
+        const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
+        document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
+        document.getElementById(&#39;closeExportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;none&#39;;
+
+        function getExportFilename(suffix) {
+            return (currentDocumentTitle || &#39;Handwritten_Notes&#39;).replace(/[^a-zA-Z0-9_-]/g, &#39;_&#39;) + suffix;
+        }
+
+        function renderPageToCanvas(pageIdx) {
+            const page = pages[pageIdx];
+            const dims = getPageDimensions();
+            const expCanvas = document.createElement(&#39;canvas&#39;);
+            expCanvas.width = dims.width * 2; expCanvas.height = dims.height * 2;
+            const ctx = expCanvas.getContext(&#39;2d&#39;); ctx.scale(2, 2);
+
+            ctx.drawImage(page.bgCanvas, 0, 0, dims.width, dims.height);
+            drawMarginGuidesOnCanvas(ctx, dims);
+
+            if (pageSettings.borderStyle !== &#39;none&#39;) {
+                ctx.strokeStyle = pageSettings.borderColor;
+                ctx.lineWidth = pageSettings.borderStyle === &#39;thick&#39; ? 5 : 2;
+                ctx.strokeRect(0, 0, dims.width, dims.height);
+            }
+
+            page.imageBoxes.forEach(ib =&gt; {
+                ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
+            });
+
+            ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
+
+            page.textBoxes.forEach(tb =&gt; {
+                const text = tb.contentElem.innerText;
+                if (text.trim().length &gt; 0) {
+                    ctx.font = &#39;16px Segoe UI, sans-serif&#39;;
+                    ctx.fillStyle = tb.contentElem.style.color || &#39;#000000&#39;;
+                    text.split(&#39;\n&#39;).forEach((line, lIdx) =&gt; {
+                        ctx.fillText(line, parseFloat(tb.elem.style.left) + 4, parseFloat(tb.elem.style.top) + 16 + (lIdx * 20));
+                    });
+                }
+            });
+
+            ctx.save();
+            ctx.font = &#39;bold 12px Segoe UI, sans-serif&#39;; ctx.fillStyle = &#39;#6b7280&#39;; ctx.textAlign = &#39;right&#39;;
+            ctx.fillText(`PAGE ${pageIdx + 1}`, dims.width - 20, 25);
+            ctx.restore();
+
+            return expCanvas;
+        }
+
+        document.getElementById(&#39;exportPdfBtn&#39;).onclick = () =&gt; {
+            const { jsPDF } = window.jspdf;
+            const dims = getPageDimensions();
+            const orientation = pageSettings.orientation === &#39;portrait&#39; ? &#39;p&#39; : &#39;l&#39;;
+            const pdf = new jsPDF(orientation, &#39;pt&#39;, [dims.width, dims.height]);
+
+            pages.forEach((_, idx) =&gt; {
+                if (idx &gt; 0) pdf.addPage([dims.width, dims.height], orientation);
+                pdf.addImage(renderPageToCanvas(idx).toDataURL(&#39;image/jpeg&#39;, 0.92), &#39;JPEG&#39;, 0, 0, dims.width, dims.height);
+            });
+
+            pdf.save(getExportFilename(&#39;.pdf&#39;));
+            exportModalOverlay.style.display = &#39;none&#39;;
+        };
+
+        document.getElementById(&#39;exportLongImgBtn&#39;).onclick = () =&gt; {
+            const dims = getPageDimensions();
+            const gap = 30;
+            const longCanvas = document.createElement(&#39;canvas&#39;);
+            longCanvas.width = dims.width * 2;
+            longCanvas.height = ((dims.height * pages.length) + (gap * (pages.length - 1))) * 2;
+            const ctx = longCanvas.getContext(&#39;2d&#39;);
+            ctx.fillStyle = &#39;#2a2d30&#39;; ctx.fillRect(0, 0, longCanvas.width, longCanvas.height);
+
+            pages.forEach((_, idx) =&gt; {
+                ctx.drawImage(renderPageToCanvas(idx), 0, (idx * (dims.height + gap)) * 2);
+            });
+
+            const link = document.createElement(&#39;a&#39;);
+            link.download = getExportFilename(&#39;.jpg&#39;); link.href = longCanvas.toDataURL(&#39;image/jpeg&#39;, 0.92);
+            link.click();
+            exportModalOverlay.style.display = &#39;none&#39;;
+        };
+
+        document.getElementById(&#39;exportSepImgBtn&#39;).onclick = () =&gt; {
+            pages.forEach((_, idx) =&gt; {
+                const link = document.createElement(&#39;a&#39;);
+                link.download = getExportFilename(`_Page_${idx + 1}.jpg`);
+                link.href = renderPageToCanvas(idx).toDataURL(&#39;image/jpeg&#39;, 0.92);
+                link.click();
+            });
+            exportModalOverlay.style.display = &#39;none&#39;;
+        };
+
+        // Page Setup Modal Logic
+        const modalOverlay = document.getElementById(&#39;modalOverlay&#39;);
+        document.getElementById(&#39;pageSetupBtn&#39;).onclick = () =&gt; { pageMenuPopover.style.display = &#39;none&#39;; modalOverlay.style.display = &#39;flex&#39;; };
+        document.getElementById(&#39;closeModalBtn&#39;).onclick = () =&gt; {
+            pageSettings.size = document.getElementById(&#39;pageSizeSelect&#39;).value;
+            pageSettings.orientation = document.getElementById(&#39;pageOrientationSelect&#39;).value;
+            pageSettings.borderStyle = document.getElementById(&#39;borderStyleSelect&#39;).value;
+            pageSettings.borderColor = document.getElementById(&#39;borderColorInput&#39;).value;
+            pageSettings.borderMargin = document.getElementById(&#39;borderMarginInput&#39;).value;
+            pageSettings.pageMarginGuide = document.getElementById(&#39;pageMarginGuideSelect&#39;).value;
+            pageSettings.ruledLineCount = parseInt(document.getElementById(&#39;ruledLineCountInput&#39;).value) || 25;
+
+            updateAllPagesLayout();
+            modalOverlay.style.display = &#39;none&#39;;
+        };
+
+        // Render Dashboard on App Load
+        renderDashboard();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
