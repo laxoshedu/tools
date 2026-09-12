@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>distillation</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1783px;
+    height: 1003px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;Virtual Chemistry Lab: Advanced Simple &amp; Fractional Distillation&lt;/title&gt;
+&lt;style&gt;
+:root {
+  --bg-dark: #090d16;
+  --panel-bg: #1e293b;
+  --panel-border: #334155;
+  --accent-blue: #38bdf8;
+  --accent-green: #4ade80;
+  --accent-orange: #fb923c;
+  --accent-red: #f87171;
+  --accent-yellow: #facc15;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+}
+* { box-sizing: border-box; user-select: none; margin: 0; padding: 0; }
+body {
+  font-family: &#39;Segoe UI&#39;, system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+header {
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+.title-group { display: flex; align-items: center; gap: 12px; }
+.title-group h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; }
+.badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-blue);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 600;
+}
+.nav-actions { display: flex; gap: 10px; }
+.step-banner {
+  background: #020617;
+  border-bottom: 1px solid var(--panel-border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+.step-text strong { color: var(--accent-yellow); }
+.lab-container {
+  display: grid;
+  grid-template-columns: 290px 1fr 340px;
+  flex: 1;
+  height: calc(100vh - 105px);
+  position: relative;
+}
+.panel {
+  background: var(--panel-bg);
+  border-color: var(--panel-border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.panel-header {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.parts-panel { border-right: 1px solid var(--panel-border); }
+.part-card {
+  background: #0f172a;
+  border: 1px dashed var(--panel-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.part-card:hover:not(.placed) {
+  border-color: var(--accent-blue);
+  background: #1e293b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+}
+.part-card.placed {
+  opacity: 0.4;
+  cursor: default;
+  border-style: solid;
+  border-color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.05);
+}
+.part-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.part-info h4 { font-size: 0.82rem; margin-bottom: 2px; }
+.part-info p { font-size: 0.68rem; color: var(--text-muted); line-height: 1.2; }
+.click-tag {
+  position: absolute; right: 8px; top: 6px; font-size: 0.62rem;
+  background: rgba(56, 189, 248, 0.18); color: var(--accent-blue);
+  padding: 2px 5px; border-radius: 4px; font-weight: 600;
+}
+.workbench {
+  position: relative;
+  background: radial-gradient(circle at center, #1e293b 0%, #050811 100%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#lab-svg { width: 100%; height: 100%; max-width: 1050px; max-height: 650px; }
+.snap-zone {
+  fill: rgba(56, 189, 248, 0.04);
+  stroke: var(--accent-blue);
+  stroke-dasharray: 4 4;
+  stroke-width: 1.5;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.75; } }
+.hose-pin { cursor: grab; transition: transform 0.15s ease; }
+.hose-pin:hover { cursor: grabbing; transform: scale(1.35); filter: drop-shadow(0 0 10px var(--accent-blue)); }
+.port-target-circle { transition: all 0.2s ease; }
+.port-highlight {
+  stroke: var(--accent-yellow) !important;
+  stroke-width: 4px !important;
+  fill: rgba(250, 204, 21, 0.45) !important;
+  animation: portPulse 0.6s infinite alternate;
+}
+@keyframes portPulse { from { transform: scale(1); opacity: 0.7; } to { transform: scale(1.4); opacity: 1; } }
+.blinking-tag { animation: blinkTag 1.2s infinite ease-in-out; }
+@keyframes blinkTag { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.98); } }
+.controls-panel { border-left: 1px solid var(--panel-border); }
+.control-group {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.control-group label { font-size: 0.8rem; font-weight: 600; display: flex; justify-content: space-between; }
+.val-tag { color: var(--accent-blue); font-family: monospace; }
+.btn {
+  background: #334155; color: #fff; border: none; padding: 7px 12px;
+  border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;
+}
+.btn:hover:not(:disabled) { background: #475569; }
+.btn-primary { background: #0284c7; }
+.btn-primary:hover:not(:disabled) { background: #0369a1; }
+.btn-danger { background: #dc2626; }
+.btn-danger:hover:not(:disabled) { background: #b91c1c; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+input[type=range] { width: 100%; accent-color: var(--accent-blue); cursor: pointer; }
+.gauge-card {
+  background: #020617; border: 1px solid var(--panel-border);
+  border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+}
+.temp-display {
+  font-family: &#39;Courier New&#39;, monospace; font-size: 1.5rem; font-weight: 700;
+  color: var(--accent-red); background: #0f172a; padding: 4px 10px;
+  border-radius: 6px; border: 1px solid rgba(248, 113, 113, 0.3);
+}
+.diagram-label { font-size: 11px; fill: #cbd5e1; font-family: system-ui, sans-serif; font-weight: 500; pointer-events: none; }
+.pointer-line { stroke: #64748b; stroke-width: 1; stroke-dasharray: 2 2; }
+.toast {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #0284c7; color: #fff; padding: 9px 18px; border-radius: 20px;
+  font-size: 0.82rem; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
+.hose-water-dash { stroke-dasharray: 6 5; animation: dash-flow 0.6s linear infinite; }
+@keyframes dash-flow { from { stroke-dashoffset: 22; } to { stroke-dashoffset: 0; } }
+.results-card {
+  background: #020617; border: 1px solid var(--panel-border);
+  border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.results-card.finished {
+  border: 1.5px solid var(--accent-green);
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+  animation: blinkResultsBorder 1.5s infinite alternate;
+}
+@keyframes blinkResultsBorder { from { border-color: var(--accent-green); } to { border-color: rgba(74, 222, 128, 0.2); } }
+.res-row { display: flex; justify-content: space-between; font-size: 0.78rem; align-items: center; }
+.res-divider { border-top: 1px dashed var(--panel-border); margin: 4px 0; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;header&gt;
+  &lt;div class=&quot;title-group&quot;&gt;
+    &lt;svg width=&quot;24&quot; height=&quot;24&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; style=&quot;color:var(--accent-blue)&quot;&gt;&lt;path d=&quot;M6 18h12M10 2v7.5M14 2v7.5M8.5 2h7M14 9.5a4.5 4.5 0 1 1-4 0&quot;/&gt;&lt;/svg&gt;
+    &lt;h1&gt;Virtual Chemistry Lab&lt;/h1&gt;
+    &lt;span class=&quot;badge&quot;&gt;Fractional &amp; Simple Distillation&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;nav-actions&quot;&gt;
+    &lt;button class=&quot;btn&quot; onclick=&quot;toggleLabels()&quot;&gt;
+      &lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7&quot;/&gt;&lt;/svg&gt;
+      Diagram Labels: &lt;span id=&quot;label-state-text&quot;&gt;ON&lt;/span&gt;
+    &lt;/button&gt;
+    &lt;button class=&quot;btn&quot; onclick=&quot;toggleSound()&quot;&gt;
+      &lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07&quot;/&gt;&lt;/svg&gt;
+      Audio: &lt;span id=&quot;sound-state-text&quot;&gt;ON&lt;/span&gt;
+    &lt;/button&gt;
+    &lt;button class=&quot;btn btn-primary&quot; onclick=&quot;autoAssemble()&quot;&gt;
+      &lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z&quot;/&gt;&lt;/svg&gt;
+      Auto Assemble
+    &lt;/button&gt;
+    &lt;button class=&quot;btn btn-danger&quot; onclick=&quot;resetLab()&quot;&gt;
+      &lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5&quot;/&gt;&lt;/svg&gt;
+      Reset Lab
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/header&gt;
+
+&lt;div class=&quot;step-banner&quot;&gt;
+  &lt;div class=&quot;step-text&quot; id=&quot;guide-text&quot;&gt;
+    &lt;strong&gt;Step 1:&lt;/strong&gt; Click or Drag the &lt;b&gt;Retort Stand&lt;/b&gt;, &lt;b&gt;Bunsen Burner&lt;/b&gt;, and &lt;b&gt;Distillation Flask&lt;/b&gt; onto the workbench.
+  &lt;/div&gt;
+  &lt;div id=&quot;assembly-progress&quot; style=&quot;font-weight: 700; color: var(--accent-blue);&quot;&gt;
+    Progress: 0 / 10 Tasks
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;lab-container&quot;&gt;
+  &lt;div class=&quot;panel parts-panel&quot;&gt;
+    &lt;div class=&quot;panel-header&quot;&gt;
+      &lt;span&gt;Apparatus Inventory&lt;/span&gt;
+      &lt;span style=&quot;font-size:0.65rem; color:var(--accent-blue)&quot;&gt;Click or Drag&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-stand&quot; onclick=&quot;handlePartSelect(&#39;stand&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;stand&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M8 21h8M12 21V3M12 8h5&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Retort Stand &amp; Clamp&lt;/h4&gt;&lt;p&gt;Heavy metal support rig.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-burner&quot; onclick=&quot;handlePartSelect(&#39;burner&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;burner&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M12 14v7M8 21h8M10 14h4l-1-6h-2l-1 6zM12 3a2 2 0 0 0-2 2c0 2 2 3 2 3s2-1 2-3a2 2 0 0 0-2-2z&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Bunsen Burner&lt;/h4&gt;&lt;p&gt;Heat source for boiling.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-flask&quot; onclick=&quot;handlePartSelect(&#39;flask&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;flask&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M10 2v5.5L5.2 16.6A4 4 0 0 0 8.7 22h6.6a4 4 0 0 0 3.5-5.4L14 7.5V2h-4z&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Distillation Flask&lt;/h4&gt;&lt;p&gt;Round boiling flask with side arm.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div style=&quot;font-size:0.72rem; font-weight:700; color:var(--accent-yellow); margin-top:4px;&quot;&gt;CHOICE OF SOLUTIONS:&lt;/div&gt;
+    &lt;div class=&quot;part-card&quot; id=&quot;part-beaker-salt&quot; onclick=&quot;handlePartSelect(&#39;beaker-salt&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;beaker-salt&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M6 3h12v15a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V3z&quot;/&gt;&lt;path d=&quot;M6 9h12&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Salt Water Solution&lt;/h4&gt;&lt;p&gt;NaCl + H₂O (Boils @ 100°C)&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;div class=&quot;part-card&quot; id=&quot;part-beaker-ethanol&quot; onclick=&quot;handlePartSelect(&#39;beaker-ethanol&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;beaker-ethanol&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#818cf8&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M6 3h12v15a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V3z&quot;/&gt;&lt;path d=&quot;M6 9h12&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Ethanol &amp; Water Mixture&lt;/h4&gt;&lt;p&gt;C₂H₅OH + H₂O (Boils @ 78.3°C)&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-beaker-acetone&quot; onclick=&quot;handlePartSelect(&#39;beaker-acetone&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;beaker-acetone&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#a7f3d0&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M6 3h12v15a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V3z&quot;/&gt;&lt;path d=&quot;M6 9h12&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Acetone &amp; Water Mixture&lt;/h4&gt;&lt;p&gt;CH₃COCH₃ + H₂O (Boils @ 56.0°C)&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-thermometer&quot; onclick=&quot;handlePartSelect(&#39;thermometer&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;thermometer&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M14 4v10.5a3.5 3.5 0 1 1-4 0V4a2 2 0 1 1 4 0z&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Thermometer &amp; Stopper&lt;/h4&gt;&lt;p&gt;Seals top &amp; monitors temp.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-condenser&quot; onclick=&quot;handlePartSelect(&#39;condenser&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;condenser&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;rect x=&quot;3&quot; y=&quot;8&quot; width=&quot;18&quot; height=&quot;8&quot; rx=&quot;2&quot;/&gt;&lt;path d=&quot;M1 12h22M6 8V5M18 16v3&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Liebig Condenser&lt;/h4&gt;&lt;p&gt;Jacket with IN/OUT barb toggles.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-adapter&quot; onclick=&quot;handlePartSelect(&#39;adapter&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;adapter&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M5 8h6a4 4 0 0 1 4 4v7&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Receiver Adapter&lt;/h4&gt;&lt;p&gt;Curved glass elbow director.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-receiver&quot; onclick=&quot;handlePartSelect(&#39;receiver&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;receiver&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;white&quot; stroke-width=&quot;1.5&quot;&gt;&lt;path d=&quot;M8 3h8l4 15a2 2 0 0 1-2 2.5H6A2 2 0 0 1 4 18L8 3z&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Receiving Flask&lt;/h4&gt;&lt;p&gt;Collects pure distilled fraction.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-hose1&quot; onclick=&quot;handlePartSelect(&#39;hose1&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;hose1&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M4 12c4-8 12 8 16 0&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Blue Rubber Hose (Pipe 1)&lt;/h4&gt;&lt;p&gt;Drag pins to connect toggles.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;part-card&quot; id=&quot;part-hose2&quot; onclick=&quot;handlePartSelect(&#39;hose2&#39;)&quot; draggable=&quot;true&quot; ondragstart=&quot;handleDragStart(event, &#39;hose2&#39;)&quot;&gt;
+      &lt;span class=&quot;click-tag&quot;&gt;Click/Drag&lt;/span&gt;
+      &lt;div class=&quot;part-icon&quot;&gt;&lt;svg width=&quot;22&quot; height=&quot;22&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M4 12c4 8 12-8 16 0&quot;/&gt;&lt;/svg&gt;&lt;/div&gt;
+      &lt;div class=&quot;part-info&quot;&gt;&lt;h4&gt;Orange Rubber Hose (Pipe 2)&lt;/h4&gt;&lt;p&gt;Drag pins to connect toggles.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;workbench&quot; ondragover=&quot;handleDragOver(event)&quot; ondrop=&quot;handleDrop(event)&quot;&gt;
+    &lt;svg id=&quot;lab-svg&quot; viewBox=&quot;0 0 1050 650&quot; onmousemove=&quot;handleSVGMouseMove(event)&quot; onmouseup=&quot;handleSVGMouseUp(event)&quot;&gt;
+      &lt;defs&gt;
+        &lt;linearGradient id=&quot;liquidGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+          &lt;stop id=&quot;liquid-stop-1&quot; offset=&quot;0%&quot; stop-color=&quot;#38bdf8&quot; stop-opacity=&quot;0.85&quot;/&gt;
+          &lt;stop id=&quot;liquid-stop-2&quot; offset=&quot;100%&quot; stop-color=&quot;#0284c7&quot; stop-opacity=&quot;0.95&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;distilledGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;0&quot; y2=&quot;1&quot;&gt;
+          &lt;stop id=&quot;distill-stop-1&quot; offset=&quot;0%&quot; stop-color=&quot;#7dd3fc&quot; stop-opacity=&quot;0.75&quot;/&gt;
+          &lt;stop id=&quot;distill-stop-2&quot; offset=&quot;100%&quot; stop-color=&quot;#0284c7&quot; stop-opacity=&quot;0.95&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;glassGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;1&quot; y2=&quot;0&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#ffffff&quot; stop-opacity=&quot;0.35&quot;/&gt;
+          &lt;stop offset=&quot;20%&quot; stop-color=&quot;#ffffff&quot; stop-opacity=&quot;0.12&quot;/&gt;
+          &lt;stop offset=&quot;85%&quot; stop-color=&quot;#ffffff&quot; stop-opacity=&quot;0.05&quot;/&gt;
+          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#38bdf8&quot; stop-opacity=&quot;0.25&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;condenserWaterGrad&quot; x1=&quot;0&quot; y1=&quot;0&quot; x2=&quot;1&quot; y2=&quot;1&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#0284c7&quot; stop-opacity=&quot;0.45&quot;/&gt;
+          &lt;stop offset=&quot;50%&quot; stop-color=&quot;#38bdf8&quot; stop-opacity=&quot;0.65&quot;/&gt;
+          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#0369a1&quot; stop-opacity=&quot;0.5&quot;/&gt;
+        &lt;/linearGradient&gt;
+        
+        &lt;!-- REALISTIC WIDE FLAME GRADIENTS --&gt;
+        &lt;linearGradient id=&quot;flameGlowGrad&quot; x1=&quot;0&quot; y1=&quot;1&quot; x2=&quot;0&quot; y2=&quot;0&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#ea580c&quot; stop-opacity=&quot;0.9&quot;/&gt;
+          &lt;stop offset=&quot;50%&quot; stop-color=&quot;#f97316&quot; stop-opacity=&quot;0.6&quot;/&gt;
+          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#facc15&quot; stop-opacity=&quot;0&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;flameOuterGradWide&quot; x1=&quot;0&quot; y1=&quot;1&quot; x2=&quot;0&quot; y2=&quot;0&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#2563eb&quot; stop-opacity=&quot;0.95&quot;/&gt;
+          &lt;stop offset=&quot;20%&quot; stop-color=&quot;#c026d3&quot; stop-opacity=&quot;0.9&quot;/&gt;
+          &lt;stop offset=&quot;55%&quot; stop-color=&quot;#ea580c&quot; stop-opacity=&quot;0.95&quot;/&gt;
+          &lt;stop offset=&quot;85%&quot; stop-color=&quot;#facc15&quot; stop-opacity=&quot;0.95&quot;/&gt;
+          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#ffffff&quot; stop-opacity=&quot;1&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;flameMiddleGrad&quot; x1=&quot;0&quot; y1=&quot;1&quot; x2=&quot;0&quot; y2=&quot;0&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#0284c7&quot; stop-opacity=&quot;1&quot;/&gt;
+          &lt;stop offset=&quot;40%&quot; stop-color=&quot;#f97316&quot; stop-opacity=&quot;0.95&quot;/&gt;
+          &lt;stop offset=&quot;85%&quot; stop-color=&quot;#fef08a&quot; stop-opacity=&quot;1&quot;/&gt;
+        &lt;/linearGradient&gt;
+        &lt;linearGradient id=&quot;flameInnerGradWide&quot; x1=&quot;0&quot; y1=&quot;1&quot; x2=&quot;0&quot; y2=&quot;0&quot;&gt;
+          &lt;stop offset=&quot;0%&quot; stop-color=&quot;#0284c7&quot; stop-opacity=&quot;1&quot;/&gt;
+          &lt;stop offset=&quot;60%&quot; stop-color=&quot;#38bdf8&quot; stop-opacity=&quot;0.95&quot;/&gt;
+          &lt;stop offset=&quot;100%&quot; stop-color=&quot;#bfdbfe&quot; stop-opacity=&quot;0.85&quot;/&gt;
+        &lt;/linearGradient&gt;
+        
+        &lt;filter id=&quot;flameGlowWide&quot; x=&quot;-50%&quot; y=&quot;-50%&quot; width=&quot;200%&quot; height=&quot;200%&quot;&gt;
+          &lt;feGaussianBlur stdDeviation=&quot;8&quot; result=&quot;blur1&quot;/&gt;
+          &lt;feGaussianBlur stdDeviation=&quot;3&quot; result=&quot;blur2&quot;/&gt;
+          &lt;feMerge&gt;
+            &lt;feMergeNode in=&quot;blur1&quot;/&gt;
+            &lt;feMergeNode in=&quot;blur2&quot;/&gt;
+            &lt;feMergeNode in=&quot;SourceGraphic&quot;/&gt;
+          &lt;/feMerge&gt;
+        &lt;/filter&gt;
+      &lt;/defs&gt;
+
+      &lt;rect x=&quot;30&quot; y=&quot;530&quot; width=&quot;940&quot; height=&quot;16&quot; fill=&quot;#334155&quot; rx=&quot;3&quot;/&gt;
+      &lt;rect x=&quot;20&quot; y=&quot;546&quot; width=&quot;960&quot; height=&quot;30&quot; fill=&quot;#1e293b&quot; rx=&quot;2&quot;/&gt;
+
+      &lt;g id=&quot;sink-and-tap&quot;&gt;
+        &lt;polygon points=&quot;810,530 950,530 930,590 830,590&quot; fill=&quot;#0f172a&quot; stroke=&quot;#475569&quot; stroke-width=&quot;2&quot;/&gt;
+        &lt;ellipse cx=&quot;880&quot; cy=&quot;575&quot; rx=&quot;12&quot; ry=&quot;4&quot; fill=&quot;#334155&quot;/&gt;
+        &lt;rect x=&quot;835&quot; y=&quot;420&quot; width=&quot;14&quot; height=&quot;110&quot; fill=&quot;#94a3b8&quot; rx=&quot;2&quot;/&gt;
+        &lt;path d=&quot;M 842 420 Q 842 380 810 380 L 800 380&quot; fill=&quot;none&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;12&quot; stroke-linecap=&quot;round&quot;/&gt;
+        &lt;circle cx=&quot;800&quot; cy=&quot;380&quot; r=&quot;5&quot; fill=&quot;#475569&quot;/&gt;
+        &lt;rect x=&quot;828&quot; y=&quot;440&quot; width=&quot;28&quot; height=&quot;8&quot; fill=&quot;#f87171&quot; rx=&quot;2&quot;/&gt;
+        &lt;rect id=&quot;sink-water-stream&quot; x=&quot;797&quot; y=&quot;385&quot; width=&quot;6&quot; height=&quot;150&quot; fill=&quot;#38bdf8&quot; opacity=&quot;0&quot;/&gt;
+      &lt;/g&gt;
+
+      &lt;g id=&quot;snap-zones&quot;&gt;
+        &lt;rect id=&quot;zone-stand&quot; class=&quot;snap-zone&quot; x=&quot;135&quot; y=&quot;140&quot; width=&quot;130&quot; height=&quot;390&quot; rx=&quot;8&quot;/&gt;
+        &lt;rect id=&quot;zone-burner&quot; class=&quot;snap-zone&quot; x=&quot;165&quot; y=&quot;430&quot; width=&quot;70&quot; height=&quot;100&quot; rx=&quot;6&quot;/&gt;
+        &lt;circle id=&quot;zone-flask&quot; class=&quot;snap-zone&quot; cx=&quot;200&quot; cy=&quot;335&quot; r=&quot;65&quot;/&gt;
+        &lt;rect id=&quot;zone-thermometer&quot; class=&quot;snap-zone&quot; x=&quot;190&quot; y=&quot;100&quot; width=&quot;20&quot; height=&quot;140&quot; rx=&quot;4&quot;/&gt;
+        &lt;rect id=&quot;zone-condenser&quot; class=&quot;snap-zone&quot; x=&quot;285&quot; y=&quot;230&quot; width=&quot;360&quot; height=&quot;130&quot; rx=&quot;10&quot; transform=&quot;rotate(14 285 230)&quot;/&gt;
+        &lt;path id=&quot;zone-adapter&quot; class=&quot;snap-zone&quot; d=&quot;M 655 330 Q 690 350 700 410 L 680 410 Q 670 360 640 340 Z&quot;/&gt;
+        &lt;polygon id=&quot;zone-receiver&quot; class=&quot;snap-zone&quot; points=&quot;655,410 745,410 765,530 635,530&quot;/&gt;
+      &lt;/g&gt;
+
+      &lt;g id=&quot;apparatus-group&quot;&gt;
+        &lt;g id=&quot;node-stand&quot; style=&quot;display:none;&quot;&gt;
+          &lt;ellipse cx=&quot;200&quot; cy=&quot;525&quot; rx=&quot;65&quot; ry=&quot;12&quot; fill=&quot;#475569&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;2&quot;/&gt;
+          &lt;ellipse cx=&quot;200&quot; cy=&quot;522&quot; rx=&quot;55&quot; ry=&quot;8&quot; fill=&quot;#334155&quot;/&gt;
+          &lt;rect x=&quot;196&quot; y=&quot;120&quot; width=&quot;8&quot; height=&quot;402&quot; fill=&quot;#94a3b8&quot; rx=&quot;2&quot;/&gt;
+          &lt;rect x=&quot;198&quot; y=&quot;120&quot; width=&quot;3&quot; height=&quot;402&quot; fill=&quot;#e2e8f0&quot; opacity=&quot;0.6&quot;/&gt;
+          &lt;rect x=&quot;188&quot; y=&quot;270&quot; width=&quot;24&quot; height=&quot;20&quot; fill=&quot;#334155&quot; rx=&quot;3&quot;/&gt;
+          &lt;circle cx=&quot;183&quot; cy=&quot;280&quot; r=&quot;5&quot; fill=&quot;#64748b&quot;/&gt;
+          &lt;path d=&quot;M 212 280 L 240 280 C 250 280 255 290 250 305 L 225 325&quot; fill=&quot;none&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 212 280 L 240 280 C 250 280 255 290 250 305 L 225 325&quot; fill=&quot;none&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;rect x=&quot;140&quot; y=&quot;398&quot; width=&quot;120&quot; height=&quot;6&quot; fill=&quot;#64748b&quot; rx=&quot;2&quot;/&gt;
+          &lt;line x1=&quot;140&quot; y1=&quot;404&quot; x2=&quot;175&quot; y2=&quot;522&quot; stroke=&quot;#475569&quot; stroke-width=&quot;3&quot;/&gt;
+          &lt;line x1=&quot;260&quot; y1=&quot;404&quot; x2=&quot;225&quot; y2=&quot;522&quot; stroke=&quot;#475569&quot; stroke-width=&quot;3&quot;/&gt;
+        &lt;/g&gt;
+
+        &lt;!-- BUNSEN BURNER WITH ADVANCED MULTI-LAYER REALISTIC WIDE FLAME --&gt;
+        &lt;g id=&quot;node-burner&quot; style=&quot;display:none;&quot;&gt;
+          &lt;ellipse cx=&quot;200&quot; cy=&quot;520&quot; rx=&quot;30&quot; ry=&quot;8&quot; fill=&quot;#334155&quot; stroke=&quot;#475569&quot; stroke-width=&quot;2&quot;/&gt;
+          &lt;rect x=&quot;195&quot; y=&quot;440&quot; width=&quot;10&quot; height=&quot;80&quot; fill=&quot;#94a3b8&quot;/&gt;
+          &lt;rect x=&quot;196&quot; y=&quot;440&quot; width=&quot;3&quot; height=&quot;80&quot; fill=&quot;#f1f5f9&quot; opacity=&quot;0.5&quot;/&gt;
+          &lt;rect x=&quot;192&quot; y=&quot;495&quot; width=&quot;16&quot; height=&quot;12&quot; fill=&quot;#475569&quot; rx=&quot;2&quot;/&gt;
+          &lt;circle cx=&quot;200&quot; cy=&quot;501&quot; r=&quot;3&quot; fill=&quot;#0f172a&quot;/&gt;
+          &lt;path d=&quot;M 200 510 Q 145 515 105 538&quot; fill=&quot;none&quot; stroke=&quot;#1e293b&quot; stroke-width=&quot;6&quot;/&gt;
+
+          &lt;!-- DYNAMIC WIDE REAL FLAME RIG --&gt;
+          &lt;g id=&quot;flame-group&quot; opacity=&quot;0&quot; filter=&quot;url(#flameGlowWide)&quot;&gt;
+            &lt;!-- Outer Radiant Heat Field --&gt;
+            &lt;path id=&quot;flame-glow-bg&quot; d=&quot;M 160 440 Q 200 320 200 320 Q 200 320 240 440 Z&quot; fill=&quot;url(#flameGlowGrad)&quot; opacity=&quot;0.4&quot;/&gt;
+            &lt;!-- Wide Outer Flame Body --&gt;
+            &lt;path id=&quot;flame-outer&quot; d=&quot;M 172 440 Q 140 380 200 340 Q 260 380 228 440 Z&quot; fill=&quot;url(#flameOuterGradWide)&quot;/&gt;
+            &lt;!-- Mid High-Heat Cone --&gt;
+            &lt;path id=&quot;flame-middle&quot; d=&quot;M 182 440 Q 165 390 200 365 Q 235 390 218 440 Z&quot; fill=&quot;url(#flameMiddleGrad)&quot;/&gt;
+            &lt;!-- Intense Inner Core --&gt;
+            &lt;path id=&quot;flame-core&quot; d=&quot;M 190 440 Q 182 405 200 390 Q 218 405 210 440 Z&quot; fill=&quot;url(#flameInnerGradWide)&quot;/&gt;
+            &lt;!-- Floating Embers / Sparks Container --&gt;
+            &lt;g id=&quot;flame-sparks&quot;&gt;&lt;/g&gt;
+          &lt;/g&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-flask&quot; style=&quot;display:none;&quot;&gt;
+          &lt;path id=&quot;flask-liquid-body&quot; d=&quot;M 145 335 A 55 55 0 0 0 255 335 Z&quot; fill=&quot;url(#liquidGrad)&quot; opacity=&quot;0&quot;/&gt;
+          &lt;path id=&quot;flask-liquid-surface&quot; d=&quot;M 145 335 Q 200 335 255 335&quot; fill=&quot;none&quot; stroke=&quot;#7dd3fc&quot; stroke-width=&quot;2&quot; opacity=&quot;0&quot;/&gt;
+          &lt;g id=&quot;pour-splashes&quot;&gt;&lt;/g&gt;
+          &lt;g id=&quot;salt-crystals-group&quot; opacity=&quot;0&quot;&gt;
+            &lt;path d=&quot;M 160 380 Q 200 372 240 380 Q 220 390 180 390 Z&quot; fill=&quot;#f8fafc&quot; stroke=&quot;#e2e8f0&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;circle cx=&quot;175&quot; cy=&quot;382&quot; r=&quot;3&quot; fill=&quot;#ffffff&quot;/&gt;
+            &lt;circle cx=&quot;190&quot; cy=&quot;380&quot; r=&quot;3.5&quot; fill=&quot;#f1f5f9&quot;/&gt;
+            &lt;circle cx=&quot;205&quot; cy=&quot;379&quot; r=&quot;4&quot; fill=&quot;#ffffff&quot;/&gt;
+            &lt;circle cx=&quot;220&quot; cy=&quot;381&quot; r=&quot;3&quot; fill=&quot;#e2e8f0&quot;/&gt;
+          &lt;/g&gt;
+          &lt;g id=&quot;blinking-salt-label-group&quot; style=&quot;display:none;&quot; class=&quot;blinking-tag&quot;&gt;
+            &lt;line x1=&quot;200&quot; y1=&quot;380&quot; x2=&quot;200&quot; y2=&quot;330&quot; stroke=&quot;#facc15&quot; stroke-width=&quot;1.5&quot; stroke-dasharray=&quot;2 2&quot;/&gt;
+            &lt;rect x=&quot;100&quot; y=&quot;305&quot; width=&quot;200&quot; height=&quot;24&quot; rx=&quot;4&quot; fill=&quot;#020617&quot; stroke=&quot;#facc15&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;text id=&quot;residue-tag-text&quot; x=&quot;200&quot; y=&quot;321&quot; fill=&quot;#facc15&quot; font-size=&quot;10&quot; font-weight=&quot;bold&quot; text-anchor=&quot;middle&quot;&gt;REMAINING PURE WATER (H₂O)&lt;/text&gt;
+          &lt;/g&gt;
+          &lt;circle cx=&quot;200&quot; cy=&quot;335&quot; r=&quot;55&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2.5&quot;/&gt;
+          &lt;rect x=&quot;188&quot; y=&quot;190&quot; width=&quot;24&quot; height=&quot;95&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2.5&quot;/&gt;
+          &lt;ellipse cx=&quot;200&quot; cy=&quot;190&quot; rx=&quot;14&quot; ry=&quot;4&quot; fill=&quot;#cbd5e1&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;1.5&quot;/&gt;
+          &lt;path d=&quot;M 210 220 L 300 242&quot; fill=&quot;none&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;10&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 210 220 L 300 242&quot; fill=&quot;none&quot; stroke=&quot;#0f172a&quot; stroke-width=&quot;5&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 210 220 L 300 242&quot; fill=&quot;none&quot; stroke=&quot;url(#glassGrad)&quot; stroke-width=&quot;8&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;g id=&quot;boiling-bubbles&quot;&gt;&lt;/g&gt;
+          &lt;g id=&quot;steam-particles&quot;&gt;&lt;/g&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-beaker&quot; transform=&quot;translate(60, 440)&quot; style=&quot;cursor:pointer;&quot;&gt;
+          &lt;rect x=&quot;0&quot; y=&quot;0&quot; width=&quot;55&quot; height=&quot;75&quot; rx=&quot;4&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2&quot;/&gt;
+          &lt;path id=&quot;beaker-liquid-fill&quot; d=&quot;M 3 25 L 52 25 L 52 71 A 2 2 0 0 1 50 73 L 5 73 A 2 2 0 0 1 3 71 Z&quot; fill=&quot;url(#liquidGrad)&quot;/&gt;
+          &lt;line x1=&quot;10&quot; y1=&quot;35&quot; x2=&quot;22&quot; y2=&quot;35&quot; stroke=&quot;#fff&quot; stroke-width=&quot;1&quot; opacity=&quot;0.6&quot;/&gt;
+          &lt;line x1=&quot;10&quot; y1=&quot;48&quot; x2=&quot;22&quot; y2=&quot;48&quot; stroke=&quot;#fff&quot; stroke-width=&quot;1&quot; opacity=&quot;0.6&quot;/&gt;
+          &lt;line x1=&quot;10&quot; y1=&quot;60&quot; x2=&quot;22&quot; y2=&quot;60&quot; stroke=&quot;#fff&quot; stroke-width=&quot;1&quot; opacity=&quot;0.6&quot;/&gt;
+          &lt;text id=&quot;beaker-label-text&quot; x=&quot;5&quot; y=&quot;-8&quot; fill=&quot;#38bdf8&quot; font-size=&quot;9&quot; font-weight=&quot;700&quot;&gt;Salt Water Solution&lt;/text&gt;
+        &lt;/g&gt;
+        &lt;path id=&quot;pour-stream&quot; d=&quot;M 185 195 Q 190 205 198 225&quot; fill=&quot;none&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;5&quot; opacity=&quot;0&quot; stroke-linecap=&quot;round&quot;/&gt;
+
+        &lt;g id=&quot;node-thermometer&quot; style=&quot;display:none;&quot;&gt;
+          &lt;polygon points=&quot;186,188 214,188 210,205 190,205&quot; fill=&quot;#334155&quot; stroke=&quot;#1e293b&quot; stroke-width=&quot;1.5&quot;/&gt;
+          &lt;rect x=&quot;198&quot; y=&quot;60&quot; width=&quot;4&quot; height=&quot;175&quot; fill=&quot;#e2e8f0&quot; rx=&quot;2&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;0.8&quot;/&gt;
+          &lt;circle cx=&quot;200&quot; cy=&quot;235&quot; r=&quot;4&quot; fill=&quot;#f87171&quot;/&gt;
+          &lt;line id=&quot;mercury-column&quot; x1=&quot;200&quot; y1=&quot;235&quot; x2=&quot;200&quot; y2=&quot;210&quot; stroke=&quot;#f87171&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;g id=&quot;thermo-hud&quot; transform=&quot;translate(130, 20)&quot;&gt;
+            &lt;rect x=&quot;0&quot; y=&quot;0&quot; width=&quot;105&quot; height=&quot;32&quot; rx=&quot;6&quot; fill=&quot;#020617&quot; stroke=&quot;#f87171&quot; stroke-width=&quot;1.5&quot;/&gt;
+            &lt;text id=&quot;svg-temp-text&quot; x=&quot;52&quot; y=&quot;21&quot; fill=&quot;#f87171&quot; font-family=&quot;Courier New, monospace&quot; font-size=&quot;15&quot; font-weight=&quot;bold&quot; text-anchor=&quot;middle&quot;&gt;25.0 °C&lt;/text&gt;
+            &lt;line x1=&quot;70&quot; y1=&quot;32&quot; x2=&quot;68&quot; y2=&quot;55&quot; stroke=&quot;#f87171&quot; stroke-width=&quot;1&quot; stroke-dasharray=&quot;2 2&quot;/&gt;
+          &lt;/g&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-condenser&quot; style=&quot;display:none;&quot;&gt;
+          &lt;g transform=&quot;rotate(14 295 240)&quot;&gt;
+            &lt;rect x=&quot;325&quot; y=&quot;215&quot; width=&quot;280&quot; height=&quot;50&quot; rx=&quot;8&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2&quot;/&gt;
+            &lt;rect id=&quot;condenser-water-fill&quot; x=&quot;327&quot; y=&quot;217&quot; width=&quot;276&quot; height=&quot;46&quot; rx=&quot;6&quot; fill=&quot;url(#condenserWaterGrad)&quot; opacity=&quot;0&quot;/&gt;
+            &lt;g id=&quot;nozzle-inlet&quot;&gt;
+              &lt;rect x=&quot;562&quot; y=&quot;265&quot; width=&quot;16&quot; height=&quot;28&quot; fill=&quot;#475569&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;1.5&quot; rx=&quot;2&quot;/&gt;
+              &lt;line x1=&quot;560&quot; y1=&quot;272&quot; x2=&quot;580&quot; y2=&quot;272&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;line x1=&quot;560&quot; y1=&quot;278&quot; x2=&quot;580&quot; y2=&quot;278&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;line x1=&quot;560&quot; y1=&quot;284&quot; x2=&quot;580&quot; y2=&quot;284&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;rect x=&quot;560&quot; y=&quot;263&quot; width=&quot;20&quot; height=&quot;5&quot; fill=&quot;#0284c7&quot; rx=&quot;1&quot;/&gt;
+            &lt;/g&gt;
+            &lt;g id=&quot;nozzle-outlet&quot;&gt;
+              &lt;rect x=&quot;342&quot; y=&quot;187&quot; width=&quot;16&quot; height=&quot;28&quot; fill=&quot;#475569&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;1.5&quot; rx=&quot;2&quot;/&gt;
+              &lt;line x1=&quot;340&quot; y1=&quot;194&quot; x2=&quot;360&quot; y2=&quot;194&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;line x1=&quot;340&quot; y1=&quot;200&quot; x2=&quot;360&quot; y2=&quot;200&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;line x1=&quot;340&quot; y1=&quot;206&quot; x2=&quot;360&quot; y2=&quot;206&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;2.5&quot;/&gt;
+              &lt;rect x=&quot;340&quot; y=&quot;212&quot; width=&quot;20&quot; height=&quot;5&quot; fill=&quot;#ea580c&quot; rx=&quot;1&quot;/&gt;
+            &lt;/g&gt;
+            &lt;rect x=&quot;285&quot; y=&quot;233&quot; width=&quot;360&quot; height=&quot;14&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;1.5&quot;/&gt;
+          &lt;/g&gt;
+          &lt;g id=&quot;condenser-droplets&quot;&gt;&lt;/g&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-adapter&quot; style=&quot;display:none;&quot;&gt;
+          &lt;rect x=&quot;640&quot; y=&quot;325&quot; width=&quot;10&quot; height=&quot;24&quot; transform=&quot;rotate(14 640 325)&quot; fill=&quot;#334155&quot; rx=&quot;2&quot;/&gt;
+          &lt;path d=&quot;M 645 330 Q 690 355 700 415&quot; fill=&quot;none&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;12&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 645 330 Q 690 355 700 415&quot; fill=&quot;none&quot; stroke=&quot;#0f172a&quot; stroke-width=&quot;6&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path d=&quot;M 645 330 Q 690 355 700 415&quot; fill=&quot;none&quot; stroke=&quot;url(#glassGrad)&quot; stroke-width=&quot;10&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;ellipse id=&quot;hanging-drop&quot; cx=&quot;700&quot; cy=&quot;416&quot; rx=&quot;0&quot; ry=&quot;0&quot; fill=&quot;#38bdf8&quot;/&gt;
+          &lt;g id=&quot;falling-drop-group&quot;&gt;&lt;/g&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-receiver&quot; style=&quot;display:none;&quot;&gt;
+          &lt;path id=&quot;distilled-liquid&quot; d=&quot;M 640 525 L 760 525 L 760 525 Q 700 525 640 525 Z&quot; fill=&quot;url(#distilledGrad)&quot;/&gt;
+          &lt;ellipse id=&quot;surface-ripple&quot; cx=&quot;700&quot; cy=&quot;525&quot; rx=&quot;0&quot; ry=&quot;0&quot; fill=&quot;none&quot; stroke=&quot;#7dd3fc&quot; stroke-width=&quot;2&quot; opacity=&quot;0&quot;/&gt;
+          &lt;polygon points=&quot;687,410 713,410 760,525 640,525&quot; fill=&quot;url(#glassGrad)&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2.5&quot; stroke-linejoin=&quot;round&quot;/&gt;
+          &lt;ellipse cx=&quot;700&quot; cy=&quot;410&quot; rx=&quot;14&quot; ry=&quot;4&quot; fill=&quot;#cbd5e1&quot; stroke=&quot;#64748b&quot; stroke-width=&quot;1.5&quot;/&gt;
+          &lt;line x1=&quot;660&quot; y1=&quot;500&quot; x2=&quot;673&quot; y2=&quot;500&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;1&quot;/&gt;
+          &lt;line x1=&quot;665&quot; y1=&quot;480&quot; x2=&quot;677&quot; y2=&quot;480&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;1&quot;/&gt;
+          &lt;line x1=&quot;671&quot; y1=&quot;460&quot; x2=&quot;682&quot; y2=&quot;460&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;1&quot;/&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;port-targets&quot;&gt;
+          &lt;circle id=&quot;target-PORT_TAP&quot; class=&quot;port-target-circle&quot; cx=&quot;800&quot; cy=&quot;380&quot; r=&quot;12&quot; fill=&quot;none&quot; stroke=&quot;#0284c7&quot; stroke-width=&quot;2.5&quot; style=&quot;display:none;&quot;/&gt;
+          &lt;circle id=&quot;target-PORT_COND_IN&quot; class=&quot;port-target-circle&quot; cx=&quot;549&quot; cy=&quot;358&quot; r=&quot;12&quot; fill=&quot;none&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;2.5&quot; style=&quot;display:none;&quot;/&gt;
+          &lt;circle id=&quot;target-PORT_COND_OUT&quot; class=&quot;port-target-circle&quot; cx=&quot;361&quot; cy=&quot;202&quot; r=&quot;12&quot; fill=&quot;none&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;2.5&quot; style=&quot;display:none;&quot;/&gt;
+          &lt;circle id=&quot;target-PORT_SINK&quot; class=&quot;port-target-circle&quot; cx=&quot;880&quot; cy=&quot;560&quot; r=&quot;12&quot; fill=&quot;none&quot; stroke=&quot;#94a3b8&quot; stroke-width=&quot;2.5&quot; style=&quot;display:none;&quot;/&gt;
+        &lt;/g&gt;
+
+        &lt;g id=&quot;node-hose1&quot; style=&quot;display:none;&quot;&gt;
+          &lt;path id=&quot;hose1-body&quot; d=&quot;M 800 380 Q 670 480 549 358&quot; fill=&quot;none&quot; stroke=&quot;#0284c7&quot; stroke-width=&quot;9&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path id=&quot;hose1-flow&quot; class=&quot;hose-water-dash&quot; d=&quot;M 800 380 Q 670 480 549 358&quot; fill=&quot;none&quot; stroke=&quot;#38bdf8&quot; stroke-width=&quot;4&quot; opacity=&quot;0&quot;/&gt;
+          &lt;g id=&quot;pin-hose1-p1&quot; class=&quot;hose-pin&quot; onmousedown=&quot;startPinDrag(event, &#39;hose1&#39;, &#39;p1&#39;)&quot;&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;10&quot; fill=&quot;#38bdf8&quot; stroke=&quot;#ffffff&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;4&quot; fill=&quot;#0284c7&quot;/&gt;
+          &lt;/g&gt;
+          &lt;g id=&quot;pin-hose1-p2&quot; class=&quot;hose-pin&quot; onmousedown=&quot;startPinDrag(event, &#39;hose1&#39;, &#39;p2&#39;)&quot;&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;10&quot; fill=&quot;#38bdf8&quot; stroke=&quot;#ffffff&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;4&quot; fill=&quot;#0284c7&quot;/&gt;
+          &lt;/g&gt;
+        &lt;/g&gt;
+        &lt;g id=&quot;node-hose2&quot; style=&quot;display:none;&quot;&gt;
+          &lt;path id=&quot;hose2-body&quot; d=&quot;M 361 202 Q 550 200 880 560&quot; fill=&quot;none&quot; stroke=&quot;#ea580c&quot; stroke-width=&quot;9&quot; stroke-linecap=&quot;round&quot;/&gt;
+          &lt;path id=&quot;hose2-flow&quot; class=&quot;hose-water-dash&quot; d=&quot;M 361 202 Q 550 200 880 560&quot; fill=&quot;none&quot; stroke=&quot;#fb923c&quot; stroke-width=&quot;4&quot; opacity=&quot;0&quot;/&gt;
+          &lt;g id=&quot;pin-hose2-p1&quot; class=&quot;hose-pin&quot; onmousedown=&quot;startPinDrag(event, &#39;hose2&#39;, &#39;p1&#39;)&quot;&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;10&quot; fill=&quot;#fb923c&quot; stroke=&quot;#ffffff&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;4&quot; fill=&quot;#c2410c&quot;/&gt;
+          &lt;/g&gt;
+          &lt;g id=&quot;pin-hose2-p2&quot; class=&quot;hose-pin&quot; onmousedown=&quot;startPinDrag(event, &#39;hose2&#39;, &#39;p2&#39;)&quot;&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;10&quot; fill=&quot;#fb923c&quot; stroke=&quot;#ffffff&quot; stroke-width=&quot;2.5&quot;/&gt;
+            &lt;circle cx=&quot;0&quot; cy=&quot;0&quot; r=&quot;4&quot; fill=&quot;#c2410c&quot;/&gt;
+          &lt;/g&gt;
+        &lt;/g&gt;
+      &lt;/g&gt;
+
+      &lt;g id=&quot;diagram-labels&quot;&gt;
+        &lt;line x1=&quot;200&quot; y1=&quot;60&quot; x2=&quot;290&quot; y2=&quot;60&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;298&quot; y=&quot;64&quot; class=&quot;diagram-label&quot;&gt;Thermometer&lt;/text&gt;
+        &lt;line x1=&quot;210&quot; y1=&quot;195&quot; x2=&quot;320&quot; y2=&quot;155&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;328&quot; y=&quot;159&quot; class=&quot;diagram-label&quot;&gt;Distillation flask&lt;/text&gt;
+        &lt;line x1=&quot;220&quot; y1=&quot;280&quot; x2=&quot;320&quot; y2=&quot;280&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;328&quot; y=&quot;284&quot; class=&quot;diagram-label&quot;&gt;Vapor stage&lt;/text&gt;
+        &lt;line x1=&quot;245&quot; y1=&quot;345&quot; x2=&quot;345&quot; y2=&quot;345&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;353&quot; y=&quot;349&quot; class=&quot;diagram-label&quot;&gt;Miscible Solution&lt;/text&gt;
+        &lt;line x1=&quot;210&quot; y1=&quot;470&quot; x2=&quot;310&quot; y2=&quot;470&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;318&quot; y=&quot;474&quot; class=&quot;diagram-label&quot;&gt;Bunsen burner&lt;/text&gt;
+        &lt;line x1=&quot;465&quot; y1=&quot;230&quot; x2=&quot;535&quot; y2=&quot;160&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;543&quot; y=&quot;164&quot; class=&quot;diagram-label&quot;&gt;Condenser&lt;/text&gt;
+        &lt;line x1=&quot;525&quot; y1=&quot;270&quot; x2=&quot;625&quot; y2=&quot;230&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;633&quot; y=&quot;234&quot; class=&quot;diagram-label&quot;&gt;Cooling water&lt;/text&gt;
+        &lt;line x1=&quot;549&quot; y1=&quot;358&quot; x2=&quot;549&quot; y2=&quot;420&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;500&quot; y=&quot;435&quot; class=&quot;diagram-label&quot;&gt;Cold water in&lt;/text&gt;
+        &lt;line x1=&quot;680&quot; y1=&quot;360&quot; x2=&quot;795&quot; y2=&quot;300&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;803&quot; y=&quot;304&quot; class=&quot;diagram-label&quot;&gt;Condensed fraction&lt;/text&gt;
+        &lt;line x1=&quot;655&quot; y1=&quot;470&quot; x2=&quot;555&quot; y2=&quot;490&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;455&quot; y=&quot;494&quot; class=&quot;diagram-label&quot;&gt;Receiving flask&lt;/text&gt;
+        &lt;line x1=&quot;695&quot; y1=&quot;520&quot; x2=&quot;565&quot; y2=&quot;545&quot; class=&quot;pointer-line&quot;/&gt;
+        &lt;text x=&quot;470&quot; y=&quot;549&quot; class=&quot;diagram-label&quot;&gt;Distilled Fraction 1&lt;/text&gt;
+      &lt;/g&gt;
+    &lt;/svg&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;panel controls-panel&quot;&gt;
+    &lt;div class=&quot;panel-header&quot;&gt;
+      &lt;span&gt;Lab Controls &amp; Readouts&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;gauge-card&quot;&gt;
+      &lt;div&gt;
+        &lt;div style=&quot;font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;&quot;&gt;Vapor Temperature&lt;/div&gt;
+        &lt;div style=&quot;font-size:0.85rem; font-weight:600; color:var(--text-main);&quot;&gt;Flask Neck Probe&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;temp-display&quot; id=&quot;temp-readout&quot;&gt;25.0 °C&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;control-group&quot;&gt;
+      &lt;label&gt;
+        &lt;span&gt;Bunsen Burner Flame&lt;/span&gt;
+        &lt;span class=&quot;val-tag&quot; id=&quot;heat-val-tag&quot;&gt;OFF&lt;/span&gt;
+      &lt;/label&gt;
+      &lt;input type=&quot;range&quot; id=&quot;heat-slider&quot; min=&quot;0&quot; max=&quot;3&quot; value=&quot;0&quot; step=&quot;1&quot; oninput=&quot;updateHeat(this.value)&quot; disabled&gt;
+      &lt;div style=&quot;display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text-muted)&quot;&gt;
+        &lt;span&gt;OFF&lt;/span&gt; &lt;span&gt;LOW&lt;/span&gt; &lt;span&gt;MED&lt;/span&gt; &lt;span&gt;HIGH&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;control-group&quot;&gt;
+      &lt;label&gt;
+        &lt;span&gt;Sink Water Tap&lt;/span&gt;
+        &lt;span class=&quot;val-tag&quot; id=&quot;water-val-tag&quot; style=&quot;color:var(--accent-red)&quot;&gt;CLOSED&lt;/span&gt;
+      &lt;/label&gt;
+      &lt;button class=&quot;btn btn-primary&quot; id=&quot;btn-water-toggle&quot; onclick=&quot;toggleWaterFlow()&quot; disabled&gt;
+        &lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z&quot;/&gt;&lt;/svg&gt;
+        Open Water Tap
+      &lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;control-group&quot; style=&quot;background:#020617;&quot;&gt;
+      &lt;div style=&quot;font-size:0.78rem; font-weight:700; color:var(--text-muted); margin-bottom:4px;&quot;&gt;Distillate Yield (Fraction 1)&lt;/div&gt;
+      &lt;div style=&quot;display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px;&quot;&gt;
+        &lt;span&gt;Collected Fraction:&lt;/span&gt;
+        &lt;strong id=&quot;distillate-name-text&quot; style=&quot;color:var(--accent-blue)&quot;&gt;Pure H₂O&lt;/strong&gt;
+      &lt;/div&gt;
+      &lt;div style=&quot;display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:4px;&quot;&gt;
+        &lt;span&gt;Volume Collected:&lt;/span&gt;
+        &lt;strong id=&quot;volume-readout&quot; style=&quot;color:var(--accent-blue)&quot;&gt;0.0 mL&lt;/strong&gt;
+      &lt;/div&gt;
+      &lt;div style=&quot;width:100%; height:7px; background:#1e293b; border-radius:4px; overflow:hidden;&quot;&gt;
+        &lt;div id=&quot;distill-progress-bar&quot; style=&quot;width:0%; height:100%; background:var(--accent-blue); transition:width 0.3s;&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;inline-results-panel&quot; class=&quot;results-card&quot;&gt;
+      &lt;div style=&quot;font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;&quot;&gt;Fractional Test Results&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;Selected Liquid:&lt;/span&gt;&lt;strong id=&quot;res-mixture&quot; style=&quot;color:var(--text-main);&quot;&gt;None Poured&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-divider&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;Fraction 1 (Receiver):&lt;/span&gt;&lt;strong id=&quot;res-f1-name&quot; style=&quot;color:var(--accent-blue);&quot;&gt;Pending&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;F1 Boiling Point:&lt;/span&gt;&lt;strong id=&quot;res-f1-boil&quot; style=&quot;color:var(--accent-red);&quot;&gt;-- °C&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;F1 Yield Volume:&lt;/span&gt;&lt;strong id=&quot;res-f1-vol&quot; style=&quot;color:var(--accent-blue);&quot;&gt;0 mL&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-divider&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;Fraction 2 (Flask):&lt;/span&gt;&lt;strong id=&quot;res-f2-name&quot; style=&quot;color:var(--accent-yellow);&quot;&gt;Pending&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;F2 Boiling Point:&lt;/span&gt;&lt;strong id=&quot;res-f2-boil&quot; style=&quot;color:var(--text-muted);&quot;&gt;-- °C&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;F2 Remaining Vol:&lt;/span&gt;&lt;strong id=&quot;res-f2-vol&quot; style=&quot;color:var(--accent-yellow);&quot;&gt;100 mL&lt;/strong&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-divider&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;res-row&quot;&gt;&lt;span&gt;Separation Status:&lt;/span&gt;&lt;strong id=&quot;res-status&quot; style=&quot;color:var(--text-muted);&quot;&gt;Incomplete&lt;/strong&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;toast&quot; id=&quot;toast-msg&quot;&gt;Apparatus component attached!&lt;/div&gt;
+
+&lt;script&gt;
+function hexToRgb(hex) {
+  let c = hex.replace(&#39;#&#39;, &#39;&#39;);
+  if (c.length === 3) c = c.split(&#39;&#39;).map(x =&gt; x + x).join(&#39;&#39;);
+  let num = parseInt(c, 16);
+  return [num &gt;&gt; 16, (num &gt;&gt; 8) &amp; 255, num &amp; 255];
+}
+
+function rgbToHex(r, g, b) {
+  return &#39;#&#39; + [r, g, b].map(x =&gt; Math.round(x).toString(16).padStart(2, &#39;0&#39;)).join(&#39;&#39;);
+}
+
+function blendHexColors(hex1, hex2, ratio) {
+  let [r1, g1, b1] = hexToRgb(hex1);
+  let [r2, g2, b2] = hexToRgb(hex2);
+  let r = r1 + (r2 - r1) * ratio;
+  let g = g1 + (g2 - g1) * ratio;
+  let b = b1 + (b2 - b1) * ratio;
+  return rgbToHex(r, g, b);
+}
+
+const WATER_BLUE_1 = &#39;#38bdf8&#39;;
+const WATER_BLUE_2 = &#39;#0284c7&#39;;
+
+const MIXTURES = {
+  &#39;salt_water&#39;: {
+    name: &#39;Salt Water Solution&#39;,
+    shortName: &#39;Salt Water&#39;,
+    isMisciblePair: false,
+    f1Name: &#39;Pure Water (H₂O)&#39;,
+    f1BoilTemp: 100.0,
+    f1TargetVol: 100.0,
+    f2Name: &#39;Solid Salt Residue (NaCl)&#39;,
+    f2BoilTemp: 1465.0,
+    liquidColor1: &#39;#38bdf8&#39;,
+    liquidColor2: &#39;#0284c7&#39;,
+    distillColor1: &#39;#7dd3fc&#39;,
+    distillColor2: &#39;#0284c7&#39;
+  },
+  &#39;ethanol_water&#39;: {
+    name: &#39;Ethanol &amp; Water Mixture&#39;,
+    shortName: &#39;Ethanol+Water&#39;,
+    isMisciblePair: true,
+    f1Name: &#39;Pure Ethanol (C₂H₅OH)&#39;,
+    f1BoilTemp: 78.3,
+    f1TargetVol: 50.0,
+    f2Name: &#39;Pure Water (H₂O)&#39;,
+    f2BoilTemp: 100.0,
+    liquidColor1: &#39;#a5b4fc&#39;,
+    liquidColor2: &#39;#6366f1&#39;,
+    distillColor1: &#39;#c7d2fe&#39;,
+    distillColor2: &#39;#4338ca&#39;
+  },
+  &#39;acetone_water&#39;: {
+    name: &#39;Acetone &amp; Water Mixture&#39;,
+    shortName: &#39;Acetone+Water&#39;,
+    isMisciblePair: true,
+    f1Name: &#39;Pure Acetone (CH₃COCH₃)&#39;,
+    f1BoilTemp: 56.0,
+    f1TargetVol: 50.0,
+    f2Name: &#39;Pure Water (H₂O)&#39;,
+    f2BoilTemp: 100.0,
+    liquidColor1: &#39;#6ee7b7&#39;,
+    liquidColor2: &#39;#059669&#39;,
+    distillColor1: &#39;#a7f3d0&#39;,
+    distillColor2: &#39;#047857&#39;
+  }
+};
+
+let selectedMixture = MIXTURES[&#39;salt_water&#39;];
+const ALL_TASKS = [&#39;stand&#39;, &#39;burner&#39;, &#39;flask&#39;, &#39;beakerPoured&#39;, &#39;thermometer&#39;, &#39;condenser&#39;, &#39;adapter&#39;, &#39;receiver&#39;, &#39;hose1&#39;, &#39;hose2&#39;];
+let completedTasks = new Set();
+let isAssemblyComplete = false;
+let isExperimentFinished = false;
+let labelsVisible = true;
+let soundEnabled = true;
+
+let heatLevel = 0;
+let tapOpen = false;
+let currentTemp = 25.0;
+let volumeCollected = 0.0;
+let flaskWaterVolume = 100.0;
+let animFrameId = null;
+let audioCtx = null;
+
+const PORTS = {
+  PORT_TAP: { id: &#39;PORT_TAP&#39;, x: 800, y: 380, name: &#39;Tap Spout&#39; },
+  PORT_COND_IN: { id: &#39;PORT_COND_IN&#39;, x: 549, y: 358, name: &#39;Condenser Bottom Inlet Barb&#39; },
+  PORT_COND_OUT: { id: &#39;PORT_COND_OUT&#39;, x: 361, y: 202, name: &#39;Condenser Top Outlet Barb&#39; },
+  PORT_SINK: { id: &#39;PORT_SINK&#39;, x: 880, y: 560, name: &#39;Sink Basin Drain&#39; }
+};
+
+let hoseState = {
+  hose1: { p1: { x: 750, y: 480, snappedTo: null }, p2: { x: 549, y: 358, snappedTo: null } },
+  hose2: { p1: { x: 361, y: 202, snappedTo: null }, p2: { x: 780, y: 500, snappedTo: null } }
+};
+let activeDraggingPin = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  initAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+
+  if (type === &#39;snap&#39;) {
+    osc.type = &#39;sine&#39;;
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(750, now + 0.09);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+    osc.start(now); osc.stop(now + 0.09);
+  } else if (type === &#39;pour&#39;) {
+    osc.type = &#39;triangle&#39;;
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.linearRampToValueAtTime(450, now + 0.3);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.start(now); osc.stop(now + 0.3);
+  } else if (type === &#39;click&#39;) {
+    osc.type = &#39;triangle&#39;;
+    osc.frequency.setValueAtTime(400, now);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+    osc.start(now); osc.stop(now + 0.05);
+  } else if (type === &#39;drip&#39;) {
+    osc.type = &#39;sine&#39;;
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    osc.start(now); osc.stop(now + 0.08);
+  } else if (type === &#39;complete&#39;) {
+    osc.type = &#39;sine&#39;;
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.setValueAtTime(554.37, now + 0.12);
+    osc.frequency.setValueAtTime(659.25, now + 0.24);
+    osc.frequency.setValueAtTime(880, now + 0.36);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+    osc.start(now); osc.stop(now + 0.6);
+  }
+}
+
+function getSVGCoords(e) {
+  const svg = document.getElementById(&#39;lab-svg&#39;);
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+function startPinDrag(e, hoseId, pinId) {
+  e.stopPropagation();
+  activeDraggingPin = { hoseId, pinId };
+}
+
+function handleSVGMouseMove(e) {
+  if (!activeDraggingPin) return;
+  const coords = getSVGCoords(e);
+  const hose = hoseState[activeDraggingPin.hoseId];
+  const pin = hose[activeDraggingPin.pinId];
+  pin.x = coords.x; pin.y = coords.y;
+  pin.snappedTo = null;
+
+  let closestPort = null;
+  let minDist = 35;
+  Object.values(PORTS).forEach(port =&gt; {
+    const dist = Math.hypot(port.x - coords.x, port.y - coords.y);
+    const targetNode = document.getElementById(`target-${port.id}`);
+    if (targetNode) targetNode.classList.remove(&#39;port-highlight&#39;);
+    if (dist &lt; minDist) { minDist = dist; closestPort = port; }
+  });
+  if (closestPort) {
+    document.getElementById(`target-${closestPort.id}`).classList.add(&#39;port-highlight&#39;);
+  }
+  renderHoses();
+}
+
+function handleSVGMouseUp(e) {
+  if (!activeDraggingPin) return;
+  const hose = hoseState[activeDraggingPin.hoseId];
+  const pin = hose[activeDraggingPin.pinId];
+  const coords = getSVGCoords(e);
+
+  let snappedPort = null;
+  let minDist = 35;
+  Object.values(PORTS).forEach(port =&gt; {
+    const dist = Math.hypot(port.x - coords.x, port.y - coords.y);
+    document.getElementById(`target-${port.id}`).classList.remove(&#39;port-highlight&#39;);
+    if (dist &lt; minDist) { minDist = dist; snappedPort = port; }
+  });
+
+  if (snappedPort) {
+    pin.x = snappedPort.x;
+    pin.y = snappedPort.y;
+    pin.snappedTo = snappedPort.id;
+    playSound(&#39;snap&#39;);
+    showToast(`Clip attached to ${snappedPort.name}!`);
+  }
+  activeDraggingPin = null;
+  renderHoses();
+  updateStepGuidance();
+}
+
+function renderHoses() {
+  [&#39;hose1&#39;, &#39;hose2&#39;].forEach(hoseId =&gt; {
+    const h = hoseState[hoseId];
+    const p1 = h.p1;
+    const p2 = h.p2;
+    const pin1El = document.getElementById(`pin-${hoseId}-p1`);
+    const pin2El = document.getElementById(`pin-${hoseId}-p2`);
+    if (pin1El) pin1El.setAttribute(&#39;transform&#39;, `translate(${p1.x}, ${p1.y})`);
+    if (pin2El) pin2El.setAttribute(&#39;transform&#39;, `translate(${p2.x}, ${p2.y})`);
+
+    const midX = (p1.x + p2.x) / 2;
+    const sag = Math.min(70, Math.abs(p1.x - p2.x) * 0.35);
+    const midY = Math.max(p1.y, p2.y) + sag;
+    const pathD = `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`;
+    const bodyPath = document.getElementById(`${hoseId}-body`);
+    const flowPath = document.getElementById(`${hoseId}-flow`);
+    if (bodyPath) bodyPath.setAttribute(&#39;d&#39;, pathD);
+    if (flowPath) flowPath.setAttribute(&#39;d&#39;, pathD);
+  });
+}
+
+let currentDraggedPart = null;
+function handleDragStart(e, partId) {
+  if (completedTasks.has(partId)) { e.preventDefault(); return; }
+  currentDraggedPart = partId;
+  e.dataTransfer.setData(&#39;text/plain&#39;, partId);
+}
+function handleDragOver(e) { e.preventDefault(); }
+function handleDrop(e) {
+  e.preventDefault();
+  const partId = e.dataTransfer.getData(&#39;text/plain&#39;) || currentDraggedPart;
+  if (partId) handlePartSelect(partId);
+}
+
+function handlePartSelect(partId) {
+  if (completedTasks.has(partId)) return;
+  if (partId.startsWith(&#39;beaker&#39;)) {
+    if (!completedTasks.has(&#39;flask&#39;)) {
+      showToast(&quot;Place the Distillation Flask first!&quot;); return;
+    }
+    if (completedTasks.has(&#39;thermometer&#39;)) {
+      showToast(&quot;Cannot pour! Flask is already sealed with stopper.&quot;); return;
+    }
+    let mixKey = &#39;salt_water&#39;;
+    if (partId === &#39;beaker-ethanol&#39;) mixKey = &#39;ethanol_water&#39;;
+    if (partId === &#39;beaker-acetone&#39;) mixKey = &#39;acetone_water&#39;;
+    pourLiquid(mixKey);
+    return;
+  }
+  if (partId === &#39;thermometer&#39; &amp;&amp; !completedTasks.has(&#39;beakerPoured&#39;)) {
+    showToast(&quot;Pour a solution into the flask before sealing with stopper!&quot;); return;
+  }
+  if ((partId === &#39;hose1&#39; || partId === &#39;hose2&#39;) &amp;&amp; !completedTasks.has(&#39;condenser&#39;)) {
+    showToast(&quot;Attach the Liebig Condenser first!&quot;); return;
+  }
+  snapPartIntoPlace(partId);
+}
+
+function snapPartIntoPlace(partId) {
+  completedTasks.add(partId);
+  const svgNode = document.getElementById(`node-${partId}`);
+  if (svgNode) svgNode.style.display = &#39;block&#39;;
+  const zoneNode = document.getElementById(`zone-${partId}`);
+  if (zoneNode) zoneNode.style.display = &#39;none&#39;;
+  const partCard = document.getElementById(`part-${partId}`);
+  if (partCard) {
+    partCard.classList.add(&#39;placed&#39;);
+    partCard.setAttribute(&#39;draggable&#39;, &#39;false&#39;);
+  }
+
+  if (partId === &#39;condenser&#39;) {
+    document.getElementById(&#39;target-PORT_COND_IN&#39;).style.display = &#39;block&#39;;
+    document.getElementById(&#39;target-PORT_COND_OUT&#39;).style.display = &#39;block&#39;;
+    document.getElementById(&#39;target-PORT_TAP&#39;).style.display = &#39;block&#39;;
+    document.getElementById(&#39;target-PORT_SINK&#39;).style.display = &#39;block&#39;;
+  }
+  if (partId === &#39;hose1&#39;) {
+    hoseState.hose1.p1 = { x: PORTS.PORT_TAP.x, y: PORTS.PORT_TAP.y, snappedTo: &#39;PORT_TAP&#39; };
+    hoseState.hose1.p2 = { x: PORTS.PORT_COND_IN.x, y: PORTS.PORT_COND_IN.y, snappedTo: &#39;PORT_COND_IN&#39; };
+    renderHoses();
+  } else if (partId === &#39;hose2&#39;) {
+    hoseState.hose2.p1 = { x: PORTS.PORT_COND_OUT.x, y: PORTS.PORT_COND_OUT.y, snappedTo: &#39;PORT_COND_OUT&#39; };
+    hoseState.hose2.p2 = { x: PORTS.PORT_SINK.x, y: PORTS.PORT_SINK.y, snappedTo: &#39;PORT_SINK&#39; };
+    renderHoses();
+  }
+  playSound(&#39;snap&#39;);
+  showToast(`Attached ${getPartName(partId)}`);
+  updateStepGuidance();
+}
+
+function pourLiquid(mixKey = &#39;salt_water&#39;) {
+  if (completedTasks.has(&#39;beakerPoured&#39;)) return;
+  selectedMixture = MIXTURES[mixKey];
+
+  document.getElementById(&#39;liquid-stop-1&#39;).setAttribute(&#39;stop-color&#39;, selectedMixture.liquidColor1);
+  document.getElementById(&#39;liquid-stop-2&#39;).setAttribute(&#39;stop-color&#39;, selectedMixture.liquidColor2);
+  document.getElementById(&#39;distill-stop-1&#39;).setAttribute(&#39;stop-color&#39;, selectedMixture.distillColor1);
+  document.getElementById(&#39;distill-stop-2&#39;).setAttribute(&#39;stop-color&#39;, selectedMixture.distillColor2);
+
+  document.getElementById(&#39;beaker-label-text&#39;).textContent = selectedMixture.shortName;
+  document.getElementById(&#39;res-mixture&#39;).textContent = selectedMixture.name;
+  document.getElementById(&#39;res-f1-name&#39;).textContent = selectedMixture.f1Name;
+  document.getElementById(&#39;res-f1-boil&#39;).textContent = `${selectedMixture.f1BoilTemp.toFixed(1)} °C`;
+  document.getElementById(&#39;res-f2-name&#39;).textContent = selectedMixture.f2Name;
+  document.getElementById(&#39;res-f2-boil&#39;).textContent = `${selectedMixture.f2BoilTemp.toFixed(1)} °C`;
+  document.getElementById(&#39;distillate-name-text&#39;).textContent = selectedMixture.f1Name;
+
+  const beaker = document.getElementById(&#39;node-beaker&#39;);
+  const pourStream = document.getElementById(&#39;pour-stream&#39;);
+  const flaskLiquidBody = document.getElementById(&#39;flask-liquid-body&#39;);
+  const flaskLiquidSurface = document.getElementById(&#39;flask-liquid-surface&#39;);
+  const splashContainer = document.getElementById(&#39;pour-splashes&#39;);
+
+  playSound(&#39;pour&#39;);
+  beaker.style.transition = &quot;transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)&quot;;
+  beaker.style.transform = &quot;translate(122px, -232px) rotate(-55deg)&quot;;
+
+  setTimeout(() =&gt; {
+    pourStream.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+    pourStream.setAttribute(&#39;stroke&#39;, selectedMixture.liquidColor1);
+    flaskLiquidBody.style.transition = &quot;opacity 1.2s ease&quot;;
+    flaskLiquidSurface.style.transition = &quot;opacity 1.2s ease&quot;;
+    flaskLiquidBody.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+    flaskLiquidSurface.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+
+    let splashInterval = setInterval(() =&gt; {
+      if (splashContainer) {
+        let px = 195 + Math.random() * 10;
+        let py = 350 + Math.random() * 15;
+        splashContainer.innerHTML += `&lt;circle cx=&quot;${px}&quot; cy=&quot;${py}&quot; r=&quot;${1 + Math.random()*2}&quot; fill=&quot;${selectedMixture.liquidColor1}&quot; opacity=&quot;0.8&quot; /&gt;`;
+      }
+    }, 80);
+    setTimeout(() =&gt; clearInterval(splashInterval), 1100);
+  }, 650);
+
+  setTimeout(() =&gt; {
+    pourStream.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+    splashContainer.innerHTML = &#39;&#39;;
+    beaker.style.transition = &quot;transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)&quot;;
+    beaker.style.transform = &quot;translate(60px, 440px) rotate(0deg)&quot;;
+    document.getElementById(&#39;beaker-liquid-fill&#39;).setAttribute(&#39;opacity&#39;, &#39;0.12&#39;);
+
+    completedTasks.add(&#39;beakerPoured&#39;);
+    [&#39;part-beaker-salt&#39;, &#39;part-beaker-ethanol&#39;, &#39;part-beaker-acetone&#39;].forEach(id =&gt; {
+      const card = document.getElementById(id);
+      if (card) card.classList.add(&#39;placed&#39;);
+    });
+    showToast(`${selectedMixture.name} poured into flask!`);
+    updateStepGuidance();
+  }, 1800);
+}
+
+function getPartName(id) {
+  const names = {
+    stand: &#39;Retort Stand&#39;, burner: &#39;Bunsen Burner&#39;, flask: &#39;Distillation Flask&#39;,
+    beakerPoured: selectedMixture ? selectedMixture.name : &#39;Solution&#39;,
+    thermometer: &#39;Thermometer &amp; Stopper&#39;, condenser: &#39;Liebig Condenser&#39;,
+    adapter: &#39;Receiver Adapter&#39;, receiver: &#39;Receiving Flask&#39;,
+    hose1: &#39;Blue Rubber Hose&#39;, hose2: &#39;Orange Rubber Hose&#39;
+  };
+  return names[id] || id;
+}
+
+function isPlumbingCorrect() {
+  const h1 = hoseState.hose1;
+  const h2 = hoseState.hose2;
+  const hose1Valid = (h1.p1.snappedTo === &#39;PORT_TAP&#39; &amp;&amp; h1.p2.snappedTo === &#39;PORT_COND_IN&#39;) || (h1.p2.snappedTo === &#39;PORT_TAP&#39; &amp;&amp; h1.p1.snappedTo === &#39;PORT_COND_IN&#39;);
+  const hose2Valid = (h2.p1.snappedTo === &#39;PORT_COND_OUT&#39; &amp;&amp; h2.p2.snappedTo === &#39;PORT_SINK&#39;) || (h2.p2.snappedTo === &#39;PORT_COND_OUT&#39; &amp;&amp; h1.p1.snappedTo === &#39;PORT_SINK&#39;);
+  const altHose1Valid = (h2.p1.snappedTo === &#39;PORT_TAP&#39; &amp;&amp; h2.p2.snappedTo === &#39;PORT_COND_IN&#39;) || (h2.p2.snappedTo === &#39;PORT_TAP&#39; &amp;&amp; h2.p1.snappedTo === &#39;PORT_COND_IN&#39;);
+  const altHose2Valid = (h1.p1.snappedTo === &#39;PORT_COND_OUT&#39; &amp;&amp; h1.p2.snappedTo === &#39;PORT_SINK&#39;) || (h1.p2.snappedTo === &#39;PORT_COND_OUT&#39; &amp;&amp; h1.p1.snappedTo === &#39;PORT_SINK&#39;);
+  return (hose1Valid &amp;&amp; hose2Valid) || (altHose1Valid &amp;&amp; altHose2Valid);
+}
+
+function updateStepGuidance() {
+  const progressText = document.getElementById(&#39;assembly-progress&#39;);
+  progressText.innerText = `Progress: ${completedTasks.size} / ${ALL_TASKS.length} Tasks`;
+
+  const guideText = document.getElementById(&#39;guide-text&#39;);
+  if (!completedTasks.has(&#39;stand&#39;) || !completedTasks.has(&#39;burner&#39;) || !completedTasks.has(&#39;flask&#39;)) {
+    guideText.innerHTML = `&lt;strong&gt;Step 1:&lt;/strong&gt; Place the &lt;b&gt;Retort Stand&lt;/b&gt;, &lt;b&gt;Bunsen Burner&lt;/b&gt;, and &lt;b&gt;Distillation Flask&lt;/b&gt;.`;
+  } else if (!completedTasks.has(&#39;beakerPoured&#39;)) {
+    guideText.innerHTML = `&lt;strong&gt;Step 2:&lt;/strong&gt; Select and Pour any of the &lt;b&gt;3 Solution Beakers&lt;/b&gt; into the flask.`;
+  } else if (!completedTasks.has(&#39;thermometer&#39;)) {
+    guideText.innerHTML = `&lt;strong&gt;Step 3:&lt;/strong&gt; Insert the &lt;b&gt;Thermometer &amp; Rubber Stopper&lt;/b&gt; to seal the flask.`;
+  } else if (!completedTasks.has(&#39;condenser&#39;) || !completedTasks.has(&#39;adapter&#39;) || !completedTasks.has(&#39;receiver&#39;)) {
+    guideText.innerHTML = `&lt;strong&gt;Step 4:&lt;/strong&gt; Attach the &lt;b&gt;Liebig Condenser&lt;/b&gt;, &lt;b&gt;Receiver Adapter&lt;/b&gt;, and &lt;b&gt;Receiving Flask&lt;/b&gt;.`;
+  } else if (!completedTasks.has(&#39;hose1&#39;) || !completedTasks.has(&#39;hose2&#39;)) {
+    guideText.innerHTML = `&lt;strong&gt;Step 5:&lt;/strong&gt; Place both &lt;b&gt;Rubber Hoses&lt;/b&gt; onto the workbench.`;
+  } else if (!isPlumbingCorrect()) {
+    guideText.innerHTML = `&lt;strong&gt;Step 6:&lt;/strong&gt; Drag hose clips to connect: &lt;b&gt;Tap Spout $\\rightarrow$ Condenser Bottom Barb&lt;/b&gt; AND &lt;b&gt;Condenser Top Barb $\\rightarrow$ Sink&lt;/b&gt;.`;
+  } else {
+    completeAssembly();
+  }
+}
+
+function autoAssemble() {
+  if (!completedTasks.has(&#39;stand&#39;)) snapPartIntoPlace(&#39;stand&#39;);
+  if (!completedTasks.has(&#39;burner&#39;)) snapPartIntoPlace(&#39;burner&#39;);
+  if (!completedTasks.has(&#39;flask&#39;)) snapPartIntoPlace(&#39;flask&#39;);
+  if (!completedTasks.has(&#39;beakerPoured&#39;)) pourLiquid(&#39;salt_water&#39;);
+  setTimeout(() =&gt; {
+    [&#39;thermometer&#39;, &#39;condenser&#39;, &#39;adapter&#39;, &#39;receiver&#39;, &#39;hose1&#39;, &#39;hose2&#39;].forEach(id =&gt; {
+      if (!completedTasks.has(id)) snapPartIntoPlace(id);
+    });
+  }, 1800);
+}
+
+function completeAssembly() {
+  isAssemblyComplete = true;
+  playSound(&#39;complete&#39;);
+  document.getElementById(&#39;guide-text&#39;).innerHTML = `&lt;strong&gt;Assembly Complete!&lt;/strong&gt; Open the Water Tap and ignite the Bunsen Burner to start fractional distillation.`;
+  document.getElementById(&#39;heat-slider&#39;).disabled = false;
+  document.getElementById(&#39;btn-water-toggle&#39;).disabled = false;
+  showToast(&quot;Apparatus &amp; Plumbing fully connected!&quot;, 4000);
+}
+
+function updateHeat(val) {
+  heatLevel = parseInt(val);
+  playSound(&#39;click&#39;);
+  const labels = [&#39;OFF&#39;, &#39;LOW&#39;, &#39;MED&#39;, &#39;HIGH&#39;];
+  document.getElementById(&#39;heat-val-tag&#39;).innerText = labels[heatLevel];
+  const flameGroup = document.getElementById(&#39;flame-group&#39;);
+  if (heatLevel === 0) {
+    flameGroup.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  } else {
+    flameGroup.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+  }
+}
+
+function toggleWaterFlow() {
+  if (!isPlumbingCorrect()) {
+    showToast(&quot;Plumbing circuit incomplete! Connect hoses correctly first.&quot;);
+    return;
+  }
+  tapOpen = !tapOpen;
+  playSound(&#39;click&#39;);
+  const tag = document.getElementById(&#39;water-val-tag&#39;);
+  const btn = document.getElementById(&#39;btn-water-toggle&#39;);
+  const waterFill = document.getElementById(&#39;condenser-water-fill&#39;);
+  const sinkStream = document.getElementById(&#39;sink-water-stream&#39;);
+  const hose1Flow = document.getElementById(&#39;hose1-flow&#39;);
+  const hose2Flow = document.getElementById(&#39;hose2-flow&#39;);
+
+  if (tapOpen) {
+    tag.innerText = &#39;OPEN (Flowing)&#39;;
+    tag.style.color = &#39;var(--accent-blue)&#39;;
+    btn.innerText = &#39;Close Water Tap&#39;;
+    btn.className = &#39;btn btn-danger&#39;;
+    waterFill.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+    sinkStream.setAttribute(&#39;opacity&#39;, &#39;0.7&#39;);
+    hose1Flow.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+    hose2Flow.setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+  } else {
+    tag.innerText = &#39;CLOSED&#39;;
+    tag.style.color = &#39;var(--accent-red)&#39;;
+    btn.innerText = &#39;Open Water Tap&#39;;
+    btn.className = &#39;btn btn-primary&#39;;
+    waterFill.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+    sinkStream.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+    hose1Flow.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+    hose2Flow.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  }
+}
+
+function triggerDistillationCompletion() {
+  if (isExperimentFinished) return;
+  isExperimentFinished = true;
+  updateHeat(0);
+  document.getElementById(&#39;heat-slider&#39;).value = 0;
+
+  const tagText = document.getElementById(&#39;residue-tag-text&#39;);
+  if (tagText) tagText.textContent = `REMAINING ${selectedMixture.f2Name.toUpperCase()}`;
+  document.getElementById(&#39;blinking-salt-label-group&#39;).style.display = &#39;block&#39;;
+
+  const resPanel = document.getElementById(&#39;inline-results-panel&#39;);
+  if (resPanel) resPanel.classList.add(&#39;finished&#39;);
+  document.getElementById(&#39;res-status&#39;).textContent = &#39;FRACTION SEPARATED!&#39;;
+  document.getElementById(&#39;res-status&#39;).style.color = &#39;var(--accent-green)&#39;;
+  playSound(&#39;complete&#39;);
+  showToast(&quot;Fractional Distillation Completed! First fraction collected.&quot;, 5000);
+}
+
+function toggleLabels() {
+  labelsVisible = !labelsVisible;
+  playSound(&#39;click&#39;);
+  document.getElementById(&#39;diagram-labels&#39;).style.display = labelsVisible ? &#39;block&#39; : &#39;none&#39;;
+  document.getElementById(&#39;label-state-text&#39;).innerText = labelsVisible ? &#39;ON&#39; : &#39;OFF&#39;;
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById(&#39;sound-state-text&#39;).innerText = soundEnabled ? &#39;ON&#39; : &#39;OFF&#39;;
+}
+
+function resetLab() {
+  playSound(&#39;click&#39;);
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  completedTasks.clear();
+  isAssemblyComplete = false;
+  isExperimentFinished = false;
+  heatLevel = 0;
+  tapOpen = false;
+  currentTemp = 25.0;
+  volumeCollected = 0.0;
+  flaskWaterVolume = 100.0;
+  flameSparks = [];
+
+  document.getElementById(&#39;blinking-salt-label-group&#39;).style.display = &#39;none&#39;;
+  const resPanel = document.getElementById(&#39;inline-results-panel&#39;);
+  if (resPanel) resPanel.classList.remove(&#39;finished&#39;);
+  document.getElementById(&#39;res-mixture&#39;).textContent = &#39;None Poured&#39;;
+  document.getElementById(&#39;res-f1-name&#39;).textContent = &#39;Pending&#39;;
+  document.getElementById(&#39;res-f1-boil&#39;).textContent = &#39;-- °C&#39;;
+  document.getElementById(&#39;res-f1-vol&#39;).textContent = &#39;0 mL&#39;;
+  document.getElementById(&#39;res-f2-name&#39;).textContent = &#39;Pending&#39;;
+  document.getElementById(&#39;res-f2-boil&#39;).textContent = &#39;-- °C&#39;;
+  document.getElementById(&#39;res-f2-vol&#39;).textContent = &#39;100 mL&#39;;
+  document.getElementById(&#39;res-status&#39;).textContent = &#39;Incomplete&#39;;
+  document.getElementById(&#39;res-status&#39;).style.color = &#39;var(--text-muted)&#39;;
+  document.getElementById(&#39;distillate-name-text&#39;).textContent = &#39;Pure H₂O&#39;;
+
+  document.getElementById(&#39;heat-slider&#39;).value = 0;
+  document.getElementById(&#39;heat-slider&#39;).disabled = true;
+  document.getElementById(&#39;heat-val-tag&#39;).innerText = &#39;OFF&#39;;
+  document.getElementById(&#39;btn-water-toggle&#39;).disabled = true;
+  document.getElementById(&#39;btn-water-toggle&#39;).className = &#39;btn btn-primary&#39;;
+  document.getElementById(&#39;btn-water-toggle&#39;).innerText = &#39;Open Water Tap&#39;;
+  document.getElementById(&#39;water-val-tag&#39;).innerText = &#39;CLOSED&#39;;
+  document.getElementById(&#39;water-val-tag&#39;).style.color = &#39;var(--accent-red)&#39;;
+  document.getElementById(&#39;condenser-water-fill&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;sink-water-stream&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;hose1-flow&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;hose2-flow&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;flame-group&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;flask-liquid-body&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;flask-liquid-surface&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+  document.getElementById(&#39;salt-crystals-group&#39;).setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+
+  document.getElementById(&#39;target-PORT_COND_IN&#39;).style.display = &#39;none&#39;;
+  document.getElementById(&#39;target-PORT_COND_OUT&#39;).style.display = &#39;none&#39;;
+  document.getElementById(&#39;target-PORT_TAP&#39;).style.display = &#39;none&#39;;
+  document.getElementById(&#39;target-PORT_SINK&#39;).style.display = &#39;none&#39;;
+
+  const beaker = document.getElementById(&#39;node-beaker&#39;);
+  beaker.style.transform = &quot;translate(60px, 440px) rotate(0deg)&quot;;
+  document.getElementById(&#39;beaker-liquid-fill&#39;).setAttribute(&#39;opacity&#39;, &#39;1&#39;);
+
+  ALL_TASKS.forEach(id =&gt; {
+    if (id === &#39;beakerPoured&#39;) return;
+    const svgNode = document.getElementById(`node-${id}`);
+    if (svgNode) svgNode.style.display = &#39;none&#39;;
+    const zoneNode = document.getElementById(`zone-${id}`);
+    if (zoneNode) zoneNode.style.display = &#39;block&#39;;
+    const partCard = document.getElementById(`part-${id}`);
+    if (partCard) {
+      partCard.classList.remove(&#39;placed&#39;);
+      partCard.setAttribute(&#39;draggable&#39;, &#39;true&#39;);
+    }
+  });
+
+  [&#39;part-beaker-salt&#39;, &#39;part-beaker-ethanol&#39;, &#39;part-beaker-acetone&#39;].forEach(id =&gt; {
+    const card = document.getElementById(id);
+    if (card) {
+      card.classList.remove(&#39;placed&#39;);
+      card.setAttribute(&#39;draggable&#39;, &#39;true&#39;);
+    }
+  });
+
+  document.getElementById(&#39;boiling-bubbles&#39;).innerHTML = &#39;&#39;;
+  document.getElementById(&#39;steam-particles&#39;).innerHTML = &#39;&#39;;
+  document.getElementById(&#39;condenser-droplets&#39;).innerHTML = &#39;&#39;;
+  document.getElementById(&#39;falling-drop-group&#39;).innerHTML = &#39;&#39;;
+  const hangingDrop = document.getElementById(&#39;hanging-drop&#39;);
+  hangingDrop.setAttribute(&#39;rx&#39;, &#39;0&#39;);
+  hangingDrop.setAttribute(&#39;ry&#39;, &#39;0&#39;);
+
+  updateStepGuidance();
+  updateGauges();
+  startSimulationLoop();
+}
+
+let lastTime = performance.now();
+let wavePhase = 0;
+let hangingDropRadius = 0;
+let activeFallingDrop = null;
+let flameSparks = [];
+
+function startSimulationLoop() {
+  function loop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+    if (isAssemblyComplete &amp;&amp; !isExperimentFinished) {
+      updatePhysics(dt);
+    }
+    renderParticles(dt);
+    animateWideFlame(now);
+    updateGauges();
+    animFrameId = requestAnimationFrame(loop);
+  }
+  animFrameId = requestAnimationFrame(loop);
+}
+
+// REALISTIC WIDE FLAME ANIMATION ENGINE
+function animateWideFlame(time) {
+  if (heatLevel === 0) return;
+
+  const t = time * 0.005;
+  
+  // Base scales per heat level
+  const levelMult = (heatLevel === 1) ? 0.65 : (heatLevel === 2) ? 0.9 : 1.25;
+  const targetScaleY = levelMult;
+  const targetScaleX = 0.85 + (heatLevel * 0.35); // Wide expansion!
+
+  // Organic flickering math
+  const flickerY = Math.sin(t * 7.5) * 0.06 + Math.cos(t * 13.2) * 0.04;
+  const flickerX = Math.cos(t * 6.1) * 0.05 + Math.sin(t * 11.4) * 0.03;
+  const tilt = Math.sin(t * 4.8) * 2.2; // Flame swaying angle
+
+  const finalScaleY = targetScaleY + flickerY;
+  const finalScaleX = targetScaleX + flickerX;
+
+  const flameGroup = document.getElementById(&#39;flame-group&#39;);
+  if (flameGroup) {
+    flameGroup.setAttribute(&#39;transform&#39;, 
+      `translate(200, 440) scale(${finalScaleX}, ${finalScaleY}) rotate(${tilt}) translate(-200, -440)`
+    );
+  }
+
+  // Dynamic Ember Sparks rising from flame
+  const sparksContainer = document.getElementById(&#39;flame-sparks&#39;);
+  if (sparksContainer &amp;&amp; Math.random() &lt; (0.15 * heatLevel)) {
+    flameSparks.push({
+      x: 200 + (Math.random() * 40 - 20) * finalScaleX,
+      y: 410,
+      vx: (Math.random() - 0.5) * 25,
+      vy: -(60 + Math.random() * 80),
+      r: 1.0 + Math.random() * 2.0,
+      alpha: 1.0
+    });
+  }
+
+  let sparksHTML = &#39;&#39;;
+  for (let i = flameSparks.length - 1; i &gt;= 0; i--) {
+    let s = flameSparks[i];
+    s.x += s.vx * 0.016;
+    s.y += s.vy * 0.016;
+    s.alpha -= 0.03;
+    if (s.alpha &lt;= 0) {
+      flameSparks.splice(i, 1);
+    } else {
+      sparksHTML += `&lt;circle cx=&quot;${s.x}&quot; cy=&quot;${s.y}&quot; r=&quot;${s.r}&quot; fill=&quot;#fef08a&quot; opacity=&quot;${s.alpha}&quot; /&gt;`;
+    }
+  }
+  if (sparksContainer) sparksContainer.innerHTML = sparksHTML;
+}
+
+function updatePhysics(dt) {
+  let maxHeatTemp = 25.0;
+  if (heatLevel === 1) maxHeatTemp = 65.0;
+  if (heatLevel === 2) maxHeatTemp = 88.0;
+  if (heatLevel === 3) maxHeatTemp = 115.0;
+
+  let targetTemp = maxHeatTemp;
+  if (flaskWaterVolume &gt; (100.0 - selectedMixture.f1TargetVol) &amp;&amp; maxHeatTemp &gt;= selectedMixture.f1BoilTemp) {
+    targetTemp = selectedMixture.f1BoilTemp;
+  }
+
+  const tempRate = 4.5 * heatLevel;
+  if (currentTemp &lt; targetTemp) {
+    currentTemp += tempRate * dt;
+  } else if (currentTemp &gt; targetTemp) {
+    currentTemp -= 1.8 * dt;
+  }
+
+  if (volumeCollected &gt;= selectedMixture.f1TargetVol) {
+    triggerDistillationCompletion();
+  }
+}
+
+function updateGauges() {
+  const formattedTemp = `${currentTemp.toFixed(1)} °C`;
+  document.getElementById(&#39;temp-readout&#39;).innerText = formattedTemp;
+  document.getElementById(&#39;svg-temp-text&#39;).textContent = formattedTemp;
+
+  const mercury = document.getElementById(&#39;mercury-column&#39;);
+  if (mercury) {
+    const minY = 210, maxY = 85;
+    const clampedTemp = Math.min(105, Math.max(25, currentTemp));
+    const targetY2 = minY - ((clampedTemp - 25) / 80) * (minY - maxY);
+    mercury.setAttribute(&#39;y2&#39;, targetY2);
+  }
+
+  const liquidBody = document.getElementById(&#39;flask-liquid-body&#39;);
+  const liquidSurface = document.getElementById(&#39;flask-liquid-surface&#39;);
+  const saltCrystals = document.getElementById(&#39;salt-crystals-group&#39;);
+
+  if (completedTasks.has(&#39;beakerPoured&#39;)) {
+    const volRatio = flaskWaterVolume / 100.0;
+    const surfaceY = 390 - (volRatio * 55);
+    const halfWidth = Math.sqrt(Math.max(0, 55*55 - Math.pow(surfaceY - 335, 2)));
+
+    wavePhase += 0.08;
+    const waveOffset = Math.sin(wavePhase) * (heatLevel &gt; 0 ? 3 : 1);
+
+    if (selectedMixture.isMisciblePair) {
+      let progressRatio = Math.min(1.0, volumeCollected / selectedMixture.f1TargetVol);
+      let currentFlaskColor1 = blendHexColors(selectedMixture.liquidColor1, WATER_BLUE_1, progressRatio);
+      let currentFlaskColor2 = blendHexColors(selectedMixture.liquidColor2, WATER_BLUE_2, progressRatio);
+
+      document.getElementById(&#39;liquid-stop-1&#39;).setAttribute(&#39;stop-color&#39;, currentFlaskColor1);
+      document.getElementById(&#39;liquid-stop-2&#39;).setAttribute(&#39;stop-color&#39;, currentFlaskColor2);
+    }
+
+    liquidBody.setAttribute(&#39;d&#39;, `M ${200 - halfWidth} ${surfaceY} A 55 55 0 0 0 ${200 + halfWidth} ${surfaceY} Z`);
+    liquidSurface.setAttribute(&#39;d&#39;, `M ${200 - halfWidth} ${surfaceY} Q 200 ${surfaceY + waveOffset} ${200 + halfWidth} ${surfaceY}`);
+
+    if (!selectedMixture.isMisciblePair &amp;&amp; volumeCollected &gt; 10) {
+      saltCrystals.setAttribute(&#39;opacity&#39;, Math.min(1.0, (volumeCollected - 10) / 70.0).toString());
+    }
+  }
+
+  const liquidPath = document.getElementById(&#39;distilled-liquid&#39;);
+  if (liquidPath) {
+    const fillRatio = Math.min(1.0, volumeCollected / 100.0);
+    const baseY = 525;
+    const baseWidth = 120;
+    const maxFillHeight = 85;
+    const currentHeight = fillRatio * maxFillHeight;
+    const surfaceY = baseY - currentHeight;
+    const surfaceWidth = baseWidth - (fillRatio * 68);
+    const leftX = 700 - (surfaceWidth / 2);
+    const rightX = 700 + (surfaceWidth / 2);
+    const meniscusCurveY = surfaceY + (fillRatio &gt; 0.05 ? 3 : 0);
+
+    liquidPath.setAttribute(&#39;d&#39;,
+      `M 640 ${baseY} L 760 ${baseY} L ${rightX} ${surfaceY} Q 700 ${meniscusCurveY} ${leftX} ${surfaceY} Z`
+    );
+  }
+
+  document.getElementById(&#39;volume-readout&#39;).innerText = `${volumeCollected.toFixed(1)} mL`;
+  const pct = Math.min(100, (volumeCollected / selectedMixture.f1TargetVol) * 100);
+  document.getElementById(&#39;distill-progress-bar&#39;).style.width = `${pct}%`;
+
+  if (completedTasks.has(&#39;beakerPoured&#39;)) {
+    document.getElementById(&#39;res-f1-vol&#39;).textContent = `${volumeCollected.toFixed(1)} mL`;
+    document.getElementById(&#39;res-f2-vol&#39;).textContent = `${flaskWaterVolume.toFixed(1)} mL`;
+  }
+}
+
+let particles = { bubbles: [], steam: [], condenserDrops: [] };
+
+function renderParticles(dt) {
+  if (!isAssemblyComplete) return;
+
+  const bubbleContainer = document.getElementById(&#39;boiling-bubbles&#39;);
+  if (currentTemp &gt;= (selectedMixture.f1BoilTemp - 15) &amp;&amp; heatLevel &gt; 0 &amp;&amp; flaskWaterVolume &gt; (100.0 - selectedMixture.f1TargetVol) &amp;&amp; !isExperimentFinished) {
+    if (Math.random() &lt; (currentTemp / 90)) {
+      const volRatio = flaskWaterVolume / 100.0;
+      const surfaceY = 390 - (volRatio * 55);
+      particles.bubbles.push({
+        x: 170 + Math.random() * 60,
+        y: 380,
+        maxY: surfaceY,
+        r: 1.5 + Math.random() * 3.5,
+        speed: 25 + Math.random() * 45
+      });
+    }
+  }
+
+  let bubbleHTML = &#39;&#39;;
+  particles.bubbles.forEach((b, idx) =&gt; {
+    b.y -= b.speed * dt;
+    if (b.y &lt; b.maxY) particles.bubbles.splice(idx, 1);
+    else bubbleHTML += `&lt;circle cx=&quot;${b.x}&quot; cy=&quot;${b.y}&quot; r=&quot;${b.r}&quot; fill=&quot;rgba(255,255,255,0.7)&quot; /&gt;`;
+  });
+  if (bubbleContainer) bubbleContainer.innerHTML = bubbleHTML;
+
+  const steamContainer = document.getElementById(&#39;steam-particles&#39;);
+  if (currentTemp &gt;= (selectedMixture.f1BoilTemp - 5) &amp;&amp; heatLevel &gt; 0 &amp;&amp; flaskWaterVolume &gt; (100.0 - selectedMixture.f1TargetVol) &amp;&amp; !isExperimentFinished) {
+    if (Math.random() &lt; 0.6) {
+      particles.steam.push({
+        stage: &#39;neck&#39;,
+        x: 200 + (Math.random() * 10 - 5),
+        y: 310,
+        r: 4 + Math.random() * 5,
+        opacity: 0.65
+      });
+    }
+  }
+
+  let steamHTML = &#39;&#39;;
+  particles.steam.forEach((s, idx) =&gt; {
+    if (s.stage === &#39;neck&#39;) {
+      s.y -= 40 * dt;
+      if (s.y &lt; 220) { s.stage = &#39;arm&#39;; s.x = 210; s.y = 220; }
+    } else if (s.stage === &#39;arm&#39;) {
+      s.x += 60 * dt;
+      s.y += 15 * dt;
+      if (s.x &gt; 295) s.stage = &#39;condenser&#39;;
+    } else if (s.stage === &#39;condenser&#39;) {
+      s.x += 80 * dt;
+      s.y += 20 * dt;
+      if (tapOpen) {
+        s.opacity -= 0.02;
+        if (Math.random() &lt; 0.25) {
+          particles.condenserDrops.push({ x: s.x, y: s.y + 4, r: 2 + Math.random() * 2 });
+        }
+      }
+      if (s.x &gt; 630 || s.opacity &lt;= 0) {
+        particles.steam.splice(idx, 1);
+        return;
+      }
+    }
+    steamHTML += `&lt;circle cx=&quot;${s.x}&quot; cy=&quot;${s.y}&quot; r=&quot;${s.r}&quot; fill=&quot;rgba(248,250,252,${s.opacity})&quot; /&gt;`;
+  });
+  if (steamContainer) steamContainer.innerHTML = steamHTML;
+
+  const condenserDropContainer = document.getElementById(&#39;condenser-droplets&#39;);
+  let dropHTML = &#39;&#39;;
+  particles.condenserDrops.forEach((cd, idx) =&gt; {
+    cd.x += 50 * dt;
+    cd.y += 12.5 * dt;
+    if (cd.x &gt; 635) {
+      particles.condenserDrops.splice(idx, 1);
+      hangingDropRadius = Math.min(4.5, hangingDropRadius + 0.8);
+    } else {
+      dropHTML += `&lt;circle cx=&quot;${cd.x}&quot; cy=&quot;${cd.y}&quot; r=&quot;${cd.r}&quot; fill=&quot;${selectedMixture.distillColor1}&quot; opacity=&quot;0.8&quot; /&gt;`;
+    }
+  });
+  if (condenserDropContainer) condenserDropContainer.innerHTML = dropHTML;
+
+  const hangingDrop = document.getElementById(&#39;hanging-drop&#39;);
+  const fallingDropGroup = document.getElementById(&#39;falling-drop-group&#39;);
+
+  if (hangingDropRadius &gt; 0) {
+    hangingDrop.setAttribute(&#39;fill&#39;, selectedMixture.distillColor1);
+    hangingDrop.setAttribute(&#39;rx&#39;, (hangingDropRadius * 0.8).toFixed(1));
+    hangingDrop.setAttribute(&#39;ry&#39;, (hangingDropRadius * 1.2).toFixed(1));
+  } else {
+    hangingDrop.setAttribute(&#39;rx&#39;, &#39;0&#39;);
+    hangingDrop.setAttribute(&#39;ry&#39;, &#39;0&#39;);
+  }
+
+  if (hangingDropRadius &gt;= 4.0 &amp;&amp; !activeFallingDrop) {
+    hangingDropRadius = 0;
+    activeFallingDrop = { x: 700, y: 418, vy: 140 };
+  }
+
+  if (activeFallingDrop) {
+    activeFallingDrop.y += activeFallingDrop.vy * dt;
+    activeFallingDrop.vy += 220 * dt;
+
+    const fillRatio = Math.min(1.0, volumeCollected / 100.0);
+    const targetSurfaceY = 525 - (fillRatio * 85);
+
+    if (activeFallingDrop.y &gt;= targetSurfaceY) {
+      playSound(&#39;drip&#39;);
+      if (!isExperimentFinished) {
+        const dropVol = 1.0;
+        volumeCollected = Math.min(selectedMixture.f1TargetVol, volumeCollected + dropVol);
+        flaskWaterVolume = Math.max(100.0 - selectedMixture.f1TargetVol, 100.0 - volumeCollected);
+      }
+      triggerSurfaceRipple(targetSurfaceY);
+      activeFallingDrop = null;
+      fallingDropGroup.innerHTML = &#39;&#39;;
+    } else {
+      fallingDropGroup.innerHTML = `&lt;ellipse cx=&quot;${activeFallingDrop.x}&quot; cy=&quot;${activeFallingDrop.y}&quot; rx=&quot;2.5&quot; ry=&quot;4.5&quot; fill=&quot;${selectedMixture.distillColor1}&quot; /&gt;`;
+    }
+  }
+}
+
+function triggerSurfaceRipple(y) {
+  const ripple = document.getElementById(&#39;surface-ripple&#39;);
+  if (!ripple) return;
+  ripple.setAttribute(&#39;cy&#39;, y);
+  ripple.setAttribute(&#39;rx&#39;, &#39;4&#39;);
+  ripple.setAttribute(&#39;ry&#39;, &#39;1.5&#39;);
+  ripple.setAttribute(&#39;opacity&#39;, &#39;0.9&#39;);
+
+  let radius = 4;
+  let opacity = 0.9;
+  let rippleAnim = setInterval(() =&gt; {
+    radius += 2.5;
+    opacity -= 0.12;
+    if (opacity &lt;= 0) {
+      clearInterval(rippleAnim);
+      ripple.setAttribute(&#39;opacity&#39;, &#39;0&#39;);
+    } else {
+      ripple.setAttribute(&#39;rx&#39;, radius.toString());
+      ripple.setAttribute(&#39;ry&#39;, (radius * 0.35).toString());
+      ripple.setAttribute(&#39;opacity&#39;, opacity.toString());
+    }
+  }, 30);
+}
+
+function showToast(msg, duration = 2500) {
+  const toast = document.getElementById(&#39;toast-msg&#39;);
+  toast.innerText = msg;
+  toast.classList.add(&#39;show&#39;);
+  setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), duration);
+}
+
+window.addEventListener(&#39;load&#39;, () =&gt; {
+  renderHoses();
+  updateStepGuidance();
+  startSimulationLoop();
+});
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1783;
+  const STAGE_H = 1003;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
