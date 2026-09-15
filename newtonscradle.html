@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+<title>newton's cradle actions</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100dvh; margin: 0; padding: 0;
+    overflow: hidden; background: #070b14;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  #viewportContainer {
+    position: fixed; inset: 0; width: 100%; height: 100dvh;
+    overflow: hidden; background: #070b14;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none;
+  }
+
+  #appStage {
+    width: 1280px;
+    height: 720px;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform-style: flat;
+  }
+
+  #appStage iframe {
+    width: 100%; height: 100%; border: none; display: block;
+  }
+
+  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
+  .nav-overlay-bar {
+    position: fixed;
+    bottom: 12px; left: 12px;
+    z-index: 99990;
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .nav-overlay-bar.hidden {
+    display: none !important;
+  }
+
+  .nav-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
+    display: grid; place-items: center;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  }
+
+  .nav-btn:active {
+    transform: scale(0.92);
+    background: rgba(123, 209, 255, 0.3);
+  }
+
+  .nav-btn.active-mode {
+    background: #3b82f6; border-color: #65c9ff; color: #fff;
+  }
+
+  .nav-divider {
+    width: 1px; height: 18px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 2px;
+  }
+
+  /* UNHIDE TRIGGER BUTTON */
+  .nav-toggle-btn {
+    position: fixed;
+    bottom: 12px; left: 12px;
+    z-index: 99989;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 15, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #7bd1ff; font-size: 0.9rem;
+    display: none; place-items: center;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+
+  .nav-toggle-btn.visible {
+    display: grid !important;
+  }
+
+  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
+  .rotate-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(5, 8, 16, 0.94);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #eef3ff;
+  }
+  .rotate-card {
+    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .rotate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
+    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .rotate-icon-wrap {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
+    border: 1px solid rgba(255,255,255,0.15);
+    display: grid; place-items: center; font-size: 2.2rem;
+    margin-bottom: 4px;
+    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes phoneRotate {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  .rotate-title {
+    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, #a7b3d8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .rotate-msg {
+    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
+  }
+  .btn-rotate {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(180deg, #65c9ff, #3b82f6);
+    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
+  .btn-rotate:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<!-- ROTATE SCREEN PROMPT -->
+<div class="rotate-overlay" id="rotateOverlay">
+  <div class="rotate-card">
+    <div class="rotate-badge">Display Notice</div>
+    <div class="rotate-icon-wrap">📱</div>
+    <h2 class="rotate-title">Rotate Your Device</h2>
+    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
+    <button id="btnEnterLandscape" class="btn-rotate">
+      Enter Fullscreen Widescreen
+    </button>
+  </div>
+</div>
+
+<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
+<div class="nav-overlay-bar" id="navOverlayBar">
+  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
+  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
+  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
+  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
+  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
+  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
+  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
+  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
+</div>
+<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
+
+<!-- MAIN VIEWPORT STAGE -->
+<div id="viewportContainer">
+  <div id="appStage">
+    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Physics Lab: Newton&#39;s Cradle Simulation&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #151722;
+            --card-bg: #1c1e2d;
+            --accent-color: #00e5ff;
+            --accent-green: #00e676;
+            --accent-orange: #ff9100;
+            --accent-yellow: #ffd600;
+            --text-color: #e0e6ed;
+            --text-dim: #94a3b8;
+            --border-color: #2a2d42;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: &#39;Segoe UI&#39;, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Controls &amp; Theory Panel */
+        #sidebar {
+            width: 380px;
+            min-width: 380px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.6);
+            overflow-y: auto;
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        #sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-header {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-top: 4px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-dim);
+        }
+
+        label span {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        input[type=&quot;range&quot;] {
+            width: 100%;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 6px;
+            background-color: #23273a;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+        }
+
+        button.btn-active-freeze {
+            background-color: var(--accent-orange) !important;
+            color: #000 !important;
+            border-color: var(--accent-orange) !important;
+            box-shadow: 0 0 12px rgba(255, 145, 0, 0.5) !important;
+        }
+
+        /* Telemetry Grid */
+        .telemetry-grid {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: &#39;Consolas&#39;, &#39;Courier New&#39;, monospace;
+            font-size: 0.8rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+        }
+
+        .stat-value {
+            color: var(--accent-green);
+            font-weight: bold;
+            font-size: 0.88rem;
+        }
+
+        /* Theory Cards */
+        .theory-card {
+            background: var(--card-bg);
+            border-left: 3px solid var(--accent-color);
+            border-radius: 0 6px 6px 0;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .theory-title {
+            font-size: 0.82rem;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .theory-body {
+            font-size: 0.76rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .formula {
+            font-family: &#39;Times New Roman&#39;, serif;
+            font-style: italic;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 3px 6px;
+            border-radius: 4px;
+            color: var(--accent-orange);
+            font-size: 0.85rem;
+            display: inline-block;
+            margin: 2px 0;
+        }
+
+        /* Simulation Canvas Container */
+        #simulation-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #181b28 0%, #08090d 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .instructions {
+            position: absolute;
+            top: 20px;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            pointer-events: none;
+            background: rgba(21, 23, 34, 0.85);
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;sidebar&quot;&gt;
+        &lt;h1&gt;&lt;span&gt;⚛️&lt;/span&gt; Physics Lab&lt;/h1&gt;
+
+        &lt;!-- LIVE TELEMETRY PANEL --&gt;
+        &lt;div class=&quot;section-header&quot;&gt;Live Telemetry &amp; Measurements&lt;/div&gt;
+        &lt;div class=&quot;telemetry-grid&quot;&gt;
+            &lt;div class=&quot;stat-card&quot;&gt;
+                &lt;span class=&quot;stat-label&quot;&gt;Kinetic Energy (KE)&lt;/span&gt;
+                &lt;span id=&quot;stat-ke&quot; class=&quot;stat-value&quot;&gt;0.00 J&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;stat-card&quot;&gt;
+                &lt;span class=&quot;stat-label&quot;&gt;Potential Energy (PE)&lt;/span&gt;
+                &lt;span id=&quot;stat-pe&quot; class=&quot;stat-value&quot;&gt;0.00 J&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;stat-card&quot;&gt;
+                &lt;span class=&quot;stat-label&quot;&gt;Total Mechanical (E)&lt;/span&gt;
+                &lt;span id=&quot;stat-te&quot; class=&quot;stat-value&quot;&gt;0.00 J&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;stat-card&quot;&gt;
+                &lt;span class=&quot;stat-label&quot;&gt;Total Momentum (P)&lt;/span&gt;
+                &lt;span id=&quot;stat-p&quot; class=&quot;stat-value&quot; style=&quot;color: var(--accent-orange);&quot;&gt;0.00 Ns&lt;/span&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- LAB CONTROLS PANEL --&gt;
+        &lt;div class=&quot;section-header&quot;&gt;Experiment Parameters&lt;/div&gt;
+        
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Number of Pendulums (N): &lt;span id=&quot;val-balls&quot;&gt;5&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;input-balls&quot; min=&quot;2&quot; max=&quot;7&quot; value=&quot;5&quot; step=&quot;1&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;String Length (L): &lt;span id=&quot;val-length&quot;&gt;260 px&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;input-length&quot; min=&quot;150&quot; max=&quot;380&quot; value=&quot;260&quot; step=&quot;10&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Elasticity / Restitution (e): &lt;span id=&quot;val-elasticity&quot;&gt;0.99&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;input-elasticity&quot; min=&quot;0.70&quot; max=&quot;1.00&quot; value=&quot;0.99&quot; step=&quot;0.01&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Acceleration of Gravity (g): &lt;span id=&quot;val-gravity&quot;&gt;9.8 m/s²&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;input-gravity&quot; min=&quot;1.0&quot; max=&quot;25.0&quot; value=&quot;9.8&quot; step=&quot;0.5&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;Air Damping (Friction): &lt;span id=&quot;val-damping&quot;&gt;0.0002&lt;/span&gt;&lt;/label&gt;
+            &lt;input type=&quot;range&quot; id=&quot;input-damping&quot; min=&quot;0.0000&quot; max=&quot;0.0020&quot; value=&quot;0.0002&quot; step=&quot;0.0001&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;btn-group&quot;&gt;
+            &lt;button id=&quot;btn-freeze&quot;&gt;⏸ Freeze&lt;/button&gt;
+            &lt;button id=&quot;btn-reset&quot;&gt;Reset Setup&lt;/button&gt;
+            &lt;button id=&quot;btn-stop&quot;&gt;Stop Motion&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;!-- PHYSICS THEORY PANEL --&gt;
+        &lt;div class=&quot;section-header&quot;&gt;Physics Principles Applied&lt;/div&gt;
+
+        &lt;div class=&quot;theory-card&quot;&gt;
+            &lt;div class=&quot;theory-title&quot;&gt;1. Conservation of Linear Momentum&lt;/div&gt;
+            &lt;div class=&quot;theory-body&quot;&gt;
+                In a closed system with no external horizontal forces, total momentum remains constant during impact:
+                &lt;div class=&quot;formula&quot;&gt;P_total = ∑ m_i · v_i = Constant&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;theory-card&quot;&gt;
+            &lt;div class=&quot;theory-title&quot;&gt;2. Conservation of Mechanical Energy&lt;/div&gt;
+            &lt;div class=&quot;theory-body&quot;&gt;
+                As pendulums swing, Potential Energy converts into Kinetic Energy and back:
+                &lt;div class=&quot;formula&quot;&gt;E = ½ m v² + m g h&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;theory-card&quot;&gt;
+            &lt;div class=&quot;theory-title&quot;&gt;3. Equal Mass Wave Propagation&lt;/div&gt;
+            &lt;div class=&quot;theory-body&quot;&gt;
+                When N balls strike the row with speed &lt;em&gt;v&lt;/em&gt;, exactly N balls launch from the opposite side with speed &lt;em&gt;v&lt;/em&gt; to satisfy energy and momentum simultaneously.
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div id=&quot;simulation-container&quot;&gt;
+        &lt;div class=&quot;instructions&quot;&gt;✦ Click &amp; Drag 1, 2, or 3 balls to lift and release ✦&lt;/div&gt;
+        &lt;canvas id=&quot;canvas&quot;&gt;&lt;/canvas&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        const canvas = document.getElementById(&#39;canvas&#39;);
+        const ctx = canvas.getContext(&#39;2d&#39;);
+
+        // Global Physical Configuration
+        let config = {
+            ballCount: 5,
+            elasticity: 0.99,
+            gravity: 9.8,
+            damping: 0.0002,
+            ballRadius: 28,
+            stringLength: 260
+        };
+
+        let balls = [];
+        let draggedPivotIndex = -1;
+        let mousePos = { x: 0, y: 0 };
+        let isFrozen = false; // Freeze State Flag
+
+        // Ball / Pendulum Class
+        class Ball {
+            constructor(index) {
+                this.index = index;
+                this.mass = 1.0; // 1 kg standard mass
+                this.radius = config.ballRadius;
+                this.length = config.stringLength;
+
+                this.pivotX = 0;
+                this.pivotY = 0;
+                this.angle = 0; // Angle in radians (0 = hanging straight down)
+                this.angularVelocity = 0;
+                this.isDragged = false;
+
+                this.x = 0;
+                this.y = 0;
+            }
+
+            updatePivot(pivotX, pivotY) {
+                this.pivotX = pivotX;
+                this.pivotY = pivotY;
+                this.length = config.stringLength;
+                this.radius = config.ballRadius;
+                this.updatePosition();
+            }
+
+            updatePhysics(dt) {
+                if (this.isDragged) return;
+
+                // Pendulum Angular Acceleration: α = -(g / L) * sin(θ)
+                const gScaled = config.gravity * 160; 
+                const alpha = (-1 * gScaled / this.length) * Math.sin(this.angle);
+
+                // Euler-Cromer Numerical Integration
+                this.angularVelocity += alpha * dt;
+                this.angularVelocity *= (1 - config.damping); // Apply air resistance
+                this.angle += this.angularVelocity * dt;
+
+                this.updatePosition();
+            }
+
+            updatePosition() {
+                this.x = this.pivotX + this.length * Math.sin(this.angle);
+                this.y = this.pivotY + this.length * Math.cos(this.angle);
+            }
+
+            draw() {
+                // 1. Suspension Strings (V-shape mount)
+                ctx.beginPath();
+                ctx.moveTo(this.pivotX - 8, this.pivotY);
+                ctx.lineTo(this.x, this.y - this.radius + 3);
+                ctx.lineTo(this.pivotX + 8, this.pivotY);
+                ctx.strokeStyle = &#39;#888ea8&#39;;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // 2. Pivot Point Hinge
+                ctx.beginPath();
+                ctx.arc(this.pivotX, this.pivotY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = &#39;#00e5ff&#39;;
+                ctx.fill();
+
+                // 3. Chrome Sphere Rendering with Radial Gradient
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                let gradient = ctx.createRadialGradient(
+                    this.x - this.radius * 0.35, 
+                    this.y - this.radius * 0.35, 
+                    this.radius * 0.05, 
+                    this.x, 
+                    this.y, 
+                    this.radius
+                );
+
+                if (this.isDragged) {
+                    gradient.addColorStop(0, &#39;#ffffff&#39;);
+                    gradient.addColorStop(0.3, &#39;#00e5ff&#39;);
+                    gradient.addColorStop(0.8, &#39;#0056b3&#39;);
+                    gradient.addColorStop(1, &#39;#001e40&#39;);
+                } else {
+                    gradient.addColorStop(0, &#39;#ffffff&#39;);
+                    gradient.addColorStop(0.15, &#39;#dedede&#39;);
+                    gradient.addColorStop(0.5, &#39;#888888&#39;);
+                    gradient.addColorStop(0.85, &#39;#333333&#39;);
+                    gradient.addColorStop(1, &#39;#111111&#39;);
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.strokeStyle = &#39;#000000&#39;;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // 4. Specular Highlight
+                ctx.beginPath();
+                ctx.arc(this.x - this.radius * 0.35, this.y - this.radius * 0.35, this.radius * 0.22, 0, Math.PI * 2);
+                ctx.fillStyle = &#39;rgba(255, 255, 255, 0.65)&#39;;
+                ctx.fill();
+
+                // 5. Ball Label Badge (m1, m2, m3...)
+                ctx.fillStyle = this.isDragged ? &#39;#ffffff&#39; : &#39;#e0e6ed&#39;;
+                ctx.font = &#39;bold 11px system-ui, sans-serif&#39;;
+                ctx.textAlign = &#39;center&#39;;
+                ctx.textBaseline = &#39;middle&#39;;
+                ctx.fillText(`m${this.index + 1}`, this.x, this.y);
+            }
+        }
+
+        // DYNAMIC CENTERING &amp; LAYOUT CALCULATION
+        function getCenteredPivots() {
+            const spacing = config.ballRadius * 2;
+            const totalWidth = spacing * (config.ballCount - 1);
+            
+            // System dimensions
+            const totalSystemHeight = config.stringLength + (config.ballRadius * 2) + 40; // beam to ball base
+            
+            // Screen Centers
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Compute Top Beam Y position so setup is centered vertically
+            const pivotY = centerY - (totalSystemHeight / 2) + 20;
+            const startX = centerX - (totalWidth / 2);
+
+            return { startX, pivotY, spacing, totalWidth };
+        }
+
+        function updateLayout() {
+            const container = document.getElementById(&#39;simulation-container&#39;);
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            const layout = getCenteredPivots();
+
+            // Create or reposition balls while preserving existing swing state
+            for (let i = 0; i &lt; config.ballCount; i++) {
+                if (!balls[i]) {
+                    balls[i] = new Ball(i);
+                }
+                const pivotX = layout.startX + (i * layout.spacing);
+                balls[i].updatePivot(pivotX, layout.pivotY);
+            }
+
+            // Remove extra balls if ball count decreased
+            if (balls.length &gt; config.ballCount) {
+                balls.splice(config.ballCount);
+            }
+        }
+
+        function initSimulation() {
+            balls = [];
+            updateLayout();
+        }
+
+        window.addEventListener(&#39;resize&#39;, updateLayout);
+
+        // IMPULSE &amp; WAVE PROPAGATION COLLISION RESOLUTION
+        function resolveCollisions() {
+            const N = balls.length;
+            const e = config.elasticity;
+
+            // 1. Position Hard-Constraints: Prevent physical penetration
+            for (let i = 0; i &lt; N - 1; i++) {
+                if (balls[i].angle &gt; balls[i + 1].angle) {
+                    const avgAngle = (balls[i].angle + balls[i + 1].angle) / 2;
+                    balls[i].angle = avgAngle;
+                    balls[i + 1].angle = avgAngle;
+                }
+            }
+
+            // 2. Discrete Momentum Wave Transfer
+            for (let pass = 0; pass &lt; N; pass++) {
+                for (let i = 0; i &lt; N - 1; i++) {
+                    const b1 = balls[i];
+                    const b2 = balls[i + 1];
+
+                    const isTouching = (b2.angle - b1.angle) &lt;= 0.002;
+                    const isApproaching = b1.angularVelocity &gt; b2.angularVelocity;
+
+                    if (isTouching &amp;&amp; isApproaching) {
+                        const v1 = b1.angularVelocity;
+                        const v2 = b2.angularVelocity;
+
+                        const v1Next = ((1 - e) * v1 + (1 + e) * v2) / 2;
+                        const v2Next = ((1 + e) * v1 + (1 - e) * v2) / 2;
+
+                        b1.angularVelocity = v1Next;
+                        b2.angularVelocity = v2Next;
+                    }
+                }
+            }
+        }
+
+        // CHAINED MULTI-BALL DRAGGING MECHANIC
+        function handleDragging() {
+            if (draggedPivotIndex === -1) return;
+
+            const targetBall = balls[draggedPivotIndex];
+            const dx = mousePos.x - targetBall.pivotX;
+            const dy = mousePos.y - targetBall.pivotY;
+            
+            let draggedAngle = Math.atan2(dx, dy);
+            draggedAngle = Math.max(-Math.PI / 1.6, Math.min(Math.PI / 1.6, draggedAngle));
+
+            balls.forEach(b =&gt; b.isDragged = false);
+
+            if (draggedAngle &lt; 0) {
+                // Dragging LEFT -&gt; Drag target ball AND all balls to its left
+                for (let i = 0; i &lt;= draggedPivotIndex; i++) {
+                    balls[i].isDragged = true;
+                    balls[i].angle = draggedAngle;
+                    balls[i].angularVelocity = 0;
+                    balls[i].updatePosition();
+                }
+            } else if (draggedAngle &gt; 0) {
+                // Dragging RIGHT -&gt; Drag target ball AND all balls to its right
+                for (let i = draggedPivotIndex; i &lt; balls.length; i++) {
+                    balls[i].isDragged = true;
+                    balls[i].angle = draggedAngle;
+                    balls[i].angularVelocity = 0;
+                    balls[i].updatePosition();
+                }
+            } else {
+                targetBall.isDragged = true;
+                targetBall.angle = 0;
+                targetBall.updatePosition();
+            }
+        }
+
+        // DRAW ON-CANVAS LABELS &amp; DIAGRAM ANNOTATIONS
+        function drawAnnotationsAndLabels() {
+            if (balls.length === 0) return;
+
+            const first = balls[0];
+            const last = balls[balls.length - 1];
+
+            // A. STEEL SUPPORT BEAM &amp; BEAM LABEL
+            ctx.beginPath();
+            ctx.moveTo(first.pivotX - 50, first.pivotY);
+            ctx.lineTo(last.pivotX + 50, last.pivotY);
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = &#39;#1b1d2a&#39;;
+            ctx.lineCap = &#39;round&#39;;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(first.pivotX - 48, first.pivotY - 2);
+            ctx.lineTo(last.pivotX + 48, last.pivotY - 2);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = &#39;#4e546d&#39;;
+            ctx.stroke();
+
+            // Label: Support Rail Beam
+            ctx.fillStyle = &#39;#00e5ff&#39;;
+            ctx.font = &#39;600 11px system-ui, sans-serif&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;RIGID SUPPORT BEAM&quot;, canvas.width / 2, first.pivotY - 18);
+
+            // B. EQUILIBRIUM DASHED BASELINE
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(canvas.width / 2, first.pivotY);
+            ctx.lineTo(canvas.width / 2, first.pivotY + config.stringLength + config.ballRadius + 30);
+            ctx.strokeStyle = &#39;rgba(255, 255, 255, 0.15)&#39;;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = &#39;rgba(255, 255, 255, 0.3)&#39;;
+            ctx.font = &#39;10px monospace&#39;;
+            ctx.textAlign = &#39;center&#39;;
+            ctx.fillText(&quot;Equilibrium (θ = 0°)&quot;, canvas.width / 2, first.pivotY + config.stringLength + config.ballRadius + 42);
+
+            // C. STRING LENGTH DIMENSION ANNOTATION (L)
+            const dimX = last.pivotX + 60;
+            ctx.beginPath();
+            ctx.moveTo(dimX, last.pivotY);
+            ctx.lineTo(dimX, last.pivotY + config.stringLength);
+            ctx.strokeStyle = &#39;#ffd600&#39;;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Arrowheads for L dimension line
+            ctx.fillStyle = &#39;#ffd600&#39;;
+            ctx.beginPath();
+            ctx.moveTo(dimX, last.pivotY); ctx.lineTo(dimX - 4, last.pivotY + 8); ctx.lineTo(dimX + 4, last.pivotY + 8); ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(dimX, last.pivotY + config.stringLength); ctx.lineTo(dimX - 4, last.pivotY + config.stringLength - 8); ctx.lineTo(dimX + 4, last.pivotY + config.stringLength - 8); ctx.fill();
+
+            ctx.font = &#39;11px system-ui, sans-serif&#39;;
+            ctx.textAlign = &#39;left&#39;;
+            ctx.fillText(`L = ${(config.stringLength / 100).toFixed(1)}m`, dimX + 8, last.pivotY + (config.stringLength / 2));
+
+            // D. DYNAMIC ANGLE ARC &amp; VELOCITY VECTORS
+            balls.forEach(b =&gt; {
+                const degrees = (b.angle * (180 / Math.PI)).toFixed(1);
+                
+                // Draw Angle Arc if deflected significantly
+                if (Math.abs(b.angle) &gt; 0.05) {
+                    ctx.beginPath();
+                    ctx.arc(b.pivotX, b.pivotY, 45, Math.PI / 2, Math.PI / 2 + b.angle, b.angle &lt; 0);
+                    ctx.strokeStyle = &#39;#ffd600&#39;;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Angle degree label text
+                    ctx.fillStyle = &#39;#ffd600&#39;;
+                    ctx.font = &#39;bold 11px system-ui, sans-serif&#39;;
+                    const textAngle = (Math.PI / 2) + (b.angle / 2);
+                    const labelX = b.pivotX + 60 * Math.cos(textAngle);
+                    const labelY = b.pivotY + 60 * Math.sin(textAngle);
+                    ctx.textAlign = b.angle &gt; 0 ? &#39;left&#39; : &#39;right&#39;;
+                    ctx.fillText(`θ = ${Math.abs(degrees)}°`, labelX, labelY);
+                }
+
+                // Draw Velocity Vector Arrow if moving (or if frozen mid-motion)
+                const linearVelocity = b.angularVelocity * (b.length / 100);
+                if (Math.abs(linearVelocity) &gt; 0.05 &amp;&amp; !b.isDragged) {
+                    const arrowLength = Math.min(Math.abs(linearVelocity) * 25, 60);
+                    const direction = linearVelocity &gt; 0 ? 1 : -1;
+
+                    // Arrow line
+                    ctx.beginPath();
+                    ctx.moveTo(b.x, b.y + b.radius + 12);
+                    ctx.lineTo(b.x + (arrowLength * direction), b.y + b.radius + 12);
+                    ctx.strokeStyle = &#39;#00e676&#39;;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Arrowhead
+                    ctx.beginPath();
+                    ctx.moveTo(b.x + (arrowLength * direction), b.y + b.radius + 12);
+                    ctx.lineTo(b.x + ((arrowLength - 6) * direction), b.y + b.radius + 8);
+                    ctx.lineTo(b.x + ((arrowLength - 6) * direction), b.y + b.radius + 16);
+                    ctx.fillStyle = &#39;#00e676&#39;;
+                    ctx.fill();
+
+                    // Velocity value label
+                    ctx.fillStyle = &#39;#00e676&#39;;
+                    ctx.font = &#39;10px monospace&#39;;
+                    ctx.textAlign = &#39;center&#39;;
+                    ctx.fillText(`v = ${Math.abs(linearVelocity).toFixed(2)} m/s`, b.x, b.y + b.radius + 28);
+                }
+            });
+
+            // E. FROZEN STATE BADGE OVERLAY
+            if (isFrozen) {
+                ctx.fillStyle = &#39;#ff9100&#39;;
+                ctx.font = &#39;bold 13px system-ui, sans-serif&#39;;
+                ctx.textAlign = &#39;right&#39;;
+                ctx.fillText(&quot;⏸ SIMULATION FROZEN&quot;, canvas.width - 25, 35);
+            }
+        }
+
+        function updateTelemetry() {
+            let totalKE = 0;
+            let totalPE = 0;
+            let totalMomentum = 0;
+            const g = config.gravity;
+
+            balls.forEach(b =&gt; {
+                const v = b.angularVelocity * (b.length / 100); 
+                const ke = 0.5 * b.mass * v * v;
+                
+                const h = (b.length / 100) * (1 - Math.cos(b.angle));
+                const pe = b.mass * g * h;
+
+                totalKE += ke;
+                totalPE += pe;
+                totalMomentum += Math.abs(b.mass * v);
+            });
+
+            document.getElementById(&#39;stat-ke&#39;).innerText = totalKE.toFixed(2) + &quot; J&quot;;
+            document.getElementById(&#39;stat-pe&#39;).innerText = totalPE.toFixed(2) + &quot; J&quot;;
+            document.getElementById(&#39;stat-te&#39;).innerText = (totalKE + totalPE).toFixed(2) + &quot; J&quot;;
+            document.getElementById(&#39;stat-p&#39;).innerText = totalMomentum.toFixed(2) + &quot; Ns&quot;;
+        }
+
+        // Animation Engine Loop
+        let lastTime = performance.now();
+        function animate(currentTime) {
+            let dt = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            if (dt &gt; 0.033) dt = 0.033; // Frame clamp
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update physics ONLY if NOT frozen
+            if (!isFrozen) {
+                handleDragging();
+
+                const subSteps = 10;
+                const subDt = dt / subSteps;
+                for (let step = 0; step &lt; subSteps; step++) {
+                    balls.forEach(b =&gt; b.updatePhysics(subDt));
+                    resolveCollisions();
+                }
+            }
+
+            // Render elements
+            drawAnnotationsAndLabels();
+            balls.forEach(b =&gt; b.draw());
+            updateTelemetry();
+
+            requestAnimationFrame(animate);
+        }
+
+        // MOUSE / TOUCH INTERACTION HANDLERS
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        canvas.addEventListener(&#39;mousedown&#39;, (e) =&gt; {
+            if (isFrozen) return; // Disallow dragging while frozen
+            mousePos = getMousePos(e);
+            balls.forEach((ball, idx) =&gt; {
+                const dist = Math.hypot(mousePos.x - ball.x, mousePos.y - ball.y);
+                if (dist &lt; ball.radius + 8) {
+                    draggedPivotIndex = idx;
+                }
+            });
+        });
+
+        canvas.addEventListener(&#39;mousemove&#39;, (e) =&gt; {
+            if (draggedPivotIndex !== -1 &amp;&amp; !isFrozen) {
+                mousePos = getMousePos(e);
+            }
+        });
+
+        window.addEventListener(&#39;mouseup&#39;, () =&gt; {
+            if (draggedPivotIndex !== -1) {
+                balls.forEach(b =&gt; b.isDragged = false);
+                draggedPivotIndex = -1;
+            }
+        });
+
+        // Mobile Touch Device Support
+        canvas.addEventListener(&#39;touchstart&#39;, (e) =&gt; {
+            if (isFrozen) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            mousePos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+            balls.forEach((ball, idx) =&gt; {
+                const dist = Math.hypot(mousePos.x - ball.x, mousePos.y - ball.y);
+                if (dist &lt; ball.radius + 8) {
+                    draggedPivotIndex = idx;
+                }
+            });
+        });
+
+        canvas.addEventListener(&#39;touchmove&#39;, (e) =&gt; {
+            if (draggedPivotIndex !== -1 &amp;&amp; !isFrozen) {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                mousePos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+            }
+        });
+
+        canvas.addEventListener(&#39;touchend&#39;, () =&gt; {
+            if (draggedPivotIndex !== -1) {
+                balls.forEach(b =&gt; b.isDragged = false);
+                draggedPivotIndex = -1;
+            }
+        });
+
+        // UI PARAMETER CONTROLS
+        document.getElementById(&#39;input-balls&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            config.ballCount = parseInt(e.target.value);
+            document.getElementById(&#39;val-balls&#39;).innerText = config.ballCount;
+            updateLayout();
+        });
+
+        document.getElementById(&#39;input-length&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            config.stringLength = parseFloat(e.target.value);
+            document.getElementById(&#39;val-length&#39;).innerText = config.stringLength + &quot; px&quot;;
+            updateLayout();
+        });
+
+        document.getElementById(&#39;input-elasticity&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            config.elasticity = parseFloat(e.target.value);
+            document.getElementById(&#39;val-elasticity&#39;).innerText = config.elasticity.toFixed(2);
+        });
+
+        document.getElementById(&#39;input-gravity&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            config.gravity = parseFloat(e.target.value);
+            document.getElementById(&#39;val-gravity&#39;).innerText = config.gravity.toFixed(1) + &quot; m/s²&quot;;
+        });
+
+        document.getElementById(&#39;input-damping&#39;).addEventListener(&#39;input&#39;, (e) =&gt; {
+            config.damping = parseFloat(e.target.value);
+            document.getElementById(&#39;val-damping&#39;).innerText = config.damping.toFixed(4);
+        });
+
+        // FREEZE / UNFREEZE TOGGLE BUTTON
+        const btnFreeze = document.getElementById(&#39;btn-freeze&#39;);
+        btnFreeze.addEventListener(&#39;click&#39;, () =&gt; {
+            isFrozen = !isFrozen;
+            if (isFrozen) {
+                btnFreeze.innerText = &quot;▶ Resume&quot;;
+                btnFreeze.classList.add(&#39;btn-active-freeze&#39;);
+            } else {
+                btnFreeze.innerText = &quot;⏸ Freeze&quot;;
+                btnFreeze.classList.remove(&#39;btn-active-freeze&#39;);
+            }
+        });
+
+        document.getElementById(&#39;btn-reset&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            isFrozen = false;
+            btnFreeze.innerText = &quot;⏸ Freeze&quot;;
+            btnFreeze.classList.remove(&#39;btn-active-freeze&#39;);
+            initSimulation();
+        });
+
+        document.getElementById(&#39;btn-stop&#39;).addEventListener(&#39;click&#39;, () =&gt; {
+            balls.forEach(b =&gt; {
+                b.angle = 0;
+                b.angularVelocity = 0;
+                b.updatePosition();
+            });
+        });
+
+        // Start Physics Laboratory
+        initSimulation();
+        requestAnimationFrame(animate);
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe>
+  </div>
+</div>
+
+<script>
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const IS_CUSTOM_SCALE = false;
+  const CUSTOM_SCALE_VAL = 51.8;
+  const REQUIRE_LANDSCAPE = true;
+  const AUTO_FULLSCREEN = true;
+
+  let baseScale = 1;
+  let userZoomMultiplier = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanDragActive = false;
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let resizeTimeout = null;
+  let lastWinW = 0;
+  let lastWinH = 0;
+
+  function resizeStage() {
+    const stage = document.getElementById('appStage');
+    if (!stage) return;
+
+    const currentW = window.innerWidth;
+    const currentH = window.innerHeight;
+
+    if (IS_CUSTOM_SCALE) {
+      baseScale = CUSTOM_SCALE_VAL / 100;
+    } else {
+      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
+    }
+    const finalScale = baseScale * userZoomMultiplier;
+    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
+  }
+
+  /* NAVIGATION & ZOOM CONTROLS */
+  function navBack() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.back();
+    } catch(e) {
+      window.history.back();
+    }
+  }
+
+  function navForward() {
+    try {
+      const iframe = document.getElementById('contentFrame');
+      iframe.contentWindow.history.forward();
+    } catch(e) {
+      window.history.forward();
+    }
+  }
+
+  function zoomIn() {
+    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
+    resizeStage();
+  }
+
+  function zoomOut() {
+    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
+    resizeStage();
+  }
+
+  function panStage(dx, dy) {
+    panX += dx;
+    panY += dy;
+    resizeStage();
+  }
+
+  function resetPanAndZoom() {
+    userZoomMultiplier = 1.0;
+    panX = 0;
+    panY = 0;
+    resizeStage();
+  }
+
+  function togglePanDragMode() {
+    isPanDragActive = !isPanDragActive;
+    const btn = document.getElementById('panDragToggleBtn');
+    const iframe = document.getElementById('contentFrame');
+    const container = document.getElementById('viewportContainer');
+
+    if (isPanDragActive) {
+      btn.classList.add('active-mode');
+      iframe.style.pointerEvents = 'none';
+      container.style.cursor = 'grab';
+    } else {
+      btn.classList.remove('active-mode');
+      iframe.style.pointerEvents = 'auto';
+      container.style.cursor = 'default';
+    }
+  }
+
+  /* MOUSE & TOUCH DRAG PANNING */
+  const container = document.getElementById('viewportContainer');
+
+  container.addEventListener('pointerdown', (e) => {
+    if (!isPanDragActive) return;
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    container.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    resizeStage();
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (isPanDragActive) container.style.cursor = 'grab';
+  });
+
+  function toggleNavBar(hide) {
+    const bar = document.getElementById('navOverlayBar');
+    const toggleBtn = document.getElementById('navToggleBtn');
+    if (!bar || !toggleBtn) return;
+    if (hide) {
+      bar.classList.add('hidden');
+      toggleBtn.classList.add('visible');
+    } else {
+      bar.classList.remove('hidden');
+      toggleBtn.classList.remove('visible');
+    }
+  }
+
+  function checkOrientation() {
+    const rotateOverlay = document.getElementById('rotateOverlay');
+    if (!rotateOverlay) {
+      resizeStage();
+      return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
+    if (REQUIRE_LANDSCAPE && isPortrait) {
+      rotateOverlay.style.display = 'flex';
+    } else {
+      rotateOverlay.style.display = 'none';
+    }
+    resizeStage();
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!AUTO_FULLSCREEN) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
+  }
+
+  if (AUTO_FULLSCREEN) {
+    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
+  }
+
+  const btnLandscape = document.getElementById('btnEnterLandscape');
+  if (btnLandscape) {
+    btnLandscape.addEventListener('click', () => {
+      requestFullscreenIfPossible();
+      const rotateOverlay = document.getElementById('rotateOverlay');
+      if (rotateOverlay) rotateOverlay.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const wDiff = Math.abs(window.innerWidth - lastWinW);
+    const hDiff = Math.abs(window.innerHeight - lastWinH);
+
+    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
+    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
+
+    lastWinW = window.innerWidth;
+    lastWinH = window.innerHeight;
+
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      checkOrientation();
+      resizeStage();
+    }, 60);
+  });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      lastWinW = window.innerWidth;
+      lastWinH = window.innerHeight;
+      checkOrientation();
+      resizeStage();
+    }, 200);
+  });
+
+  lastWinW = window.innerWidth;
+  lastWinH = window.innerHeight;
+  checkOrientation();
+  resizeStage();
+</script>
+</body>
+</html>
