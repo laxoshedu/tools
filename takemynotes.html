@@ -403,7 +403,7 @@
             display: none;
         }
 
-        /* Sleek Floating Glassmorphism Toolbar - ULTRA COMPACT ICON-ONLY */
+        /* Floating Glassmorphism Toolbar */
         #toolbar {
             position: fixed;
             top: 12px;
@@ -421,8 +421,6 @@
             gap: 6px;
             z-index: 1000;
             max-width: 96vw;
-            
-            /* Native Horizontal Scroll for Mobile */
             overflow-x: auto;
             white-space: nowrap;
             touch-action: pan-x;
@@ -510,9 +508,7 @@
         }
         input[type=&quot;color&quot;]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type=&quot;color&quot;]::-webkit-color-swatch { border: 1px solid #ccc; border-radius: 50%; }
-        input[type=&quot;range&quot;] { width: 50px; }
 
-        /* Page Tools Popover Menu */
         .popover-menu {
             position: fixed;
             top: 52px;
@@ -535,7 +531,6 @@
             color: #111;
         }
 
-        /* Viewport &amp; Canvas Stack */
         #viewport {
             position: absolute;
             top: 0; left: 0;
@@ -601,43 +596,75 @@
             background: transparent;
         }
 
-        /* Draggable Textboxes &amp; Images */
+        /* TRANSPARENT &amp; BOUNDED TEXTBOX STYLING */
         .textbox-wrapper {
             position: absolute;
             z-index: 10;
-            min-width: 120px; min-height: 40px;
-            border: 1.5px dashed #2563eb;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .textbox-header {
-            height: 16px;
-            background: #2563eb;
+            min-width: 120px;
+            background: transparent;
+            border: 1px dashed transparent;
+            padding: 0;
             cursor: move;
-            border-radius: 2px 2px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 4px;
-            color: white;
-            font-size: 10px;
+            touch-action: none;
         }
 
-        .textbox-close { cursor: pointer; font-weight: bold; }
+        .textbox-wrapper:hover, .textbox-wrapper.editing {
+            border-color: #2563eb;
+        }
+
+        .textbox-delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 20;
+            border: 1.5px solid white;
+        }
+        .textbox-wrapper:hover .textbox-delete-btn { display: flex; }
+
+        .textbox-resize-handle {
+            position: absolute;
+            top: 0; right: -6px;
+            width: 12px; height: 100%;
+            cursor: ew-resize;
+            display: none;
+            z-index: 15;
+        }
+        .textbox-wrapper:hover .textbox-resize-handle { display: block; }
+        .textbox-resize-handle::after {
+            content: &#39;&#39;;
+            position: absolute;
+            top: 50%; left: 4px;
+            transform: translateY(-50%);
+            width: 4px; height: 16px;
+            background: #2563eb;
+            border-radius: 2px;
+        }
 
         .textbox-content {
             outline: none;
-            padding: 4px;
-            font-size: 16px;
+            padding: 0 4px;
             color: #000;
-            min-height: 30px;
             white-space: pre-wrap;
             word-break: break-word;
+            overflow-wrap: break-word;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            vertical-align: bottom;
         }
 
+        /* Image Box */
         .image-box {
             position: absolute;
             z-index: 9;
@@ -664,20 +691,6 @@
             border: 2px solid white;
         }
 
-        .image-crop-btn {
-            position: absolute;
-            top: -10px; left: -10px;
-            background: #1f2937;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 9px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 15;
-            border: 1.5px solid white;
-        }
-
         .image-container {
             width: 100%; height: 100%;
             overflow: hidden;
@@ -701,7 +714,6 @@
             z-index: 15;
         }
 
-        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -780,15 +792,10 @@
             &lt;div class=&quot;dash-title&quot;&gt;📚 Pro Studio Notes&lt;/div&gt;
         &lt;/div&gt;
 
-        &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;
-            &lt;!-- Dynamically populated breadcrumb items --&gt;
-        &lt;/div&gt;
+        &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;&lt;/div&gt;
 
-        &lt;div class=&quot;dash-content&quot; id=&quot;folderContentGrid&quot;&gt;
-            &lt;!-- Dynamic Folder &amp; Note Cards --&gt;
-        &lt;/div&gt;
+        &lt;div class=&quot;dash-content&quot; id=&quot;folderContentGrid&quot;&gt;&lt;/div&gt;
 
-        &lt;!-- Floating Action Button (FAB) --&gt;
         &lt;button class=&quot;fab-btn&quot; id=&quot;fabBtn&quot;&gt;➕ Create&lt;/button&gt;
         &lt;div class=&quot;fab-popover&quot; id=&quot;fabPopover&quot;&gt;
             &lt;button class=&quot;fab-option&quot; id=&quot;fabNewFolderBtn&quot;&gt;📁 Create Folder&lt;/button&gt;
@@ -798,7 +805,6 @@
 
     &lt;!-- ================= STUDIO / CANVAS NOTE VIEW ================= --&gt;
     &lt;div id=&quot;studioView&quot;&gt;
-        &lt;!-- Sleek Ultra-Compact Toolbar --&gt;
         &lt;div id=&quot;toolbar&quot;&gt;
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;button id=&quot;backToDashBtn&quot; class=&quot;back-btn&quot; title=&quot;Back to Dashboard (Auto-Saves)&quot;&gt;⬅️&lt;/button&gt;
@@ -806,7 +812,6 @@
                 &lt;div id=&quot;docTitleBadge&quot; title=&quot;Click to rename note&quot;&gt;Untitled Note&lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;!-- Icon-Only Drawing Tools --&gt;
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;button id=&quot;penBtn&quot; class=&quot;active&quot; title=&quot;Pen Tool&quot;&gt;✏️&lt;/button&gt;
                 &lt;button id=&quot;eraserBtn&quot; title=&quot;Eraser Tool&quot;&gt;🧹&lt;/button&gt;
@@ -816,9 +821,9 @@
 
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;select id=&quot;penStyle&quot; title=&quot;Pen Style&quot;&gt;
+                    &lt;option value=&quot;fountain&quot; selected&gt;Fountain (Google Keep)&lt;/option&gt;
                     &lt;option value=&quot;fineliner&quot;&gt;Fineliner&lt;/option&gt;
                     &lt;option value=&quot;ballpoint&quot;&gt;Ballpoint&lt;/option&gt;
-                    &lt;option value=&quot;fountain&quot;&gt;Fountain&lt;/option&gt;
                     &lt;option value=&quot;calligraphy&quot;&gt;Calligraphy&lt;/option&gt;
                     &lt;option value=&quot;brush&quot;&gt;Brush Pen&lt;/option&gt;
                     &lt;option value=&quot;marker&quot;&gt;Marker&lt;/option&gt;
@@ -827,7 +832,22 @@
                     &lt;option value=&quot;neon&quot;&gt;Neon Glow&lt;/option&gt;
                     &lt;option value=&quot;charcoal&quot;&gt;Charcoal&lt;/option&gt;
                 &lt;/select&gt;
-                &lt;input type=&quot;range&quot; id=&quot;sizePicker&quot; min=&quot;1&quot; max=&quot;60&quot; value=&quot;4&quot; title=&quot;Stroke Thickness&quot;&gt;
+
+                &lt;select id=&quot;sizePicker&quot; title=&quot;Ink Size&quot;&gt;
+                    &lt;option value=&quot;0.2&quot;&gt;Size 0.2&lt;/option&gt;
+                    &lt;option value=&quot;0.5&quot;&gt;Size 0.5&lt;/option&gt;
+                    &lt;option value=&quot;1&quot;&gt;Size 1&lt;/option&gt;
+                    &lt;option value=&quot;2&quot;&gt;Size 2&lt;/option&gt;
+                    &lt;option value=&quot;3&quot;&gt;Size 3&lt;/option&gt;
+                    &lt;option value=&quot;4&quot; selected&gt;Size 4&lt;/option&gt;
+                    &lt;option value=&quot;5&quot;&gt;Size 5&lt;/option&gt;
+                    &lt;option value=&quot;6&quot;&gt;Size 6&lt;/option&gt;
+                    &lt;option value=&quot;7&quot;&gt;Size 7&lt;/option&gt;
+                    &lt;option value=&quot;8&quot;&gt;Size 8&lt;/option&gt;
+                    &lt;option value=&quot;9&quot;&gt;Size 9&lt;/option&gt;
+                    &lt;option value=&quot;10&quot;&gt;Size 10&lt;/option&gt;
+                &lt;/select&gt;
+
                 &lt;div class=&quot;color-palette&quot; id=&quot;palette&quot;&gt;
                     &lt;div class=&quot;swatch active&quot; style=&quot;background: #000000;&quot; data-color=&quot;#000000&quot;&gt;&lt;/div&gt;
                     &lt;div class=&quot;swatch&quot; style=&quot;background: #2563eb;&quot; data-color=&quot;#2563eb&quot;&gt;&lt;/div&gt;
@@ -868,7 +888,6 @@
     &lt;/div&gt;
 
     &lt;!-- ================= MODALS ================= --&gt;
-    &lt;!-- New Folder Modal --&gt;
     &lt;div id=&quot;createFolderModal&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Create Folder&lt;/h3&gt;
@@ -883,7 +902,6 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- New Note Modal --&gt;
     &lt;div id=&quot;createNoteModal&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Create New Note&lt;/h3&gt;
@@ -898,7 +916,6 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- Page Setup Modal --&gt;
     &lt;div id=&quot;modalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Page &amp; Margin Setup&lt;/h3&gt;
@@ -965,7 +982,6 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- Clear/Delete Page Modal --&gt;
     &lt;div id=&quot;deleteModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Clear / Delete Page&lt;/h3&gt;
@@ -983,7 +999,6 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- Export Modal --&gt;
     &lt;div id=&quot;exportModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Export Note Options&lt;/h3&gt;
@@ -1028,9 +1043,8 @@
 
         const RENDER_SCALE = Math.max(window.devicePixelRatio || 1, 2.5);
 
-        // App Central State Tree
         let appState = {
-            currentFolderId: &#39;root&#39;, // &#39;root&#39; or folder ID
+            currentFolderId: &#39;root&#39;,
             folders: [],
             notes: []
         };
@@ -1053,7 +1067,7 @@
         let activeTool = &#39;pen&#39;;
         let currentColor = &#39;#000000&#39;;
         let strokeSize = 4;
-        let currentPenStyle = &#39;fineliner&#39;;
+        let currentPenStyle = &#39;fountain&#39;;
 
         const pagesContainer = document.getElementById(&#39;pagesContainer&#39;);
         const viewport = document.getElementById(&#39;viewport&#39;);
@@ -1077,13 +1091,10 @@
             setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
         }
 
-        // Load App Storage State
         function loadStorageTree() {
             const data = localStorage.getItem(&#39;notes_studio_app_state&#39;);
             if (data) {
-                try {
-                    appState = JSON.parse(data);
-                } catch(e) {}
+                try { appState = JSON.parse(data); } catch(e) {}
             }
         }
 
@@ -1103,7 +1114,6 @@
             folderContentGrid.innerHTML = &#39;&#39;;
             breadcrumbBar.innerHTML = &#39;&#39;;
 
-            // Render Breadcrumbs
             let path = getFolderPath(appState.currentFolderId);
             path.forEach((f, idx) =&gt; {
                 const item = document.createElement(&#39;span&#39;);
@@ -1123,11 +1133,9 @@
                 }
             });
 
-            // Filter items in current folder
             const currentFolders = appState.folders.filter(f =&gt; f.parentId === appState.currentFolderId);
             const currentNotes = appState.notes.filter(n =&gt; n.folderId === appState.currentFolderId);
 
-            // Render Folders
             currentFolders.forEach(f =&gt; {
                 const card = document.createElement(&#39;div&#39;);
                 card.className = &#39;item-card&#39;;
@@ -1155,7 +1163,6 @@
                 folderContentGrid.appendChild(card);
             });
 
-            // Render Notes
             currentNotes.forEach(n =&gt; {
                 const card = document.createElement(&#39;div&#39;);
                 card.className = &#39;item-card&#39;;
@@ -1212,7 +1219,6 @@
             appState.folders = appState.folders.filter(f =&gt; f.id !== folderId);
         }
 
-        // FAB Popover Interactions
         const fabBtn = document.getElementById(&#39;fabBtn&#39;);
         const fabPopover = document.getElementById(&#39;fabPopover&#39;);
 
@@ -1227,7 +1233,6 @@
             }
         };
 
-        // Create Folder Modal Logic
         const createFolderModal = document.getElementById(&#39;createFolderModal&#39;);
         const folderNameInput = document.getElementById(&#39;folderNameInput&#39;);
 
@@ -1252,7 +1257,6 @@
             renderDashboard();
         };
 
-        // Create Note Modal Logic &amp; DEFAULT FOLDER RULE
         const createNoteModal = document.getElementById(&#39;createNoteModal&#39;);
         const noteTitleInput = document.getElementById(&#39;noteTitleInput&#39;);
 
@@ -1272,7 +1276,6 @@
 
             let targetFolderId = appState.currentFolderId;
 
-            // DEFAULT FOLDER LOGIC: If at root or first time, create/use &quot;General Notes&quot; folder
             if (targetFolderId === &#39;root&#39;) {
                 let defaultFolder = appState.folders.find(f =&gt; f.name === &#39;General Notes&#39; &amp;&amp; f.parentId === &#39;root&#39;);
                 if (!defaultFolder) {
@@ -1311,7 +1314,6 @@
             currentDocumentTitle = note.title;
             document.getElementById(&#39;docTitleBadge&#39;).innerText = note.title;
 
-            // Load Page Settings
             if (note.pageSettings) {
                 pageSettings = Object.assign({}, note.pageSettings);
                 document.getElementById(&#39;pageSizeSelect&#39;).value = pageSettings.size;
@@ -1324,7 +1326,6 @@
                 document.getElementById(&#39;bgSelect&#39;).value = pageSettings.background;
             }
 
-            // Clear Workspace &amp; Rebuild Pages
             pagesContainer.innerHTML = &#39;&#39;;
             pages = [];
             undoStack = [];
@@ -1352,7 +1353,7 @@
                         });
                     }
                     if (pData.textBoxes) {
-                        pData.textBoxes.forEach(sTb =&gt; createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color));
+                        pData.textBoxes.forEach(sTb =&gt; createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color, sTb.width));
                     }
                 }
             }
@@ -1364,7 +1365,6 @@
             startAutoSaveTimer();
         }
 
-        // --- 1-MINUTE AUTOMATIC SAVING SYSTEM ---
         function executeNoteSave(isSilent = false) {
             if (!currentNoteId) return;
 
@@ -1381,13 +1381,12 @@
                     left: parseFloat(ib.elem.style.left) || 60,
                     top: parseFloat(ib.elem.style.top) || 60,
                     width: ib.elem.offsetWidth,
-                    height: ib.elem.offsetHeight,
-                    crop: ib.crop,
-                    isCropping: ib.isCropping
+                    height: ib.elem.offsetHeight
                 })),
                 textBoxes: p.textBoxes.map(tb =&gt; ({
                     left: parseFloat(tb.elem.style.left) || 60,
                     top: parseFloat(tb.elem.style.top) || 60,
+                    width: parseFloat(tb.elem.style.width) || 220,
                     content: tb.contentElem.innerText,
                     color: tb.contentElem.style.color || currentColor
                 }))
@@ -1402,7 +1401,6 @@
 
         function startAutoSaveTimer() {
             stopAutoSaveTimer();
-            // Auto save every 60,000ms (1 minute)
             autoSaveIntervalTimer = setInterval(() =&gt; {
                 executeNoteSave(true);
                 showToast(`Auto-saved at ${new Date().toLocaleTimeString([], {hour: &#39;2-digit&#39;, minute:&#39;2-digit&#39;})}`);
@@ -1416,7 +1414,6 @@
             }
         }
 
-        // Back to Dashboard
         document.getElementById(&#39;backToDashBtn&#39;).onclick = () =&gt; {
             executeNoteSave(true);
             stopAutoSaveTimer();
@@ -1427,7 +1424,6 @@
 
         document.getElementById(&#39;quickSaveBtn&#39;).onclick = () =&gt; executeNoteSave(false);
 
-        // Document Title Rename
         const docTitleBadge = document.getElementById(&#39;docTitleBadge&#39;);
         docTitleBadge.onclick = () =&gt; {
             const newTitle = prompt(&quot;Enter new document title:&quot;, currentDocumentTitle);
@@ -1508,6 +1504,13 @@
                 : { width: base.height, height: base.width };
         }
 
+        function getRuledLineHeight() {
+            const dims = getPageDimensions();
+            const lineCount = parseInt(pageSettings.ruledLineCount) || 25;
+            const totalSlots = lineCount + 4;
+            return dims.height / totalSlots;
+        }
+
         function applyLayoutToPage(index) {
             const page = pages[index];
             const dims = getPageDimensions();
@@ -1541,6 +1544,13 @@
 
             renderBackgroundPattern(page.bgCtx, dims.width, dims.height);
             renderMarginGuideOverlay(page.marginOverlay, dims);
+
+            const ruleH = getRuledLineHeight();
+            page.textBoxes.forEach(tb =&gt; {
+                tb.contentElem.style.fontSize = (ruleH * 0.72) + &#39;px&#39;;
+                tb.contentElem.style.lineHeight = ruleH + &#39;px&#39;;
+                tb.contentElem.style.minHeight = ruleH + &#39;px&#39;;
+            });
         }
 
         function getFirstRuledLineY(height) {
@@ -1670,7 +1680,7 @@
             switch(style) {
                 case &#39;fineliner&#39;: ctx.lineWidth = width * 0.8; ctx.globalAlpha = 1.0; break;
                 case &#39;ballpoint&#39;: ctx.lineWidth = width * 0.95; ctx.globalAlpha = 0.9; break;
-                case &#39;fountain&#39;: ctx.lineWidth = width * 1.3; ctx.globalAlpha = 0.95; break;
+                case &#39;fountain&#39;: ctx.lineWidth = width * 1.0; ctx.globalAlpha = 1.0; break;
                 case &#39;calligraphy&#39;: ctx.lineWidth = width * 2.2; ctx.lineCap = &#39;square&#39;; ctx.globalAlpha = 0.95; break;
                 case &#39;brush&#39;: ctx.lineWidth = width * 1.8; ctx.globalAlpha = 0.88; break;
                 case &#39;marker&#39;: ctx.lineWidth = width * 3.0; ctx.lineCap = &#39;butt&#39;; ctx.globalAlpha = 0.92; break;
@@ -1682,35 +1692,115 @@
 
         function renderSmoothStroke(ctx, points) {
             if (!points || points.length === 0) return;
+
+            if (currentPenStyle === &#39;fountain&#39; &amp;&amp; activeTool !== &#39;eraser&#39;) {
+                ctx.globalCompositeOperation = &#39;source-over&#39;;
+                ctx.strokeStyle = currentColor;
+                ctx.fillStyle = currentColor;
+                ctx.lineCap = &#39;round&#39;;
+                ctx.lineJoin = &#39;round&#39;;
+                ctx.globalAlpha = 1.0;
+
+                if (points.length === 1) {
+                    const startW = strokeSize * 1.0;
+                    ctx.beginPath();
+                    ctx.arc(points[0].x, points[0].y, startW / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    return;
+                }
+
+                let totalLength = 0;
+                const dists = [0];
+                for (let i = 1; i &lt; points.length; i++) {
+                    const d = Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+                    totalLength += d;
+                    dists.push(totalLength);
+                }
+
+                const minW = strokeSize * 1.0;
+                const maxW = strokeSize * 2.5;
+
+                for (let i = 1; i &lt; points.length; i++) {
+                    const p1 = points[i - 1];
+                    const p2 = points[i];
+
+                    const progress1 = totalLength &gt; 0 ? dists[i - 1] / totalLength : 0;
+                    const progress2 = totalLength &gt; 0 ? dists[i] / totalLength : 1;
+
+                    const w1 = minW + (maxW - minW) * progress1;
+                    const w2 = minW + (maxW - minW) * progress2;
+                    const currentW = (w1 + w2) / 2;
+
+                    ctx.lineWidth = currentW;
+                    ctx.beginPath();
+
+                    if (points.length === 2) {
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                    } else if (i === 1) {
+                        const midX = (p1.x + p2.x) / 2;
+                        const midY = (p1.y + p2.y) / 2;
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(midX, midY);
+                    } else if (i === points.length - 1) {
+                        const prevMidX = (points[i - 2].x + p1.x) / 2;
+                        const prevMidY = (points[i - 2].y + p1.y) / 2;
+                        ctx.moveTo(prevMidX, prevMidY);
+                        ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+                    } else {
+                        const prevMidX = (points[i - 2].x + p1.x) / 2;
+                        const prevMidY = (points[i - 2].y + p1.y) / 2;
+                        const midX = (p1.x + p2.x) / 2;
+                        const midY = (p1.y + p2.y) / 2;
+                        ctx.moveTo(prevMidX, prevMidY);
+                        ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+                    }
+                    ctx.stroke();
+                }
+                return;
+            }
+
             configurePenStyle(ctx, currentPenStyle, currentColor, strokeSize);
 
             if (points.length === 1) {
                 ctx.beginPath();
                 ctx.arc(points[0].x, points[0].y, ctx.lineWidth / 2, 0, Math.PI * 2);
-                ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+                ctx.fillStyle = ctx.strokeStyle; 
+                ctx.fill();
                 return;
             }
 
-            ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
             if (points.length === 2) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
                 ctx.lineTo(points[1].x, points[1].y);
-            } else {
-                for (let i = 1; i &lt; points.length - 1; i++) {
-                    const xc = (points[i].x + points[i + 1].x) / 2;
-                    const yc = (points[i].y + points[i + 1].y) / 2;
-                    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-                }
-                ctx.quadraticCurveTo(points[points.length - 2].x, points[points.length - 2].y, points[points.length - 1].x, points[points.length - 1].y);
+                ctx.stroke();
+                return;
             }
+
+            ctx.beginPath();
+            const firstMidX = (points[0].x + points[1].x) / 2;
+            const firstMidY = (points[0].y + points[1].y) / 2;
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(firstMidX, firstMidY);
+
+            for (let i = 1; i &lt; points.length - 1; i++) {
+                const xc = (points[i].x + points[i + 1].x) / 2;
+                const yc = (points[i].y + points[i + 1].y) / 2;
+                ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+            }
+
+            const lastIdx = points.length - 1;
+            ctx.lineTo(points[lastIdx].x, points[lastIdx].y);
             ctx.stroke();
         }
 
         function getCanvasCoords(clientX, clientY, canvas) {
             const rect = canvas.getBoundingClientRect();
-            return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+            return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale, time: Date.now() };
         }
 
-        // Pointer Gestures &amp; Dot Prevention
+        // Pointer Gestures
         viewport.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
             if (e.target.closest(&#39;.textbox-wrapper&#39;) || e.target.closest(&#39;.image-box&#39;) || e.target.closest(&#39;#toolbar&#39;) || e.target.closest(&#39;.popover-menu&#39;)) return;
             pointers.push(e);
@@ -1761,6 +1851,10 @@
                 const page = pages[activePageIndex];
                 const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
                 currentStrokePoints.push(coords);
+
+                if (preStrokeSnapshot) {
+                    page.ctx.putImageData(preStrokeSnapshot, 0, 0);
+                }
                 renderSmoothStroke(page.ctx, currentStrokePoints);
 
             } else if (pointers.length === 2) {
@@ -1810,41 +1904,131 @@
             updateTransform();
         }, { passive: false });
 
-        // Text &amp; Image Helpers
-        function createTextBox(pageIdx, x, y, initialText = &#39;&#39;, initialColor = null) {
+        // ================= TRANSPARENT BOUNDED TEXT BOX SYSTEM WITH BASELINE ALIGNMENT =================
+        function createTextBox(pageIdx, x, y, initialText = &#39;&#39;, initialColor = null, initialWidth = 220) {
             const page = pages[pageIdx];
+            const dims = getPageDimensions();
+            const ruleH = getRuledLineHeight();
+
+            let safeX = Math.max(0, Math.min(x, dims.width - 60));
+            let safeY = Math.max(0, Math.min(y, dims.height - 30));
+
             const wrapper = document.createElement(&#39;div&#39;);
             wrapper.className = &#39;textbox-wrapper&#39;;
-            wrapper.style.left = x + &#39;px&#39;; wrapper.style.top = y + &#39;px&#39;;
+            wrapper.style.left = safeX + &#39;px&#39;; 
+            wrapper.style.top = safeY + &#39;px&#39;;
+            
+            let maxAvailableWidth = dims.width - safeX;
+            let safeW = Math.min(initialWidth, maxAvailableWidth);
+            wrapper.style.width = safeW + &#39;px&#39;;
 
-            const header = document.createElement(&#39;div&#39;);
-            header.className = &#39;textbox-header&#39;;
-            header.innerHTML = `&lt;span&gt;Text&lt;/span&gt;&lt;span class=&quot;textbox-close&quot;&gt;✕&lt;/span&gt;`;
+            const deleteBtn = document.createElement(&#39;div&#39;);
+            deleteBtn.className = &#39;textbox-delete-btn&#39;;
+            deleteBtn.innerText = &#39;✕&#39;;
+
+            const resizeHandle = document.createElement(&#39;div&#39;);
+            resizeHandle.className = &#39;textbox-resize-handle&#39;;
 
             const content = document.createElement(&#39;div&#39;);
             content.className = &#39;textbox-content&#39;;
-            content.contentEditable = &#39;true&#39;;
+            content.contentEditable = &#39;false&#39;;
             content.innerText = initialText;
             content.style.color = initialColor || currentColor;
+            content.style.fontSize = (ruleH * 0.72) + &#39;px&#39;;
+            content.style.lineHeight = ruleH + &#39;px&#39;;
+            content.style.minHeight = ruleH + &#39;px&#39;;
 
-            wrapper.appendChild(header); wrapper.appendChild(content);
+            wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(resizeHandle);
+            wrapper.appendChild(content);
             page.card.appendChild(wrapper);
-            if (!initialText) content.focus();
+
+            if (!initialText) {
+                enableEditing();
+            }
 
             let isDragging = false, dragX = 0, dragY = 0;
-            header.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
-                e.stopPropagation(); isDragging = true;
+            let isResizing = false, resizeStartX = 0, startWidth = 0;
+            let lastTap = 0;
+
+            function enableEditing() {
+                wrapper.classList.add(&#39;editing&#39;);
+                content.contentEditable = &#39;true&#39;;
+                content.focus();
+            }
+
+            function disableEditing() {
+                wrapper.classList.remove(&#39;editing&#39;);
+                content.contentEditable = &#39;false&#39;;
+            }
+
+            wrapper.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                if (e.target === deleteBtn || e.target === resizeHandle) return;
+                if (content.isContentEditable) return;
+
+                e.stopPropagation();
+                const now = Date.now();
+
+                if (now - lastTap &lt; 300) {
+                    enableEditing();
+                    lastTap = 0;
+                    return;
+                }
+                lastTap = now;
+
+                isDragging = true;
                 dragX = e.clientX - wrapper.offsetLeft * scale;
                 dragY = e.clientY - wrapper.offsetTop * scale;
-                header.setPointerCapture(e.pointerId);
+                wrapper.setPointerCapture(e.pointerId);
             });
-            header.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+
+            wrapper.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
                 if (!isDragging) return;
-                wrapper.style.left = ((e.clientX - dragX) / scale) + &#39;px&#39;;
-                wrapper.style.top = ((e.clientY - dragY) / scale) + &#39;px&#39;;
+                let newX = (e.clientX - dragX) / scale;
+                let newY = (e.clientY - dragY) / scale;
+
+                let currentW = wrapper.offsetWidth;
+                let boundedX = Math.max(0, Math.min(newX, dims.width - currentW));
+                let boundedY = Math.max(0, Math.min(newY, dims.height - 30));
+
+                wrapper.style.left = boundedX + &#39;px&#39;;
+                wrapper.style.top = boundedY + &#39;px&#39;;
             });
-            header.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; header.releasePointerCapture(e.pointerId); });
-            header.querySelector(&#39;.textbox-close&#39;).onclick = () =&gt; {
+
+            wrapper.addEventListener(&#39;pointerup&#39;, (e) =&gt; { 
+                isDragging = false; 
+                try { wrapper.releasePointerCapture(e.pointerId); } catch(err){} 
+            });
+
+            resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                e.stopPropagation();
+                isResizing = true;
+                resizeStartX = e.clientX;
+                startWidth = wrapper.offsetWidth;
+                resizeHandle.setPointerCapture(e.pointerId);
+            });
+
+            resizeHandle.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+                if (!isResizing) return;
+                const dw = (e.clientX - resizeStartX) / scale;
+                let newWidth = startWidth + dw;
+
+                let currentLeft = parseFloat(wrapper.style.left) || 0;
+                let maxWidth = dims.width - currentLeft;
+                let finalWidth = Math.max(80, Math.min(newWidth, maxWidth));
+
+                wrapper.style.width = finalWidth + &#39;px&#39;;
+            });
+
+            resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
+                isResizing = false;
+                try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
+            });
+
+            content.addEventListener(&#39;blur&#39;, () =&gt; disableEditing());
+
+            deleteBtn.onclick = (e) =&gt; {
+                e.stopPropagation();
                 wrapper.remove();
                 page.textBoxes = page.textBoxes.filter(t =&gt; t.elem !== wrapper);
             };
@@ -1881,36 +2065,25 @@
 
             const deleteBtn = document.createElement(&#39;div&#39;);
             deleteBtn.className = &#39;image-delete-btn&#39;; deleteBtn.innerText = &#39;✕&#39;;
-            const cropBtn = document.createElement(&#39;div&#39;);
-            cropBtn.className = &#39;image-crop-btn&#39;; cropBtn.innerText = &#39;✂️ Crop&#39;;
 
             const container = document.createElement(&#39;div&#39;);
             container.className = &#39;image-container&#39;;
             const img = document.createElement(&#39;img&#39;);
             img.src = src;
 
-            if (savedState &amp;&amp; savedState.crop) {
-                const crop = savedState.crop;
-                img.style.clipPath = `inset(${crop.top}px ${crop.right}px ${crop.bottom}px ${crop.left}px)`;
-            }
-
             container.appendChild(img);
             const resizeHandle = document.createElement(&#39;div&#39;);
             resizeHandle.className = &#39;resize-handle&#39;;
 
-            box.appendChild(deleteBtn); box.appendChild(cropBtn);
+            box.appendChild(deleteBtn);
             box.appendChild(container); box.appendChild(resizeHandle);
             page.card.appendChild(box);
 
-            const imageEntry = {
-                elem: box, imgElem: img,
-                crop: savedState &amp;&amp; savedState.crop ? Object.assign({}, savedState.crop) : { left: 0, top: 0, right: 0, bottom: 0 },
-                isCropping: savedState ? !!savedState.isCropping : false
-            };
+            const imageEntry = { elem: box, imgElem: img };
 
             let isDragging = false, dragX = 0, dragY = 0;
             box.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
-                if (e.target === resizeHandle || e.target === deleteBtn || e.target === cropBtn) return;
+                if (e.target === resizeHandle || e.target === deleteBtn) return;
                 e.stopPropagation(); isDragging = true;
                 dragX = e.clientX - box.offsetLeft * scale;
                 dragY = e.clientY - box.offsetTop * scale;
@@ -1934,23 +2107,10 @@
                 if (!isResizing) return;
                 const dw = (e.clientX - startX) / scale;
                 const dh = (e.clientY - startY) / scale;
-                if (imageEntry.isCropping) {
-                    imageEntry.crop.right = Math.max(0, imageEntry.crop.right - dw * 0.2);
-                    imageEntry.crop.bottom = Math.max(0, imageEntry.crop.bottom - dh * 0.2);
-                    img.style.clipPath = `inset(${imageEntry.crop.top}px ${imageEntry.crop.right}px ${imageEntry.crop.bottom}px ${imageEntry.crop.left}px)`;
-                } else {
-                    box.style.width = Math.max(60, startW + dw) + &#39;px&#39;;
-                    box.style.height = Math.max(60, startH + dh) + &#39;px&#39;;
-                }
+                box.style.width = Math.max(60, startW + dw) + &#39;px&#39;;
+                box.style.height = Math.max(60, startH + dh) + &#39;px&#39;;
             });
             resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isResizing = false; try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){} });
-
-            cropBtn.onclick = (e) =&gt; {
-                e.stopPropagation();
-                imageEntry.isCropping = !imageEntry.isCropping;
-                cropBtn.style.background = imageEntry.isCropping ? &#39;#dc2626&#39; : &#39;#1f2937&#39;;
-                cropBtn.innerText = imageEntry.isCropping ? &#39;✔️ Done&#39; : &#39;✂️ Crop&#39;;
-            };
 
             deleteBtn.onclick = (e) =&gt; {
                 e.stopPropagation(); box.remove();
@@ -1991,7 +2151,7 @@
 
         swatches.forEach(s =&gt; s.onclick = () =&gt; setColor(s.dataset.color));
         colorPicker.oninput = (e) =&gt; setColor(e.target.value);
-        sizePicker.oninput = (e) =&gt; strokeSize = parseInt(e.target.value);
+        sizePicker.onchange = (e) =&gt; strokeSize = parseFloat(e.target.value);
         penStyleSelect.onchange = (e) =&gt; currentPenStyle = e.target.value;
 
         bgSelect.onchange = (e) =&gt; {
@@ -2019,7 +2179,6 @@
 
         document.getElementById(&#39;addPageBtn&#39;).onclick = () =&gt; { createNewPage(); centerPages(); pageMenuPopover.style.display = &#39;none&#39;; };
 
-        // Delete Page Modal
         const deleteModalOverlay = document.getElementById(&#39;deleteModalOverlay&#39;);
         const deletePageSelect = document.getElementById(&#39;deletePageSelect&#39;);
 
@@ -2078,7 +2237,6 @@
             }
         };
 
-        // Export Modal &amp; Functions
         const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
         document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
         document.getElementById(&#39;closeExportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;none&#39;;
@@ -2087,13 +2245,16 @@
             return (currentDocumentTitle || &#39;Handwritten_Notes&#39;).replace(/[^a-zA-Z0-9_-]/g, &#39;_&#39;) + suffix;
         }
 
+        // ================= ALPHABETIC BASELINE ALIGNED EXPORT ENGINE =================
         function renderPageToCanvas(pageIdx) {
             const page = pages[pageIdx];
             const dims = getPageDimensions();
+            const ruleH = getRuledLineHeight();
             const expCanvas = document.createElement(&#39;canvas&#39;);
             expCanvas.width = dims.width * 2; expCanvas.height = dims.height * 2;
             const ctx = expCanvas.getContext(&#39;2d&#39;); ctx.scale(2, 2);
 
+            // Draw Background Pattern
             ctx.drawImage(page.bgCanvas, 0, 0, dims.width, dims.height);
             drawMarginGuidesOnCanvas(ctx, dims);
 
@@ -2103,19 +2264,53 @@
                 ctx.strokeRect(0, 0, dims.width, dims.height);
             }
 
+            // Draw Images
             page.imageBoxes.forEach(ib =&gt; {
                 ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
             });
 
+            // Draw Ink Strokes
             ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
 
+            // Draw Text Boxes aligned to Alphabetic Baseline
             page.textBoxes.forEach(tb =&gt; {
                 const text = tb.contentElem.innerText;
                 if (text.trim().length &gt; 0) {
-                    ctx.font = &#39;16px Segoe UI, sans-serif&#39;;
+                    const fontSize = ruleH * 0.72;
+                    ctx.font = `${fontSize}px Segoe UI, sans-serif`;
                     ctx.fillStyle = tb.contentElem.style.color || &#39;#000000&#39;;
-                    text.split(&#39;\n&#39;).forEach((line, lIdx) =&gt; {
-                        ctx.fillText(line, parseFloat(tb.elem.style.left) + 4, parseFloat(tb.elem.style.top) + 16 + (lIdx * 20));
+                    ctx.textBaseline = &#39;alphabetic&#39;; // Standard baseline alignment
+
+                    const boxLeft = parseFloat(tb.elem.style.left) || 0;
+                    const boxTop = parseFloat(tb.elem.style.top) || 0;
+                    const boxWidth = (parseFloat(tb.elem.style.width) || tb.elem.offsetWidth || 220) - 8;
+
+                    const paragraphs = text.split(&#39;\n&#39;);
+                    let currentLineIndex = 0;
+
+                    paragraphs.forEach(paragraph =&gt; {
+                        const words = paragraph.split(&#39; &#39;);
+                        let currentLine = &#39;&#39;;
+
+                        words.forEach((word, index) =&gt; {
+                            const testLine = currentLine + (currentLine ? &#39; &#39; : &#39;&#39;) + word;
+                            const metrics = ctx.measureText(testLine);
+                            
+                            if (metrics.width &gt; boxWidth &amp;&amp; index &gt; 0) {
+                                let baselineY = boxTop + (currentLineIndex * ruleH) + (ruleH * 0.78);
+                                ctx.fillText(currentLine, boxLeft + 4, baselineY);
+                                currentLine = word;
+                                currentLineIndex++;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        });
+
+                        if (currentLine) {
+                            let baselineY = boxTop + (currentLineIndex * ruleH) + (ruleH * 0.78);
+                            ctx.fillText(currentLine, boxLeft + 4, baselineY);
+                            currentLineIndex++;
+                        }
                     });
                 }
             });
@@ -2172,7 +2367,6 @@
             exportModalOverlay.style.display = &#39;none&#39;;
         };
 
-        // Page Setup Modal Logic
         const modalOverlay = document.getElementById(&#39;modalOverlay&#39;);
         document.getElementById(&#39;pageSetupBtn&#39;).onclick = () =&gt; { pageMenuPopover.style.display = &#39;none&#39;; modalOverlay.style.display = &#39;flex&#39;; };
         document.getElementById(&#39;closeModalBtn&#39;).onclick = () =&gt; {
@@ -2188,7 +2382,6 @@
             modalOverlay.style.display = &#39;none&#39;;
         };
 
-        // Render Dashboard on App Load
         renderDashboard();
     &lt;/script&gt;
 &lt;/body&gt;
