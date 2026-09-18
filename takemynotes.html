@@ -259,6 +259,11 @@
             gap: 8px;
         }
 
+        .dash-actions {
+            display: flex;
+            gap: 8px;
+        }
+
         .breadcrumb {
             padding: 12px 24px;
             background: #1e2124;
@@ -285,7 +290,7 @@
             padding: 24px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
             gap: 16px;
             align-content: start;
             -webkit-overflow-scrolling: touch;
@@ -323,6 +328,15 @@
         .item-meta {
             font-size: 10px;
             color: #9ca3af;
+            margin-top: 4px;
+        }
+        .item-size-badge {
+            font-size: 9px;
+            font-weight: bold;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 2px 6px;
+            border-radius: 8px;
             margin-top: 4px;
         }
 
@@ -790,6 +804,10 @@
     &lt;div id=&quot;dashboardView&quot;&gt;
         &lt;div class=&quot;dash-header&quot;&gt;
             &lt;div class=&quot;dash-title&quot;&gt;📚 Pro Studio Notes&lt;/div&gt;
+            &lt;div class=&quot;dash-actions&quot;&gt;
+                &lt;button id=&quot;deviceOpenBtn&quot; style=&quot;background:#3b82f6; color:white;&quot;&gt;📂 Open File&lt;/button&gt;
+                &lt;button id=&quot;deviceSaveAsBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;💾 Export Native File&lt;/button&gt;
+            &lt;/div&gt;
         &lt;/div&gt;
 
         &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;&lt;/div&gt;
@@ -862,7 +880,8 @@
             &lt;/div&gt;
 
             &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo&quot;&gt;↩️&lt;/button&gt;
+                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo (Ctrl+Z)&quot;&gt;↩️&lt;/button&gt;
+                &lt;button id=&quot;redoBtn&quot; title=&quot;Redo (Ctrl+Y)&quot;&gt;↪️&lt;/button&gt;
                 &lt;button id=&quot;recenterBtn&quot; title=&quot;Recenter Workspace&quot;&gt;🎯&lt;/button&gt;
                 &lt;button id=&quot;exportModalBtn&quot; class=&quot;export-btn&quot; title=&quot;Export Note&quot;&gt;📤&lt;/button&gt;
             &lt;/div&gt;
@@ -1052,6 +1071,7 @@
         let currentNoteId = null;
         let currentDocumentTitle = null;
         let autoSaveIntervalTimer = null;
+        let activeFileHandle = null;
 
         let pageSettings = {
             size: &#39;A4&#39;,
@@ -1073,6 +1093,7 @@
         const viewport = document.getElementById(&#39;viewport&#39;);
         let pages = [];
         let undoStack = [];
+        let redoStack = [];
 
         let currentStrokePoints = [];
         let preStrokeSnapshot = null;
@@ -1091,6 +1112,25 @@
             setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
         }
 
+        // DYNAMIC FILE SIZE CALCULATOR (B, KB, MB, GB)
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return &#39;0 B&#39;;
+            const k = 1024;
+            const sizes = [&#39;B&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;, &#39;TB&#39;];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + &#39; &#39; + sizes[i];
+        }
+
+        function calculateNoteSize(note) {
+            try {
+                const str = JSON.stringify(note);
+                const bytes = new Blob([str]).size;
+                return formatBytes(bytes);
+            } catch(e) {
+                return &#39;0 B&#39;;
+            }
+        }
+
         function loadStorageTree() {
             const data = localStorage.getItem(&#39;notes_studio_app_state&#39;);
             if (data) {
@@ -1099,7 +1139,11 @@
         }
 
         function saveStorageTree() {
-            localStorage.setItem(&#39;notes_studio_app_state&#39;, JSON.stringify(appState));
+            try {
+                localStorage.setItem(&#39;notes_studio_app_state&#39;, JSON.stringify(appState));
+            } catch(e) {
+                showToast(&quot;Storage quota warning. Use Native Device Export for GB-sized files.&quot;);
+            }
         }
 
         loadStorageTree();
@@ -1166,10 +1210,12 @@
             currentNotes.forEach(n =&gt; {
                 const card = document.createElement(&#39;div&#39;);
                 card.className = &#39;item-card&#39;;
+                const sizeStr = calculateNoteSize(n);
                 card.innerHTML = `
                     &lt;div class=&quot;item-icon&quot;&gt;📝&lt;/div&gt;
                     &lt;div class=&quot;item-title&quot;&gt;${n.title}&lt;/div&gt;
                     &lt;div class=&quot;item-meta&quot;&gt;${n.pageCount || 1} Page(s)&lt;/div&gt;
+                    &lt;div class=&quot;item-size-badge&quot;&gt;${sizeStr}&lt;/div&gt;
                     &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Note&quot;&gt;✕&lt;/button&gt;
                 `;
                 card.onclick = (e) =&gt; {
@@ -1305,6 +1351,66 @@
             openNoteStudio(newNote.id);
         };
 
+        // DEVICE NATIVE FILE SYSTEM INTERACTION ENGINE (HANDLES GB DATA DIRECTLY TO DISK)
+        document.getElementById(&#39;deviceSaveAsBtn&#39;).onclick = async () =&gt; {
+            try {
+                if (&#39;showSaveFilePicker&#39; in window) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: `Notes_Backup_${Date.now()}.pstudio`,
+                        types: [{ description: &#39;Pro Studio File&#39;, accept: { &#39;application/json&#39;: [&#39;.pstudio&#39;] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(JSON.stringify(appState, null, 2));
+                    await writable.close();
+                    showToast(&quot;Exported directly to Device File System!&quot;);
+                } else {
+                    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: &#39;application/json&#39; });
+                    const a = document.createElement(&#39;a&#39;);
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `Notes_Backup_${Date.now()}.pstudio`;
+                    a.click();
+                    showToast(&quot;Downloaded File Package!&quot;);
+                }
+            } catch (err) {
+                if (err.name !== &#39;AbortError&#39;) showToast(&quot;Save to Device Failed&quot;);
+            }
+        };
+
+        document.getElementById(&#39;deviceOpenBtn&#39;).onclick = async () =&gt; {
+            try {
+                if (&#39;showOpenFilePicker&#39; in window) {
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{ description: &#39;Pro Studio File&#39;, accept: { &#39;application/json&#39;: [&#39;.pstudio&#39;, &#39;.json&#39;] } }]
+                    });
+                    const file = await handle.getFile();
+                    const text = await file.text();
+                    appState = JSON.parse(text);
+                    saveStorageTree();
+                    renderDashboard();
+                    showToast(&quot;Loaded from Device Storage!&quot;);
+                } else {
+                    const input = document.createElement(&#39;input&#39;);
+                    input.type = &#39;file&#39;;
+                    input.accept = &#39;.pstudio,.json&#39;;
+                    input.onchange = (e) =&gt; {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (evt) =&gt; {
+                            appState = JSON.parse(evt.target.result);
+                            saveStorageTree();
+                            renderDashboard();
+                            showToast(&quot;Loaded Note Package!&quot;);
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                }
+            } catch (err) {
+                if (err.name !== &#39;AbortError&#39;) showToast(&quot;Failed to open file&quot;);
+            }
+        };
+
         // ================= STUDIO WORKSPACE ENGINE =================
         function openNoteStudio(noteId) {
             currentNoteId = noteId;
@@ -1329,6 +1435,7 @@
             pagesContainer.innerHTML = &#39;&#39;;
             pages = [];
             undoStack = [];
+            redoStack = [];
 
             const count = note.pageCount || 1;
             for (let i = 0; i &lt; count; i++) {
@@ -1343,6 +1450,7 @@
                         img.onload = () =&gt; {
                             const dims = getPageDimensions();
                             pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
+                            savePageState(i, true);
                         };
                     }
                     if (pData.imageBoxes) {
@@ -1395,7 +1503,7 @@
             saveStorageTree();
 
             if (!isSilent) {
-                showToast(`Saved to &quot;${currentDocumentTitle}&quot;`);
+                showToast(`Saved (${calculateNoteSize(note)})`);
             }
         }
 
@@ -1403,8 +1511,7 @@
             stopAutoSaveTimer();
             autoSaveIntervalTimer = setInterval(() =&gt; {
                 executeNoteSave(true);
-                showToast(`Auto-saved at ${new Date().toLocaleTimeString([], {hour: &#39;2-digit&#39;, minute:&#39;2-digit&#39;})}`);
-            }, 60000);
+            }, 30000); // Reliable background auto-save loop
         }
 
         function stopAutoSaveTimer() {
@@ -2216,14 +2323,20 @@
             deleteModalOverlay.style.display = &#39;none&#39;;
         };
 
-        function savePageState(pageIdx) {
-            if (undoStack.length &gt; 30) undoStack.shift();
+        // DEDICATED UNDO &amp; REDO ENGINE
+        function savePageState(pageIdx, isInitial = false) {
+            if (undoStack.length &gt; 40) undoStack.shift();
             undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
+            if (!isInitial) {
+                redoStack = []; // Clear redo timeline on new actions
+            }
         }
 
-        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; {
+        function performUndo() {
             if (undoStack.length &gt; 1) {
-                undoStack.pop();
+                const currentState = undoStack.pop();
+                redoStack.push(currentState);
+
                 const lastState = undoStack[undoStack.length - 1];
                 const page = pages[lastState.pageIndex];
                 if (page) {
@@ -2235,7 +2348,39 @@
                     };
                 }
             }
-        };
+        }
+
+        function performRedo() {
+            if (redoStack.length &gt; 0) {
+                const nextState = redoStack.pop();
+                undoStack.push(nextState);
+
+                const page = pages[nextState.pageIndex];
+                if (page) {
+                    const img = new Image(); img.src = nextState.data;
+                    img.onload = () =&gt; {
+                        const dims = getPageDimensions();
+                        page.ctx.clearRect(0, 0, dims.width, dims.height);
+                        page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
+                    };
+                }
+            }
+        }
+
+        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; performUndo();
+        document.getElementById(&#39;redoBtn&#39;).onclick = () =&gt; performRedo();
+
+        // Keyboard Shortcuts for Undo/Redo
+        window.addEventListener(&#39;keydown&#39;, (e) =&gt; {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === &#39;z&#39; || e.key === &#39;Z&#39;) {
+                    if (e.shiftKey) performRedo();
+                    else performUndo();
+                } else if (e.key === &#39;y&#39; || e.key === &#39;Y&#39;) {
+                    performRedo();
+                }
+            }
+        });
 
         const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
         document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
@@ -2279,7 +2424,7 @@
                     const fontSize = ruleH * 0.72;
                     ctx.font = `${fontSize}px Segoe UI, sans-serif`;
                     ctx.fillStyle = tb.contentElem.style.color || &#39;#000000&#39;;
-                    ctx.textBaseline = &#39;alphabetic&#39;; // Standard baseline alignment
+                    ctx.textBaseline = &#39;alphabetic&#39;;
 
                     const boxLeft = parseFloat(tb.elem.style.left) || 0;
                     const boxTop = parseFloat(tb.elem.style.top) || 0;
