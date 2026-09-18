@@ -1,218 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes</title>
-<style>
-  * { box-sizing: border-box; }
-  html, body {
-    width: 100%; height: 100dvh; margin: 0; padding: 0;
-    overflow: hidden; background: #070b14;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    user-select: none; -webkit-user-select: none;
-  }
-
-  #viewportContainer {
-    position: fixed; inset: 0; width: 100%; height: 100dvh;
-    overflow: hidden; background: #070b14;
-    display: flex; align-items: center; justify-content: center;
-    touch-action: none;
-  }
-
-  #appStage {
-    width: 1280px;
-    height: 720px;
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%) scale(1);
-    transform-origin: center center;
-    background: transparent;
-    overflow: hidden;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transform-style: flat;
-  }
-
-  #appStage iframe {
-    width: 100%; height: 100%; border: none; display: block;
-  }
-
-  /* FLOATING MOBILE NAVIGATION, PAN & ZOOM BAR */
-  .nav-overlay-bar {
-    position: fixed;
-    top: 12px; right: 12px;
-    z-index: 99990;
-    display: flex; align-items: center; gap: 4px;
-    background: rgba(10, 15, 26, 0.88);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 99px;
-    padding: 4px 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-
-  .nav-overlay-bar.hidden {
-    display: none !important;
-  }
-
-  .nav-btn {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
-    color: #eef3ff; font-size: 0.8rem; font-weight: bold;
-    display: grid; place-items: center;
-    cursor: pointer; user-select: none;
-    transition: background 0.15s, transform 0.1s, border-color 0.15s;
-  }
-
-  .nav-btn:active {
-    transform: scale(0.92);
-    background: rgba(123, 209, 255, 0.3);
-  }
-
-  .nav-btn.active-mode {
-    background: #3b82f6; border-color: #65c9ff; color: #fff;
-  }
-
-  .nav-divider {
-    width: 1px; height: 18px;
-    background: rgba(255, 255, 255, 0.2);
-    margin: 0 2px;
-  }
-
-  /* UNHIDE TRIGGER BUTTON */
-  .nav-toggle-btn {
-    position: fixed;
-    top: 12px; right: 12px;
-    z-index: 99989;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(10, 15, 26, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: #7bd1ff; font-size: 0.9rem;
-    display: none; place-items: center;
-    cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-  }
-
-  .nav-toggle-btn.visible {
-    display: grid !important;
-  }
-
-  /* HIGH-END PROFESSIONAL ROTATE OVERLAY */
-  .rotate-overlay {
-    position: fixed; inset: 0; z-index: 99999;
-    background: rgba(5, 8, 16, 0.94);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    display: none; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center; padding: 24px; color: #eef3ff;
-  }
-  .rotate-card {
-    width: min(440px, 90vw); padding: 36px 28px; border-radius: 24px;
-    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
-  }
-  .rotate-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 12px; border-radius: 99px;
-    background: rgba(123, 209, 255, 0.12); border: 1px solid rgba(123, 209, 255, 0.3);
-    color: #7bd1ff; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
-  }
-  .rotate-icon-wrap {
-    width: 72px; height: 72px; border-radius: 20px;
-    background: linear-gradient(135deg, rgba(123,209,255,0.2), rgba(181,140,255,0.1));
-    border: 1px solid rgba(255,255,255,0.15);
-    display: grid; place-items: center; font-size: 2.2rem;
-    margin-bottom: 4px;
-    animation: phoneRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  }
-  @keyframes phoneRotate {
-    0%, 15% { transform: rotate(0deg); }
-    45%, 65% { transform: rotate(90deg); }
-    90%, 100% { transform: rotate(0deg); }
-  }
-  .rotate-title {
-    margin: 0; font-size: 1.35rem; font-weight: 800; letter-spacing: -0.3px;
-    background: linear-gradient(135deg, #ffffff, #a7b3d8);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .rotate-msg {
-    margin: 0; color: #94a3b8; font-size: 0.92rem; line-height: 1.5; font-weight: 450;
-  }
-  .btn-rotate {
-    width: 100%; padding: 14px; border-radius: 12px; border: none;
-    background: linear-gradient(180deg, #65c9ff, #3b82f6);
-    color: #061225; font-weight: 800; font-size: 0.95rem; cursor: pointer;
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .btn-rotate:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(59, 130, 246, 0.45); }
-  .btn-rotate:active { transform: translateY(1px); }
-</style>
-</head>
-<body>
-
-<!-- ROTATE SCREEN PROMPT -->
-<div class="rotate-overlay" id="rotateOverlay">
-  <div class="rotate-card">
-    <div class="rotate-badge">Display Notice</div>
-    <div class="rotate-icon-wrap">📱</div>
-    <h2 class="rotate-title">Rotate Your Device</h2>
-    <p class="rotate-msg">Please rotate your device to Landscape Mode to experience the full widescreen application interface.</p>
-    <button id="btnEnterLandscape" class="btn-rotate">
-      Enter Fullscreen Widescreen
-    </button>
-  </div>
-</div>
-
-<!-- FLOATING MOBILE NAVIGATION, PAN & ZOOM OVERLAY -->
-<div class="nav-overlay-bar" id="navOverlayBar">
-  <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
-  <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
-  <div class="nav-divider"></div>
-  <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
-  <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
-  <div class="nav-btn" onclick="resetPanAndZoom()" title="Reset Screen">1:1</div>
-  <div class="nav-divider"></div>
-  <div class="nav-btn" onclick="panStage(0, -60)" title="Pan Up">⬆</div>
-  <div class="nav-btn" onclick="panStage(0, 60)" title="Pan Down">⬇</div>
-  <div class="nav-btn" onclick="panStage(-60, 0)" title="Pan Left">⬅</div>
-  <div class="nav-btn" onclick="panStage(60, 0)" title="Pan Right">➡</div>
-  <div class="nav-btn" id="panDragToggleBtn" onclick="togglePanDragMode()" title="Drag Pan Mode">🖐️</div>
-  <div class="nav-divider"></div>
-  <div class="nav-btn" onclick="toggleNavBar(true)" title="Hide Controls">✕</div>
-</div>
-<div class="nav-toggle-btn" id="navToggleBtn" onclick="toggleNavBar(false)" title="Show Controls">⚙️</div>
-
-<!-- MAIN VIEWPORT STAGE -->
-<div id="viewportContainer">
-  <div id="appStage">
-    <iframe id="contentFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads" srcdoc="&lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-    &lt;meta charset=&quot;UTF-8&quot;&gt;
-    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;&gt;
-    &lt;title&gt;Pro Handwriting Notes Studio&lt;/title&gt;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Handwriting Notes Studio</title>
     
-    &lt;!-- jsPDF Library for Multi-Page PDF Export --&gt;
-    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js&quot;&gt;&lt;/script&gt;
+    <!-- jsPDF Library for Multi-Page PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    &lt;style&gt;
+    <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: &#39;Segoe UI&#39;, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -511,7 +312,7 @@
         }
         .swatch.active { border: 2px solid #000; transform: scale(1.2); }
 
-        input[type=&quot;color&quot;] {
+        input[type="color"] {
             -webkit-appearance: none;
             border: none;
             width: 20px;
@@ -520,8 +321,8 @@
             cursor: pointer;
             background: none;
         }
-        input[type=&quot;color&quot;]::-webkit-color-swatch-wrapper { padding: 0; }
-        input[type=&quot;color&quot;]::-webkit-color-swatch { border: 1px solid #ccc; border-radius: 50%; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid #ccc; border-radius: 50%; }
 
         .popover-menu {
             position: fixed;
@@ -610,7 +411,7 @@
             background: transparent;
         }
 
-        /* TRANSPARENT &amp; BOUNDED TEXTBOX STYLING */
+        /* TRANSPARENT & BOUNDED TEXTBOX STYLING */
         .textbox-wrapper {
             position: absolute;
             z-index: 10;
@@ -656,7 +457,7 @@
         }
         .textbox-wrapper:hover .textbox-resize-handle { display: block; }
         .textbox-resize-handle::after {
-            content: &#39;&#39;;
+            content: '';
             position: absolute;
             top: 50%; left: 4px;
             transform: translateY(-50%);
@@ -796,264 +597,267 @@
             z-index: 4000;
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
-    &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
+    </style>
+</head>
+<body>
 
-    &lt;!-- ================= DASHBOARD / FOLDER EXPLORER VIEW ================= --&gt;
-    &lt;div id=&quot;dashboardView&quot;&gt;
-        &lt;div class=&quot;dash-header&quot;&gt;
-            &lt;div class=&quot;dash-title&quot;&gt;📚 Pro Studio Notes&lt;/div&gt;
-            &lt;div class=&quot;dash-actions&quot;&gt;
-                &lt;button id=&quot;deviceOpenBtn&quot; style=&quot;background:#3b82f6; color:white;&quot;&gt;📂 Open File&lt;/button&gt;
-                &lt;button id=&quot;deviceSaveAsBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;💾 Export Native File&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
+    <!-- Native Storage File Selection Picker (Direct Permission Execution) -->
+    <input type="file" id="nativeFileInput" accept=".pstudio,.json" style="display:none;">
 
-        &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;&lt;/div&gt;
+    <!-- ================= DASHBOARD / FOLDER EXPLORER VIEW ================= -->
+    <div id="dashboardView">
+        <div class="dash-header">
+            <div class="dash-title">📚 Pro Studio Notes</div>
+            <div class="dash-actions">
+                <button id="deviceOpenBtn" style="background:#3b82f6; color:white;">📂 Open File</button>
+                <button id="deviceSaveAsBtn" style="background:#059669; color:white;">💾 Export Native File</button>
+            </div>
+        </div>
 
-        &lt;div class=&quot;dash-content&quot; id=&quot;folderContentGrid&quot;&gt;&lt;/div&gt;
+        <div class="breadcrumb" id="breadcrumbBar"></div>
 
-        &lt;button class=&quot;fab-btn&quot; id=&quot;fabBtn&quot;&gt;➕ Create&lt;/button&gt;
-        &lt;div class=&quot;fab-popover&quot; id=&quot;fabPopover&quot;&gt;
-            &lt;button class=&quot;fab-option&quot; id=&quot;fabNewFolderBtn&quot;&gt;📁 Create Folder&lt;/button&gt;
-            &lt;button class=&quot;fab-option&quot; id=&quot;fabNewNoteBtn&quot;&gt;📝 Create Note&lt;/button&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+        <div class="dash-content" id="folderContentGrid"></div>
 
-    &lt;!-- ================= STUDIO / CANVAS NOTE VIEW ================= --&gt;
-    &lt;div id=&quot;studioView&quot;&gt;
-        &lt;div id=&quot;toolbar&quot;&gt;
-            &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;backToDashBtn&quot; class=&quot;back-btn&quot; title=&quot;Back to Dashboard (Auto-Saves)&quot;&gt;⬅️&lt;/button&gt;
-                &lt;button id=&quot;quickSaveBtn&quot; class=&quot;save-btn&quot; title=&quot;Save Note&quot;&gt;💾&lt;/button&gt;
-                &lt;div id=&quot;docTitleBadge&quot; title=&quot;Click to rename note&quot;&gt;Untitled Note&lt;/div&gt;
-            &lt;/div&gt;
+        <button class="fab-btn" id="fabBtn">➕ Create</button>
+        <div class="fab-popover" id="fabPopover">
+            <button class="fab-option" id="fabNewFolderBtn">📁 Create Folder</button>
+            <button class="fab-option" id="fabNewNoteBtn">📝 Create Note</button>
+        </div>
+    </div>
 
-            &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;penBtn&quot; class=&quot;active&quot; title=&quot;Pen Tool&quot;&gt;✏️&lt;/button&gt;
-                &lt;button id=&quot;eraserBtn&quot; title=&quot;Eraser Tool&quot;&gt;🧹&lt;/button&gt;
-                &lt;button id=&quot;textBtn&quot; title=&quot;Add Text Box&quot;&gt;🔤&lt;/button&gt;
-                &lt;button id=&quot;imgBtn&quot; title=&quot;Add Image&quot;&gt;🖼️&lt;/button&gt;
-            &lt;/div&gt;
+    <!-- ================= STUDIO / CANVAS NOTE VIEW ================= -->
+    <div id="studioView">
+        <div id="toolbar">
+            <div class="tool-group">
+                <button id="backToDashBtn" class="back-btn" title="Back to Dashboard (Auto-Saves)">⬅️</button>
+                <button id="quickSaveBtn" class="save-btn" title="Save Note">💾</button>
+                <div id="docTitleBadge" title="Click to rename note">Untitled Note</div>
+            </div>
 
-            &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;select id=&quot;penStyle&quot; title=&quot;Pen Style&quot;&gt;
-                    &lt;option value=&quot;fountain&quot; selected&gt;Fountain (Google Keep)&lt;/option&gt;
-                    &lt;option value=&quot;fineliner&quot;&gt;Fineliner&lt;/option&gt;
-                    &lt;option value=&quot;ballpoint&quot;&gt;Ballpoint&lt;/option&gt;
-                    &lt;option value=&quot;calligraphy&quot;&gt;Calligraphy&lt;/option&gt;
-                    &lt;option value=&quot;brush&quot;&gt;Brush Pen&lt;/option&gt;
-                    &lt;option value=&quot;marker&quot;&gt;Marker&lt;/option&gt;
-                    &lt;option value=&quot;highlighter&quot;&gt;Highlighter&lt;/option&gt;
-                    &lt;option value=&quot;pencil&quot;&gt;Pencil&lt;/option&gt;
-                    &lt;option value=&quot;neon&quot;&gt;Neon Glow&lt;/option&gt;
-                    &lt;option value=&quot;charcoal&quot;&gt;Charcoal&lt;/option&gt;
-                &lt;/select&gt;
+            <div class="tool-group">
+                <button id="penBtn" class="active" title="Pen Tool">✏️</button>
+                <button id="eraserBtn" title="Eraser Tool">🧹</button>
+                <button id="textBtn" title="Add Text Box">🔤</button>
+                <button id="imgBtn" title="Add Image">🖼️</button>
+            </div>
 
-                &lt;select id=&quot;sizePicker&quot; title=&quot;Ink Size&quot;&gt;
-                    &lt;option value=&quot;0.2&quot;&gt;Size 0.2&lt;/option&gt;
-                    &lt;option value=&quot;0.5&quot;&gt;Size 0.5&lt;/option&gt;
-                    &lt;option value=&quot;1&quot;&gt;Size 1&lt;/option&gt;
-                    &lt;option value=&quot;2&quot;&gt;Size 2&lt;/option&gt;
-                    &lt;option value=&quot;3&quot;&gt;Size 3&lt;/option&gt;
-                    &lt;option value=&quot;4&quot; selected&gt;Size 4&lt;/option&gt;
-                    &lt;option value=&quot;5&quot;&gt;Size 5&lt;/option&gt;
-                    &lt;option value=&quot;6&quot;&gt;Size 6&lt;/option&gt;
-                    &lt;option value=&quot;7&quot;&gt;Size 7&lt;/option&gt;
-                    &lt;option value=&quot;8&quot;&gt;Size 8&lt;/option&gt;
-                    &lt;option value=&quot;9&quot;&gt;Size 9&lt;/option&gt;
-                    &lt;option value=&quot;10&quot;&gt;Size 10&lt;/option&gt;
-                &lt;/select&gt;
+            <div class="tool-group">
+                <select id="penStyle" title="Pen Style">
+                    <option value="fountain" selected>Fountain (Google Keep)</option>
+                    <option value="fineliner">Fineliner</option>
+                    <option value="ballpoint">Ballpoint</option>
+                    <option value="calligraphy">Calligraphy</option>
+                    <option value="brush">Brush Pen</option>
+                    <option value="marker">Marker</option>
+                    <option value="highlighter">Highlighter</option>
+                    <option value="pencil">Pencil</option>
+                    <option value="neon">Neon Glow</option>
+                    <option value="charcoal">Charcoal</option>
+                </select>
 
-                &lt;div class=&quot;color-palette&quot; id=&quot;palette&quot;&gt;
-                    &lt;div class=&quot;swatch active&quot; style=&quot;background: #000000;&quot; data-color=&quot;#000000&quot;&gt;&lt;/div&gt;
-                    &lt;div class=&quot;swatch&quot; style=&quot;background: #2563eb;&quot; data-color=&quot;#2563eb&quot;&gt;&lt;/div&gt;
-                    &lt;div class=&quot;swatch&quot; style=&quot;background: #059669;&quot; data-color=&quot;#059669&quot;&gt;&lt;/div&gt;
-                    &lt;div class=&quot;swatch&quot; style=&quot;background: #dc2626;&quot; data-color=&quot;#dc2626&quot;&gt;&lt;/div&gt;
-                    &lt;input type=&quot;color&quot; id=&quot;colorPicker&quot; value=&quot;#000000&quot; title=&quot;Custom Color&quot;&gt;
-                &lt;/div&gt;
-            &lt;/div&gt;
+                <select id="sizePicker" title="Ink Size">
+                    <option value="0.2">Size 0.2</option>
+                    <option value="0.5">Size 0.5</option>
+                    <option value="1">Size 1</option>
+                    <option value="2">Size 2</option>
+                    <option value="3">Size 3</option>
+                    <option value="4" selected>Size 4</option>
+                    <option value="5">Size 5</option>
+                    <option value="6">Size 6</option>
+                    <option value="7">Size 7</option>
+                    <option value="8">Size 8</option>
+                    <option value="9">Size 9</option>
+                    <option value="10">Size 10</option>
+                </select>
 
-            &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;pageMenuToggleBtn&quot;&gt;📄 Pages ▼&lt;/button&gt;
-            &lt;/div&gt;
+                <div class="color-palette" id="palette">
+                    <div class="swatch active" style="background: #000000;" data-color="#000000"></div>
+                    <div class="swatch" style="background: #2563eb;" data-color="#2563eb"></div>
+                    <div class="swatch" style="background: #059669;" data-color="#059669"></div>
+                    <div class="swatch" style="background: #dc2626;" data-color="#dc2626"></div>
+                    <input type="color" id="colorPicker" value="#000000" title="Custom Color">
+                </div>
+            </div>
 
-            &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo (Ctrl+Z)&quot;&gt;↩️&lt;/button&gt;
-                &lt;button id=&quot;redoBtn&quot; title=&quot;Redo (Ctrl+Y)&quot;&gt;↪️&lt;/button&gt;
-                &lt;button id=&quot;recenterBtn&quot; title=&quot;Recenter Workspace&quot;&gt;🎯&lt;/button&gt;
-                &lt;button id=&quot;exportModalBtn&quot; class=&quot;export-btn&quot; title=&quot;Export Note&quot;&gt;📤&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
+            <div class="tool-group">
+                <button id="pageMenuToggleBtn">📄 Pages ▼</button>
+            </div>
 
-        &lt;div id=&quot;pageMenuPopover&quot; class=&quot;popover-menu&quot;&gt;
-            &lt;select id=&quot;bgSelect&quot; title=&quot;Page Pattern&quot;&gt;
-                &lt;option value=&quot;bg-blank&quot;&gt;Blank Page&lt;/option&gt;
-                &lt;option value=&quot;bg-ruled&quot;&gt;Ruled Lines&lt;/option&gt;
-                &lt;option value=&quot;bg-grid&quot;&gt;Grid Pattern&lt;/option&gt;
-                &lt;option value=&quot;bg-dotted&quot;&gt;Dotted Pattern&lt;/option&gt;
-            &lt;/select&gt;
-            &lt;button id=&quot;pageSetupBtn&quot;&gt;⚙️ Page Setup&lt;/button&gt;
-            &lt;button id=&quot;addPageBtn&quot; style=&quot;color: #059669;&quot;&gt;➕ Add Page&lt;/button&gt;
-            &lt;button id=&quot;deletePageModalBtn&quot; style=&quot;color: #dc2626;&quot;&gt;🗑️ Delete Page&lt;/button&gt;
-        &lt;/div&gt;
+            <div class="tool-group">
+                <button id="undoBtn" title="Undo (Ctrl+Z)">↩️</button>
+                <button id="redoBtn" title="Redo (Ctrl+Y)">↪️</button>
+                <button id="recenterBtn" title="Recenter Workspace">🎯</button>
+                <button id="exportModalBtn" class="export-btn" title="Export Note">📤</button>
+            </div>
+        </div>
 
-        &lt;input type=&quot;file&quot; id=&quot;imageInput&quot; accept=&quot;image/*&quot; style=&quot;display:none;&quot;&gt;
+        <div id="pageMenuPopover" class="popover-menu">
+            <select id="bgSelect" title="Page Pattern">
+                <option value="bg-blank">Blank Page</option>
+                <option value="bg-ruled">Ruled Lines</option>
+                <option value="bg-grid">Grid Pattern</option>
+                <option value="bg-dotted">Dotted Pattern</option>
+            </select>
+            <button id="pageSetupBtn">⚙️ Page Setup</button>
+            <button id="addPageBtn" style="color: #059669;">➕ Add Page</button>
+            <button id="deletePageModalBtn" style="color: #dc2626;">🗑️ Delete Page</button>
+        </div>
 
-        &lt;div id=&quot;viewport&quot;&gt;
-            &lt;div id=&quot;pagesContainer&quot;&gt;&lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+        <input type="file" id="imageInput" accept="image/*" style="display:none;">
 
-    &lt;!-- ================= MODALS ================= --&gt;
-    &lt;div id=&quot;createFolderModal&quot; class=&quot;modal-overlay&quot;&gt;
-        &lt;div class=&quot;modal&quot;&gt;
-            &lt;h3&gt;Create Folder&lt;/h3&gt;
-            &lt;div class=&quot;modal-field&quot;&gt;
-                &lt;label&gt;Folder Name&lt;/label&gt;
-                &lt;input type=&quot;text&quot; id=&quot;folderNameInput&quot; placeholder=&quot;e.g. Physics Notes&quot;&gt;
-            &lt;/div&gt;
-            &lt;div class=&quot;modal-actions&quot;&gt;
-                &lt;button id=&quot;cancelFolderBtn&quot;&gt;Cancel&lt;/button&gt;
-                &lt;button id=&quot;saveFolderBtn&quot; style=&quot;background:#2563eb; color:white;&quot;&gt;Create&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+        <div id="viewport">
+            <div id="pagesContainer"></div>
+        </div>
+    </div>
 
-    &lt;div id=&quot;createNoteModal&quot; class=&quot;modal-overlay&quot;&gt;
-        &lt;div class=&quot;modal&quot;&gt;
-            &lt;h3&gt;Create New Note&lt;/h3&gt;
-            &lt;div class=&quot;modal-field&quot;&gt;
-                &lt;label&gt;Document Title (Optional)&lt;/label&gt;
-                &lt;input type=&quot;text&quot; id=&quot;noteTitleInput&quot; placeholder=&quot;e.g. Quantum Mechanics Lecture&quot;&gt;
-            &lt;/div&gt;
-            &lt;div class=&quot;modal-actions&quot;&gt;
-                &lt;button id=&quot;cancelNoteBtn&quot;&gt;Cancel&lt;/button&gt;
-                &lt;button id=&quot;saveNoteBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;🚀 Start Note Taking&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+    <!-- ================= MODALS ================= -->
+    <div id="createFolderModal" class="modal-overlay">
+        <div class="modal">
+            <h3>Create Folder</h3>
+            <div class="modal-field">
+                <label>Folder Name</label>
+                <input type="text" id="folderNameInput" placeholder="e.g. Physics Notes">
+            </div>
+            <div class="modal-actions">
+                <button id="cancelFolderBtn">Cancel</button>
+                <button id="saveFolderBtn" style="background:#2563eb; color:white;">Create</button>
+            </div>
+        </div>
+    </div>
 
-    &lt;div id=&quot;modalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
-        &lt;div class=&quot;modal&quot;&gt;
-            &lt;h3&gt;Page &amp; Margin Setup&lt;/h3&gt;
-            &lt;div class=&quot;modal-body-scroll&quot;&gt;
-                &lt;div class=&quot;modal-row&quot;&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Page Size&lt;/label&gt;
-                        &lt;select id=&quot;pageSizeSelect&quot;&gt;
-                            &lt;option value=&quot;A4&quot;&gt;A4 Standard&lt;/option&gt;
-                            &lt;option value=&quot;LETTER&quot;&gt;US Letter&lt;/option&gt;
-                            &lt;option value=&quot;A3&quot;&gt;A3 Large&lt;/option&gt;
-                        &lt;/select&gt;
-                    &lt;/div&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Orientation&lt;/label&gt;
-                        &lt;select id=&quot;pageOrientationSelect&quot;&gt;
-                            &lt;option value=&quot;portrait&quot;&gt;Portrait&lt;/option&gt;
-                            &lt;option value=&quot;landscape&quot;&gt;Landscape&lt;/option&gt;
-                        &lt;/select&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
+    <div id="createNoteModal" class="modal-overlay">
+        <div class="modal">
+            <h3>Create New Note</h3>
+            <div class="modal-field">
+                <label>Document Title (Optional)</label>
+                <input type="text" id="noteTitleInput" placeholder="e.g. Quantum Mechanics Lecture">
+            </div>
+            <div class="modal-actions">
+                <button id="cancelNoteBtn">Cancel</button>
+                <button id="saveNoteBtn" style="background:#059669; color:white;">🚀 Start Note Taking</button>
+            </div>
+        </div>
+    </div>
 
-                &lt;div class=&quot;modal-row&quot;&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Ruled Line Count&lt;/label&gt;
-                        &lt;input type=&quot;number&quot; id=&quot;ruledLineCountInput&quot; min=&quot;10&quot; max=&quot;50&quot; value=&quot;25&quot;&gt;
-                    &lt;/div&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Margin Guide&lt;/label&gt;
-                        &lt;select id=&quot;pageMarginGuideSelect&quot;&gt;
-                            &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
-                            &lt;option value=&quot;notebook&quot;&gt;Notebook (Left Red)&lt;/option&gt;
-                            &lt;option value=&quot;header&quot;&gt;Notebook (Top + Left)&lt;/option&gt;
-                            &lt;option value=&quot;box&quot;&gt;Full Box Padding&lt;/option&gt;
-                        &lt;/select&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal">
+            <h3>Page & Margin Setup</h3>
+            <div class="modal-body-scroll">
+                <div class="modal-row">
+                    <div class="modal-field" style="flex:1;">
+                        <label>Page Size</label>
+                        <select id="pageSizeSelect">
+                            <option value="A4">A4 Standard</option>
+                            <option value="LETTER">US Letter</option>
+                            <option value="A3">A3 Large</option>
+                        </select>
+                    </div>
+                    <div class="modal-field" style="flex:1;">
+                        <label>Orientation</label>
+                        <select id="pageOrientationSelect">
+                            <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
+                        </select>
+                    </div>
+                </div>
 
-                &lt;div class=&quot;modal-row&quot;&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Border Style&lt;/label&gt;
-                        &lt;select id=&quot;borderStyleSelect&quot;&gt;
-                            &lt;option value=&quot;none&quot;&gt;None&lt;/option&gt;
-                            &lt;option value=&quot;thin&quot;&gt;Thin Solid&lt;/option&gt;
-                            &lt;option value=&quot;thick&quot;&gt;Thick Solid&lt;/option&gt;
-                            &lt;option value=&quot;double&quot;&gt;Double Line&lt;/option&gt;
-                            &lt;option value=&quot;dashed&quot;&gt;Dashed Line&lt;/option&gt;
-                        &lt;/select&gt;
-                    &lt;/div&gt;
-                    &lt;div class=&quot;modal-field&quot; style=&quot;flex:1;&quot;&gt;
-                        &lt;label&gt;Border Color&lt;/label&gt;
-                        &lt;input type=&quot;color&quot; id=&quot;borderColorInput&quot; value=&quot;#333333&quot;&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
+                <div class="modal-row">
+                    <div class="modal-field" style="flex:1;">
+                        <label>Ruled Line Count</label>
+                        <input type="number" id="ruledLineCountInput" min="10" max="50" value="25">
+                    </div>
+                    <div class="modal-field" style="flex:1;">
+                        <label>Margin Guide</label>
+                        <select id="pageMarginGuideSelect">
+                            <option value="none">None</option>
+                            <option value="notebook">Notebook (Left Red)</option>
+                            <option value="header">Notebook (Top + Left)</option>
+                            <option value="box">Full Box Padding</option>
+                        </select>
+                    </div>
+                </div>
 
-                &lt;div class=&quot;modal-field&quot;&gt;
-                    &lt;label&gt;Border Padding (px)&lt;/label&gt;
-                    &lt;input type=&quot;number&quot; id=&quot;borderMarginInput&quot; min=&quot;0&quot; max=&quot;60&quot; value=&quot;0&quot;&gt;
-                &lt;/div&gt;
-            &lt;/div&gt;
-            &lt;div class=&quot;modal-actions&quot;&gt;
-                &lt;button id=&quot;closeModalBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;Apply &amp; Close&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+                <div class="modal-row">
+                    <div class="modal-field" style="flex:1;">
+                        <label>Border Style</label>
+                        <select id="borderStyleSelect">
+                            <option value="none">None</option>
+                            <option value="thin">Thin Solid</option>
+                            <option value="thick">Thick Solid</option>
+                            <option value="double">Double Line</option>
+                            <option value="dashed">Dashed Line</option>
+                        </select>
+                    </div>
+                    <div class="modal-field" style="flex:1;">
+                        <label>Border Color</label>
+                        <input type="color" id="borderColorInput" value="#333333">
+                    </div>
+                </div>
 
-    &lt;div id=&quot;deleteModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
-        &lt;div class=&quot;modal&quot;&gt;
-            &lt;h3&gt;Clear / Delete Page&lt;/h3&gt;
-            &lt;div class=&quot;modal-field&quot;&gt;
-                &lt;label&gt;Select Page Number&lt;/label&gt;
-                &lt;select id=&quot;deletePageSelect&quot;&gt;&lt;/select&gt;
-            &lt;/div&gt;
-            &lt;div class=&quot;modal-actions&quot; style=&quot;justify-content: space-between;&quot;&gt;
-                &lt;button id=&quot;confirmClearInkBtn&quot;&gt;🧹 Clear Ink&lt;/button&gt;
-                &lt;button id=&quot;confirmDeletePageBtn&quot; style=&quot;background:#dc2626; color:white;&quot;&gt;🗑️ Delete Page&lt;/button&gt;
-            &lt;/div&gt;
-            &lt;div style=&quot;margin-top: 10px; text-align: right;&quot;&gt;
-                &lt;button id=&quot;closeDeleteModalBtn&quot;&gt;Cancel&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+                <div class="modal-field">
+                    <label>Border Padding (px)</label>
+                    <input type="number" id="borderMarginInput" min="0" max="60" value="0">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeModalBtn" style="background:#059669; color:white;">Apply & Close</button>
+            </div>
+        </div>
+    </div>
 
-    &lt;div id=&quot;exportModalOverlay&quot; class=&quot;modal-overlay&quot;&gt;
-        &lt;div class=&quot;modal&quot;&gt;
-            &lt;h3&gt;Export Note Options&lt;/h3&gt;
-            &lt;div class=&quot;export-options-list modal-body-scroll&quot;&gt;
-                &lt;div class=&quot;export-option-card&quot; id=&quot;exportPdfBtn&quot;&gt;
-                    &lt;div style=&quot;font-size: 24px;&quot;&gt;📄&lt;/div&gt;
-                    &lt;div&gt;
-                        &lt;h4&gt;PDF Document&lt;/h4&gt;
-                        &lt;p&gt;Export all pages into a PDF file&lt;/p&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
-                &lt;div class=&quot;export-option-card&quot; id=&quot;exportLongImgBtn&quot;&gt;
-                    &lt;div style=&quot;font-size: 24px;&quot;&gt;🖼️&lt;/div&gt;
-                    &lt;div&gt;
-                        &lt;h4&gt;Single Long Image (JPG)&lt;/h4&gt;
-                        &lt;p&gt;Merge all pages vertically&lt;/p&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
-                &lt;div class=&quot;export-option-card&quot; id=&quot;exportSepImgBtn&quot;&gt;
-                    &lt;div style=&quot;font-size: 24px;&quot;&gt;🗂️&lt;/div&gt;
-                    &lt;div&gt;
-                        &lt;h4&gt;Separate Page Images&lt;/h4&gt;
-                        &lt;p&gt;Download each page individually&lt;/p&gt;
-                    &lt;/div&gt;
-                &lt;/div&gt;
-            &lt;/div&gt;
-            &lt;div class=&quot;modal-actions&quot;&gt;
-                &lt;button id=&quot;closeExportModalBtn&quot;&gt;Cancel&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+    <div id="deleteModalOverlay" class="modal-overlay">
+        <div class="modal">
+            <h3>Clear / Delete Page</h3>
+            <div class="modal-field">
+                <label>Select Page Number</label>
+                <select id="deletePageSelect"></select>
+            </div>
+            <div class="modal-actions" style="justify-content: space-between;">
+                <button id="confirmClearInkBtn">🧹 Clear Ink</button>
+                <button id="confirmDeletePageBtn" style="background:#dc2626; color:white;">🗑️ Delete Page</button>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+                <button id="closeDeleteModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-    &lt;div id=&quot;toast&quot;&gt;Saved Successfully!&lt;/div&gt;
+    <div id="exportModalOverlay" class="modal-overlay">
+        <div class="modal">
+            <h3>Export Note Options</h3>
+            <div class="export-options-list modal-body-scroll">
+                <div class="export-option-card" id="exportPdfBtn">
+                    <div style="font-size: 24px;">📄</div>
+                    <div>
+                        <h4>PDF Document</h4>
+                        <p>Export all pages into a PDF file</p>
+                    </div>
+                </div>
+                <div class="export-option-card" id="exportLongImgBtn">
+                    <div style="font-size: 24px;">🖼️</div>
+                    <div>
+                        <h4>Single Long Image (JPG)</h4>
+                        <p>Merge all pages vertically</p>
+                    </div>
+                </div>
+                <div class="export-option-card" id="exportSepImgBtn">
+                    <div style="font-size: 24px;">🗂️</div>
+                    <div>
+                        <h4>Separate Page Images</h4>
+                        <p>Download each page individually</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="closeExportModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-    &lt;script&gt;
-        // ================= STATE &amp; FILE SYSTEM STORAGE ENGINE =================
+    <div id="toast">Saved Successfully!</div>
+
+    <script>
+        // ================= STATE & FILE SYSTEM STORAGE ENGINE =================
         const PAGE_SIZES = {
             A4: { width: 794, height: 1123 },
             LETTER: { width: 816, height: 1056 },
@@ -1063,7 +867,7 @@
         const RENDER_SCALE = Math.max(window.devicePixelRatio || 1, 2.5);
 
         let appState = {
-            currentFolderId: &#39;root&#39;,
+            currentFolderId: 'root',
             folders: [],
             notes: []
         };
@@ -1071,26 +875,25 @@
         let currentNoteId = null;
         let currentDocumentTitle = null;
         let autoSaveIntervalTimer = null;
-        let activeFileHandle = null;
 
         let pageSettings = {
-            size: &#39;A4&#39;,
-            orientation: &#39;portrait&#39;,
-            borderStyle: &#39;none&#39;,
-            borderColor: &#39;#333333&#39;,
+            size: 'A4',
+            orientation: 'portrait',
+            borderStyle: 'none',
+            borderColor: '#333333',
             borderMargin: 0,
-            pageMarginGuide: &#39;none&#39;,
+            pageMarginGuide: 'none',
             ruledLineCount: 25,
-            background: &#39;bg-blank&#39;
+            background: 'bg-blank'
         };
 
-        let activeTool = &#39;pen&#39;;
-        let currentColor = &#39;#000000&#39;;
+        let activeTool = 'pen';
+        let currentColor = '#000000';
         let strokeSize = 4;
-        let currentPenStyle = &#39;fountain&#39;;
+        let currentPenStyle = 'fountain';
 
-        const pagesContainer = document.getElementById(&#39;pagesContainer&#39;);
-        const viewport = document.getElementById(&#39;viewport&#39;);
+        const pagesContainer = document.getElementById('pagesContainer');
+        const viewport = document.getElementById('viewport');
         let pages = [];
         let undoStack = [];
         let redoStack = [];
@@ -1106,19 +909,19 @@
         let isDrawing = false, activePageIndex = null, hasZoomedOrPanned = false;
 
         function showToast(msg) {
-            const toast = document.getElementById(&#39;toast&#39;);
+            const toast = document.getElementById('toast');
             toast.innerText = msg;
-            toast.classList.add(&#39;show&#39;);
-            setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
         // DYNAMIC FILE SIZE CALCULATOR (B, KB, MB, GB)
         function formatBytes(bytes) {
-            if (!bytes || bytes === 0) return &#39;0 B&#39;;
+            if (!bytes || bytes === 0) return '0 B';
             const k = 1024;
-            const sizes = [&#39;B&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;, &#39;TB&#39;];
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + &#39; &#39; + sizes[i];
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         function calculateNoteSize(note) {
@@ -1127,12 +930,12 @@
                 const bytes = new Blob([str]).size;
                 return formatBytes(bytes);
             } catch(e) {
-                return &#39;0 B&#39;;
+                return '0 B';
             }
         }
 
         function loadStorageTree() {
-            const data = localStorage.getItem(&#39;notes_studio_app_state&#39;);
+            const data = localStorage.getItem('notes_studio_app_state');
             if (data) {
                 try { appState = JSON.parse(data); } catch(e) {}
             }
@@ -1140,64 +943,64 @@
 
         function saveStorageTree() {
             try {
-                localStorage.setItem(&#39;notes_studio_app_state&#39;, JSON.stringify(appState));
+                localStorage.setItem('notes_studio_app_state', JSON.stringify(appState));
             } catch(e) {
-                showToast(&quot;Storage quota warning. Use Native Device Export for GB-sized files.&quot;);
+                showToast("Storage quota warning. Use Native Device Export for GB-sized files.");
             }
         }
 
         loadStorageTree();
 
-        // ================= DASHBOARD &amp; FOLDER NAVIGATION =================
-        const dashboardView = document.getElementById(&#39;dashboardView&#39;);
-        const studioView = document.getElementById(&#39;studioView&#39;);
-        const folderContentGrid = document.getElementById(&#39;folderContentGrid&#39;);
-        const breadcrumbBar = document.getElementById(&#39;breadcrumbBar&#39;);
+        // ================= DASHBOARD & FOLDER NAVIGATION =================
+        const dashboardView = document.getElementById('dashboardView');
+        const studioView = document.getElementById('studioView');
+        const folderContentGrid = document.getElementById('folderContentGrid');
+        const breadcrumbBar = document.getElementById('breadcrumbBar');
 
         function renderDashboard() {
-            folderContentGrid.innerHTML = &#39;&#39;;
-            breadcrumbBar.innerHTML = &#39;&#39;;
+            folderContentGrid.innerHTML = '';
+            breadcrumbBar.innerHTML = '';
 
             let path = getFolderPath(appState.currentFolderId);
-            path.forEach((f, idx) =&gt; {
-                const item = document.createElement(&#39;span&#39;);
-                item.className = &#39;breadcrumb-item&#39;;
+            path.forEach((f, idx) => {
+                const item = document.createElement('span');
+                item.className = 'breadcrumb-item';
                 item.innerText = f.name;
-                item.onclick = () =&gt; {
+                item.onclick = () => {
                     appState.currentFolderId = f.id;
                     renderDashboard();
                 };
                 breadcrumbBar.appendChild(item);
 
-                if (idx &lt; path.length - 1) {
-                    const sep = document.createElement(&#39;span&#39;);
-                    sep.className = &#39;breadcrumb-separator&#39;;
-                    sep.innerText = &#39; / &#39;;
+                if (idx < path.length - 1) {
+                    const sep = document.createElement('span');
+                    sep.className = 'breadcrumb-separator';
+                    sep.innerText = ' / ';
                     breadcrumbBar.appendChild(sep);
                 }
             });
 
-            const currentFolders = appState.folders.filter(f =&gt; f.parentId === appState.currentFolderId);
-            const currentNotes = appState.notes.filter(n =&gt; n.folderId === appState.currentFolderId);
+            const currentFolders = appState.folders.filter(f => f.parentId === appState.currentFolderId);
+            const currentNotes = appState.notes.filter(n => n.folderId === appState.currentFolderId);
 
-            currentFolders.forEach(f =&gt; {
-                const card = document.createElement(&#39;div&#39;);
-                card.className = &#39;item-card&#39;;
+            currentFolders.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
                 card.innerHTML = `
-                    &lt;div class=&quot;item-icon&quot;&gt;📁&lt;/div&gt;
-                    &lt;div class=&quot;item-title&quot;&gt;${f.name}&lt;/div&gt;
-                    &lt;div class=&quot;item-meta&quot;&gt;Folder&lt;/div&gt;
-                    &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Folder&quot;&gt;✕&lt;/button&gt;
+                    <div class="item-icon">📁</div>
+                    <div class="item-title">${f.name}</div>
+                    <div class="item-meta">Folder</div>
+                    <button class="item-del-btn" title="Delete Folder">✕</button>
                 `;
-                card.onclick = (e) =&gt; {
-                    if (e.target.classList.contains(&#39;item-del-btn&#39;)) return;
+                card.onclick = (e) => {
+                    if (e.target.classList.contains('item-del-btn')) return;
                     appState.currentFolderId = f.id;
                     renderDashboard();
                 };
 
-                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                card.querySelector('.item-del-btn').onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`Delete folder &quot;${f.name}&quot; and its contents?`)) {
+                    if (confirm(`Delete folder "${f.name}" and its contents?`)) {
                         deleteFolderRecursive(f.id);
                         saveStorageTree();
                         renderDashboard();
@@ -1207,26 +1010,26 @@
                 folderContentGrid.appendChild(card);
             });
 
-            currentNotes.forEach(n =&gt; {
-                const card = document.createElement(&#39;div&#39;);
-                card.className = &#39;item-card&#39;;
+            currentNotes.forEach(n => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
                 const sizeStr = calculateNoteSize(n);
                 card.innerHTML = `
-                    &lt;div class=&quot;item-icon&quot;&gt;📝&lt;/div&gt;
-                    &lt;div class=&quot;item-title&quot;&gt;${n.title}&lt;/div&gt;
-                    &lt;div class=&quot;item-meta&quot;&gt;${n.pageCount || 1} Page(s)&lt;/div&gt;
-                    &lt;div class=&quot;item-size-badge&quot;&gt;${sizeStr}&lt;/div&gt;
-                    &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Note&quot;&gt;✕&lt;/button&gt;
+                    <div class="item-icon">📝</div>
+                    <div class="item-title">${n.title}</div>
+                    <div class="item-meta">${n.pageCount || 1} Page(s)</div>
+                    <div class="item-size-badge">${sizeStr}</div>
+                    <button class="item-del-btn" title="Delete Note">✕</button>
                 `;
-                card.onclick = (e) =&gt; {
-                    if (e.target.classList.contains(&#39;item-del-btn&#39;)) return;
+                card.onclick = (e) => {
+                    if (e.target.classList.contains('item-del-btn')) return;
                     openNoteStudio(n.id);
                 };
 
-                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                card.querySelector('.item-del-btn').onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`Delete note &quot;${n.title}&quot;?`)) {
-                        appState.notes = appState.notes.filter(x =&gt; x.id !== n.id);
+                    if (confirm(`Delete note "${n.title}"?`)) {
+                        appState.notes = appState.notes.filter(x => x.id !== n.id);
                         saveStorageTree();
                         renderDashboard();
                     }
@@ -1235,100 +1038,100 @@
                 folderContentGrid.appendChild(card);
             });
 
-            if (currentFolders.length === 0 &amp;&amp; currentNotes.length === 0) {
+            if (currentFolders.length === 0 && currentNotes.length === 0) {
                 folderContentGrid.innerHTML = `
-                    &lt;div style=&quot;grid-column: 1/-1; text-align:center; padding: 40px; color: #6b7280; font-size:13px;&quot;&gt;
-                        This folder is empty. Click &lt;b&gt;&quot;➕ Create&quot;&lt;/b&gt; below to add a folder or note!
-                    &lt;/div&gt;
+                    <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #6b7280; font-size:13px;">
+                        This folder is empty. Click <b>"➕ Create"</b> below to add a folder or note!
+                    </div>
                 `;
             }
         }
 
         function getFolderPath(folderId) {
-            let path = [{ id: &#39;root&#39;, name: &#39;🏠 Home&#39; }];
-            if (folderId === &#39;root&#39;) return path;
+            let path = [{ id: 'root', name: '🏠 Home' }];
+            if (folderId === 'root') return path;
 
             let stack = [];
-            let curr = appState.folders.find(f =&gt; f.id === folderId);
+            let curr = appState.folders.find(f => f.id === folderId);
             while (curr) {
                 stack.unshift(curr);
-                curr = appState.folders.find(f =&gt; f.id === curr.parentId);
+                curr = appState.folders.find(f => f.id === curr.parentId);
             }
             return path.concat(stack);
         }
 
         function deleteFolderRecursive(folderId) {
-            const subFolders = appState.folders.filter(f =&gt; f.parentId === folderId);
-            subFolders.forEach(sf =&gt; deleteFolderRecursive(sf.id));
+            const subFolders = appState.folders.filter(f => f.parentId === folderId);
+            subFolders.forEach(sf => deleteFolderRecursive(sf.id));
 
-            appState.notes = appState.notes.filter(n =&gt; n.folderId !== folderId);
-            appState.folders = appState.folders.filter(f =&gt; f.id !== folderId);
+            appState.notes = appState.notes.filter(n => n.folderId !== folderId);
+            appState.folders = appState.folders.filter(f => f.id !== folderId);
         }
 
-        const fabBtn = document.getElementById(&#39;fabBtn&#39;);
-        const fabPopover = document.getElementById(&#39;fabPopover&#39;);
+        const fabBtn = document.getElementById('fabBtn');
+        const fabPopover = document.getElementById('fabPopover');
 
-        fabBtn.onclick = (e) =&gt; {
+        fabBtn.onclick = (e) => {
             e.stopPropagation();
-            fabPopover.style.display = fabPopover.style.display === &#39;flex&#39; ? &#39;none&#39; : &#39;flex&#39;;
+            fabPopover.style.display = fabPopover.style.display === 'flex' ? 'none' : 'flex';
         };
 
-        document.onclick = (e) =&gt; {
-            if (!fabPopover.contains(e.target) &amp;&amp; e.target !== fabBtn) {
-                fabPopover.style.display = &#39;none&#39;;
+        document.onclick = (e) => {
+            if (!fabPopover.contains(e.target) && e.target !== fabBtn) {
+                fabPopover.style.display = 'none';
             }
         };
 
-        const createFolderModal = document.getElementById(&#39;createFolderModal&#39;);
-        const folderNameInput = document.getElementById(&#39;folderNameInput&#39;);
+        const createFolderModal = document.getElementById('createFolderModal');
+        const folderNameInput = document.getElementById('folderNameInput');
 
-        document.getElementById(&#39;fabNewFolderBtn&#39;).onclick = () =&gt; {
-            fabPopover.style.display = &#39;none&#39;;
-            folderNameInput.value = &#39;&#39;;
-            createFolderModal.style.display = &#39;flex&#39;;
-            setTimeout(() =&gt; folderNameInput.focus(), 100);
+        document.getElementById('fabNewFolderBtn').onclick = () => {
+            fabPopover.style.display = 'none';
+            folderNameInput.value = '';
+            createFolderModal.style.display = 'flex';
+            setTimeout(() => folderNameInput.focus(), 100);
         };
 
-        document.getElementById(&#39;cancelFolderBtn&#39;).onclick = () =&gt; createFolderModal.style.display = &#39;none&#39;;
-        document.getElementById(&#39;saveFolderBtn&#39;).onclick = () =&gt; {
-            const name = folderNameInput.value.trim() || &#39;New Folder&#39;;
+        document.getElementById('cancelFolderBtn').onclick = () => createFolderModal.style.display = 'none';
+        document.getElementById('saveFolderBtn').onclick = () => {
+            const name = folderNameInput.value.trim() || 'New Folder';
             const newFolder = {
-                id: &#39;folder_&#39; + Date.now(),
+                id: 'folder_' + Date.now(),
                 name: name,
                 parentId: appState.currentFolderId
             };
             appState.folders.push(newFolder);
             saveStorageTree();
-            createFolderModal.style.display = &#39;none&#39;;
+            createFolderModal.style.display = 'none';
             renderDashboard();
         };
 
-        const createNoteModal = document.getElementById(&#39;createNoteModal&#39;);
-        const noteTitleInput = document.getElementById(&#39;noteTitleInput&#39;);
+        const createNoteModal = document.getElementById('createNoteModal');
+        const noteTitleInput = document.getElementById('noteTitleInput');
 
-        document.getElementById(&#39;fabNewNoteBtn&#39;).onclick = () =&gt; {
-            fabPopover.style.display = &#39;none&#39;;
-            noteTitleInput.value = &#39;&#39;;
-            createNoteModal.style.display = &#39;flex&#39;;
-            setTimeout(() =&gt; noteTitleInput.focus(), 100);
+        document.getElementById('fabNewNoteBtn').onclick = () => {
+            fabPopover.style.display = 'none';
+            noteTitleInput.value = '';
+            createNoteModal.style.display = 'flex';
+            setTimeout(() => noteTitleInput.focus(), 100);
         };
 
-        document.getElementById(&#39;cancelNoteBtn&#39;).onclick = () =&gt; createNoteModal.style.display = &#39;none&#39;;
-        document.getElementById(&#39;saveNoteBtn&#39;).onclick = () =&gt; {
+        document.getElementById('cancelNoteBtn').onclick = () => createNoteModal.style.display = 'none';
+        document.getElementById('saveNoteBtn').onclick = () => {
             let title = noteTitleInput.value.trim();
             if (!title) {
-                title = &#39;Untitled Note - &#39; + new Date().toLocaleDateString();
+                title = 'Untitled Note - ' + new Date().toLocaleDateString();
             }
 
             let targetFolderId = appState.currentFolderId;
 
-            if (targetFolderId === &#39;root&#39;) {
-                let defaultFolder = appState.folders.find(f =&gt; f.name === &#39;General Notes&#39; &amp;&amp; f.parentId === &#39;root&#39;);
+            if (targetFolderId === 'root') {
+                let defaultFolder = appState.folders.find(f => f.name === 'General Notes' && f.parentId === 'root');
                 if (!defaultFolder) {
                     defaultFolder = {
-                        id: &#39;folder_default_&#39; + Date.now(),
-                        name: &#39;General Notes&#39;,
-                        parentId: &#39;root&#39;
+                        id: 'folder_default_' + Date.now(),
+                        name: 'General Notes',
+                        parentId: 'root'
                     };
                     appState.folders.push(defaultFolder);
                 }
@@ -1336,7 +1139,7 @@
             }
 
             const newNote = {
-                id: &#39;note_&#39; + Date.now(),
+                id: 'note_' + Date.now(),
                 title: title,
                 folderId: targetFolderId,
                 pageSettings: Object.assign({}, pageSettings),
@@ -1346,99 +1149,90 @@
 
             appState.notes.push(newNote);
             saveStorageTree();
-            createNoteModal.style.display = &#39;none&#39;;
+            createNoteModal.style.display = 'none';
 
             openNoteStudio(newNote.id);
         };
 
-        // DEVICE NATIVE FILE SYSTEM INTERACTION ENGINE (HANDLES GB DATA DIRECTLY TO DISK)
-        document.getElementById(&#39;deviceSaveAsBtn&#39;).onclick = async () =&gt; {
-            try {
-                if (&#39;showSaveFilePicker&#39; in window) {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: `Notes_Backup_${Date.now()}.pstudio`,
-                        types: [{ description: &#39;Pro Studio File&#39;, accept: { &#39;application/json&#39;: [&#39;.pstudio&#39;] } }]
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(JSON.stringify(appState, null, 2));
-                    await writable.close();
-                    showToast(&quot;Exported directly to Device File System!&quot;);
-                } else {
-                    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: &#39;application/json&#39; });
-                    const a = document.createElement(&#39;a&#39;);
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `Notes_Backup_${Date.now()}.pstudio`;
-                    a.click();
-                    showToast(&quot;Downloaded File Package!&quot;);
-                }
-            } catch (err) {
-                if (err.name !== &#39;AbortError&#39;) showToast(&quot;Save to Device Failed&quot;);
-            }
+        // UNIVERSAL DIRECT FILE PERMISSION ENGINE (FOR GB-SIZED STORAGE ACCROSS ALL APPS & DEVICES)
+        const nativeFileInput = document.getElementById('nativeFileInput');
+
+        document.getElementById('deviceOpenBtn').onclick = () => {
+            nativeFileInput.click();
         };
 
-        document.getElementById(&#39;deviceOpenBtn&#39;).onclick = async () =&gt; {
-            try {
-                if (&#39;showOpenFilePicker&#39; in window) {
-                    const [handle] = await window.showOpenFilePicker({
-                        types: [{ description: &#39;Pro Studio File&#39;, accept: { &#39;application/json&#39;: [&#39;.pstudio&#39;, &#39;.json&#39;] } }]
-                    });
-                    const file = await handle.getFile();
-                    const text = await file.text();
-                    appState = JSON.parse(text);
-                    saveStorageTree();
-                    renderDashboard();
-                    showToast(&quot;Loaded from Device Storage!&quot;);
-                } else {
-                    const input = document.createElement(&#39;input&#39;);
-                    input.type = &#39;file&#39;;
-                    input.accept = &#39;.pstudio,.json&#39;;
-                    input.onchange = (e) =&gt; {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (evt) =&gt; {
-                            appState = JSON.parse(evt.target.result);
-                            saveStorageTree();
-                            renderDashboard();
-                            showToast(&quot;Loaded Note Package!&quot;);
-                        };
-                        reader.readAsText(file);
-                    };
-                    input.click();
+        nativeFileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed && (parsed.notes || parsed.folders)) {
+                        appState = parsed;
+                        saveStorageTree();
+                        renderDashboard();
+                        showToast("Loaded Note Package Successfully!");
+                    } else {
+                        showToast("Invalid File Format!");
+                    }
+                } catch(err) {
+                    showToast("Error reading native file!");
                 }
-            } catch (err) {
-                if (err.name !== &#39;AbortError&#39;) showToast(&quot;Failed to open file&quot;);
+            };
+            reader.readAsText(file);
+            nativeFileInput.value = '';
+        };
+
+        document.getElementById('deviceSaveAsBtn').onclick = () => {
+            try {
+                const dataStr = JSON.stringify(appState, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Notes_Backup_${Date.now()}.pstudio`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast("Native File Exported Successfully!");
+            } catch(err) {
+                showToast("Failed to export native file!");
             }
         };
 
         // ================= STUDIO WORKSPACE ENGINE =================
         function openNoteStudio(noteId) {
             currentNoteId = noteId;
-            const note = appState.notes.find(n =&gt; n.id === noteId);
+            const note = appState.notes.find(n => n.id === noteId);
             if (!note) return;
 
             currentDocumentTitle = note.title;
-            document.getElementById(&#39;docTitleBadge&#39;).innerText = note.title;
+            document.getElementById('docTitleBadge').innerText = note.title;
 
             if (note.pageSettings) {
                 pageSettings = Object.assign({}, note.pageSettings);
-                document.getElementById(&#39;pageSizeSelect&#39;).value = pageSettings.size;
-                document.getElementById(&#39;pageOrientationSelect&#39;).value = pageSettings.orientation;
-                document.getElementById(&#39;borderStyleSelect&#39;).value = pageSettings.borderStyle;
-                document.getElementById(&#39;borderColorInput&#39;).value = pageSettings.borderColor;
-                document.getElementById(&#39;borderMarginInput&#39;).value = pageSettings.borderMargin;
-                document.getElementById(&#39;pageMarginGuideSelect&#39;).value = pageSettings.pageMarginGuide;
-                document.getElementById(&#39;ruledLineCountInput&#39;).value = pageSettings.ruledLineCount;
-                document.getElementById(&#39;bgSelect&#39;).value = pageSettings.background;
+                document.getElementById('pageSizeSelect').value = pageSettings.size;
+                document.getElementById('pageOrientationSelect').value = pageSettings.orientation;
+                document.getElementById('borderStyleSelect').value = pageSettings.borderStyle;
+                document.getElementById('borderColorInput').value = pageSettings.borderColor;
+                document.getElementById('borderMarginInput').value = pageSettings.borderMargin;
+                document.getElementById('pageMarginGuideSelect').value = pageSettings.pageMarginGuide;
+                document.getElementById('ruledLineCountInput').value = pageSettings.ruledLineCount;
+                document.getElementById('bgSelect').value = pageSettings.background;
             }
 
-            pagesContainer.innerHTML = &#39;&#39;;
+            pagesContainer.innerHTML = '';
             pages = [];
             undoStack = [];
             redoStack = [];
 
             const count = note.pageCount || 1;
-            for (let i = 0; i &lt; count; i++) {
+            for (let i = 0; i < count; i++) {
                 createNewPage();
                 const pData = note.pagesData ? note.pagesData[i] : null;
                 if (pData) {
@@ -1447,27 +1241,27 @@
                         const pageCanvas = pages[i].canvas;
                         const pageCtx = pages[i].ctx;
                         img.src = pData.inkData;
-                        img.onload = () =&gt; {
+                        img.onload = () => {
                             const dims = getPageDimensions();
                             pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
                             savePageState(i, true);
                         };
                     }
                     if (pData.imageBoxes) {
-                        pData.imageBoxes.forEach(sImg =&gt; {
+                        pData.imageBoxes.forEach(sImg => {
                             const img = new Image();
-                            img.onload = () =&gt; insertImageToPage(i, img, sImg.src, sImg);
+                            img.onload = () => insertImageToPage(i, img, sImg.src, sImg);
                             img.src = sImg.src;
                         });
                     }
                     if (pData.textBoxes) {
-                        pData.textBoxes.forEach(sTb =&gt; createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color, sTb.width));
+                        pData.textBoxes.forEach(sTb => createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color, sTb.width));
                     }
                 }
             }
 
-            dashboardView.style.display = &#39;none&#39;;
-            studioView.style.display = &#39;block&#39;;
+            dashboardView.style.display = 'none';
+            studioView.style.display = 'block';
             centerPages();
 
             startAutoSaveTimer();
@@ -1476,22 +1270,22 @@
         function executeNoteSave(isSilent = false) {
             if (!currentNoteId) return;
 
-            const note = appState.notes.find(n =&gt; n.id === currentNoteId);
+            const note = appState.notes.find(n => n.id === currentNoteId);
             if (!note) return;
 
             note.title = currentDocumentTitle;
             note.pageSettings = Object.assign({}, pageSettings);
             note.pageCount = pages.length;
-            note.pagesData = pages.map(p =&gt; ({
+            note.pagesData = pages.map(p => ({
                 inkData: p.canvas.toDataURL(),
-                imageBoxes: p.imageBoxes.map(ib =&gt; ({
+                imageBoxes: p.imageBoxes.map(ib => ({
                     src: ib.imgElem.src,
                     left: parseFloat(ib.elem.style.left) || 60,
                     top: parseFloat(ib.elem.style.top) || 60,
                     width: ib.elem.offsetWidth,
                     height: ib.elem.offsetHeight
                 })),
-                textBoxes: p.textBoxes.map(tb =&gt; ({
+                textBoxes: p.textBoxes.map(tb => ({
                     left: parseFloat(tb.elem.style.left) || 60,
                     top: parseFloat(tb.elem.style.top) || 60,
                     width: parseFloat(tb.elem.style.width) || 220,
@@ -1509,9 +1303,9 @@
 
         function startAutoSaveTimer() {
             stopAutoSaveTimer();
-            autoSaveIntervalTimer = setInterval(() =&gt; {
+            autoSaveIntervalTimer = setInterval(() => {
                 executeNoteSave(true);
-            }, 30000); // Reliable background auto-save loop
+            }, 30000);
         }
 
         function stopAutoSaveTimer() {
@@ -1521,27 +1315,27 @@
             }
         }
 
-        document.getElementById(&#39;backToDashBtn&#39;).onclick = () =&gt; {
+        document.getElementById('backToDashBtn').onclick = () => {
             executeNoteSave(true);
             stopAutoSaveTimer();
-            studioView.style.display = &#39;none&#39;;
-            dashboardView.style.display = &#39;flex&#39;;
+            studioView.style.display = 'none';
+            dashboardView.style.display = 'flex';
             renderDashboard();
         };
 
-        document.getElementById(&#39;quickSaveBtn&#39;).onclick = () =&gt; executeNoteSave(false);
+        document.getElementById('quickSaveBtn').onclick = () => executeNoteSave(false);
 
-        const docTitleBadge = document.getElementById(&#39;docTitleBadge&#39;);
-        docTitleBadge.onclick = () =&gt; {
-            const newTitle = prompt(&quot;Enter new document title:&quot;, currentDocumentTitle);
-            if (newTitle &amp;&amp; newTitle.trim()) {
+        const docTitleBadge = document.getElementById('docTitleBadge');
+        docTitleBadge.onclick = () => {
+            const newTitle = prompt("Enter new document title:", currentDocumentTitle);
+            if (newTitle && newTitle.trim()) {
                 currentDocumentTitle = newTitle.trim();
                 docTitleBadge.innerText = currentDocumentTitle;
                 executeNoteSave(false);
             }
         };
 
-        // --- CANVAS WORKSPACE DRAWING &amp; GESTURE IMPLEMENTATION ---
+        // --- CANVAS WORKSPACE DRAWING & GESTURE IMPLEMENTATION ---
         function updateTransform() {
             pagesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
         }
@@ -1549,7 +1343,7 @@
         function centerPages() {
             const dims = getPageDimensions();
             const windowW = window.innerWidth;
-            if (windowW &lt; dims.width * 0.85) {
+            if (windowW < dims.width * 0.85) {
                 scale = (windowW - 24) / dims.width;
             } else {
                 scale = 0.8;
@@ -1559,30 +1353,30 @@
             updateTransform();
         }
 
-        window.addEventListener(&#39;resize&#39;, () =&gt; { if (!hasZoomedOrPanned) centerPages(); });
-        document.getElementById(&#39;recenterBtn&#39;).onclick = () =&gt; { hasZoomedOrPanned = false; centerPages(); };
+        window.addEventListener('resize', () => { if (!hasZoomedOrPanned) centerPages(); });
+        document.getElementById('recenterBtn').onclick = () => { hasZoomedOrPanned = false; centerPages(); };
 
         function createNewPage() {
             const pageIndex = pages.length;
-            const card = document.createElement(&#39;div&#39;);
+            const card = document.createElement('div');
             card.className = `page-card`;
             card.dataset.index = pageIndex;
 
-            const pageTag = document.createElement(&#39;div&#39;);
-            pageTag.className = &#39;page-number-tag&#39;;
+            const pageTag = document.createElement('div');
+            pageTag.className = 'page-number-tag';
             pageTag.innerText = `PAGE ${pageIndex + 1}`;
             card.appendChild(pageTag);
 
-            const marginOverlay = document.createElement(&#39;div&#39;);
-            marginOverlay.className = &#39;margin-overlay&#39;;
+            const marginOverlay = document.createElement('div');
+            marginOverlay.className = 'margin-overlay';
             card.appendChild(marginOverlay);
 
-            const bgCanvas = document.createElement(&#39;canvas&#39;);
-            bgCanvas.className = &#39;bg-canvas&#39;;
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.className = 'bg-canvas';
             card.appendChild(bgCanvas);
 
-            const inkCanvas = document.createElement(&#39;canvas&#39;);
-            inkCanvas.className = &#39;ink-canvas&#39;;
+            const inkCanvas = document.createElement('canvas');
+            inkCanvas.className = 'ink-canvas';
             card.appendChild(inkCanvas);
 
             pagesContainer.appendChild(card);
@@ -1592,9 +1386,9 @@
                 pageTag: pageTag,
                 marginOverlay: marginOverlay,
                 bgCanvas: bgCanvas,
-                bgCtx: bgCanvas.getContext(&#39;2d&#39;),
+                bgCtx: bgCanvas.getContext('2d'),
                 canvas: inkCanvas,
-                ctx: inkCanvas.getContext(&#39;2d&#39;, { willReadFrequently: true }),
+                ctx: inkCanvas.getContext('2d', { willReadFrequently: true }),
                 textBoxes: [],
                 imageBoxes: []
             };
@@ -1606,7 +1400,7 @@
 
         function getPageDimensions() {
             const base = PAGE_SIZES[pageSettings.size];
-            return pageSettings.orientation === &#39;portrait&#39;
+            return pageSettings.orientation === 'portrait'
                 ? { width: base.width, height: base.height }
                 : { width: base.height, height: base.width };
         }
@@ -1622,41 +1416,41 @@
             const page = pages[index];
             const dims = getPageDimensions();
 
-            page.card.style.width = dims.width + &#39;px&#39;;
-            page.card.style.height = dims.height + &#39;px&#39;;
+            page.card.style.width = dims.width + 'px';
+            page.card.style.height = dims.height + 'px';
 
             page.bgCanvas.width = dims.width * RENDER_SCALE;
             page.bgCanvas.height = dims.height * RENDER_SCALE;
-            page.bgCanvas.style.width = dims.width + &#39;px&#39;;
-            page.bgCanvas.style.height = dims.height + &#39;px&#39;;
+            page.bgCanvas.style.width = dims.width + 'px';
+            page.bgCanvas.style.height = dims.height + 'px';
             page.bgCtx.scale(RENDER_SCALE, RENDER_SCALE);
 
             page.canvas.width = dims.width * RENDER_SCALE;
             page.canvas.height = dims.height * RENDER_SCALE;
-            page.canvas.style.width = dims.width + &#39;px&#39;;
-            page.canvas.style.height = dims.height + &#39;px&#39;;
+            page.canvas.style.width = dims.width + 'px';
+            page.canvas.style.height = dims.height + 'px';
             page.ctx.scale(RENDER_SCALE, RENDER_SCALE);
 
             const offset = parseInt(pageSettings.borderMargin) || 0;
             const color = pageSettings.borderColor;
-            page.card.style.padding = offset + &#39;px&#39;;
+            page.card.style.padding = offset + 'px';
 
             switch(pageSettings.borderStyle) {
-                case &#39;thin&#39;: page.card.style.border = `2px solid ${color}`; break;
-                case &#39;thick&#39;: page.card.style.border = `5px solid ${color}`; break;
-                case &#39;double&#39;: page.card.style.border = `7px double ${color}`; break;
-                case &#39;dashed&#39;: page.card.style.border = `3px dashed ${color}`; break;
-                default: page.card.style.border = &#39;none&#39;; break;
+                case 'thin': page.card.style.border = `2px solid ${color}`; break;
+                case 'thick': page.card.style.border = `5px solid ${color}`; break;
+                case 'double': page.card.style.border = `7px double ${color}`; break;
+                case 'dashed': page.card.style.border = `3px dashed ${color}`; break;
+                default: page.card.style.border = 'none'; break;
             }
 
             renderBackgroundPattern(page.bgCtx, dims.width, dims.height);
             renderMarginGuideOverlay(page.marginOverlay, dims);
 
             const ruleH = getRuledLineHeight();
-            page.textBoxes.forEach(tb =&gt; {
-                tb.contentElem.style.fontSize = (ruleH * 0.72) + &#39;px&#39;;
-                tb.contentElem.style.lineHeight = ruleH + &#39;px&#39;;
-                tb.contentElem.style.minHeight = ruleH + &#39;px&#39;;
+            page.textBoxes.forEach(tb => {
+                tb.contentElem.style.fontSize = (ruleH * 0.72) + 'px';
+                tb.contentElem.style.lineHeight = ruleH + 'px';
+                tb.contentElem.style.minHeight = ruleH + 'px';
             });
         }
 
@@ -1667,66 +1461,66 @@
         }
 
         function renderBackgroundPattern(ctx, width, height) {
-            ctx.fillStyle = &#39;#ffffff&#39;;
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
             const pattern = pageSettings.background;
-            ctx.strokeStyle = &#39;#e5e5e5&#39;;
+            ctx.strokeStyle = '#e5e5e5';
             ctx.lineWidth = 1;
             ctx.beginPath();
 
-            if (pattern === &#39;bg-ruled&#39;) {
+            if (pattern === 'bg-ruled') {
                 const lineCount = parseInt(pageSettings.ruledLineCount) || 25;
                 const totalSlots = lineCount + 4;
                 const stepY = height / totalSlots;
-                ctx.strokeStyle = &#39;#a2bfe0&#39;;
-                for (let k = 2; k &lt;= totalSlots - 2; k++) {
+                ctx.strokeStyle = '#a2bfe0';
+                for (let k = 2; k <= totalSlots - 2; k++) {
                     ctx.moveTo(0, k * stepY); ctx.lineTo(width, k * stepY);
                 }
-            } else if (pattern === &#39;bg-grid&#39;) {
-                for (let x = 25; x &lt; width; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
-                for (let y = 25; y &lt; height; y += 25) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
-            } else if (pattern === &#39;bg-dotted&#39;) {
-                ctx.fillStyle = &#39;#aaaaaa&#39;;
-                for (let x = 25; x &lt; width; x += 25) {
-                    for (let y = 25; y &lt; height; y += 25) { ctx.fillRect(x, y, 1.5, 1.5); }
+            } else if (pattern === 'bg-grid') {
+                for (let x = 25; x < width; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+                for (let y = 25; y < height; y += 25) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+            } else if (pattern === 'bg-dotted') {
+                ctx.fillStyle = '#aaaaaa';
+                for (let x = 25; x < width; x += 25) {
+                    for (let y = 25; y < height; y += 25) { ctx.fillRect(x, y, 1.5, 1.5); }
                 }
             }
             ctx.stroke();
         }
 
         function renderMarginGuideOverlay(overlayElem, dims) {
-            overlayElem.innerHTML = &#39;&#39;;
+            overlayElem.innerHTML = '';
             const type = pageSettings.pageMarginGuide;
-            if (type === &#39;none&#39;) return;
+            if (type === 'none') return;
 
-            const svg = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;svg&#39;);
-            svg.setAttribute(&#39;width&#39;, &#39;100%&#39;); svg.setAttribute(&#39;height&#39;, &#39;100%&#39;);
-            svg.style.position = &#39;absolute&#39;;
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+            svg.style.position = 'absolute';
 
-            if (type === &#39;notebook&#39; || type === &#39;header&#39;) {
-                const redLine = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;line&#39;);
-                redLine.setAttribute(&#39;x1&#39;, &#39;70&#39;); redLine.setAttribute(&#39;y1&#39;, &#39;0&#39;);
-                redLine.setAttribute(&#39;x2&#39;, &#39;70&#39;); redLine.setAttribute(&#39;y2&#39;, dims.height);
-                redLine.setAttribute(&#39;stroke&#39;, &#39;#ef4444&#39;); redLine.setAttribute(&#39;stroke-width&#39;, &#39;2&#39;);
+            if (type === 'notebook' || type === 'header') {
+                const redLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                redLine.setAttribute('x1', '70'); redLine.setAttribute('y1', '0');
+                redLine.setAttribute('x2', '70'); redLine.setAttribute('y2', dims.height);
+                redLine.setAttribute('stroke', '#ef4444'); redLine.setAttribute('stroke-width', '2');
                 svg.appendChild(redLine);
             }
 
-            if (type === &#39;header&#39;) {
-                const headerY = pageSettings.background === &#39;bg-ruled&#39; ? getFirstRuledLineY(dims.height) : 80;
-                const headerLine = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;line&#39;);
-                headerLine.setAttribute(&#39;x1&#39;, &#39;0&#39;); headerLine.setAttribute(&#39;y1&#39;, headerY);
-                headerLine.setAttribute(&#39;x2&#39;, dims.width); headerLine.setAttribute(&#39;y2&#39;, headerY);
-                headerLine.setAttribute(&#39;stroke&#39;, &#39;#93c5fd&#39;); headerLine.setAttribute(&#39;stroke-width&#39;, &#39;2&#39;);
+            if (type === 'header') {
+                const headerY = pageSettings.background === 'bg-ruled' ? getFirstRuledLineY(dims.height) : 80;
+                const headerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                headerLine.setAttribute('x1', '0'); headerLine.setAttribute('y1', headerY);
+                headerLine.setAttribute('x2', dims.width); headerLine.setAttribute('y2', headerY);
+                headerLine.setAttribute('stroke', '#93c5fd'); headerLine.setAttribute('stroke-width', '2');
                 svg.appendChild(headerLine);
             }
 
-            if (type === &#39;box&#39;) {
-                const rect = document.createElementNS(&#39;http://www.w3.org/2000/svg&#39;, &#39;rect&#39;);
-                rect.setAttribute(&#39;x&#39;, &#39;40&#39;); rect.setAttribute(&#39;y&#39;, &#39;40&#39;);
-                rect.setAttribute(&#39;width&#39;, dims.width - 80); rect.setAttribute(&#39;height&#39;, dims.height - 80);
-                rect.setAttribute(&#39;fill&#39;, &#39;none&#39;); rect.setAttribute(&#39;stroke&#39;, &#39;#ef4444&#39;);
-                rect.setAttribute(&#39;stroke-width&#39;, &#39;1.5&#39;); rect.setAttribute(&#39;stroke-dasharray&#39;, &#39;4 4&#39;);
+            if (type === 'box') {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '40'); rect.setAttribute('y', '40');
+                rect.setAttribute('width', dims.width - 80); rect.setAttribute('height', dims.height - 80);
+                rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', '#ef4444');
+                rect.setAttribute('stroke-width', '1.5'); rect.setAttribute('stroke-dasharray', '4 4');
                 svg.appendChild(rect);
             }
 
@@ -1735,31 +1529,31 @@
 
         function drawMarginGuidesOnCanvas(ctx, dims) {
             const type = pageSettings.pageMarginGuide;
-            if (type === &#39;none&#39;) return;
+            if (type === 'none') return;
 
             ctx.save();
-            if (type === &#39;notebook&#39; || type === &#39;header&#39;) {
-                ctx.strokeStyle = &#39;#ef4444&#39;; ctx.lineWidth = 2;
+            if (type === 'notebook' || type === 'header') {
+                ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(70, 0); ctx.lineTo(70, dims.height); ctx.stroke();
             }
-            if (type === &#39;header&#39;) {
-                const headerY = pageSettings.background === &#39;bg-ruled&#39; ? getFirstRuledLineY(dims.height) : 80;
-                ctx.strokeStyle = &#39;#93c5fd&#39;; ctx.lineWidth = 2;
+            if (type === 'header') {
+                const headerY = pageSettings.background === 'bg-ruled' ? getFirstRuledLineY(dims.height) : 80;
+                ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(0, headerY); ctx.lineTo(dims.width, headerY); ctx.stroke();
             }
-            if (type === &#39;box&#39;) {
-                ctx.strokeStyle = &#39;#ef4444&#39;; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+            if (type === 'box') {
+                ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
                 ctx.strokeRect(40, 40, dims.width - 80, dims.height - 80);
             }
             ctx.restore();
         }
 
         function updateAllPagesLayout() {
-            pages.forEach((_, idx) =&gt; {
-                const tempCanvas = document.createElement(&#39;canvas&#39;);
+            pages.forEach((_, idx) => {
+                const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = pages[idx].canvas.width;
                 tempCanvas.height = pages[idx].canvas.height;
-                tempCanvas.getContext(&#39;2d&#39;).drawImage(pages[idx].canvas, 0, 0);
+                tempCanvas.getContext('2d').drawImage(pages[idx].canvas, 0, 0);
 
                 applyLayoutToPage(idx);
                 pages[idx].ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width / RENDER_SCALE, tempCanvas.height / RENDER_SCALE);
@@ -1768,44 +1562,44 @@
         }
 
         function configurePenStyle(ctx, style, color, width) {
-            ctx.shadowBlur = 0; ctx.shadowColor = &#39;transparent&#39;;
-            if (activeTool === &#39;eraser&#39;) {
-                ctx.globalCompositeOperation = &#39;destination-out&#39;;
-                ctx.strokeStyle = &#39;#000000&#39;; ctx.lineWidth = width * 2.5;
-                ctx.globalAlpha = 1.0; ctx.lineCap = &#39;round&#39;; ctx.lineJoin = &#39;round&#39;;
+            ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+            if (activeTool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = '#000000'; ctx.lineWidth = width * 2.5;
+                ctx.globalAlpha = 1.0; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 return;
             }
-            if (style === &#39;highlighter&#39;) {
-                ctx.globalCompositeOperation = &#39;destination-over&#39;;
+            if (style === 'highlighter') {
+                ctx.globalCompositeOperation = 'destination-over';
                 ctx.strokeStyle = color; ctx.lineWidth = width * 4.5;
-                ctx.lineCap = &#39;square&#39;; ctx.lineJoin = &#39;miter&#39;; ctx.globalAlpha = 0.45;
+                ctx.lineCap = 'square'; ctx.lineJoin = 'miter'; ctx.globalAlpha = 0.45;
                 return;
             }
-            ctx.globalCompositeOperation = &#39;source-over&#39;;
-            ctx.strokeStyle = color; ctx.lineCap = &#39;round&#39;; ctx.lineJoin = &#39;round&#39;;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
             switch(style) {
-                case &#39;fineliner&#39;: ctx.lineWidth = width * 0.8; ctx.globalAlpha = 1.0; break;
-                case &#39;ballpoint&#39;: ctx.lineWidth = width * 0.95; ctx.globalAlpha = 0.9; break;
-                case &#39;fountain&#39;: ctx.lineWidth = width * 1.0; ctx.globalAlpha = 1.0; break;
-                case &#39;calligraphy&#39;: ctx.lineWidth = width * 2.2; ctx.lineCap = &#39;square&#39;; ctx.globalAlpha = 0.95; break;
-                case &#39;brush&#39;: ctx.lineWidth = width * 1.8; ctx.globalAlpha = 0.88; break;
-                case &#39;marker&#39;: ctx.lineWidth = width * 3.0; ctx.lineCap = &#39;butt&#39;; ctx.globalAlpha = 0.92; break;
-                case &#39;pencil&#39;: ctx.lineWidth = width * 0.75; ctx.globalAlpha = 0.55; break;
-                case &#39;neon&#39;: ctx.lineWidth = width * 1.2; ctx.globalAlpha = 1.0; ctx.shadowColor = color; ctx.shadowBlur = 12; break;
-                case &#39;charcoal&#39;: ctx.lineWidth = width * 2.0; ctx.globalAlpha = 0.65; break;
+                case 'fineliner': ctx.lineWidth = width * 0.8; ctx.globalAlpha = 1.0; break;
+                case 'ballpoint': ctx.lineWidth = width * 0.95; ctx.globalAlpha = 0.9; break;
+                case 'fountain': ctx.lineWidth = width * 1.0; ctx.globalAlpha = 1.0; break;
+                case 'calligraphy': ctx.lineWidth = width * 2.2; ctx.lineCap = 'square'; ctx.globalAlpha = 0.95; break;
+                case 'brush': ctx.lineWidth = width * 1.8; ctx.globalAlpha = 0.88; break;
+                case 'marker': ctx.lineWidth = width * 3.0; ctx.lineCap = 'butt'; ctx.globalAlpha = 0.92; break;
+                case 'pencil': ctx.lineWidth = width * 0.75; ctx.globalAlpha = 0.55; break;
+                case 'neon': ctx.lineWidth = width * 1.2; ctx.globalAlpha = 1.0; ctx.shadowColor = color; ctx.shadowBlur = 12; break;
+                case 'charcoal': ctx.lineWidth = width * 2.0; ctx.globalAlpha = 0.65; break;
             }
         }
 
         function renderSmoothStroke(ctx, points) {
             if (!points || points.length === 0) return;
 
-            if (currentPenStyle === &#39;fountain&#39; &amp;&amp; activeTool !== &#39;eraser&#39;) {
-                ctx.globalCompositeOperation = &#39;source-over&#39;;
+            if (currentPenStyle === 'fountain' && activeTool !== 'eraser') {
+                ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = currentColor;
                 ctx.fillStyle = currentColor;
-                ctx.lineCap = &#39;round&#39;;
-                ctx.lineJoin = &#39;round&#39;;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.globalAlpha = 1.0;
 
                 if (points.length === 1) {
@@ -1818,7 +1612,7 @@
 
                 let totalLength = 0;
                 const dists = [0];
-                for (let i = 1; i &lt; points.length; i++) {
+                for (let i = 1; i < points.length; i++) {
                     const d = Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
                     totalLength += d;
                     dists.push(totalLength);
@@ -1827,12 +1621,12 @@
                 const minW = strokeSize * 1.0;
                 const maxW = strokeSize * 2.5;
 
-                for (let i = 1; i &lt; points.length; i++) {
+                for (let i = 1; i < points.length; i++) {
                     const p1 = points[i - 1];
                     const p2 = points[i];
 
-                    const progress1 = totalLength &gt; 0 ? dists[i - 1] / totalLength : 0;
-                    const progress2 = totalLength &gt; 0 ? dists[i] / totalLength : 1;
+                    const progress1 = totalLength > 0 ? dists[i - 1] / totalLength : 0;
+                    const progress2 = totalLength > 0 ? dists[i] / totalLength : 1;
 
                     const w1 = minW + (maxW - minW) * progress1;
                     const w2 = minW + (maxW - minW) * progress2;
@@ -1891,7 +1685,7 @@
             ctx.moveTo(points[0].x, points[0].y);
             ctx.lineTo(firstMidX, firstMidY);
 
-            for (let i = 1; i &lt; points.length - 1; i++) {
+            for (let i = 1; i < points.length - 1; i++) {
                 const xc = (points[i].x + points[i + 1].x) / 2;
                 const yc = (points[i].y + points[i + 1].y) / 2;
                 ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
@@ -1908,18 +1702,18 @@
         }
 
         // Pointer Gestures
-        viewport.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
-            if (e.target.closest(&#39;.textbox-wrapper&#39;) || e.target.closest(&#39;.image-box&#39;) || e.target.closest(&#39;#toolbar&#39;) || e.target.closest(&#39;.popover-menu&#39;)) return;
+        viewport.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.textbox-wrapper') || e.target.closest('.image-box') || e.target.closest('#toolbar') || e.target.closest('.popover-menu')) return;
             pointers.push(e);
 
             if (pointers.length === 1) {
-                const card = e.target.closest(&#39;.page-card&#39;);
+                const card = e.target.closest('.page-card');
                 if (!card) return;
 
                 activePageIndex = parseInt(card.dataset.index);
                 const page = pages[activePageIndex];
 
-                if (activeTool === &#39;text&#39;) {
+                if (activeTool === 'text') {
                     const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
                     createTextBox(activePageIndex, coords.x, coords.y);
                     return;
@@ -1938,7 +1732,7 @@
                 hasZoomedOrPanned = true;
                 currentStrokePoints = [];
 
-                if (activePageIndex !== null &amp;&amp; preStrokeSnapshot) {
+                if (activePageIndex !== null && preStrokeSnapshot) {
                     pages[activePageIndex].ctx.putImageData(preStrokeSnapshot, 0, 0);
                 }
                 preStrokeSnapshot = null;
@@ -1950,11 +1744,11 @@
             }
         });
 
-        viewport.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
-            const index = pointers.findIndex(p =&gt; p.pointerId === e.pointerId);
+        viewport.addEventListener('pointermove', (e) => {
+            const index = pointers.findIndex(p => p.pointerId === e.pointerId);
             if (index !== -1) pointers[index] = e;
 
-            if (pointers.length === 1 &amp;&amp; isDrawing &amp;&amp; !hasZoomedOrPanned &amp;&amp; activePageIndex !== null) {
+            if (pointers.length === 1 && isDrawing && !hasZoomedOrPanned && activePageIndex !== null) {
                 const page = pages[activePageIndex];
                 const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
                 currentStrokePoints.push(coords);
@@ -1979,11 +1773,11 @@
         });
 
         function handlePointerUp(e) {
-            pointers = pointers.filter(p =&gt; p.pointerId !== e.pointerId);
-            if (pointers.length &lt; 2) initialZoomDist = null;
+            pointers = pointers.filter(p => p.pointerId !== e.pointerId);
+            if (pointers.length < 2) initialZoomDist = null;
 
             if (pointers.length === 0) {
-                if (isDrawing &amp;&amp; activePageIndex !== null &amp;&amp; !hasZoomedOrPanned) {
+                if (isDrawing && activePageIndex !== null && !hasZoomedOrPanned) {
                     savePageState(activePageIndex);
                 }
                 isDrawing = false;
@@ -1994,14 +1788,14 @@
             }
         }
 
-        viewport.addEventListener(&#39;pointerup&#39;, handlePointerUp);
-        viewport.addEventListener(&#39;pointercancel&#39;, handlePointerUp);
+        viewport.addEventListener('pointerup', handlePointerUp);
+        viewport.addEventListener('pointercancel', handlePointerUp);
 
-        viewport.addEventListener(&#39;wheel&#39;, (e) =&gt; {
+        viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
             hasZoomedOrPanned = true;
             if (e.ctrlKey) {
-                const newScale = Math.min(Math.max(scale * (e.deltaY &lt; 0 ? 1.08 : 0.92), 0.2), 4.5);
+                const newScale = Math.min(Math.max(scale * (e.deltaY < 0 ? 1.08 : 0.92), 0.2), 4.5);
                 panX = e.clientX - (e.clientX - panX) * (newScale / scale);
                 panY = e.clientY - (e.clientY - panY) * (newScale / scale);
                 scale = newScale;
@@ -2012,7 +1806,7 @@
         }, { passive: false });
 
         // ================= TRANSPARENT BOUNDED TEXT BOX SYSTEM WITH BASELINE ALIGNMENT =================
-        function createTextBox(pageIdx, x, y, initialText = &#39;&#39;, initialColor = null, initialWidth = 220) {
+        function createTextBox(pageIdx, x, y, initialText = '', initialColor = null, initialWidth = 220) {
             const page = pages[pageIdx];
             const dims = getPageDimensions();
             const ruleH = getRuledLineHeight();
@@ -2020,30 +1814,30 @@
             let safeX = Math.max(0, Math.min(x, dims.width - 60));
             let safeY = Math.max(0, Math.min(y, dims.height - 30));
 
-            const wrapper = document.createElement(&#39;div&#39;);
-            wrapper.className = &#39;textbox-wrapper&#39;;
-            wrapper.style.left = safeX + &#39;px&#39;; 
-            wrapper.style.top = safeY + &#39;px&#39;;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'textbox-wrapper';
+            wrapper.style.left = safeX + 'px'; 
+            wrapper.style.top = safeY + 'px';
             
             let maxAvailableWidth = dims.width - safeX;
             let safeW = Math.min(initialWidth, maxAvailableWidth);
-            wrapper.style.width = safeW + &#39;px&#39;;
+            wrapper.style.width = safeW + 'px';
 
-            const deleteBtn = document.createElement(&#39;div&#39;);
-            deleteBtn.className = &#39;textbox-delete-btn&#39;;
-            deleteBtn.innerText = &#39;✕&#39;;
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'textbox-delete-btn';
+            deleteBtn.innerText = '✕';
 
-            const resizeHandle = document.createElement(&#39;div&#39;);
-            resizeHandle.className = &#39;textbox-resize-handle&#39;;
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'textbox-resize-handle';
 
-            const content = document.createElement(&#39;div&#39;);
-            content.className = &#39;textbox-content&#39;;
-            content.contentEditable = &#39;false&#39;;
+            const content = document.createElement('div');
+            content.className = 'textbox-content';
+            content.contentEditable = 'false';
             content.innerText = initialText;
             content.style.color = initialColor || currentColor;
-            content.style.fontSize = (ruleH * 0.72) + &#39;px&#39;;
-            content.style.lineHeight = ruleH + &#39;px&#39;;
-            content.style.minHeight = ruleH + &#39;px&#39;;
+            content.style.fontSize = (ruleH * 0.72) + 'px';
+            content.style.lineHeight = ruleH + 'px';
+            content.style.minHeight = ruleH + 'px';
 
             wrapper.appendChild(deleteBtn);
             wrapper.appendChild(resizeHandle);
@@ -2059,24 +1853,24 @@
             let lastTap = 0;
 
             function enableEditing() {
-                wrapper.classList.add(&#39;editing&#39;);
-                content.contentEditable = &#39;true&#39;;
+                wrapper.classList.add('editing');
+                content.contentEditable = 'true';
                 content.focus();
             }
 
             function disableEditing() {
-                wrapper.classList.remove(&#39;editing&#39;);
-                content.contentEditable = &#39;false&#39;;
+                wrapper.classList.remove('editing');
+                content.contentEditable = 'false';
             }
 
-            wrapper.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            wrapper.addEventListener('pointerdown', (e) => {
                 if (e.target === deleteBtn || e.target === resizeHandle) return;
                 if (content.isContentEditable) return;
 
                 e.stopPropagation();
                 const now = Date.now();
 
-                if (now - lastTap &lt; 300) {
+                if (now - lastTap < 300) {
                     enableEditing();
                     lastTap = 0;
                     return;
@@ -2089,7 +1883,7 @@
                 wrapper.setPointerCapture(e.pointerId);
             });
 
-            wrapper.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            wrapper.addEventListener('pointermove', (e) => {
                 if (!isDragging) return;
                 let newX = (e.clientX - dragX) / scale;
                 let newY = (e.clientY - dragY) / scale;
@@ -2098,16 +1892,16 @@
                 let boundedX = Math.max(0, Math.min(newX, dims.width - currentW));
                 let boundedY = Math.max(0, Math.min(newY, dims.height - 30));
 
-                wrapper.style.left = boundedX + &#39;px&#39;;
-                wrapper.style.top = boundedY + &#39;px&#39;;
+                wrapper.style.left = boundedX + 'px';
+                wrapper.style.top = boundedY + 'px';
             });
 
-            wrapper.addEventListener(&#39;pointerup&#39;, (e) =&gt; { 
+            wrapper.addEventListener('pointerup', (e) => { 
                 isDragging = false; 
                 try { wrapper.releasePointerCapture(e.pointerId); } catch(err){} 
             });
 
-            resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            resizeHandle.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 isResizing = true;
                 resizeStartX = e.clientX;
@@ -2115,7 +1909,7 @@
                 resizeHandle.setPointerCapture(e.pointerId);
             });
 
-            resizeHandle.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            resizeHandle.addEventListener('pointermove', (e) => {
                 if (!isResizing) return;
                 const dw = (e.clientX - resizeStartX) / scale;
                 let newWidth = startWidth + dw;
@@ -2124,38 +1918,38 @@
                 let maxWidth = dims.width - currentLeft;
                 let finalWidth = Math.max(80, Math.min(newWidth, maxWidth));
 
-                wrapper.style.width = finalWidth + &#39;px&#39;;
+                wrapper.style.width = finalWidth + 'px';
             });
 
-            resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
+            resizeHandle.addEventListener('pointerup', (e) => {
                 isResizing = false;
                 try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
             });
 
-            content.addEventListener(&#39;blur&#39;, () =&gt; disableEditing());
+            content.addEventListener('blur', () => disableEditing());
 
-            deleteBtn.onclick = (e) =&gt; {
+            deleteBtn.onclick = (e) => {
                 e.stopPropagation();
                 wrapper.remove();
-                page.textBoxes = page.textBoxes.filter(t =&gt; t.elem !== wrapper);
+                page.textBoxes = page.textBoxes.filter(t => t.elem !== wrapper);
             };
 
             page.textBoxes.push({ elem: wrapper, contentElem: content });
         }
 
-        const imageInput = document.getElementById(&#39;imageInput&#39;);
-        document.getElementById(&#39;imgBtn&#39;).onclick = () =&gt; imageInput.click();
-        imageInput.onchange = (e) =&gt; {
+        const imageInput = document.getElementById('imageInput');
+        document.getElementById('imgBtn').onclick = () => imageInput.click();
+        imageInput.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) =&gt; {
+            reader.onload = (event) => {
                 const img = new Image();
-                img.onload = () =&gt; insertImageToPage(activePageIndex !== null ? activePageIndex : 0, img, event.target.result);
+                img.onload = () => insertImageToPage(activePageIndex !== null ? activePageIndex : 0, img, event.target.result);
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
-            imageInput.value = &#39;&#39;;
+            imageInput.value = '';
         };
 
         function insertImageToPage(pageIdx, imgObj, src, savedState = null) {
@@ -2165,22 +1959,22 @@
             let initLeft = savedState ? savedState.left : 60;
             let initTop = savedState ? savedState.top : 60;
 
-            const box = document.createElement(&#39;div&#39;);
-            box.className = &#39;image-box&#39;;
-            box.style.left = initLeft + &#39;px&#39;; box.style.top = initTop + &#39;px&#39;;
-            box.style.width = initW + &#39;px&#39;; box.style.height = initH + &#39;px&#39;;
+            const box = document.createElement('div');
+            box.className = 'image-box';
+            box.style.left = initLeft + 'px'; box.style.top = initTop + 'px';
+            box.style.width = initW + 'px'; box.style.height = initH + 'px';
 
-            const deleteBtn = document.createElement(&#39;div&#39;);
-            deleteBtn.className = &#39;image-delete-btn&#39;; deleteBtn.innerText = &#39;✕&#39;;
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'image-delete-btn'; deleteBtn.innerText = '✕';
 
-            const container = document.createElement(&#39;div&#39;);
-            container.className = &#39;image-container&#39;;
-            const img = document.createElement(&#39;img&#39;);
+            const container = document.createElement('div');
+            container.className = 'image-container';
+            const img = document.createElement('img');
             img.src = src;
 
             container.appendChild(img);
-            const resizeHandle = document.createElement(&#39;div&#39;);
-            resizeHandle.className = &#39;resize-handle&#39;;
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
 
             box.appendChild(deleteBtn);
             box.appendChild(container); box.appendChild(resizeHandle);
@@ -2189,143 +1983,143 @@
             const imageEntry = { elem: box, imgElem: img };
 
             let isDragging = false, dragX = 0, dragY = 0;
-            box.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            box.addEventListener('pointerdown', (e) => {
                 if (e.target === resizeHandle || e.target === deleteBtn) return;
                 e.stopPropagation(); isDragging = true;
                 dragX = e.clientX - box.offsetLeft * scale;
                 dragY = e.clientY - box.offsetTop * scale;
                 box.setPointerCapture(e.pointerId);
             });
-            box.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            box.addEventListener('pointermove', (e) => {
                 if (!isDragging) return;
-                box.style.left = ((e.clientX - dragX) / scale) + &#39;px&#39;;
-                box.style.top = ((e.clientY - dragY) / scale) + &#39;px&#39;;
+                box.style.left = ((e.clientX - dragX) / scale) + 'px';
+                box.style.top = ((e.clientY - dragY) / scale) + 'px';
             });
-            box.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; try { box.releasePointerCapture(e.pointerId); } catch(err){} });
+            box.addEventListener('pointerup', (e) => { isDragging = false; try { box.releasePointerCapture(e.pointerId); } catch(err){} });
 
             let isResizing = false, startW = 0, startH = 0, startX = 0, startY = 0;
-            resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            resizeHandle.addEventListener('pointerdown', (e) => {
                 e.stopPropagation(); isResizing = true;
                 startW = box.offsetWidth; startH = box.offsetHeight;
                 startX = e.clientX; startY = e.clientY;
                 resizeHandle.setPointerCapture(e.pointerId);
             });
-            resizeHandle.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            resizeHandle.addEventListener('pointermove', (e) => {
                 if (!isResizing) return;
                 const dw = (e.clientX - startX) / scale;
                 const dh = (e.clientY - startY) / scale;
-                box.style.width = Math.max(60, startW + dw) + &#39;px&#39;;
-                box.style.height = Math.max(60, startH + dh) + &#39;px&#39;;
+                box.style.width = Math.max(60, startW + dw) + 'px';
+                box.style.height = Math.max(60, startH + dh) + 'px';
             });
-            resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isResizing = false; try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){} });
+            resizeHandle.addEventListener('pointerup', (e) => { isResizing = false; try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){} });
 
-            deleteBtn.onclick = (e) =&gt; {
+            deleteBtn.onclick = (e) => {
                 e.stopPropagation(); box.remove();
-                page.imageBoxes = page.imageBoxes.filter(i =&gt; i.elem !== box);
+                page.imageBoxes = page.imageBoxes.filter(i => i.elem !== box);
             };
 
             page.imageBoxes.push(imageEntry);
         }
 
         // Toolbar Controls Routing
-        const penBtn = document.getElementById(&#39;penBtn&#39;);
-        const eraserBtn = document.getElementById(&#39;eraserBtn&#39;);
-        const textBtn = document.getElementById(&#39;textBtn&#39;);
-        const colorPicker = document.getElementById(&#39;colorPicker&#39;);
-        const sizePicker = document.getElementById(&#39;sizePicker&#39;);
-        const penStyleSelect = document.getElementById(&#39;penStyle&#39;);
-        const bgSelect = document.getElementById(&#39;bgSelect&#39;);
-        const swatches = document.querySelectorAll(&#39;.swatch&#39;);
+        const penBtn = document.getElementById('penBtn');
+        const eraserBtn = document.getElementById('eraserBtn');
+        const textBtn = document.getElementById('textBtn');
+        const colorPicker = document.getElementById('colorPicker');
+        const sizePicker = document.getElementById('sizePicker');
+        const penStyleSelect = document.getElementById('penStyle');
+        const bgSelect = document.getElementById('bgSelect');
+        const swatches = document.querySelectorAll('.swatch');
 
         function setActiveTool(tool) {
             activeTool = tool;
-            penBtn.classList.toggle(&#39;active&#39;, tool === &#39;pen&#39;);
-            eraserBtn.classList.toggle(&#39;active&#39;, tool === &#39;eraser&#39;);
-            textBtn.classList.toggle(&#39;active&#39;, tool === &#39;text&#39;);
+            penBtn.classList.toggle('active', tool === 'pen');
+            eraserBtn.classList.toggle('active', tool === 'eraser');
+            textBtn.classList.toggle('active', tool === 'text');
         }
 
-        penBtn.onclick = () =&gt; setActiveTool(&#39;pen&#39;);
-        eraserBtn.onclick = () =&gt; setActiveTool(&#39;eraser&#39;);
-        textBtn.onclick = () =&gt; setActiveTool(&#39;text&#39;);
+        penBtn.onclick = () => setActiveTool('pen');
+        eraserBtn.onclick = () => setActiveTool('eraser');
+        textBtn.onclick = () => setActiveTool('text');
 
         function setColor(hex) {
             currentColor = hex; colorPicker.value = hex;
-            if (activeTool === &#39;eraser&#39;) setActiveTool(&#39;pen&#39;);
-            swatches.forEach(s =&gt; s.classList.remove(&#39;active&#39;));
-            const matched = document.querySelector(`.swatch[data-color=&quot;${hex}&quot;]`);
-            if (matched) matched.classList.add(&#39;active&#39;);
+            if (activeTool === 'eraser') setActiveTool('pen');
+            swatches.forEach(s => s.classList.remove('active'));
+            const matched = document.querySelector(`.swatch[data-color="${hex}"]`);
+            if (matched) matched.classList.add('active');
         }
 
-        swatches.forEach(s =&gt; s.onclick = () =&gt; setColor(s.dataset.color));
-        colorPicker.oninput = (e) =&gt; setColor(e.target.value);
-        sizePicker.onchange = (e) =&gt; strokeSize = parseFloat(e.target.value);
-        penStyleSelect.onchange = (e) =&gt; currentPenStyle = e.target.value;
+        swatches.forEach(s => s.onclick = () => setColor(s.dataset.color));
+        colorPicker.oninput = (e) => setColor(e.target.value);
+        sizePicker.onchange = (e) => strokeSize = parseFloat(e.target.value);
+        penStyleSelect.onchange = (e) => currentPenStyle = e.target.value;
 
-        bgSelect.onchange = (e) =&gt; {
+        bgSelect.onchange = (e) => {
             pageSettings.background = e.target.value;
             updateAllPagesLayout();
-            pageMenuPopover.style.display = &#39;none&#39;;
+            pageMenuPopover.style.display = 'none';
         };
 
-        const pageMenuToggleBtn = document.getElementById(&#39;pageMenuToggleBtn&#39;);
-        const pageMenuPopover = document.getElementById(&#39;pageMenuPopover&#39;);
+        const pageMenuToggleBtn = document.getElementById('pageMenuToggleBtn');
+        const pageMenuPopover = document.getElementById('pageMenuPopover');
 
-        pageMenuToggleBtn.onpointerdown = (e) =&gt; {
+        pageMenuToggleBtn.onpointerdown = (e) => {
             e.stopPropagation();
             const rect = pageMenuToggleBtn.getBoundingClientRect();
-            pageMenuPopover.style.top = (rect.bottom + 6) + &#39;px&#39;;
-            pageMenuPopover.style.left = rect.left + &#39;px&#39;;
-            pageMenuPopover.style.display = pageMenuPopover.style.display === &#39;flex&#39; ? &#39;none&#39; : &#39;flex&#39;;
+            pageMenuPopover.style.top = (rect.bottom + 6) + 'px';
+            pageMenuPopover.style.left = rect.left + 'px';
+            pageMenuPopover.style.display = pageMenuPopover.style.display === 'flex' ? 'none' : 'flex';
         };
 
-        document.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
-            if (!pageMenuPopover.contains(e.target) &amp;&amp; e.target !== pageMenuToggleBtn) {
-                pageMenuPopover.style.display = &#39;none&#39;;
+        document.addEventListener('pointerdown', (e) => {
+            if (!pageMenuPopover.contains(e.target) && e.target !== pageMenuToggleBtn) {
+                pageMenuPopover.style.display = 'none';
             }
         });
 
-        document.getElementById(&#39;addPageBtn&#39;).onclick = () =&gt; { createNewPage(); centerPages(); pageMenuPopover.style.display = &#39;none&#39;; };
+        document.getElementById('addPageBtn').onclick = () => { createNewPage(); centerPages(); pageMenuPopover.style.display = 'none'; };
 
-        const deleteModalOverlay = document.getElementById(&#39;deleteModalOverlay&#39;);
-        const deletePageSelect = document.getElementById(&#39;deletePageSelect&#39;);
+        const deleteModalOverlay = document.getElementById('deleteModalOverlay');
+        const deletePageSelect = document.getElementById('deletePageSelect');
 
-        document.getElementById(&#39;deletePageModalBtn&#39;).onclick = () =&gt; {
-            pageMenuPopover.style.display = &#39;none&#39;;
-            deletePageSelect.innerHTML = &#39;&#39;;
-            pages.forEach((_, idx) =&gt; {
-                const opt = document.createElement(&#39;option&#39;); opt.value = idx; opt.innerText = `Page ${idx + 1}`;
+        document.getElementById('deletePageModalBtn').onclick = () => {
+            pageMenuPopover.style.display = 'none';
+            deletePageSelect.innerHTML = '';
+            pages.forEach((_, idx) => {
+                const opt = document.createElement('option'); opt.value = idx; opt.innerText = `Page ${idx + 1}`;
                 deletePageSelect.appendChild(opt);
             });
-            deleteModalOverlay.style.display = &#39;flex&#39;;
+            deleteModalOverlay.style.display = 'flex';
         };
 
-        document.getElementById(&#39;closeDeleteModalBtn&#39;).onclick = () =&gt; deleteModalOverlay.style.display = &#39;none&#39;;
-        document.getElementById(&#39;confirmClearInkBtn&#39;).onclick = () =&gt; {
+        document.getElementById('closeDeleteModalBtn').onclick = () => deleteModalOverlay.style.display = 'none';
+        document.getElementById('confirmClearInkBtn').onclick = () => {
             const pageIdx = parseInt(deletePageSelect.value);
-            if (!isNaN(pageIdx) &amp;&amp; pages[pageIdx]) {
+            if (!isNaN(pageIdx) && pages[pageIdx]) {
                 const dims = getPageDimensions();
                 pages[pageIdx].ctx.clearRect(0, 0, dims.width, dims.height);
                 savePageState(pageIdx);
             }
-            deleteModalOverlay.style.display = &#39;none&#39;;
+            deleteModalOverlay.style.display = 'none';
         };
 
-        document.getElementById(&#39;confirmDeletePageBtn&#39;).onclick = () =&gt; {
+        document.getElementById('confirmDeletePageBtn').onclick = () => {
             const pageIdx = parseInt(deletePageSelect.value);
-            if (!isNaN(pageIdx) &amp;&amp; pages[pageIdx]) {
-                if (pages.length &lt;= 1) {
+            if (!isNaN(pageIdx) && pages[pageIdx]) {
+                if (pages.length <= 1) {
                     const dims = getPageDimensions(); pages[0].ctx.clearRect(0, 0, dims.width, dims.height);
                 } else {
                     pages[pageIdx].card.remove(); pages.splice(pageIdx, 1);
-                    pages.forEach((p, idx) =&gt; { p.card.dataset.index = idx; p.pageTag.innerText = `PAGE ${idx + 1}`; });
+                    pages.forEach((p, idx) => { p.card.dataset.index = idx; p.pageTag.innerText = `PAGE ${idx + 1}`; });
                 }
             }
-            deleteModalOverlay.style.display = &#39;none&#39;;
+            deleteModalOverlay.style.display = 'none';
         };
 
-        // DEDICATED UNDO &amp; REDO ENGINE
+        // DEDICATED UNDO & REDO ENGINE
         function savePageState(pageIdx, isInitial = false) {
-            if (undoStack.length &gt; 40) undoStack.shift();
+            if (undoStack.length > 40) undoStack.shift();
             undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
             if (!isInitial) {
                 redoStack = []; // Clear redo timeline on new actions
@@ -2333,7 +2127,7 @@
         }
 
         function performUndo() {
-            if (undoStack.length &gt; 1) {
+            if (undoStack.length > 1) {
                 const currentState = undoStack.pop();
                 redoStack.push(currentState);
 
@@ -2341,7 +2135,7 @@
                 const page = pages[lastState.pageIndex];
                 if (page) {
                     const img = new Image(); img.src = lastState.data;
-                    img.onload = () =&gt; {
+                    img.onload = () => {
                         const dims = getPageDimensions();
                         page.ctx.clearRect(0, 0, dims.width, dims.height);
                         page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
@@ -2351,14 +2145,14 @@
         }
 
         function performRedo() {
-            if (redoStack.length &gt; 0) {
+            if (redoStack.length > 0) {
                 const nextState = redoStack.pop();
                 undoStack.push(nextState);
 
                 const page = pages[nextState.pageIndex];
                 if (page) {
                     const img = new Image(); img.src = nextState.data;
-                    img.onload = () =&gt; {
+                    img.onload = () => {
                         const dims = getPageDimensions();
                         page.ctx.clearRect(0, 0, dims.width, dims.height);
                         page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
@@ -2367,27 +2161,27 @@
             }
         }
 
-        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; performUndo();
-        document.getElementById(&#39;redoBtn&#39;).onclick = () =&gt; performRedo();
+        document.getElementById('undoBtn').onclick = () => performUndo();
+        document.getElementById('redoBtn').onclick = () => performRedo();
 
         // Keyboard Shortcuts for Undo/Redo
-        window.addEventListener(&#39;keydown&#39;, (e) =&gt; {
+        window.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
-                if (e.key === &#39;z&#39; || e.key === &#39;Z&#39;) {
+                if (e.key === 'z' || e.key === 'Z') {
                     if (e.shiftKey) performRedo();
                     else performUndo();
-                } else if (e.key === &#39;y&#39; || e.key === &#39;Y&#39;) {
+                } else if (e.key === 'y' || e.key === 'Y') {
                     performRedo();
                 }
             }
         });
 
-        const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
-        document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
-        document.getElementById(&#39;closeExportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;none&#39;;
+        const exportModalOverlay = document.getElementById('exportModalOverlay');
+        document.getElementById('exportModalBtn').onclick = () => exportModalOverlay.style.display = 'flex';
+        document.getElementById('closeExportModalBtn').onclick = () => exportModalOverlay.style.display = 'none';
 
         function getExportFilename(suffix) {
-            return (currentDocumentTitle || &#39;Handwritten_Notes&#39;).replace(/[^a-zA-Z0-9_-]/g, &#39;_&#39;) + suffix;
+            return (currentDocumentTitle || 'Handwritten_Notes').replace(/[^a-zA-Z0-9_-]/g, '_') + suffix;
         }
 
         // ================= ALPHABETIC BASELINE ALIGNED EXPORT ENGINE =================
@@ -2395,22 +2189,22 @@
             const page = pages[pageIdx];
             const dims = getPageDimensions();
             const ruleH = getRuledLineHeight();
-            const expCanvas = document.createElement(&#39;canvas&#39;);
+            const expCanvas = document.createElement('canvas');
             expCanvas.width = dims.width * 2; expCanvas.height = dims.height * 2;
-            const ctx = expCanvas.getContext(&#39;2d&#39;); ctx.scale(2, 2);
+            const ctx = expCanvas.getContext('2d'); ctx.scale(2, 2);
 
             // Draw Background Pattern
             ctx.drawImage(page.bgCanvas, 0, 0, dims.width, dims.height);
             drawMarginGuidesOnCanvas(ctx, dims);
 
-            if (pageSettings.borderStyle !== &#39;none&#39;) {
+            if (pageSettings.borderStyle !== 'none') {
                 ctx.strokeStyle = pageSettings.borderColor;
-                ctx.lineWidth = pageSettings.borderStyle === &#39;thick&#39; ? 5 : 2;
+                ctx.lineWidth = pageSettings.borderStyle === 'thick' ? 5 : 2;
                 ctx.strokeRect(0, 0, dims.width, dims.height);
             }
 
             // Draw Images
-            page.imageBoxes.forEach(ib =&gt; {
+            page.imageBoxes.forEach(ib => {
                 ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
             });
 
@@ -2418,30 +2212,30 @@
             ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
 
             // Draw Text Boxes aligned to Alphabetic Baseline
-            page.textBoxes.forEach(tb =&gt; {
+            page.textBoxes.forEach(tb => {
                 const text = tb.contentElem.innerText;
-                if (text.trim().length &gt; 0) {
+                if (text.trim().length > 0) {
                     const fontSize = ruleH * 0.72;
                     ctx.font = `${fontSize}px Segoe UI, sans-serif`;
-                    ctx.fillStyle = tb.contentElem.style.color || &#39;#000000&#39;;
-                    ctx.textBaseline = &#39;alphabetic&#39;;
+                    ctx.fillStyle = tb.contentElem.style.color || '#000000';
+                    ctx.textBaseline = 'alphabetic';
 
                     const boxLeft = parseFloat(tb.elem.style.left) || 0;
                     const boxTop = parseFloat(tb.elem.style.top) || 0;
                     const boxWidth = (parseFloat(tb.elem.style.width) || tb.elem.offsetWidth || 220) - 8;
 
-                    const paragraphs = text.split(&#39;\n&#39;);
+                    const paragraphs = text.split('\n');
                     let currentLineIndex = 0;
 
-                    paragraphs.forEach(paragraph =&gt; {
-                        const words = paragraph.split(&#39; &#39;);
-                        let currentLine = &#39;&#39;;
+                    paragraphs.forEach(paragraph => {
+                        const words = paragraph.split(' ');
+                        let currentLine = '';
 
-                        words.forEach((word, index) =&gt; {
-                            const testLine = currentLine + (currentLine ? &#39; &#39; : &#39;&#39;) + word;
+                        words.forEach((word, index) => {
+                            const testLine = currentLine + (currentLine ? ' ' : '') + word;
                             const metrics = ctx.measureText(testLine);
                             
-                            if (metrics.width &gt; boxWidth &amp;&amp; index &gt; 0) {
+                            if (metrics.width > boxWidth && index > 0) {
                                 let baselineY = boxTop + (currentLineIndex * ruleH) + (ruleH * 0.78);
                                 ctx.fillText(currentLine, boxLeft + 4, baselineY);
                                 currentLine = word;
@@ -2461,280 +2255,73 @@
             });
 
             ctx.save();
-            ctx.font = &#39;bold 12px Segoe UI, sans-serif&#39;; ctx.fillStyle = &#39;#6b7280&#39;; ctx.textAlign = &#39;right&#39;;
+            ctx.font = 'bold 12px Segoe UI, sans-serif'; ctx.fillStyle = '#6b7280'; ctx.textAlign = 'right';
             ctx.fillText(`PAGE ${pageIdx + 1}`, dims.width - 20, 25);
             ctx.restore();
 
             return expCanvas;
         }
 
-        document.getElementById(&#39;exportPdfBtn&#39;).onclick = () =&gt; {
+        document.getElementById('exportPdfBtn').onclick = () => {
             const { jsPDF } = window.jspdf;
             const dims = getPageDimensions();
-            const orientation = pageSettings.orientation === &#39;portrait&#39; ? &#39;p&#39; : &#39;l&#39;;
-            const pdf = new jsPDF(orientation, &#39;pt&#39;, [dims.width, dims.height]);
+            const orientation = pageSettings.orientation === 'portrait' ? 'p' : 'l';
+            const pdf = new jsPDF(orientation, 'pt', [dims.width, dims.height]);
 
-            pages.forEach((_, idx) =&gt; {
-                if (idx &gt; 0) pdf.addPage([dims.width, dims.height], orientation);
-                pdf.addImage(renderPageToCanvas(idx).toDataURL(&#39;image/jpeg&#39;, 0.92), &#39;JPEG&#39;, 0, 0, dims.width, dims.height);
+            pages.forEach((_, idx) => {
+                if (idx > 0) pdf.addPage([dims.width, dims.height], orientation);
+                pdf.addImage(renderPageToCanvas(idx).toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, dims.width, dims.height);
             });
 
-            pdf.save(getExportFilename(&#39;.pdf&#39;));
-            exportModalOverlay.style.display = &#39;none&#39;;
+            pdf.save(getExportFilename('.pdf'));
+            exportModalOverlay.style.display = 'none';
         };
 
-        document.getElementById(&#39;exportLongImgBtn&#39;).onclick = () =&gt; {
+        document.getElementById('exportLongImgBtn').onclick = () => {
             const dims = getPageDimensions();
             const gap = 30;
-            const longCanvas = document.createElement(&#39;canvas&#39;);
+            const longCanvas = document.createElement('canvas');
             longCanvas.width = dims.width * 2;
             longCanvas.height = ((dims.height * pages.length) + (gap * (pages.length - 1))) * 2;
-            const ctx = longCanvas.getContext(&#39;2d&#39;);
-            ctx.fillStyle = &#39;#2a2d30&#39;; ctx.fillRect(0, 0, longCanvas.width, longCanvas.height);
+            const ctx = longCanvas.getContext('2d');
+            ctx.fillStyle = '#2a2d30'; ctx.fillRect(0, 0, longCanvas.width, longCanvas.height);
 
-            pages.forEach((_, idx) =&gt; {
+            pages.forEach((_, idx) => {
                 ctx.drawImage(renderPageToCanvas(idx), 0, (idx * (dims.height + gap)) * 2);
             });
 
-            const link = document.createElement(&#39;a&#39;);
-            link.download = getExportFilename(&#39;.jpg&#39;); link.href = longCanvas.toDataURL(&#39;image/jpeg&#39;, 0.92);
+            const link = document.createElement('a');
+            link.download = getExportFilename('.jpg'); link.href = longCanvas.toDataURL('image/jpeg', 0.92);
             link.click();
-            exportModalOverlay.style.display = &#39;none&#39;;
+            exportModalOverlay.style.display = 'none';
         };
 
-        document.getElementById(&#39;exportSepImgBtn&#39;).onclick = () =&gt; {
-            pages.forEach((_, idx) =&gt; {
-                const link = document.createElement(&#39;a&#39;);
+        document.getElementById('exportSepImgBtn').onclick = () => {
+            pages.forEach((_, idx) => {
+                const link = document.createElement('a');
                 link.download = getExportFilename(`_Page_${idx + 1}.jpg`);
-                link.href = renderPageToCanvas(idx).toDataURL(&#39;image/jpeg&#39;, 0.92);
+                link.href = renderPageToCanvas(idx).toDataURL('image/jpeg', 0.92);
                 link.click();
             });
-            exportModalOverlay.style.display = &#39;none&#39;;
+            exportModalOverlay.style.display = 'none';
         };
 
-        const modalOverlay = document.getElementById(&#39;modalOverlay&#39;);
-        document.getElementById(&#39;pageSetupBtn&#39;).onclick = () =&gt; { pageMenuPopover.style.display = &#39;none&#39;; modalOverlay.style.display = &#39;flex&#39;; };
-        document.getElementById(&#39;closeModalBtn&#39;).onclick = () =&gt; {
-            pageSettings.size = document.getElementById(&#39;pageSizeSelect&#39;).value;
-            pageSettings.orientation = document.getElementById(&#39;pageOrientationSelect&#39;).value;
-            pageSettings.borderStyle = document.getElementById(&#39;borderStyleSelect&#39;).value;
-            pageSettings.borderColor = document.getElementById(&#39;borderColorInput&#39;).value;
-            pageSettings.borderMargin = document.getElementById(&#39;borderMarginInput&#39;).value;
-            pageSettings.pageMarginGuide = document.getElementById(&#39;pageMarginGuideSelect&#39;).value;
-            pageSettings.ruledLineCount = parseInt(document.getElementById(&#39;ruledLineCountInput&#39;).value) || 25;
+        const modalOverlay = document.getElementById('modalOverlay');
+        document.getElementById('pageSetupBtn').onclick = () => { pageMenuPopover.style.display = 'none'; modalOverlay.style.display = 'flex'; };
+        document.getElementById('closeModalBtn').onclick = () => {
+            pageSettings.size = document.getElementById('pageSizeSelect').value;
+            pageSettings.orientation = document.getElementById('pageOrientationSelect').value;
+            pageSettings.borderStyle = document.getElementById('borderStyleSelect').value;
+            pageSettings.borderColor = document.getElementById('borderColorInput').value;
+            pageSettings.borderMargin = document.getElementById('borderMarginInput').value;
+            pageSettings.pageMarginGuide = document.getElementById('pageMarginGuideSelect').value;
+            pageSettings.ruledLineCount = parseInt(document.getElementById('ruledLineCountInput').value) || 25;
 
             updateAllPagesLayout();
-            modalOverlay.style.display = &#39;none&#39;;
+            modalOverlay.style.display = 'none';
         };
 
         renderDashboard();
-    &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;"></iframe>
-  </div>
-</div>
-
-<script>
-  const STAGE_W = 1280;
-  const STAGE_H = 720;
-  const IS_CUSTOM_SCALE = false;
-  const CUSTOM_SCALE_VAL = 51.8;
-  const REQUIRE_LANDSCAPE = true;
-  const AUTO_FULLSCREEN = true;
-
-  let baseScale = 1;
-  let userZoomMultiplier = 1.0;
-  let panX = 0;
-  let panY = 0;
-  let isPanDragActive = false;
-  let isDragging = false;
-  let startX = 0, startY = 0;
-  let resizeTimeout = null;
-  let lastWinW = 0;
-  let lastWinH = 0;
-
-  function resizeStage() {
-    const stage = document.getElementById('appStage');
-    if (!stage) return;
-
-    const currentW = window.innerWidth;
-    const currentH = window.innerHeight;
-
-    if (IS_CUSTOM_SCALE) {
-      baseScale = CUSTOM_SCALE_VAL / 100;
-    } else {
-      baseScale = Math.min(currentW / STAGE_W, currentH / STAGE_H);
-    }
-    const finalScale = baseScale * userZoomMultiplier;
-    stage.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${finalScale})`;
-  }
-
-  /* NAVIGATION & ZOOM CONTROLS */
-  function navBack() {
-    try {
-      const iframe = document.getElementById('contentFrame');
-      iframe.contentWindow.history.back();
-    } catch(e) {
-      window.history.back();
-    }
-  }
-
-  function navForward() {
-    try {
-      const iframe = document.getElementById('contentFrame');
-      iframe.contentWindow.history.forward();
-    } catch(e) {
-      window.history.forward();
-    }
-  }
-
-  function zoomIn() {
-    userZoomMultiplier = Math.min(4.0, userZoomMultiplier + 0.15);
-    resizeStage();
-  }
-
-  function zoomOut() {
-    userZoomMultiplier = Math.max(0.2, userZoomMultiplier - 0.15);
-    resizeStage();
-  }
-
-  function panStage(dx, dy) {
-    panX += dx;
-    panY += dy;
-    resizeStage();
-  }
-
-  function resetPanAndZoom() {
-    userZoomMultiplier = 1.0;
-    panX = 0;
-    panY = 0;
-    resizeStage();
-  }
-
-  function togglePanDragMode() {
-    isPanDragActive = !isPanDragActive;
-    const btn = document.getElementById('panDragToggleBtn');
-    const iframe = document.getElementById('contentFrame');
-    const container = document.getElementById('viewportContainer');
-
-    if (isPanDragActive) {
-      btn.classList.add('active-mode');
-      iframe.style.pointerEvents = 'none';
-      container.style.cursor = 'grab';
-    } else {
-      btn.classList.remove('active-mode');
-      iframe.style.pointerEvents = 'auto';
-      container.style.cursor = 'default';
-    }
-  }
-
-  /* MOUSE & TOUCH DRAG PANNING */
-  const container = document.getElementById('viewportContainer');
-
-  container.addEventListener('pointerdown', (e) => {
-    if (!isPanDragActive) return;
-    isDragging = true;
-    startX = e.clientX - panX;
-    startY = e.clientY - panY;
-    container.style.cursor = 'grabbing';
-  });
-
-  window.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
-    panX = e.clientX - startX;
-    panY = e.clientY - startY;
-    resizeStage();
-  });
-
-  window.addEventListener('pointerup', () => {
-    if (!isDragging) return;
-    isDragging = false;
-    if (isPanDragActive) container.style.cursor = 'grab';
-  });
-
-  function toggleNavBar(hide) {
-    const bar = document.getElementById('navOverlayBar');
-    const toggleBtn = document.getElementById('navToggleBtn');
-    if (!bar || !toggleBtn) return;
-    if (hide) {
-      bar.classList.add('hidden');
-      toggleBtn.classList.add('visible');
-    } else {
-      bar.classList.remove('hidden');
-      toggleBtn.classList.remove('visible');
-    }
-  }
-
-  function checkOrientation() {
-    const rotateOverlay = document.getElementById('rotateOverlay');
-    if (!rotateOverlay) {
-      resizeStage();
-      return;
-    }
-    const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth < 1024;
-    if (REQUIRE_LANDSCAPE && isPortrait) {
-      rotateOverlay.style.display = 'flex';
-    } else {
-      rotateOverlay.style.display = 'none';
-    }
-    resizeStage();
-  }
-
-  function requestFullscreenIfPossible() {
-    if (!AUTO_FULLSCREEN) return;
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      const docEl = document.documentElement;
-      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-      if (req) {
-        req.call(docEl).catch(() => {});
-      }
-    }
-    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
-  }
-
-  if (AUTO_FULLSCREEN) {
-    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
-  }
-
-  const btnLandscape = document.getElementById('btnEnterLandscape');
-  if (btnLandscape) {
-    btnLandscape.addEventListener('click', () => {
-      requestFullscreenIfPossible();
-      const rotateOverlay = document.getElementById('rotateOverlay');
-      if (rotateOverlay) rotateOverlay.style.display = 'none';
-    });
-  }
-
-  window.addEventListener('resize', () => {
-    const wDiff = Math.abs(window.innerWidth - lastWinW);
-    const hDiff = Math.abs(window.innerHeight - lastWinH);
-
-    // Filter out minor vertical resize shifts caused by mobile web browsers toggling top/bottom UI bars
-    if (lastWinW > 0 && wDiff < 15 && hDiff < 80) return;
-
-    lastWinW = window.innerWidth;
-    lastWinH = window.innerHeight;
-
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      checkOrientation();
-      resizeStage();
-    }, 60);
-  });
-
-  window.addEventListener('orientationchange', () => {
-    setTimeout(() => {
-      lastWinW = window.innerWidth;
-      lastWinH = window.innerHeight;
-      checkOrientation();
-      resizeStage();
-    }, 200);
-  });
-
-  lastWinW = window.innerWidth;
-  lastWinH = window.innerHeight;
-  checkOrientation();
-  resizeStage();
-</script>
+    </script>
 </body>
 </html>
