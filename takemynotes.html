@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v4</title>
+<title>take my notes v5</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -206,6 +206,9 @@
     
     &lt;!-- jsPDF Library for Multi-Page PDF Export --&gt;
     &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js&quot;&gt;&lt;/script&gt;
+    
+    &lt;!-- localForage Library for IndexedDB Large Storage Support --&gt;
+    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js&quot;&gt;&lt;/script&gt;
 
     &lt;style&gt;
         * {
@@ -259,11 +262,6 @@
             gap: 8px;
         }
 
-        .dash-actions {
-            display: flex;
-            gap: 8px;
-        }
-
         .breadcrumb {
             padding: 12px 24px;
             background: #1e2124;
@@ -290,7 +288,7 @@
             padding: 24px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 16px;
             align-content: start;
             -webkit-overflow-scrolling: touch;
@@ -328,15 +326,6 @@
         .item-meta {
             font-size: 10px;
             color: #9ca3af;
-            margin-top: 4px;
-        }
-        .item-size-badge {
-            font-size: 9px;
-            font-weight: bold;
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.15);
-            padding: 2px 6px;
-            border-radius: 8px;
             margin-top: 4px;
         }
 
@@ -800,17 +789,10 @@
 &lt;/head&gt;
 &lt;body&gt;
 
-    &lt;!-- Native Storage File Selection Picker (Direct Permission Execution) --&gt;
-    &lt;input type=&quot;file&quot; id=&quot;nativeFileInput&quot; accept=&quot;.pstudio,.json&quot; style=&quot;display:none;&quot;&gt;
-
     &lt;!-- ================= DASHBOARD / FOLDER EXPLORER VIEW ================= --&gt;
     &lt;div id=&quot;dashboardView&quot;&gt;
         &lt;div class=&quot;dash-header&quot;&gt;
             &lt;div class=&quot;dash-title&quot;&gt;📚 Pro Studio Notes&lt;/div&gt;
-            &lt;div class=&quot;dash-actions&quot;&gt;
-                &lt;button id=&quot;deviceOpenBtn&quot; style=&quot;background:#3b82f6; color:white;&quot;&gt;📂 Open File&lt;/button&gt;
-                &lt;button id=&quot;deviceSaveAsBtn&quot; style=&quot;background:#059669; color:white;&quot;&gt;💾 Export Native File&lt;/button&gt;
-            &lt;/div&gt;
         &lt;/div&gt;
 
         &lt;div class=&quot;breadcrumb&quot; id=&quot;breadcrumbBar&quot;&gt;&lt;/div&gt;
@@ -883,8 +865,7 @@
             &lt;/div&gt;
 
             &lt;div class=&quot;tool-group&quot;&gt;
-                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo (Ctrl+Z)&quot;&gt;↩️&lt;/button&gt;
-                &lt;button id=&quot;redoBtn&quot; title=&quot;Redo (Ctrl+Y)&quot;&gt;↪️&lt;/button&gt;
+                &lt;button id=&quot;undoBtn&quot; title=&quot;Undo&quot;&gt;↩️&lt;/button&gt;
                 &lt;button id=&quot;recenterBtn&quot; title=&quot;Recenter Workspace&quot;&gt;🎯&lt;/button&gt;
                 &lt;button id=&quot;exportModalBtn&quot; class=&quot;export-btn&quot; title=&quot;Export Note&quot;&gt;📤&lt;/button&gt;
             &lt;/div&gt;
@@ -1056,6 +1037,18 @@
     &lt;div id=&quot;toast&quot;&gt;Saved Successfully!&lt;/div&gt;
 
     &lt;script&gt;
+        // Request persistent storage permission for Android WebView
+        if (navigator.storage &amp;&amp; navigator.storage.persist) {
+            navigator.storage.persist();
+        }
+
+        // Configure IndexedDB instance using localForage
+        localforage.config({
+            name: &#39;ProHandwritingNotesStudio&#39;,
+            storeName: &#39;notes_app_data&#39;,
+            description: &#39;Gigabyte storage database for handwritten notes and canvas state&#39;
+        });
+
         // ================= STATE &amp; FILE SYSTEM STORAGE ENGINE =================
         const PAGE_SIZES = {
             A4: { width: 794, height: 1123 },
@@ -1095,7 +1088,6 @@
         const viewport = document.getElementById(&#39;viewport&#39;);
         let pages = [];
         let undoStack = [];
-        let redoStack = [];
 
         let currentStrokePoints = [];
         let preStrokeSnapshot = null;
@@ -1114,37 +1106,31 @@
             setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
         }
 
-        // DYNAMIC FILE SIZE CALCULATOR (B, KB, MB, GB)
-        function formatBytes(bytes) {
-            if (!bytes || bytes === 0) return &#39;0 B&#39;;
-            const k = 1024;
-            const sizes = [&#39;B&#39;, &#39;KB&#39;, &#39;MB&#39;, &#39;GB&#39;, &#39;TB&#39;];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + &#39; &#39; + sizes[i];
-        }
-
-        function calculateNoteSize(note) {
+        async function loadStorageTree() {
             try {
-                const str = JSON.stringify(note);
-                const bytes = new Blob([str]).size;
-                return formatBytes(bytes);
+                const data = await localforage.getItem(&#39;notes_studio_app_state&#39;);
+                if (data) {
+                    appState = typeof data === &#39;string&#39; ? JSON.parse(data) : data;
+                } else {
+                    // Fallback check for old localStorage migration
+                    const legacyData = localStorage.getItem(&#39;notes_studio_app_state&#39;);
+                    if (legacyData) {
+                        appState = JSON.parse(legacyData);
+                        await saveStorageTree();
+                        localStorage.removeItem(&#39;notes_studio_app_state&#39;);
+                    }
+                }
             } catch(e) {
-                return &#39;0 B&#39;;
+                console.error(&quot;Storage initialization error:&quot;, e);
             }
+            renderDashboard();
         }
 
-        function loadStorageTree() {
-            const data = localStorage.getItem(&#39;notes_studio_app_state&#39;);
-            if (data) {
-                try { appState = JSON.parse(data); } catch(e) {}
-            }
-        }
-
-        function saveStorageTree() {
+        async function saveStorageTree() {
             try {
-                localStorage.setItem(&#39;notes_studio_app_state&#39;, JSON.stringify(appState));
+                await localforage.setItem(&#39;notes_studio_app_state&#39;, appState);
             } catch(e) {
-                showToast(&quot;Storage quota warning. Use Native Device Export for GB-sized files.&quot;);
+                console.error(&quot;Save error:&quot;, e);
             }
         }
 
@@ -1197,11 +1183,11 @@
                     renderDashboard();
                 };
 
-                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                card.querySelector(&#39;.item-del-btn&#39;).onclick = async (e) =&gt; {
                     e.stopPropagation();
                     if (confirm(`Delete folder &quot;${f.name}&quot; and its contents?`)) {
                         deleteFolderRecursive(f.id);
-                        saveStorageTree();
+                        await saveStorageTree();
                         renderDashboard();
                     }
                 };
@@ -1212,12 +1198,10 @@
             currentNotes.forEach(n =&gt; {
                 const card = document.createElement(&#39;div&#39;);
                 card.className = &#39;item-card&#39;;
-                const sizeStr = calculateNoteSize(n);
                 card.innerHTML = `
                     &lt;div class=&quot;item-icon&quot;&gt;📝&lt;/div&gt;
                     &lt;div class=&quot;item-title&quot;&gt;${n.title}&lt;/div&gt;
                     &lt;div class=&quot;item-meta&quot;&gt;${n.pageCount || 1} Page(s)&lt;/div&gt;
-                    &lt;div class=&quot;item-size-badge&quot;&gt;${sizeStr}&lt;/div&gt;
                     &lt;button class=&quot;item-del-btn&quot; title=&quot;Delete Note&quot;&gt;✕&lt;/button&gt;
                 `;
                 card.onclick = (e) =&gt; {
@@ -1225,11 +1209,11 @@
                     openNoteStudio(n.id);
                 };
 
-                card.querySelector(&#39;.item-del-btn&#39;).onclick = (e) =&gt; {
+                card.querySelector(&#39;.item-del-btn&#39;).onclick = async (e) =&gt; {
                     e.stopPropagation();
                     if (confirm(`Delete note &quot;${n.title}&quot;?`)) {
                         appState.notes = appState.notes.filter(x =&gt; x.id !== n.id);
-                        saveStorageTree();
+                        await saveStorageTree();
                         renderDashboard();
                     }
                 };
@@ -1292,7 +1276,7 @@
         };
 
         document.getElementById(&#39;cancelFolderBtn&#39;).onclick = () =&gt; createFolderModal.style.display = &#39;none&#39;;
-        document.getElementById(&#39;saveFolderBtn&#39;).onclick = () =&gt; {
+        document.getElementById(&#39;saveFolderBtn&#39;).onclick = async () =&gt; {
             const name = folderNameInput.value.trim() || &#39;New Folder&#39;;
             const newFolder = {
                 id: &#39;folder_&#39; + Date.now(),
@@ -1300,7 +1284,7 @@
                 parentId: appState.currentFolderId
             };
             appState.folders.push(newFolder);
-            saveStorageTree();
+            await saveStorageTree();
             createFolderModal.style.display = &#39;none&#39;;
             renderDashboard();
         };
@@ -1316,7 +1300,7 @@
         };
 
         document.getElementById(&#39;cancelNoteBtn&#39;).onclick = () =&gt; createNoteModal.style.display = &#39;none&#39;;
-        document.getElementById(&#39;saveNoteBtn&#39;).onclick = () =&gt; {
+        document.getElementById(&#39;saveNoteBtn&#39;).onclick = async () =&gt; {
             let title = noteTitleInput.value.trim();
             if (!title) {
                 title = &#39;Untitled Note - &#39; + new Date().toLocaleDateString();
@@ -1347,61 +1331,10 @@
             };
 
             appState.notes.push(newNote);
-            saveStorageTree();
+            await saveStorageTree();
             createNoteModal.style.display = &#39;none&#39;;
 
             openNoteStudio(newNote.id);
-        };
-
-        // UNIVERSAL DIRECT FILE PERMISSION ENGINE (FOR GB-SIZED STORAGE ACCROSS ALL APPS &amp; DEVICES)
-        const nativeFileInput = document.getElementById(&#39;nativeFileInput&#39;);
-
-        document.getElementById(&#39;deviceOpenBtn&#39;).onclick = () =&gt; {
-            nativeFileInput.click();
-        };
-
-        nativeFileInput.onchange = (e) =&gt; {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (evt) =&gt; {
-                try {
-                    const parsed = JSON.parse(evt.target.result);
-                    if (parsed &amp;&amp; (parsed.notes || parsed.folders)) {
-                        appState = parsed;
-                        saveStorageTree();
-                        renderDashboard();
-                        showToast(&quot;Loaded Note Package Successfully!&quot;);
-                    } else {
-                        showToast(&quot;Invalid File Format!&quot;);
-                    }
-                } catch(err) {
-                    showToast(&quot;Error reading native file!&quot;);
-                }
-            };
-            reader.readAsText(file);
-            nativeFileInput.value = &#39;&#39;;
-        };
-
-        document.getElementById(&#39;deviceSaveAsBtn&#39;).onclick = () =&gt; {
-            try {
-                const dataStr = JSON.stringify(appState, null, 2);
-                const blob = new Blob([dataStr], { type: &#39;application/json&#39; });
-                const url = URL.createObjectURL(blob);
-
-                const link = document.createElement(&#39;a&#39;);
-                link.href = url;
-                link.download = `Notes_Backup_${Date.now()}.pstudio`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-
-                showToast(&quot;Native File Exported Successfully!&quot;);
-            } catch(err) {
-                showToast(&quot;Failed to export native file!&quot;);
-            }
         };
 
         // ================= STUDIO WORKSPACE ENGINE =================
@@ -1428,7 +1361,6 @@
             pagesContainer.innerHTML = &#39;&#39;;
             pages = [];
             undoStack = [];
-            redoStack = [];
 
             const count = note.pageCount || 1;
             for (let i = 0; i &lt; count; i++) {
@@ -1443,7 +1375,6 @@
                         img.onload = () =&gt; {
                             const dims = getPageDimensions();
                             pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
-                            savePageState(i, true);
                         };
                     }
                     if (pData.imageBoxes) {
@@ -1466,7 +1397,7 @@
             startAutoSaveTimer();
         }
 
-        function executeNoteSave(isSilent = false) {
+        async function executeNoteSave(isSilent = false) {
             if (!currentNoteId) return;
 
             const note = appState.notes.find(n =&gt; n.id === currentNoteId);
@@ -1493,10 +1424,10 @@
                 }))
             }));
 
-            saveStorageTree();
+            await saveStorageTree();
 
             if (!isSilent) {
-                showToast(`Saved (${calculateNoteSize(note)})`);
+                showToast(`Saved to &quot;${currentDocumentTitle}&quot;`);
             }
         }
 
@@ -1504,7 +1435,8 @@
             stopAutoSaveTimer();
             autoSaveIntervalTimer = setInterval(() =&gt; {
                 executeNoteSave(true);
-            }, 30000);
+                showToast(`Auto-saved at ${new Date().toLocaleTimeString([], {hour: &#39;2-digit&#39;, minute:&#39;2-digit&#39;})}`);
+            }, 60000);
         }
 
         function stopAutoSaveTimer() {
@@ -1514,8 +1446,8 @@
             }
         }
 
-        document.getElementById(&#39;backToDashBtn&#39;).onclick = () =&gt; {
-            executeNoteSave(true);
+        document.getElementById(&#39;backToDashBtn&#39;).onclick = async () =&gt; {
+            await executeNoteSave(true);
             stopAutoSaveTimer();
             studioView.style.display = &#39;none&#39;;
             dashboardView.style.display = &#39;flex&#39;;
@@ -1525,12 +1457,12 @@
         document.getElementById(&#39;quickSaveBtn&#39;).onclick = () =&gt; executeNoteSave(false);
 
         const docTitleBadge = document.getElementById(&#39;docTitleBadge&#39;);
-        docTitleBadge.onclick = () =&gt; {
+        docTitleBadge.onclick = async () =&gt; {
             const newTitle = prompt(&quot;Enter new document title:&quot;, currentDocumentTitle);
             if (newTitle &amp;&amp; newTitle.trim()) {
                 currentDocumentTitle = newTitle.trim();
                 docTitleBadge.innerText = currentDocumentTitle;
-                executeNoteSave(false);
+                await executeNoteSave(false);
             }
         };
 
@@ -1853,7 +1785,7 @@
                         const midX = (p1.x + p2.x) / 2;
                         const midY = (p1.y + p2.y) / 2;
                         ctx.moveTo(prevMidX, prevMidY);
-                        ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+                        ctx.quadraticCurveTo(prevMidX, prevMidY, midX, midY);
                     }
                     ctx.stroke();
                 }
@@ -2316,20 +2248,14 @@
             deleteModalOverlay.style.display = &#39;none&#39;;
         };
 
-        // DEDICATED UNDO &amp; REDO ENGINE
-        function savePageState(pageIdx, isInitial = false) {
-            if (undoStack.length &gt; 40) undoStack.shift();
+        function savePageState(pageIdx) {
+            if (undoStack.length &gt; 30) undoStack.shift();
             undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
-            if (!isInitial) {
-                redoStack = []; // Clear redo timeline on new actions
-            }
         }
 
-        function performUndo() {
+        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; {
             if (undoStack.length &gt; 1) {
-                const currentState = undoStack.pop();
-                redoStack.push(currentState);
-
+                undoStack.pop();
                 const lastState = undoStack[undoStack.length - 1];
                 const page = pages[lastState.pageIndex];
                 if (page) {
@@ -2341,39 +2267,7 @@
                     };
                 }
             }
-        }
-
-        function performRedo() {
-            if (redoStack.length &gt; 0) {
-                const nextState = redoStack.pop();
-                undoStack.push(nextState);
-
-                const page = pages[nextState.pageIndex];
-                if (page) {
-                    const img = new Image(); img.src = nextState.data;
-                    img.onload = () =&gt; {
-                        const dims = getPageDimensions();
-                        page.ctx.clearRect(0, 0, dims.width, dims.height);
-                        page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
-                    };
-                }
-            }
-        }
-
-        document.getElementById(&#39;undoBtn&#39;).onclick = () =&gt; performUndo();
-        document.getElementById(&#39;redoBtn&#39;).onclick = () =&gt; performRedo();
-
-        // Keyboard Shortcuts for Undo/Redo
-        window.addEventListener(&#39;keydown&#39;, (e) =&gt; {
-            if (e.ctrlKey || e.metaKey) {
-                if (e.key === &#39;z&#39; || e.key === &#39;Z&#39;) {
-                    if (e.shiftKey) performRedo();
-                    else performUndo();
-                } else if (e.key === &#39;y&#39; || e.key === &#39;Y&#39;) {
-                    performRedo();
-                }
-            }
-        });
+        };
 
         const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
         document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
@@ -2417,7 +2311,7 @@
                     const fontSize = ruleH * 0.72;
                     ctx.font = `${fontSize}px Segoe UI, sans-serif`;
                     ctx.fillStyle = tb.contentElem.style.color || &#39;#000000&#39;;
-                    ctx.textBaseline = &#39;alphabetic&#39;;
+                    ctx.textBaseline = &#39;alphabetic&#39;; // Standard baseline alignment
 
                     const boxLeft = parseFloat(tb.elem.style.left) || 0;
                     const boxTop = parseFloat(tb.elem.style.top) || 0;
@@ -2519,8 +2413,6 @@
             updateAllPagesLayout();
             modalOverlay.style.display = &#39;none&#39;;
         };
-
-        renderDashboard();
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;"></iframe>
