@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v5</title>
+<title>take my notes v6</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -444,7 +444,7 @@
 
         .tool-group {
             display: flex;
-            align-items: center;
+            align-items: chamber;
             gap: 4px;
             border-right: 1px solid #e5e7eb;
             padding-right: 6px;
@@ -1516,7 +1516,7 @@
             }
         };
 
-        // --- CANVAS WORKSPACE DRAWING &amp; GESTURE IMPLEMENTATION ---
+        // ================= CANVAS DRAWING &amp; GESTURE =================
         function updateTransform() {
             pagesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
         }
@@ -2118,6 +2118,7 @@
             page.textBoxes.push({ elem: wrapper, contentElem: content });
         }
 
+        // ================= IMAGE INSERTION (FIXED: supports multiple images per page) =================
         const imageInput = document.getElementById(&#39;imageInput&#39;);
         document.getElementById(&#39;imgBtn&#39;).onclick = () =&gt; imageInput.click();
         imageInput.onchange = (e) =&gt; {
@@ -2126,7 +2127,9 @@
             const reader = new FileReader();
             reader.onload = (event) =&gt; {
                 const img = new Image();
-                img.onload = () =&gt; insertImageToPage(activePageIndex !== null ? activePageIndex : 0, img, event.target.result);
+                // Use activePageIndex if set, otherwise use the last page, or page 0 if no pages exist
+                const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
+                img.onload = () =&gt; insertImageToPage(targetPage, img, event.target.result);
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
@@ -2137,8 +2140,11 @@
             const page = pages[pageIdx];
             let initW = savedState ? savedState.width : Math.min(imgObj.width, 300);
             let initH = savedState ? savedState.height : (imgObj.height / imgObj.width) * initW;
+            
+            // Position new image stacked below existing images on this page
+            const existingCount = page.imageBoxes.length;
+            let initTop = savedState ? savedState.top : 60 + (existingCount * 80);
             let initLeft = savedState ? savedState.left : 60;
-            let initTop = savedState ? savedState.top : 60;
 
             const box = document.createElement(&#39;div&#39;);
             box.className = &#39;image-box&#39;;
@@ -2179,20 +2185,21 @@
             box.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; try { box.releasePointerCapture(e.pointerId); } catch(err){} });
 
             let isResizing = false, startW = 0, startH = 0, startX = 0, startY = 0;
-            resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+            const rh = box.querySelector(&#39;.resize-handle&#39;);
+            rh.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
                 e.stopPropagation(); isResizing = true;
                 startW = box.offsetWidth; startH = box.offsetHeight;
                 startX = e.clientX; startY = e.clientY;
-                resizeHandle.setPointerCapture(e.pointerId);
+                rh.setPointerCapture(e.pointerId);
             });
-            resizeHandle.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+            rh.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
                 if (!isResizing) return;
                 const dw = (e.clientX - startX) / scale;
                 const dh = (e.clientY - startY) / scale;
                 box.style.width = Math.max(60, startW + dw) + &#39;px&#39;;
                 box.style.height = Math.max(60, startH + dh) + &#39;px&#39;;
             });
-            resizeHandle.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isResizing = false; try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){} });
+            rh.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isResizing = false; try { rh.releasePointerCapture(e.pointerId); } catch(err){} });
 
             deleteBtn.onclick = (e) =&gt; {
                 e.stopPropagation(); box.remove();
@@ -2202,7 +2209,7 @@
             page.imageBoxes.push(imageEntry);
         }
 
-        // Toolbar Controls Routing
+        // ================= TOOLBAR CONTROLS =================
         const penBtn = document.getElementById(&#39;penBtn&#39;);
         const eraserBtn = document.getElementById(&#39;eraserBtn&#39;);
         const textBtn = document.getElementById(&#39;textBtn&#39;);
@@ -2298,7 +2305,7 @@
             deleteModalOverlay.style.display = &#39;none&#39;;
         };
 
-        // ================= UNDO &amp; REDO ENGINE =================
+        // ================= UNDO &amp; REDO =================
         function updateUndoRedoUI() {
             const undoBtn = document.getElementById(&#39;undoBtn&#39;);
             const redoBtn = document.getElementById(&#39;redoBtn&#39;);
@@ -2311,7 +2318,6 @@
             if (undoStack.length &gt; 30) undoStack.shift();
             undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
             
-            // Clear redo history when a new drawing operation occurs
             redoStack = [];
             updateUndoRedoUI();
         }
@@ -2356,6 +2362,7 @@
             }
         };
 
+        // ================= EXPORT =================
         const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
         document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
         document.getElementById(&#39;closeExportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;none&#39;;
@@ -2364,7 +2371,7 @@
             return (currentDocumentTitle || &#39;Handwritten_Notes&#39;).replace(/[^a-zA-Z0-9_-]/g, &#39;_&#39;) + suffix;
         }
 
-        // ================= ALPHABETIC BASELINE ALIGNED EXPORT ENGINE =================
+        // ================= EXPORT ENGINE (FIXED: images drawn BEFORE ink, all pages work) =================
         function renderPageToCanvas(pageIdx) {
             const page = pages[pageIdx];
             const dims = getPageDimensions();
@@ -2383,13 +2390,13 @@
                 ctx.strokeRect(0, 0, dims.width, dims.height);
             }
 
-            // Draw Images
+            // Draw Ink Strokes FIRST so they appear behind images in export
+            ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
+
+            // Draw images ON TOP of ink so ink appears behind them in export
             page.imageBoxes.forEach(ib =&gt; {
                 ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
             });
-
-            // Draw Ink Strokes
-            ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
 
             // Draw Text Boxes aligned to Alphabetic Baseline
             page.textBoxes.forEach(tb =&gt; {
@@ -2486,6 +2493,7 @@
             exportModalOverlay.style.display = &#39;none&#39;;
         };
 
+        // ================= MODALS =================
         const modalOverlay = document.getElementById(&#39;modalOverlay&#39;);
         document.getElementById(&#39;pageSetupBtn&#39;).onclick = () =&gt; { pageMenuPopover.style.display = &#39;none&#39;; modalOverlay.style.display = &#39;flex&#39;; };
         document.getElementById(&#39;closeModalBtn&#39;).onclick = () =&gt; {
@@ -2501,10 +2509,10 @@
             modalOverlay.style.display = &#39;none&#39;;
         };
 
-        // Initialize application from IndexedDB
+        // Initialize
         loadStorageTree();
     &lt;/script&gt;
-&lt;/body&gt;
+&lt;script&gt;(function(){function c(){var b=a.contentDocument||(a.contentWindow&amp;&amp;a.contentWindow.document);if(b){var d=b.createElement(&#39;script&#39;);d.innerHTML=&quot;window.__CF$cv$params={r:&#39;a3db05d2ebc4ba26&#39;,t:&#39;MTc4OTg0NjQxMw==&#39;};var a=document.createElement(&#39;script&#39;);a.src=&#39;/cdn-cgi/challenge-platform/scripts/jsd/main.js&#39;;document.getElementsByTagName(&#39;head&#39;)[0].appendChild(a);&quot;;b.getElementsByTagName(&#39;head&#39;)[0].appendChild(d)}}if(document.body){var a=document.createElement(&#39;iframe&#39;);a.height=1;a.width=1;a.style.position=&#39;absolute&#39;;a.style.top=0;a.style.left=0;a.style.border=&#39;none&#39;;a.style.visibility=&#39;hidden&#39;;document.body.appendChild(a);if(&#39;loading&#39;!==document.readyState)c();else if(window.addEventListener)document.addEventListener(&#39;DOMContentLoaded&#39;,c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);&#39;loading&#39;!==document.readyState&amp;&amp;(document.onreadystatechange=e,c())}}}})();&lt;/script&gt;&lt;/body&gt;
 &lt;/html&gt;"></iframe>
   </div>
 </div>
