@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v6</title>
+<title>take my notes v7</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -179,6 +179,8 @@
 <div class="nav-overlay-bar" id="navOverlayBar">
   <div class="nav-btn" onclick="navBack()" title="Back Page">◀</div>
   <div class="nav-btn" onclick="navForward()" title="Forward Page">▶</div>
+  <div class="nav-divider"></div>
+  <div class="nav-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">⛶</div>
   <div class="nav-divider"></div>
   <div class="nav-btn" onclick="zoomIn()" title="Zoom In">+</div>
   <div class="nav-btn" onclick="zoomOut()" title="Zoom Out">−</div>
@@ -2512,7 +2514,20 @@
         // Initialize
         loadStorageTree();
     &lt;/script&gt;
-&lt;script&gt;(function(){function c(){var b=a.contentDocument||(a.contentWindow&amp;&amp;a.contentWindow.document);if(b){var d=b.createElement(&#39;script&#39;);d.innerHTML=&quot;window.__CF$cv$params={r:&#39;a3db05d2ebc4ba26&#39;,t:&#39;MTc4OTg0NjQxMw==&#39;};var a=document.createElement(&#39;script&#39;);a.src=&#39;/cdn-cgi/challenge-platform/scripts/jsd/main.js&#39;;document.getElementsByTagName(&#39;head&#39;)[0].appendChild(a);&quot;;b.getElementsByTagName(&#39;head&#39;)[0].appendChild(d)}}if(document.body){var a=document.createElement(&#39;iframe&#39;);a.height=1;a.width=1;a.style.position=&#39;absolute&#39;;a.style.top=0;a.style.left=0;a.style.border=&#39;none&#39;;a.style.visibility=&#39;hidden&#39;;document.body.appendChild(a);if(&#39;loading&#39;!==document.readyState)c();else if(window.addEventListener)document.addEventListener(&#39;DOMContentLoaded&#39;,c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);&#39;loading&#39;!==document.readyState&amp;&amp;(document.onreadystatechange=e,c())}}}})();&lt;/script&gt;&lt;/body&gt;
+&lt;script&gt;(function(){function c(){var b=a.contentDocument||(a.contentWindow&amp;&amp;a.contentWindow.document);if(b){var d=b.createElement(&#39;script&#39;);d.innerHTML=&quot;window.__CF$cv$params={r:&#39;a3db05d2ebc4ba26&#39;,t:&#39;MTc4OTg0NjQxMw==&#39;};var a=document.createElement(&#39;script&#39;);a.src=&#39;/cdn-cgi/challenge-platform/scripts/jsd/main.js&#39;;document.getElementsByTagName(&#39;head&#39;)[0].appendChild(a);&quot;;b.getElementsByTagName(&#39;head&#39;)[0].appendChild(d)}}if(document.body){var a=document.createElement(&#39;iframe&#39;);a.height=1;a.width=1;a.style.position=&#39;absolute&#39;;a.style.top=0;a.style.left=0;a.style.border=&#39;none&#39;;a.style.visibility=&#39;hidden&#39;;document.body.appendChild(a);if(&#39;loading&#39;!==document.readyState)c();else if(window.addEventListener)document.addEventListener(&#39;DOMContentLoaded&#39;,c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);&#39;loading&#39;!==document.readyState&amp;&amp;(document.onreadystatechange=e,c())}}}})();&lt;/script&gt;
+&lt;script&gt;
+(function() {
+  function notifyParentInteraction() {
+    try {
+      window.parent.postMessage({ type: &#39;WRAPPER_USER_INTERACTION&#39; }, &#39;*&#39;);
+    } catch(e) {}
+  }
+  window.addEventListener(&#39;pointerdown&#39;, notifyParentInteraction, true);
+  window.addEventListener(&#39;touchstart&#39;, notifyParentInteraction, true);
+  window.addEventListener(&#39;click&#39;, notifyParentInteraction, true);
+})();
+&lt;/script&gt;
+&lt;/body&gt;
 &lt;/html&gt;"></iframe>
   </div>
 </div>
@@ -2524,6 +2539,7 @@
   const CUSTOM_SCALE_VAL = 51.8;
   const REQUIRE_LANDSCAPE = true;
   const AUTO_FULLSCREEN = true;
+  const PREVENT_REFRESH = true;
 
   let baseScale = 1;
   let userZoomMultiplier = 1.0;
@@ -2535,6 +2551,14 @@
   let resizeTimeout = null;
   let lastWinW = 0;
   let lastWinH = 0;
+
+  /* PREVENT ACCIDENTAL PAGE REFRESH OR UNLOAD */
+  if (PREVENT_REFRESH) {
+    window.addEventListener('beforeunload', function (e) {
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  }
 
   function resizeStage() {
     const stage = document.getElementById('appStage');
@@ -2611,6 +2635,51 @@
     }
   }
 
+  /* FULLSCREEN WATCHDOG & MANUAL CONTROLS */
+  function isFullscreenActive() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+  }
+
+  function requestFullscreenIfPossible() {
+    if (!isFullscreenActive()) {
+      const docEl = document.documentElement;
+      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+      if (req) {
+        req.call(docEl).catch(() => {});
+      }
+    }
+  }
+
+  function toggleFullscreen() {
+    if (isFullscreenActive()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (exit) exit.call(document).catch(() => {});
+    } else {
+      requestFullscreenIfPossible();
+    }
+  }
+
+  /* FULLSCREEN WATCHDOG: Re-engages fullscreen on any user interaction if exited */
+  if (AUTO_FULLSCREEN) {
+    const handleInteractionWatchdog = () => {
+      if (!isFullscreenActive()) {
+        requestFullscreenIfPossible();
+      }
+    };
+
+    // Listen on parent wrapper
+    window.addEventListener('pointerdown', handleInteractionWatchdog, true);
+    window.addEventListener('click', handleInteractionWatchdog, true);
+    window.addEventListener('touchstart', handleInteractionWatchdog, true);
+
+    // Listen for postMessage sent directly from inside the iframe app
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'WRAPPER_USER_INTERACTION') {
+        handleInteractionWatchdog();
+      }
+    });
+  }
+
   /* MOUSE & TOUCH DRAG PANNING */
   const container = document.getElementById('viewportContainer');
 
@@ -2661,22 +2730,6 @@
       rotateOverlay.style.display = 'none';
     }
     resizeStage();
-  }
-
-  function requestFullscreenIfPossible() {
-    if (!AUTO_FULLSCREEN) return;
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      const docEl = document.documentElement;
-      const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-      if (req) {
-        req.call(docEl).catch(() => {});
-      }
-    }
-    window.removeEventListener('pointerdown', requestFullscreenIfPossible, { capture: true });
-  }
-
-  if (AUTO_FULLSCREEN) {
-    window.addEventListener('pointerdown', requestFullscreenIfPossible, { capture: true, once: true });
   }
 
   const btnLandscape = document.getElementById('btnEnterLandscape');
