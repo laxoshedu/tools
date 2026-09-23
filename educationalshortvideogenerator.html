@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro (100% Offline Mic Mode)</title>
+    <title>Perfect Sync Quiz Generator - Live Mobile TTS & Video Recorder</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -13,7 +15,6 @@
             --border: #334155;
             --text: #f8fafc;
             --accent: #f59e0b;
-            --ai-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
         }
 
         body {
@@ -157,38 +158,6 @@
             transition: background 0.2s;
         }
 
-        .timeline-box {
-            background: #020617;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            margin-top: 10px;
-        }
-
-        .time-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .time-label {
-            width: 120px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: var(--accent);
-        }
-
-        .time-input {
-            width: 70px;
-        }
-
-        input[type="range"] {
-            flex: 1;
-            cursor: pointer;
-            accent-color: var(--primary);
-        }
-
         .canvas-container {
             position: relative;
             border: 2px solid var(--border);
@@ -202,12 +171,6 @@
             max-width: 100%;
             height: auto;
             background: #000;
-            cursor: grab;
-            touch-action: none;
-        }
-
-        canvas:active {
-            cursor: grabbing;
         }
 
         .btn-group {
@@ -226,12 +189,6 @@
             color: white;
             transition: 0.2s;
             font-size: 0.85rem;
-        }
-
-        button:disabled {
-            background: #475569;
-            opacity: 0.6;
-            cursor: not-allowed;
         }
 
         .btn-test { background: var(--accent); color: black; }
@@ -276,45 +233,6 @@
             font-weight: bold;
         }
 
-        .speech-mode-toggle {
-            background: #1e3a8a;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid var(--primary);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 60px; height: 30px;
-            background: #475569;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .toggle-switch.active { background: #22c55e; }
-
-        .toggle-slider {
-            position: absolute;
-            top: 3px; left: 3px;
-            width: 24px; height: 24px;
-            background: white;
-            border-radius: 50%;
-            transition: left 0.3s;
-        }
-
-        .toggle-switch.active .toggle-slider { left: 33px; }
-
-        .mode-info {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            margin-top: 5px;
-        }
-
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -330,134 +248,65 @@
             padding: 20px;
             border-radius: 10px;
             border: 1px solid var(--border);
-            max-width: 950px;
+            max-width: 520px;
             width: 95%;
-            max-height: 90vh;
-            overflow: auto;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1rem;
-            color: var(--primary);
-        }
-
-        /* MIC RECORDING BOX INSIDE QUESTION PANEL */
-        .mic-box {
-            background: #090d16;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 12px;
-        }
-
-        .mic-box-title {
-            font-size: 0.85rem;
+        .mode-btn {
+            width: 100%;
+            margin-top: 10px;
+            text-align: left;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            color: white;
             font-weight: bold;
-            color: #f59e0b;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            cursor: pointer;
         }
 
-        .mic-controls-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            margin-bottom: 6px;
-            flex-wrap: wrap;
-        }
-
-        .mic-btn {
-            padding: 5px 10px;
-            font-size: 0.75rem;
-            border-radius: 4px;
-        }
-
-        .mic-btn-rec { background: #be123c; }
-        .mic-btn-stop { background: #475569; }
-        .mic-btn-play { background: #0ea5e9; }
-
-        .mic-status {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: #1e293b;
-            color: #94a3b8;
-        }
-
-        .mic-status.recording {
-            background: #be123c;
-            color: white;
-            animation: blink 1s infinite;
-        }
-
-        .mic-status.ready {
-            background: #16a34a;
-            color: white;
-        }
-
-        @keyframes blink { 50% { opacity: 0.5; } }
-
-        #videoModeModal .modal-content { max-width: 520px; }
-        #videoModeModal .mode-btn { width: 100%; margin-top: 10px; text-align: left; }
-        #videoModeModal .mode-btn strong { display: block; font-size: 0.9rem; }
-        #videoModeModal .mode-btn span { display: block; font-size: 0.8rem; color: #94a3b8; margin-top: 3px; }
+        .mode-btn span { display: block; font-size: 0.8rem; opacity: 0.8; margin-top: 3px; }
     </style>
 </head>
 <body>
 
 <div class="layout">
-    <!-- LEFT: Inputs -->
     <div class="sidebar">
 
         <div id="questions-container" onclick="handlePanelClick(event)">
-            <h2>1. Questions & Voiceovers</h2>
+            <h2>1. Questions</h2>
         </div>
         <button id="add-question-btn" onclick="addQuestionPanel()">+ Add New Question</button>
 
-        <!-- Batch Edit toggle -->
-        <div class="speech-mode-toggle" style="background:#0b1120; margin-top:8px;">
-            <div>
-                <strong>🛠 Batch Edit Layout</strong>
-                <div class="mode-info" id="batchInfo">Single question layout only</div>
+        <div class="panel" style="margin-top: 15px;">
+            <h2>2. Voice & Typography</h2>
+            <div class="controls-grid">
+                <div class="grid-header">Offline Speech Voice</div>
+                <div style="grid-column: span 2;">
+                    <label>Voice Model</label>
+                    <select id="voiceSelect"></select>
+                </div>
             </div>
-            <div class="toggle-switch" id="batchToggle" onclick="toggleBatchEdit()">
-                <div class="toggle-slider"></div>
-            </div>
-        </div>
 
-        <div class="panel">
-            <h2>2. Typography & Animation</h2>
             <div class="controls-grid">
-                <div class="grid-header">Question</div>
+                <div class="grid-header">Question Text</div>
                 <select id="fontQ" onchange="drawStatic()"></select>
-                <input type="number" id="sizeQ" value="45" onchange="drawStatic()" title="Font Size">
-                <select id="animQ" onchange="drawStatic()" title="Entrance Animation"></select>
+                <input type="number" id="sizeQ" value="45" onchange="drawStatic()">
             </div>
+
             <div class="controls-grid">
-                <div class="grid-header">Options</div>
+                <div class="grid-header">Options Text</div>
                 <select id="fontO" onchange="drawStatic()"></select>
                 <input type="number" id="sizeO" value="28" onchange="drawStatic()">
-                <select id="animO" onchange="drawStatic()"></select>
             </div>
 
             <div class="controls-grid">
-                <div class="grid-header">Countdown Style</div>
+                <div class="grid-header">Countdown</div>
                 <select id="fontC" onchange="drawStatic()"></select>
-                <input type="number" id="sizeC" value="150" onchange="drawStatic()" title="Font Size">
-                <input type="color" id="colorC" value="#f59e0b" oninput="drawStatic()" title="Color">
+                <input type="number" id="sizeC" value="150" onchange="drawStatic()">
+                <input type="color" id="colorC" value="#f59e0b" oninput="drawStatic()">
                 <div style="grid-column: span 2; margin-top:5px;">
-                    <label>Countdown Duration (sec)</label>
-                    <input type="number" id="countVal" value="5" min="3" max="30" onchange="recalculateCurrentTimeline()">
+                    <label>Countdown Duration (Sec)</label>
+                    <input type="number" id="countVal" value="5" min="3" max="30">
                 </div>
             </div>
 
@@ -465,137 +314,63 @@
                 <div class="grid-header">Explanation</div>
                 <select id="fontE" onchange="drawStatic()"></select>
                 <input type="number" id="sizeE" value="38" onchange="drawStatic()">
-                <select id="animE" onchange="drawStatic()"></select>
             </div>
         </div>
 
         <div class="panel">
-            <h2>3. Visuals & Sync</h2>
+            <h2>3. Visual Theme</h2>
             <div class="controls-grid">
-                <div class="grid-header">Colors & Background</div>
+                <div class="grid-header">Colors</div>
                 <input type="color" id="bgColor1" value="#1e3a8a" oninput="drawStatic()">
                 <input type="color" id="bgColor2" value="#020617" oninput="drawStatic()">
                 <input type="color" id="cardColor" value="#FFFFFF" oninput="drawStatic()">
                 <input type="color" id="correctColor" value="#22c55e" oninput="drawStatic()">
-                <div style="grid-column: span 2;">
-                    <label>Global BG Image</label>
-                    <input type="file" accept="image/*" onchange="handleGlobalImage(this)">
-                </div>
-            </div>
-
-            <div class="controls-grid">
-                <div class="grid-header">Background Music</div>
-                <div style="grid-column: span 2;">
-                    <label>Upload Audio (MP3/WAV)</label>
-                    <input type="file" accept="audio/*" id="bgMusicFile" onchange="handleBgMusic(this)">
-                </div>
-                <div style="grid-column: span 2;">
-                    <label>Music Volume (<span id="volLabel">20</span>%)</label>
-                    <input type="range" id="bgMusicVol" min="0" max="100" value="20" oninput="updateVolLabel(this.value)">
-                </div>
-            </div>
-
-            <div class="controls-grid" style="margin-top:15px;">
-                <div class="grid-header">Explanation Box Style</div>
-                <div>
-                    <label>Box BG</label>
-                    <input type="color" id="explBgColor" value="#000000" oninput="drawStatic()">
-                </div>
-                <div>
-                    <label>Text Color</label>
-                    <input type="color" id="explTextColor" value="#FFFFFF" oninput="drawStatic()">
-                </div>
-                <div style="grid-column: span 2; margin-top:5px;">
-                    <label style="display:flex; align-items:center;">
-                        <input type="checkbox" id="explNoBg" onchange="drawStatic()"> No Background (Text Only)
-                    </label>
-                </div>
-            </div>
-
-            <div class="timeline-box">
-                <div class="time-row">
-                    <div class="time-label">Read Options:</div>
-                    <input type="range" id="slideOpts" min="1" max="15" step="0.5" oninput="syncTime('opts', this.value)">
-                    <input type="number" id="valOpts" class="time-input" onchange="syncTime('opts', this.value)"> s
-                </div>
-                <div class="time-row">
-                    <div class="time-label">Reveal Answer:</div>
-                    <input type="range" id="slideAns" min="10" max="35" step="0.5" oninput="syncTime('ans', this.value)">
-                    <input type="number" id="valAns" class="time-input" onchange="syncTime('ans', this.value)"> s
-                </div>
-                <div style="text-align:right; font-size:0.8rem; color:#aaa;">
-                    Total Video: <span id="totalDur">20</span>s
-                </div>
             </div>
         </div>
 
         <div class="panel">
-            <h2>4. Export Video</h2>
+            <h2>4. Live Preview & Recording</h2>
             <div class="btn-group">
-                <button class="btn-test" id="btnTest" onclick="testPlayback()">1. Preview Video</button>
-                <button class="btn-rec-main" id="btnRec" onclick="openVideoModeModal()">2. REC VIDEO</button>
+                <button class="btn-test" onclick="testPlayback()">1. Test Play Live</button>
+                <button class="btn-rec-main" onclick="openVideoModeModal()">2. REC VIDEO</button>
             </div>
-            <button class="btn-rec-stop" id="btnRecStop" onclick="stopAnyRecording()" disabled style="width:100%;">Stop REC VIDEO</button>
+            <button class="btn-rec-stop" onclick="stopAnyRecording()" style="width:100%;">Stop Live Process</button>
         </div>
     </div>
 
-    <!-- RIGHT: Preview Canvas -->
     <div class="preview-area">
         <div class="panel" style="width:100%; margin-bottom:10px;">
-            <label>Resolution</label>
+            <label>Canvas Resolution</label>
             <select id="resolution" onchange="resizeCanvas()">
                 <option value="mobile">Mobile (9:16)</option>
                 <option value="landscape" selected>Landscape (16:9)</option>
                 <option value="square">Square (1:1)</option>
             </select>
-
-            <label style="margin-top:8px;">Video Quality</label>
-            <select id="videoQuality">
-                <option value="3000000">Low (3 Mbps)</option>
-                <option value="6000000" selected>Medium (6 Mbps)</option>
-                <option value="10000000">High (10 Mbps)</option>
-            </select>
-
-            <p style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">
-                Tip: Drag elements on the canvas to change position.
-            </p>
         </div>
 
         <div class="canvas-container">
             <div id="overlay" class="overlay">
                 <div class="spinner"></div>
-                <div id="statusMsg">Processing...</div>
+                <div id="statusMsg">Synthesizing Speech Live & Recording...</div>
             </div>
             <canvas id="canvas"></canvas>
         </div>
-        <a id="dlLink" class="download-link">Download Video</a>
+        <a id="dlLink" class="download-link">Download Generated Video</a>
     </div>
 </div>
 
-<!-- Modal: Choose Video Record Mode -->
 <div id="videoModeModal" class="modal-backdrop">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3>Select Video Recording Mode</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">
-                Close
-            </button>
-        </div>
-        <p style="font-size:0.85rem; color:#cbd5e1;">
-            Choose how you want to render and export your video.
-        </p>
-        <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
-            <strong>1. Record individual videos for each question tab</strong>
-            <span>Generates separate video files for each question and downloads them.</span>
+        <h3>Select Recording Mode</h3>
+        <button class="mode-btn" style="background:#16a34a;" onclick="recordActiveQuestionOnly()">
+            <strong>Record Active Tab</strong>
+            <span>Generates video during live TTS synthesis for active tab.</span>
         </button>
-        <button class="mode-btn" style="background:#22c55e; margin-top:8px;" onclick="recordActiveQuestionOnly()">
-            <strong>2. Record video for ACTIVE QUESTION TAB only</strong>
-            <span>Exports only the current active question tab.</span>
+        <button class="mode-btn" style="background:#0ea5e9;" onclick="startFullCombinedRecordingMode()">
+            <strong>Record Full Combined Video</strong>
+            <span>Synthesizes speech and records all question tabs consecutively.</span>
         </button>
-        <button class="mode-btn" style="background:#0ea5e9; margin-top:8px;" onclick="startFullCombinedRecordingMode()">
-            <strong>3. Record one single continuous video (All question tabs)</strong>
-            <span>Stitches all question tabs sequentially into one complete full-length video file.</span>
-        </button>
+        <button style="background:#be123c; margin-top:10px; width:100%;" onclick="closeVideoModeModal()">Close</button>
     </div>
 </div>
 
@@ -603,69 +378,47 @@
     const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay'), statusMsg = document.getElementById('statusMsg');
 
-    let audioCtx = null, destNode = null, mediaRecorder = null;
-    let questionCounter = 0, globalBgImage = null, bgMusicBuffer = null;
-    let batchEditEnabled = false;
-    let cancelRecording = false;
+    let mediaStreamMic = null, mediaRecorder = null;
+    let questionCounter = 0, availableVoices = [];
+    let isProcessing = false;
 
-    // Standard fallback fonts (No CDN required)
-    const FONTS = ['Segoe UI', 'Arial', 'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana'];
-    const ANIMS = {'Fade In': 'fade','Slide from Top':'slide-t','Slide from Bottom':'slide-b','Slide from Left':'slide-l','Slide from Right':'slide-r','Zoom In':'zoom-in','Zoom Out':'zoom-out'};
+    let currentVisualStage = "init";
+    let activeCountdownNumber = "";
+
+    const FONTS = ['Segoe UI', 'Arial', 'Impact', 'Georgia', 'Times New Roman'];
     const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
-
-    let T = { q: 0.5, preOpts: 2.0, opts: 4.0, intro: 12.0, countStart: 13.0, reveal: 18.0, ans: 18.5, preExpl: 21.0, expl: null, total: 24.0 };
-    let drag = { isDragging: false, activeZone: null, offsetX: 0, offsetY: 0 };
-
-    // Per-question mic recordings: qid -> { q: AudioBuffer, opts: AudioBuffer, expl: AudioBuffer }
-    let perQuestionAudio = {}; 
-    let mediaStreamInstance = null;
-    let currentRecordingState = { recorder: null, chunks: [], qid: null, type: null };
 
     window.onload = () => {
         populateControls();
         resizeCanvas();
         addQuestionPanel();
-        setupCanvasInteraction();
+        initVoices();
     };
-
-    function escHtml(str) {
-        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
-    }
-
-    function sanitizeFilename(str) {
-        if(!str) return "question";
-        return str.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_').substring(0, 50);
-    }
 
     function populateControls() {
         ['fontQ','fontO','fontE','fontC'].forEach(id => FONTS.forEach(f => document.getElementById(id).add(new Option(f, f))));
-        ['animQ','animO','animE'].forEach(id => Object.keys(ANIMS).forEach(a => document.getElementById(id).add(new Option(a, ANIMS[a]))));
     }
 
-    function updateVolLabel(v) { document.getElementById('volLabel').innerText = v; }
-
-    function toggleBatchEdit() {
-        batchEditEnabled = !batchEditEnabled;
-        const toggle = document.getElementById('batchToggle');
-        const info = document.getElementById('batchInfo');
-        if (batchEditEnabled) {
-            toggle.classList.add('active');
-            info.textContent = 'Apply layout changes to ALL question tabs';
-            info.style.color = '#22c55e';
-        } else {
-            toggle.classList.remove('active');
-            info.textContent = 'Single question layout only';
-            info.style.color = '#94a3b8';
+    function initVoices() {
+        if ('speechSynthesis' in window) {
+            const loadV = () => {
+                availableVoices = window.speechSynthesis.getVoices();
+                const sel = document.getElementById('voiceSelect');
+                sel.innerHTML = '';
+                availableVoices.forEach((v) => {
+                    const opt = document.createElement('option');
+                    opt.value = v.name;
+                    opt.textContent = `${v.name} (${v.lang})`;
+                    sel.appendChild(opt);
+                });
+            };
+            loadV();
+            window.speechSynthesis.onvoiceschanged = loadV;
         }
     }
 
-    function addQuestionPanel(prefill = null) {
+    function addQuestionPanel() {
         questionCounter++;
-        const qText = prefill?.question || 'Which planet is the largest in our solar system?';
-        const opts = prefill?.options || ['Earth', 'Mars', 'Jupiter', 'Saturn'];
-        const correctIndex = prefill?.correctIndex ?? 2;
-        const expl = prefill?.explanation || 'Jupiter is by far the largest planet in our solar system.';
-
         const p = document.createElement('div');
         p.className = 'panel question-panel';
         p.id = `question-panel-${questionCounter}`;
@@ -673,98 +426,36 @@
         p.innerHTML = `
             <button class="remove-btn" onclick="removeQuestionPanel(${questionCounter})">&times;</button>
             <label>Question ${questionCounter}</label>
-            <input type="text" class="q-text" value="${escHtml(qText)}">
+            <input type="text" class="q-text" value="Which planet is the largest in our solar system?">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-                <div><label>A</label><input type="text" class="q-opt" value="${escHtml(opts[0])}"></div>
-                <div><label>B</label><input type="text" class="q-opt" value="${escHtml(opts[1])}"></div>
-                <div><label>C</label><input type="text" class="q-opt" value="${escHtml(opts[2])}"></div>
-                <div><label>D</label><input type="text" class="q-opt" value="${escHtml(opts[3])}"></div>
+                <div><label>A</label><input type="text" class="q-opt" value="Earth"></div>
+                <div><label>B</label><input type="text" class="q-opt" value="Mars"></div>
+                <div><label>C</label><input type="text" class="q-opt" value="Jupiter"></div>
+                <div><label>D</label><input type="text" class="q-opt" value="Saturn"></div>
             </div>
             <label style="margin-top:10px">Correct Answer</label>
             <select class="q-ans">
-                <option value="0"${correctIndex===0?' selected':''}>A</option>
-                <option value="1"${correctIndex===1?' selected':''}>B</option>
-                <option value="2"${correctIndex===2?' selected':''}>C</option>
-                <option value="3"${correctIndex===3?' selected':''}>D</option>
+                <option value="0">A</option>
+                <option value="1">B</option>
+                <option value="2" selected>C</option>
+                <option value="3">D</option>
             </select>
-            <div style="margin-top: 10px;">
-                <label style="display:flex; align-items:center;">
-                    <input type="checkbox" class="q-explanation-toggle" onchange="toggleExplanationField(this)"${expl ? ' checked' : ''}>Enable Explanation
-                </label>
-            </div>
-            <div class="explanation-input-container" style="display:${expl ? 'block' : 'none'}; margin-top: 5px;">
-                <label>Explanation</label>
-                <input type="text" class="q-explanation-text" value="${escHtml(expl)}">
-            </div>
-            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
-            <label>Image (Optional)</label>
-            <input type="file" accept="image/*" class="q-img" onchange="handleQuestionImage(this)">
-            <label style="display:flex; align-items:center; margin-top:8px;">
-                <input type="checkbox" class="q-img-reveal">Reveal with Answer
-            </label>
-            <label style="margin-top:5px">Image Size</label>
-            <input type="range" class="q-img-scale" min="0.2" max="1.5" step="0.05" value="0.5" oninput="drawStatic()">
-
-            <!-- OFFLINE MIC RECORDING CONTROLS -->
-            <div class="mic-box">
-                <div class="mic-box-title">🎙️ Offline Voiceover Recorder</div>
-                
-                <div class="mic-controls-row">
-                    <span style="font-size:0.75rem; width:70px;">Question:</span>
-                    <button type="button" class="mic-btn mic-btn-rec" onclick="startMicRecord(${questionCounter}, 'q')">🔴 Record</button>
-                    <button type="button" class="mic-btn mic-btn-stop" onclick="stopMicRecord(${questionCounter}, 'q')">⏹️ Stop</button>
-                    <button type="button" class="mic-btn mic-btn-play" onclick="playMicPreview(${questionCounter}, 'q')">▶️ Play</button>
-                    <span class="mic-status" id="micStatus-${questionCounter}-q">No Audio</span>
-                </div>
-
-                <div class="mic-controls-row">
-                    <span style="font-size:0.75rem; width:70px;">Options:</span>
-                    <button type="button" class="mic-btn mic-btn-rec" onclick="startMicRecord(${questionCounter}, 'opts')">🔴 Record</button>
-                    <button type="button" class="mic-btn mic-btn-stop" onclick="stopMicRecord(${questionCounter}, 'opts')">⏹️ Stop</button>
-                    <button type="button" class="mic-btn mic-btn-play" onclick="playMicPreview(${questionCounter}, 'opts')">▶️ Play</button>
-                    <span class="mic-status" id="micStatus-${questionCounter}-opts">No Audio</span>
-                </div>
-
-                <div class="mic-controls-row">
-                    <span style="font-size:0.75rem; width:70px;">Explanation:</span>
-                    <button type="button" class="mic-btn mic-btn-rec" onclick="startMicRecord(${questionCounter}, 'expl')">🔴 Record</button>
-                    <button type="button" class="mic-btn mic-btn-stop" onclick="stopMicRecord(${questionCounter}, 'expl')">⏹️ Stop</button>
-                    <button type="button" class="mic-btn mic-btn-play" onclick="playMicPreview(${questionCounter}, 'expl')">▶️ Play</button>
-                    <span class="mic-status" id="micStatus-${questionCounter}-expl">No Audio</span>
-                </div>
+            <label style="margin-top:10px;"><input type="checkbox" class="q-expl-toggle" onchange="toggleExpl(this)"> Enable Explanation</label>
+            <div class="expl-box" style="display:none; margin-top:5px;">
+                <input type="text" class="q-expl-text" value="Jupiter is the largest planet in our solar system.">
             </div>
         `;
-
-        p.positions = {
-            question: {x:0.5,y:0.15},
-            options: {x:0.5,y:0.7},
-            image: {x:0.5,y:0.4},
-            explanation: {x:0.5,y:0.5},
-            countdown: {x:0.5,y:0.85}
-        };
-
         document.getElementById('questions-container').appendChild(p);
-        perQuestionAudio[String(questionCounter)] = { q: null, opts: null, expl: null };
-
         setActiveQuestion(p);
-        document.querySelectorAll('.question-panel .remove-btn').forEach(b => {
-            b.style.display = document.querySelectorAll('.question-panel').length > 1 ? 'flex' : 'none';
-        });
     }
 
-    function toggleExplanationField(cb) {
-        cb.closest('.panel').querySelector('.explanation-input-container').style.display = cb.checked ? 'block' : 'none';
+    function toggleExpl(cb) {
+        cb.closest('.panel').querySelector('.expl-box').style.display = cb.checked ? 'block' : 'none';
     }
 
     function removeQuestionPanel(id) {
         if (document.querySelectorAll('.question-panel').length <= 1) return;
-        const p = document.getElementById(`question-panel-${id}`);
-        if (p.classList.contains('active-question')) {
-            const next = p.nextElementSibling || p.previousElementSibling;
-            if (next?.classList.contains('question-panel')) setActiveQuestion(next);
-        }
-        delete perQuestionAudio[String(id)];
-        p.remove();
+        document.getElementById(`question-panel-${id}`).remove();
     }
 
     function handlePanelClick(event) {
@@ -776,7 +467,6 @@
     function setActiveQuestion(p) {
         document.querySelectorAll('.question-panel').forEach(el => el.classList.remove('active-question'));
         p.classList.add('active-question');
-        recalculateCurrentTimeline();
         drawStatic();
     }
 
@@ -787,29 +477,14 @@
             questionText: p.querySelector('.q-text').value,
             options: Array.from(p.querySelectorAll('.q-opt')).map(i => i.value),
             correctAnswerIndex: p.querySelector('.q-ans').value,
-            image: p.questionImageAsset,
-            imgReveal: p.querySelector('.q-img-reveal').checked,
-            imgScale: parseFloat(p.querySelector('.q-img-scale').value),
-            hasExplanation: p.querySelector('.q-explanation-toggle').checked,
-            explanationText: p.querySelector('.q-explanation-text').value,
-            positions: p.positions,
+            hasExplanation: p.querySelector('.q-expl-toggle').checked,
+            explanationText: p.querySelector('.q-expl-text').value,
             styles: {
-                qFont: document.getElementById('fontQ').value,
-                qSize: document.getElementById('sizeQ').value,
-                animQ: document.getElementById('animQ').value,
-                oFont: document.getElementById('fontO').value,
-                oSize: document.getElementById('sizeO').value,
-                animO: document.getElementById('animO').value,
-                eFont: document.getElementById('fontE').value,
-                eSize: document.getElementById('sizeE').value,
-                animE: document.getElementById('animE').value,
-                cFont: document.getElementById('fontC').value,
-                cSize: document.getElementById('sizeC').value,
-                cColor: document.getElementById('colorC').value,
-                countVal: parseInt(document.getElementById('countVal').value),
-                explBg: document.getElementById('explBgColor').value,
-                explText: document.getElementById('explTextColor').value,
-                explNoBg: document.getElementById('explNoBg').checked
+                qFont: document.getElementById('fontQ').value, qSize: document.getElementById('sizeQ').value,
+                oFont: document.getElementById('fontO').value, oSize: document.getElementById('sizeO').value,
+                eFont: document.getElementById('fontE').value, eSize: document.getElementById('sizeE').value,
+                cFont: document.getElementById('fontC').value, cSize: document.getElementById('sizeC').value, cColor: document.getElementById('colorC').value,
+                countVal: parseInt(document.getElementById('countVal').value)
             }
         };
     }
@@ -818,204 +493,268 @@
         return getQuestionDataFromPanel(document.querySelector('.question-panel.active-question'));
     }
 
-    /* --- NATIVE OFFLINE MIC RECORDING LOGIC --- */
-    async function startMicRecord(qid, type) {
-        try {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+    function speakUtterance(text, voiceName) {
+        return new Promise((resolve) => {
+            if (!('speechSynthesis' in window) || !text || !isProcessing) { resolve(); return; }
+            window.speechSynthesis.cancel();
+            const voice = availableVoices.find(v => v.name === voiceName) || availableVoices[0];
+            const utt = new SpeechSynthesisUtterance(text);
+            if (voice) utt.voice = voice;
+            utt.rate = 0.95;
+            utt.onend = () => resolve();
+            utt.onerror = () => resolve();
+            window.speechSynthesis.speak(utt);
+        });
+    }
 
-            if (!mediaStreamInstance) {
-                mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ audio: true });
-            }
+    async function executeLiveQuizSequence(data) {
+        const voiceName = document.getElementById('voiceSelect').value;
 
-            const rec = new MediaRecorder(mediaStreamInstance);
-            currentRecordingState = { recorder: rec, chunks: [], qid: String(qid), type };
+        // 1. Question Text
+        currentVisualStage = "question";
+        activeCountdownNumber = "";
+        await speakUtterance(data.questionText, voiceName);
 
-            rec.ondataavailable = e => { if (e.data.size > 0) currentRecordingState.chunks.push(e.data); };
-            rec.onstop = async () => {
-                const blob = new Blob(currentRecordingState.chunks, { type: 'audio/webm' });
-                const arrayBuf = await blob.arrayBuffer();
-                const decodedAudio = await audioCtx.decodeAudioData(arrayBuf);
-                
-                perQuestionAudio[currentRecordingState.qid][currentRecordingState.type] = decodedAudio;
-                
-                const statusSpan = document.getElementById(`micStatus-${currentRecordingState.qid}-${currentRecordingState.type}`);
-                if (statusSpan) {
-                    statusSpan.textContent = `${decodedAudio.duration.toFixed(1)}s Audio`;
-                    statusSpan.className = 'mic-status ready';
-                }
-                recalculateCurrentTimeline();
-            };
+        if (!isProcessing) return;
 
-            rec.start();
-            const statusSpan = document.getElementById(`micStatus-${qid}-${type}`);
-            if (statusSpan) {
-                statusSpan.textContent = 'Recording...';
-                statusSpan.className = 'mic-status recording';
-            }
-        } catch (err) {
-            alert('Microphone access denied or missing: ' + err.message);
+        // 2. Options Intro & Options Speech
+        currentVisualStage = "options";
+        await speakUtterance("The options are", voiceName);
+        await speakUtterance(data.options.join(', '), voiceName);
+
+        if (!isProcessing) return;
+
+        // 3. Countdown Intro Speech
+        currentVisualStage = "countdown";
+        await speakUtterance("Your time starts now", voiceName);
+
+        // 4. Countdown Numbers
+        for (let i = data.styles.countVal; i >= 1; i--) {
+            if (!isProcessing) return;
+            activeCountdownNumber = String(i);
+            await speakUtterance(String(i), voiceName);
+        }
+
+        if (!isProcessing) return;
+
+        // 5. Correct Answer
+        currentVisualStage = "answer";
+        activeCountdownNumber = "";
+        const correctOptText = data.options[parseInt(data.correctAnswerIndex)];
+        await speakUtterance(`The correct answer is option ${['A','B','C','D'][data.correctAnswerIndex]} ${correctOptText}`, voiceName);
+
+        if (!isProcessing) return;
+
+        // 6. Explanation (Conditional Check)
+        if (data.hasExplanation && data.explanationText.trim()) {
+            currentVisualStage = "explanation";
+            await speakUtterance("The explanation is", voiceName);
+            await speakUtterance(data.explanationText, voiceName);
         }
     }
 
-    function stopMicRecord(qid, type) {
-        if (currentRecordingState.recorder && currentRecordingState.recorder.state === 'recording') {
-            currentRecordingState.recorder.stop();
-        }
+    function renderLoop(data) {
+        if (!isProcessing) return;
+        drawFrame(data);
+        requestAnimationFrame(() => renderLoop(data));
     }
 
-    function playMicPreview(qid, type) {
-        const buf = perQuestionAudio[String(qid)]?.[type];
-        if (!buf) { alert('No audio recorded for this section yet.'); return; }
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        const src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        src.connect(audioCtx.destination);
-        src.start();
-    }
-
-    function recalculateCurrentTimeline() {
+    async function testPlayback() {
         const data = getActiveQuestionData();
         if (!data) return;
-        const qid = data.qid;
-        const audioData = perQuestionAudio[qid] || {};
-
-        const qDur = audioData.q ? audioData.q.duration : 3.0;
-        const optsDur = audioData.opts ? audioData.opts.duration : 4.0;
-        const countDur = data.styles.countVal;
-        const explDur = audioData.expl ? audioData.expl.duration : 4.0;
-
-        T.q = 0.5;
-        T.preOpts = T.q + qDur + 0.3;
-        T.opts = T.preOpts + 0.5;
-        T.intro = T.opts + optsDur + 0.5;
-        T.countStart = T.intro + 0.2;
-        T.reveal = T.countStart + countDur;
-        T.ans = T.reveal + 0.5;
-        
-        if (data.hasExplanation) {
-            T.preExpl = T.ans + 1.5;
-            T.expl = T.preExpl + 0.5;
-            T.total = T.expl + explDur + 1.5;
-        } else {
-            T.preExpl = null;
-            T.expl = null;
-            T.total = T.ans + 2.0;
-        }
-
-        document.getElementById('slideOpts').value = document.getElementById('valOpts').value = T.opts.toFixed(1);
-        document.getElementById('slideAns').value = document.getElementById('valAns').value = T.reveal.toFixed(1);
-        document.getElementById('totalDur').innerText = T.total.toFixed(1);
+        isProcessing = true;
+        renderLoop(data);
+        await executeLiveQuizSequence(data);
+        isProcessing = false;
+        drawStatic();
     }
 
-    function syncTime(key, val) {
-        const t = parseFloat(val);
-        if (key === 'opts') T.opts = t;
-        else if (key === 'ans') { T.reveal = t; T.ans = t + 0.5; }
-        document.getElementById('totalDur').innerText = T.total.toFixed(1);
-    }
+    function openVideoModeModal() { document.getElementById('videoModeModal').style.display = 'flex'; }
+    function closeVideoModeModal() { document.getElementById('videoModeModal').style.display = 'none'; }
 
-    /* --- CANVAS INTERACTION & RENDERING --- */
-    function setupCanvasInteraction() {
-        const getPointerPos = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
-            const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
-            return {
-                x: (clientX - rect.left) * (canvas.width / rect.width),
-                y: (clientY - rect.top)  * (canvas.height / rect.height)
-            };
-        };
-
-        const getHitZone = (mx, my, data) => {
-            for (const zone of ['image','question','options','explanation','countdown']) {
-                const box = getBoundingBox(zone, data);
-                if (box && mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) return zone;
+    async function setupMobileMicrophone() {
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                mediaStreamMic = await navigator.mediaDevices.getUserMedia({ audio: true });
             }
-            return null;
-        };
-
-        const handleStart = (e) => {
-            if (e.type === 'touchstart') e.preventDefault();
-            const data = getActiveQuestionData();
-            if (!data) return;
-            const pos = getPointerPos(e);
-            const zone = getHitZone(pos.x, pos.y, data);
-            if (zone) {
-                drag = {
-                    isDragging: true,
-                    activeZone: zone,
-                    offsetX: pos.x - data.positions[zone].x * canvas.width,
-                    offsetY: pos.y - data.positions[zone].y * canvas.height
-                };
-            }
-        };
-
-        const handleMove = (e) => {
-            if (!drag.isDragging) return;
-            if (e.type === 'touchmove') e.preventDefault();
-            const data = getActiveQuestionData();
-            if (!data) return;
-            const pos = getPointerPos(e);
-            const zone = drag.activeZone;
-            data.positions[zone].x = (pos.x - drag.offsetX) / canvas.width;
-            data.positions[zone].y = (pos.y - drag.offsetY) / canvas.height;
-
-            if (batchEditEnabled && zone !== 'image') {
-                document.querySelectorAll('.question-panel').forEach(panel => {
-                    if (panel === document.querySelector('.question-panel.active-question')) return;
-                    if (!panel.positions) panel.positions = { question: {x:0.5,y:0.15}, options: {x:0.5,y:0.7}, image: {x:0.5,y:0.4}, explanation: {x:0.5,y:0.5}, countdown: {x:0.5,y:0.85} };
-                    panel.positions[zone].x = data.positions[zone].x;
-                    panel.positions[zone].y = data.positions[zone].y;
-                });
-            }
-            drawStatic();
-        };
-
-        const handleEnd = (e) => { drag.isDragging = false; };
-
-        canvas.addEventListener('mousedown', handleStart);
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleEnd);
-        canvas.addEventListener('touchstart', handleStart, { passive: false });
-        canvas.addEventListener('touchmove', handleMove, { passive: false });
-        canvas.addEventListener('touchend', handleEnd, { passive: false });
-    }
-
-    function handleQuestionImage(input) {
-        const p = input.closest('.question-panel');
-        if (input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const img = new Image();
-                img.onload = () => { p.questionImageAsset = img; drawStatic(); };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+        } catch (e) {
+            console.warn("Microphone permission bypassed.");
         }
     }
 
-    function handleGlobalImage(input) {
-        if (input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                globalBgImage = new Image();
-                globalBgImage.onload = () => drawStatic();
-                globalBgImage.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+    async function recordActiveQuestionOnly() {
+        closeVideoModeModal();
+        const data = getActiveQuestionData();
+        if (!data) return;
+
+        await setupMobileMicrophone();
+
+        overlay.style.display = 'flex';
+        statusMsg.innerText = "Synthesizing Speech Live & Recording Video...";
+        isProcessing = true;
+
+        const canvasStream = canvas.captureStream(30);
+        let tracks = [...canvasStream.getVideoTracks()];
+
+        if (mediaStreamMic) {
+            tracks.push(mediaStreamMic.getAudioTracks()[0]);
         }
+
+        const combinedStream = new MediaStream(tracks);
+        let mime = 'video/webm';
+        if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
+
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime });
+        let chunks = [];
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.getElementById('dlLink');
+            a.href = url;
+            a.download = `quiz_video_export.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.style.display = 'block';
+            overlay.style.display = 'none';
+        };
+
+        mediaRecorder.start();
+        renderLoop(data);
+        await executeLiveQuizSequence(data);
+
+        isProcessing = false;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        drawStatic();
     }
 
-    function handleBgMusic(input) {
-        if (input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                audioCtx.decodeAudioData(e.target.result, (buffer) => { bgMusicBuffer = buffer; });
-            };
-            reader.readAsArrayBuffer(input.files[0]);
+    async function startFullCombinedRecordingMode() {
+        closeVideoModeModal();
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (!panels.length) return;
+
+        await setupMobileMicrophone();
+
+        overlay.style.display = 'flex';
+        statusMsg.innerText = "Recording Full Combined Video...";
+        isProcessing = true;
+
+        const canvasStream = canvas.captureStream(30);
+        let tracks = [...canvasStream.getVideoTracks()];
+
+        if (mediaStreamMic) {
+            tracks.push(mediaStreamMic.getAudioTracks()[0]);
+        }
+
+        const combinedStream = new MediaStream(tracks);
+        let mime = 'video/webm';
+        if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
+
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime });
+        let chunks = [];
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.getElementById('dlLink');
+            a.href = url;
+            a.download = `quiz_FULL_COMBINED.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.style.display = 'block';
+            overlay.style.display = 'none';
+        };
+
+        mediaRecorder.start();
+
+        for (let i = 0; i < panels.length; i++) {
+            if (!isProcessing) break;
+            const p = panels[i];
+            setActiveQuestion(p);
+            const data = getQuestionDataFromPanel(p);
+            renderLoop(data);
+            await executeLiveQuizSequence(data);
+        }
+
+        isProcessing = false;
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        drawStatic();
+    }
+
+    function drawStatic() {
+        const data = getActiveQuestionData();
+        currentVisualStage = "all";
+        drawFrame(data);
+    }
+
+    function drawFrame(data) {
+        if (!data) return;
+        const w = canvas.width, h = canvas.height;
+
+        const bg = ctx.createLinearGradient(0,0,0,h);
+        bg.addColorStop(0, document.getElementById('bgColor1').value);
+        bg.addColorStop(1, document.getElementById('bgColor2').value);
+        ctx.fillStyle = bg;
+        ctx.fillRect(0,0,w,h);
+
+        if (currentVisualStage !== "init") {
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${data.styles.qSize}px "${data.styles.qFont}"`;
+            ctx.textAlign = 'center';
+            wrapText(ctx, data.questionText, w/2, h*0.15, w*0.9, data.styles.qSize * 1.3);
+        }
+
+        if (["options", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
+            const isP = h > w;
+            const bH = isP ? h*0.07 : h*0.1;
+            const bW = isP ? w*0.85 : w*0.4;
+            const cardColor = document.getElementById('cardColor').value;
+            const correctColor = document.getElementById('correctColor').value;
+            const correctIndex = parseInt(data.correctAnswerIndex);
+
+            const pos = isP
+                ? Array.from({length:4},(_,i)=>({x:w/2, y:h*0.4 + i*(bH+15)}))
+                : [
+                    {x:w/2-bW/2-10, y:h*0.45}, {x:w/2+bW/2+10, y:h*0.45},
+                    {x:w/2-bW/2-10, y:h*0.45+bH+15}, {x:w/2+bW/2+10, y:h*0.45+bH+15}
+                ];
+
+            data.options.forEach((opt, i) => {
+                let color = `${cardColor}1A`;
+                if (["answer", "explanation", "all"].includes(currentVisualStage)) {
+                    color = (i === correctIndex) ? correctColor : `${cardColor}1A`;
+                }
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(pos[i].x - bW/2, pos[i].y - bH/2, bW, bH, 10);
+                ctx.fill();
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = `bold ${bH*0.4}px Arial`;
+                ctx.textAlign = 'left';
+                ctx.fillText(['A','B','C','D'][i], pos[i].x - bW/2 + 20, pos[i].y + 5);
+
+                ctx.fillStyle = 'white';
+                ctx.font = `${data.styles.oSize}px "${data.styles.oFont}"`;
+                ctx.fillText(opt, pos[i].x - bW/2 + 60, pos[i].y + 5);
+            });
+        }
+
+        if (currentVisualStage === "countdown" && activeCountdownNumber) {
+            ctx.fillStyle = data.styles.cColor;
+            ctx.font = `bold ${data.styles.cSize}px "${data.styles.cFont}"`;
+            ctx.textAlign = 'center';
+            ctx.fillText(activeCountdownNumber, w/2, h*0.85);
+        }
+
+        if (data.hasExplanation && data.explanationText.trim() && ["explanation", "all"].includes(currentVisualStage)) {
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
+            ctx.textAlign = 'center';
+            wrapText(ctx, data.explanationText, w/2, h*0.82, w*0.9, data.styles.eSize * 1.3);
         }
     }
 
@@ -1025,428 +764,28 @@
         drawStatic();
     }
 
-    function drawStatic() {
-        const data = getActiveQuestionData();
-        drawFrame(data ? -1 : 0, data);
-        if (data) {
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ['question','options','image','explanation','countdown'].forEach(zone => {
-                const box = getBoundingBox(zone, data);
-                if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
-            });
-            ctx.setLineDash([]);
-        }
-    }
-
-    function drawFrame(elapsed, staticData = null) {
-        const data = staticData || getActiveQuestionData();
-        if (!data) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
-        const w = canvas.width, h = canvas.height;
-
-        const bg = ctx.createLinearGradient(0,0,0,h);
-        bg.addColorStop(0, document.getElementById('bgColor1').value);
-        bg.addColorStop(1, document.getElementById('bgColor2').value);
-        ctx.fillStyle = bg;
-        ctx.fillRect(0,0,w,h);
-
-        if (globalBgImage) {
-            ctx.globalAlpha = 0.3;
-            drawImageCover(ctx, globalBgImage, 0,0,w,h);
-            ctx.globalAlpha = 1;
-        }
-
-        const qBox = getBoundingBox('question', data);
-        if (qBox) {
-            const p = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.q) / 0.75));
-            ctx.save();
-            applyAnimation(ctx, p, data.styles.animQ, qBox);
-            ctx.fillStyle = 'white';
-            ctx.font = `bold ${data.styles.qSize}px "${data.styles.qFont}"`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            wrapText(ctx, data.questionText, 0, -qBox.h/2, qBox.w, data.styles.qSize * 1.3);
-            ctx.restore();
-        }
-
-        if (data.image && (elapsed === -1 || (data.imgReveal ? elapsed > T.reveal : true))) {
-            const iBox = getBoundingBox('image', data);
-            const pp = (elapsed === -1 || !data.imgReveal) ? 1 : Math.max(0, Math.min(1, (elapsed - T.reveal) / 0.75));
-            ctx.save();
-            applyAnimation(ctx, pp, 'fade', iBox);
-            ctx.drawImage(data.image, -iBox.w/2, -iBox.h/2, iBox.w, iBox.h);
-            ctx.restore();
-        }
-
-        const oBox = getBoundingBox('options', data);
-        if (oBox && (elapsed === -1 || elapsed > T.preOpts)) {
-            const px = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.preOpts) / 0.75));
-            ctx.save();
-            applyAnimation(ctx, px, data.styles.animO, oBox);
-            const isP = h > w;
-            const bH = isP ? h*0.07 : h*0.1;
-            const bW = isP ? w*0.85 : w*0.4;
-            const cardColor = document.getElementById('cardColor').value;
-            const correctColor = document.getElementById('correctColor').value;
-            const correct = parseInt(data.correctAnswerIndex);
-            const pos = isP
-                ? Array.from({length:4},(_,i)=>({x:0, y:-oBox.h/2+(bH/2)+i*(bH+10)}))
-                : [{x:-bW/2-10,y:-bH/2-10}, {x:bW/2+10,y:-bH/2-10}, {x:-bW/2-10,y:bH/2+10}, {x:bW/2+10,y:bH/2+10}];
-            
-            pos.forEach((pPos, i) => {
-                let color = `${cardColor}1A`, alpha = 1;
-                if (elapsed > T.reveal) {
-                    if (i === correct) color = correctColor;
-                    else alpha = 0.3;
-                }
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(pPos.x - bW/2, pPos.y - bH/2, bW, bH, 10);
-                ctx.fill();
-                ctx.fillStyle = '#f59e0b';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                ctx.font = `bold ${bH*0.4}px Arial`;
-                ctx.fillText(['A','B','C','D'][i], pPos.x-bW/2+20, pPos.y);
-                ctx.fillStyle = 'white';
-                ctx.font = `${data.styles.oSize}px "${data.styles.oFont}"`;
-                fitText(ctx, data.options[i], pPos.x-bW/2+50, pPos.y, bW-60);
-                ctx.globalAlpha = 1;
-            });
-            ctx.restore();
-        }
-
-        const eBox = getBoundingBox('explanation', data);
-        if (eBox && data.hasExplanation && (elapsed === -1 || elapsed > T.preExpl)) {
-            const pp = (elapsed === -1) ? 1 : Math.max(0, Math.min(1, (elapsed - T.preExpl) / 0.75));
-            ctx.save();
-            applyAnimation(ctx, pp, data.styles.animE, eBox);
-            if (!data.styles.explNoBg) {
-                ctx.fillStyle = data.styles.explBg;
-                ctx.globalAlpha = 0.85 * pp;
-                ctx.beginPath();
-                ctx.roundRect(-eBox.w/2, -eBox.h/2, eBox.w, eBox.h, 15);
-                ctx.fill();
-                ctx.strokeStyle = '#f59e0b';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            }
-            ctx.fillStyle = data.styles.explText;
-            ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            wrapText(ctx, data.explanationText, 0, -eBox.h/2 + 10, eBox.w - 40, data.styles.eSize * 1.3);
-            ctx.restore();
-        }
-
-        const cBox = getBoundingBox('countdown', data);
-        if (cBox && (elapsed === -1 || (elapsed > T.intro && elapsed < T.reveal))) {
-            let n = "";
-            if (elapsed !== -1) {
-                const timeLeft = Math.ceil(T.reveal - elapsed);
-                if (timeLeft > 0 && timeLeft <= data.styles.countVal) n = String(timeLeft);
+    function wrapText(c, text, x, y, maxW, lineH) {
+        const words = text.split(' ');
+        let line = '';
+        for (let i = 0; i < words.length; i++) {
+            let testLine = line + words[i] + ' ';
+            if (c.measureText(testLine).width > maxW && i > 0) {
+                c.fillText(line, x, y);
+                line = words[i] + ' ';
+                y += lineH;
             } else {
-                n = String(data.styles.countVal);
-            }
-            if (n) {
-                ctx.save();
-                ctx.translate(cBox.x + cBox.w/2, cBox.y + cBox.h/2);
-                const s = (elapsed !== -1) ? 1 + Math.sin((elapsed%1)*Math.PI)*0.2 : 1;
-                ctx.scale(s,s);
-                ctx.fillStyle = data.styles.cColor;
-                ctx.font = `bold ${data.styles.cSize}px "${data.styles.cFont}"`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(n, 0, 0);
-                ctx.restore();
+                line = testLine;
             }
         }
-
-        if (elapsed !== -1) {
-            ctx.fillStyle = '#6366f1';
-            ctx.fillRect(0, h-8, w * (Math.min(elapsed, T.total)/T.total), 8);
-        }
+        c.fillText(line, x, y);
     }
-
-    function getBoundingBox(zone, data) {
-        if (!data || (zone==='image' && !data.image) || (zone==='explanation' && !data.hasExplanation)) return null;
-        const w = canvas.width, h = canvas.height, pos = data.positions[zone];
-        let boxW, boxH;
-        switch(zone) {
-            case 'question': boxW = w*0.9; boxH = data.styles.qSize*3; break;
-            case 'options':
-                const isP = h>w;
-                boxW = isP ? w*0.9 : (w*0.4+20)*2;
-                boxH = isP ? (h*0.07+10)*4 : (h*0.1+20)*2;
-                break;
-            case 'image':
-                boxH = h*0.4*data.imgScale;
-                boxW = (data.image.width/data.image.height)*boxH;
-                break;
-            case 'explanation':
-                boxW = w*0.9;
-                boxH = parseInt(data.styles.eSize)*1.5*3;
-                break;
-            case 'countdown':
-                boxH = parseInt(data.styles.cSize);
-                boxW = boxH;
-                break;
-        }
-        return {x:pos.x*w-boxW/2, y:pos.y*h-boxH/2, w:boxW, h:boxH};
-    }
-
-    function applyAnimation(ctx, p, type, box) {
-        ctx.translate(box.x+box.w/2, box.y+box.h/2);
-        let i = 1-p;
-        switch(type){
-            case 'fade': ctx.globalAlpha = p; break;
-            case 'slide-t': ctx.translate(0,-i*(box.y+box.h)); ctx.globalAlpha=p; break;
-            case 'slide-b': ctx.translate(0,i*(canvas.height-box.y)); ctx.globalAlpha=p; break;
-            case 'slide-l': ctx.translate(-i*(box.x+box.w),0); ctx.globalAlpha=p; break;
-            case 'slide-r': ctx.translate(i*(canvas.width-box.x),0); ctx.globalAlpha=p; break;
-            case 'zoom-in': ctx.scale(p,p); ctx.globalAlpha=p; break;
-            case 'zoom-out': ctx.scale(1+i,1+i); ctx.globalAlpha=p; break;
-        }
-    }
-
-    const wrapText = (c,t,x,y,maxW,lineH) => {
-        const words=t.split(' '), lines=[];
-        let line='';
-        for(let i=0;i<words.length;i++){
-            let test=line+words[i]+' ';
-            if(c.measureText(test).width>maxW&&i>0){lines.push(line);line=words[i]+' ';}else line=test;
-        }
-        lines.push(line);
-        for(let i=0;i<lines.length;i++) c.fillText(lines[i],x,y+i*lineH);
-    };
-
-    const fitText = (c,t,x,y,maxW) => {
-        let u=t;
-        while(c.measureText(u).width>maxW&&u.length>0) u=u.slice(0,-1);
-        if(u.length<t.length) u+='...';
-        c.fillText(u,x,y);
-    };
-
-    const drawImageCover = (c,i,x,y,w,h) => {
-        const r=w/h, ir=i.width/i.height;
-        let dw=w, dh=h;
-        if (ir>r) dw=h*ir; else dh=w/ir;
-        c.drawImage(i,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
-    };
-
-    /* --- PLAYBACK & RECORDING PIPELINE --- */
-    function scheduleAudioForQuestion(qData, baseTime) {
-        const qid = qData.qid;
-        const audio = perQuestionAudio[qid] || {};
-
-        if (audio.q) playBuffer(audio.q, baseTime + T.q);
-        if (audio.opts) playBuffer(audio.opts, baseTime + T.opts);
-        if (audio.expl && qData.hasExplanation) playBuffer(audio.expl, baseTime + T.expl);
-
-        if (bgMusicBuffer) {
-            const bgSrc = audioCtx.createBufferSource();
-            bgSrc.buffer = bgMusicBuffer;
-            bgSrc.loop = true;
-            const bgGain = audioCtx.createGain();
-            bgGain.gain.value = document.getElementById('bgMusicVol').value / 100;
-            bgSrc.connect(bgGain);
-            bgGain.connect(destNode || audioCtx.destination);
-            bgSrc.start(baseTime);
-            bgSrc.stop(baseTime + T.total + 1);
-        }
-    }
-
-    function playBuffer(buf, time) {
-        if (!buf) return;
-        const src = audioCtx.createBufferSource();
-        src.buffer = buf;
-        src.connect(destNode || audioCtx.destination);
-        src.start(time);
-    }
-
-    function testPlayback() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        destNode = null;
-        recalculateCurrentTimeline();
-        const startTime = audioCtx.currentTime + 0.1;
-        scheduleAudioForQuestion(getActiveQuestionData(), startTime);
-
-        const loop = () => {
-            const elapsed = audioCtx.currentTime - startTime;
-            drawFrame(elapsed);
-            if (elapsed < T.total + 0.5) requestAnimationFrame(loop);
-        };
-        loop();
-    }
-
-    function openVideoModeModal() { document.getElementById('videoModeModal').style.display = 'flex'; }
-    function closeVideoModeModal() { document.getElementById('videoModeModal').style.display = 'none'; }
 
     function stopAnyRecording() {
-        cancelRecording = true;
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            try { mediaRecorder.stop(); } catch(e){}
-        }
+        isProcessing = false;
+        window.speechSynthesis.cancel();
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
         overlay.style.display = 'none';
-        document.getElementById('btnRecStop').disabled = true;
-    }
-
-    async function startPerQuestionRecordingMode() {
-        closeVideoModeModal();
-        const panels = Array.from(document.querySelectorAll('.question-panel'));
-        for (const p of panels) {
-            if (cancelRecording) break;
-            setActiveQuestion(p);
-            await recordActiveQuestionToBlob(true);
-        }
-    }
-
-    function recordActiveQuestionOnly() {
-        closeVideoModeModal();
-        recordActiveQuestionToBlob(true);
-    }
-
-    async function recordActiveQuestionToBlob(autoDownload = false) {
-        const data = getActiveQuestionData();
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        destNode = audioCtx.createMediaStreamDestination();
-
-        cancelRecording = false;
-        document.getElementById('btnRecStop').disabled = false;
-        overlay.style.display = 'flex';
-        statusMsg.innerText = `Recording: ${data.questionText.substring(0,25)}...`;
-
-        const stream = canvas.captureStream(30);
-        const combined = new MediaStream([stream.getVideoTracks()[0], destNode.stream.getAudioTracks()[0]]);
-        let mime = 'video/webm';
-        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) mime = 'video/mp4;codecs=avc1,mp4a.40.2';
-
-        const quality = parseInt(document.getElementById('videoQuality').value || '6000000');
-        mediaRecorder = new MediaRecorder(combined, { mimeType: mime, videoBitsPerSecond: quality });
-        
-        let chunks = [];
-        const donePromise = new Promise(resolve => {
-            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                if (cancelRecording) { chunks = []; resolve(); return; }
-                const blob = new Blob(chunks, { type: mime });
-                const a = document.getElementById('dlLink');
-                const url = URL.createObjectURL(blob);
-                a.href = url;
-                a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
-                a.style.display = 'block';
-                overlay.style.display = 'none';
-                document.getElementById('btnRecStop').disabled = true;
-
-                if (autoDownload) {
-                    a.click();
-                    setTimeout(() => URL.revokeObjectURL(url), 5000);
-                }
-                resolve();
-            };
-        });
-
-        mediaRecorder.start();
-        const startTime = audioCtx.currentTime + 0.2;
-        scheduleAudioForQuestion(data, startTime);
-
-        const renderLoop = () => {
-            const elapsed = audioCtx.currentTime - startTime;
-            drawFrame(elapsed, data);
-            if (elapsed < T.total + 0.5 && mediaRecorder.state === 'recording') {
-                requestAnimationFrame(renderLoop);
-            }
-        };
-        renderLoop();
-
-        setTimeout(() => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-        }, (T.total + 1) * 1000);
-
-        await donePromise;
-    }
-
-    async function startFullCombinedRecordingMode() {
-        closeVideoModeModal();
-        const panels = Array.from(document.querySelectorAll('.question-panel'));
-        if (!panels.length) return;
-
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        destNode = audioCtx.createMediaStreamDestination();
-
-        overlay.style.display = 'flex';
-        statusMsg.innerText = "Recording full combined video...";
-        cancelRecording = false;
-        document.getElementById('btnRecStop').disabled = false;
-
-        const stream = canvas.captureStream(30);
-        const combinedStream = new MediaStream([stream.getVideoTracks()[0], destNode.stream.getAudioTracks()[0]]);
-        let mime = 'video/webm';
-        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) mime = 'video/mp4;codecs=avc1,mp4a.40.2';
-
-        const quality = parseInt(document.getElementById('videoQuality').value || '6000000');
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: quality });
-        
-        let chunks = [];
-        const donePromise = new Promise(resolve => {
-            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                if (cancelRecording) { overlay.style.display='none'; document.getElementById('btnRecStop').disabled = true; resolve(); return; }
-                const blob = new Blob(chunks, { type: mime });
-                const a = document.getElementById('dlLink');
-                const url = URL.createObjectURL(blob);
-                a.href = url;
-                a.download = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
-                a.style.display = 'block';
-                overlay.style.display = 'none';
-                document.getElementById('btnRecStop').disabled = true;
-                resolve();
-            };
-        });
-
-        const qDatas = [];
-        const offsets = [];
-        let totalDuration = 0;
-
-        panels.forEach((p) => {
-            const qData = getQuestionDataFromPanel(p);
-            qDatas.push(qData);
-            offsets.push(totalDuration);
-            totalDuration += T.total + 0.5;
-        });
-
-        mediaRecorder.start();
-        const baseTime = audioCtx.currentTime + 0.2;
-
-        for (let i = 0; i < panels.length; i++) {
-            scheduleAudioForQuestion(qDatas[i], baseTime + offsets[i]);
-        }
-
-        const animateLong = () => {
-            if (!audioCtx || cancelRecording) return;
-            const globalElapsed = audioCtx.currentTime - baseTime;
-            if (globalElapsed > totalDuration + 0.5) return;
-
-            let curIndex = qDatas.length - 1;
-            for (let i = 0; i < qDatas.length; i++) {
-                if (globalElapsed >= offsets[i] && (i === qDatas.length - 1 || globalElapsed < offsets[i+1])) {
-                    curIndex = i; break;
-                }
-            }
-            const localElapsed = globalElapsed - offsets[curIndex];
-            drawFrame(localElapsed, qDatas[curIndex]);
-            if (mediaRecorder.state === 'recording') requestAnimationFrame(animateLong);
-        };
-        animateLong();
-
-        setTimeout(() => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-        }, (totalDuration + 1) * 1000);
-
-        await donePromise;
+        drawStatic();
     }
 </script>
 </body>
