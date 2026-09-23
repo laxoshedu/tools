@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v7</title>
+<title>take my notes v6</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -446,7 +446,7 @@
 
         .tool-group {
             display: flex;
-            align-items: chamber;
+            align-items: center;
             gap: 4px;
             border-right: 1px solid #e5e7eb;
             padding-right: 6px;
@@ -697,6 +697,7 @@
             background: rgba(255, 255, 255, 0.2);
             box-shadow: 0 6px 18px rgba(0,0,0,0.25);
             cursor: move;
+            touch-action: none;
         }
 
         .image-delete-btn {
@@ -848,6 +849,7 @@
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;select id=&quot;penStyle&quot; title=&quot;Pen Style&quot;&gt;
                     &lt;option value=&quot;fountain&quot; selected&gt;Fountain (Google Keep)&lt;/option&gt;
+                    &lt;option value=&quot;sharptaper&quot;&gt;Sharp Taper Pen&lt;/option&gt;
                     &lt;option value=&quot;fineliner&quot;&gt;Fineliner&lt;/option&gt;
                     &lt;option value=&quot;ballpoint&quot;&gt;Ballpoint&lt;/option&gt;
                     &lt;option value=&quot;calligraphy&quot;&gt;Calligraphy&lt;/option&gt;
@@ -1171,6 +1173,89 @@
             }
         }
 
+        // Helper to re-evaluate and assign absolute cross-page image/text locations
+        function reassignOverlaysToCorrectPages() {
+            const dims = getPageDimensions();
+            let allImages = [];
+            let allTexts = [];
+
+            // Gather all image and text instances from pages
+            pages.forEach(p =&gt; {
+                allImages.push(...p.imageBoxes);
+                allTexts.push(...p.textBoxes);
+                p.imageBoxes = [];
+                p.textBoxes = [];
+            });
+
+            // Re-assign images based on bounding center coordinates
+            allImages.forEach(ib =&gt; {
+                const rect = ib.elem.getBoundingClientRect();
+                const centerPointX = rect.left + rect.width / 2;
+                const centerPointY = rect.top + rect.height / 2;
+
+                let targetPageIndex = 0;
+                let minDistance = Infinity;
+
+                pages.forEach((p, idx) =&gt; {
+                    const pRect = p.card.getBoundingClientRect();
+                    const pCenterY = pRect.top + pRect.height / 2;
+                    const dist = Math.abs(centerPointY - pCenterY);
+                    if (dist &lt; minDistance) {
+                        minDistance = dist;
+                        targetPageIndex = idx;
+                    }
+                });
+
+                const targetCard = pages[targetPageIndex].card;
+                if (ib.elem.parentElement !== targetCard) {
+                    targetCard.appendChild(ib.elem);
+                }
+
+                // Convert position relative to target page origin
+                const tRect = targetCard.getBoundingClientRect();
+                const relLeft = (rect.left - tRect.left) / scale;
+                const relTop = (rect.top - tRect.top) / scale;
+
+                ib.elem.style.left = relLeft + &#39;px&#39;;
+                ib.elem.style.top = relTop + &#39;px&#39;;
+
+                pages[targetPageIndex].imageBoxes.push(ib);
+            });
+
+            // Re-assign text boxes based on bounding center coordinates
+            allTexts.forEach(tb =&gt; {
+                const rect = tb.elem.getBoundingClientRect();
+                const centerPointY = rect.top + rect.height / 2;
+
+                let targetPageIndex = 0;
+                let minDistance = Infinity;
+
+                pages.forEach((p, idx) =&gt; {
+                    const pRect = p.card.getBoundingClientRect();
+                    const pCenterY = pRect.top + pRect.height / 2;
+                    const dist = Math.abs(centerPointY - pCenterY);
+                    if (dist &lt; minDistance) {
+                        minDistance = dist;
+                        targetPageIndex = idx;
+                    }
+                });
+
+                const targetCard = pages[targetPageIndex].card;
+                if (tb.elem.parentElement !== targetCard) {
+                    targetCard.appendChild(tb.elem);
+                }
+
+                const tRect = targetCard.getBoundingClientRect();
+                const relLeft = (rect.left - tRect.left) / scale;
+                const relTop = (rect.top - tRect.top) / scale;
+
+                tb.elem.style.left = relLeft + &#39;px&#39;;
+                tb.elem.style.top = relTop + &#39;px&#39;;
+
+                pages[targetPageIndex].textBoxes.push(tb);
+            });
+        }
+
         // ================= DASHBOARD &amp; FOLDER NAVIGATION =================
         const dashboardView = document.getElementById(&#39;dashboardView&#39;);
         const studioView = document.getElementById(&#39;studioView&#39;);
@@ -1453,6 +1538,9 @@
 
             const note = appState.notes.find(n =&gt; n.id === currentNoteId);
             if (!note) return;
+
+            // Re-sync all image/text elements to proper pages before serialization
+            reassignOverlaysToCorrectPages();
 
             note.title = currentDocumentTitle;
             note.pageSettings = Object.assign({}, pageSettings);
@@ -1765,6 +1853,7 @@
                 case &#39;fineliner&#39;: ctx.lineWidth = width * 0.8; ctx.globalAlpha = 1.0; break;
                 case &#39;ballpoint&#39;: ctx.lineWidth = width * 0.95; ctx.globalAlpha = 0.9; break;
                 case &#39;fountain&#39;: ctx.lineWidth = width * 1.0; ctx.globalAlpha = 1.0; break;
+                case &#39;sharptaper&#39;: ctx.lineWidth = width * 1.0; ctx.globalAlpha = 1.0; break;
                 case &#39;calligraphy&#39;: ctx.lineWidth = width * 2.2; ctx.lineCap = &#39;square&#39;; ctx.globalAlpha = 0.95; break;
                 case &#39;brush&#39;: ctx.lineWidth = width * 1.8; ctx.globalAlpha = 0.88; break;
                 case &#39;marker&#39;: ctx.lineWidth = width * 3.0; ctx.lineCap = &#39;butt&#39;; ctx.globalAlpha = 0.92; break;
@@ -1774,8 +1863,137 @@
             }
         }
 
+        // Catmull-Rom Spline Interpolation for Curved Smoothness even at High Speeds
+        function catmullRomSpline(p0, p1, p2, p3, t) {
+            const v0 = (p2.x - p0.x) * 0.5, v1 = (p3.x - p1.x) * 0.5;
+            const t2 = t * t, t3 = t2 * t;
+            const x = (2 * p1.x - 2 * p2.x + v0 + v1) * t3 + (-3 * p1.x + 3 * p2.x - 2 * v0 - v1) * t2 + v0 * t + p1.x;
+
+            const wy0 = (p2.y - p0.y) * 0.5, wy1 = (p3.y - p1.y) * 0.5;
+            const y = (2 * p1.y - 2 * p2.y + wy0 + wy1) * t3 + (-3 * p1.y + 3 * p2.y - 2 * wy0 - wy1) * t2 + wy0 * t + p1.y;
+
+            return { x, y };
+        }
+
+        // Seamless Curved Contour Generator for Ultra-Smooth Sharp Taper Pen at High Speeds
+        function renderSharpTaperStroke(ctx, points) {
+            const baseW = strokeSize * 1.2;
+
+            if (points.length === 1) {
+                ctx.fillStyle = currentColor;
+                ctx.beginPath();
+                ctx.arc(points[0].x, points[0].y, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                return;
+            }
+
+            // Smooth input points using Catmull-Rom Spline interpolation
+            let pts = points;
+            if (pts.length &gt;= 2) {
+                let smoothPts = [pts[0]];
+                let extendedPts = [pts[0], ...pts, pts[pts.length - 1]];
+
+                for (let i = 1; i &lt; extendedPts.length - 2; i++) {
+                    let p0 = extendedPts[i - 1];
+                    let p1 = extendedPts[i];
+                    let p2 = extendedPts[i + 1];
+                    let p3 = extendedPts[i + 2];
+                    
+                    let dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    let steps = Math.max(3, Math.ceil(dist / 2));
+
+                    for (let k = 1; k &lt;= steps; k++) {
+                        smoothPts.push(catmullRomSpline(p0, p1, p2, p3, k / steps));
+                    }
+                }
+                pts = smoothPts;
+            }
+
+            // Calculate cumulative length
+            let totalDist = 0;
+            let cumDists = [0];
+            for (let i = 1; i &lt; pts.length; i++) {
+                totalDist += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+                cumDists.push(totalDist);
+            }
+
+            if (totalDist === 0) return;
+
+            let leftSide = [];
+            let rightSide = [];
+
+            for (let i = 0; i &lt; pts.length; i++) {
+                let progress = cumDists[i] / totalDist;
+                
+                // Continuous Sine Envelope tapering
+                let taperFactor = Math.sin(progress * Math.PI);
+                let currentWidth = baseW * Math.pow(taperFactor, 0.8);
+
+                let dx, dy;
+                if (i === 0) {
+                    dx = pts[1].x - pts[0].x;
+                    dy = pts[1].y - pts[0].y;
+                } else if (i === pts.length - 1) {
+                    dx = pts[i].x - pts[i - 1].x;
+                    dy = pts[i].y - pts[i - 1].y;
+                } else {
+                    dx = pts[i + 1].x - pts[i - 1].x;
+                    dy = pts[i + 1].y - pts[i - 1].y;
+                }
+
+                let len = Math.hypot(dx, dy) || 1;
+                let nx = -dy / len;
+                let ny = dx / len;
+
+                let r = currentWidth / 2;
+
+                leftSide.push({
+                    x: pts[i].x + nx * r,
+                    y: pts[i].y + ny * r
+                });
+                rightSide.push({
+                    x: pts[i].x - nx * r,
+                    y: pts[i].y - ny * r
+                });
+            }
+
+            // Draw fluid curved stroke boundary using quadratic curves
+            ctx.fillStyle = currentColor;
+            ctx.beginPath();
+            ctx.moveTo(leftSide[0].x, leftSide[0].y);
+
+            // Left side curve interpolation
+            for (let i = 1; i &lt; leftSide.length - 1; i++) {
+                let xc = (leftSide[i].x + leftSide[i + 1].x) / 2;
+                let yc = (leftSide[i].y + leftSide[i + 1].y) / 2;
+                ctx.quadraticCurveTo(leftSide[i].x, leftSide[i].y, xc, yc);
+            }
+            if (leftSide.length &gt; 1) {
+                let lastL = leftSide[leftSide.length - 1];
+                ctx.lineTo(lastL.x, lastL.y);
+            }
+
+            // Right side curve interpolation
+            for (let i = rightSide.length - 1; i &gt; 0; i--) {
+                let xc = (rightSide[i].x + rightSide[i - 1].x) / 2;
+                let yc = (rightSide[i].y + rightSide[i - 1].y) / 2;
+                ctx.quadraticCurveTo(rightSide[i].x, rightSide[i].y, xc, yc);
+            }
+            ctx.lineTo(rightSide[0].x, rightSide[0].y);
+
+            ctx.closePath();
+            ctx.fill();
+        }
+
         function renderSmoothStroke(ctx, points) {
             if (!points || points.length === 0) return;
+
+            if (currentPenStyle === &#39;sharptaper&#39; &amp;&amp; activeTool !== &#39;eraser&#39;) {
+                ctx.globalCompositeOperation = &#39;source-over&#39;;
+                ctx.globalAlpha = 1.0;
+                renderSharpTaperStroke(ctx, points);
+                return;
+            }
 
             if (currentPenStyle === &#39;fountain&#39; &amp;&amp; activeTool !== &#39;eraser&#39;) {
                 ctx.globalCompositeOperation = &#39;source-over&#39;;
@@ -1785,10 +2003,11 @@
                 ctx.lineJoin = &#39;round&#39;;
                 ctx.globalAlpha = 1.0;
 
+                const baseW = strokeSize * 1.0;
+
                 if (points.length === 1) {
-                    const startW = strokeSize * 1.0;
                     ctx.beginPath();
-                    ctx.arc(points[0].x, points[0].y, startW / 2, 0, Math.PI * 2);
+                    ctx.arc(points[0].x, points[0].y, baseW / 2, 0, Math.PI * 2);
                     ctx.fill();
                     return;
                 }
@@ -1801,9 +2020,6 @@
                     dists.push(totalLength);
                 }
 
-                const minW = strokeSize * 1.0;
-                const maxW = strokeSize * 2.5;
-
                 for (let i = 1; i &lt; points.length; i++) {
                     const p1 = points[i - 1];
                     const p2 = points[i];
@@ -1811,11 +2027,13 @@
                     const progress1 = totalLength &gt; 0 ? dists[i - 1] / totalLength : 0;
                     const progress2 = totalLength &gt; 0 ? dists[i] / totalLength : 1;
 
+                    const minW = baseW * 1.0;
+                    const maxW = baseW * 2.5;
                     const w1 = minW + (maxW - minW) * progress1;
                     const w2 = minW + (maxW - minW) * progress2;
-                    const currentW = (w1 + w2) / 2;
 
-                    ctx.lineWidth = currentW;
+                    const currentW = (w1 + w2) / 2;
+                    ctx.lineWidth = Math.max(0.2, currentW);
                     ctx.beginPath();
 
                     if (points.length === 2) {
@@ -2061,27 +2279,27 @@
                 lastTap = now;
 
                 isDragging = true;
-                dragX = e.clientX - wrapper.offsetLeft * scale;
-                dragY = e.clientY - wrapper.offsetTop * scale;
+                dragX = e.clientX - wrapper.getBoundingClientRect().left;
+                dragY = e.clientY - wrapper.getBoundingClientRect().top;
                 wrapper.setPointerCapture(e.pointerId);
             });
 
             wrapper.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
                 if (!isDragging) return;
-                let newX = (e.clientX - dragX) / scale;
-                let newY = (e.clientY - dragY) / scale;
+                const parentRect = wrapper.parentElement.getBoundingClientRect();
+                let newX = (e.clientX - dragX - parentRect.left) / scale;
+                let newY = (e.clientY - dragY - parentRect.top) / scale;
 
-                let currentW = wrapper.offsetWidth;
-                let boundedX = Math.max(0, Math.min(newX, dims.width - currentW));
-                let boundedY = Math.max(0, Math.min(newY, dims.height - 30));
-
-                wrapper.style.left = boundedX + &#39;px&#39;;
-                wrapper.style.top = boundedY + &#39;px&#39;;
+                wrapper.style.left = newX + &#39;px&#39;;
+                wrapper.style.top = newY + &#39;px&#39;;
             });
 
             wrapper.addEventListener(&#39;pointerup&#39;, (e) =&gt; { 
-                isDragging = false; 
-                try { wrapper.releasePointerCapture(e.pointerId); } catch(err){} 
+                if (isDragging) {
+                    isDragging = false; 
+                    try { wrapper.releasePointerCapture(e.pointerId); } catch(err){}
+                    reassignOverlaysToCorrectPages();
+                }
             });
 
             resizeHandle.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
@@ -2114,13 +2332,13 @@
             deleteBtn.onclick = (e) =&gt; {
                 e.stopPropagation();
                 wrapper.remove();
-                page.textBoxes = page.textBoxes.filter(t =&gt; t.elem !== wrapper);
+                pages.forEach(p =&gt; p.textBoxes = p.textBoxes.filter(t =&gt; t.elem !== wrapper));
             };
 
             page.textBoxes.push({ elem: wrapper, contentElem: content });
         }
 
-        // ================= IMAGE INSERTION (FIXED: supports multiple images per page) =================
+        // ================= IMAGE INSERTION =================
         const imageInput = document.getElementById(&#39;imageInput&#39;);
         document.getElementById(&#39;imgBtn&#39;).onclick = () =&gt; imageInput.click();
         imageInput.onchange = (e) =&gt; {
@@ -2129,7 +2347,6 @@
             const reader = new FileReader();
             reader.onload = (event) =&gt; {
                 const img = new Image();
-                // Use activePageIndex if set, otherwise use the last page, or page 0 if no pages exist
                 const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
                 img.onload = () =&gt; insertImageToPage(targetPage, img, event.target.result);
                 img.src = event.target.result;
@@ -2143,7 +2360,6 @@
             let initW = savedState ? savedState.width : Math.min(imgObj.width, 300);
             let initH = savedState ? savedState.height : (imgObj.height / imgObj.width) * initW;
             
-            // Position new image stacked below existing images on this page
             const existingCount = page.imageBoxes.length;
             let initTop = savedState ? savedState.top : 60 + (existingCount * 80);
             let initLeft = savedState ? savedState.left : 60;
@@ -2175,16 +2391,23 @@
             box.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
                 if (e.target === resizeHandle || e.target === deleteBtn) return;
                 e.stopPropagation(); isDragging = true;
-                dragX = e.clientX - box.offsetLeft * scale;
-                dragY = e.clientY - box.offsetTop * scale;
+                dragX = e.clientX - box.getBoundingClientRect().left;
+                dragY = e.clientY - box.getBoundingClientRect().top;
                 box.setPointerCapture(e.pointerId);
             });
             box.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
                 if (!isDragging) return;
-                box.style.left = ((e.clientX - dragX) / scale) + &#39;px&#39;;
-                box.style.top = ((e.clientY - dragY) / scale) + &#39;px&#39;;
+                const parentRect = box.parentElement.getBoundingClientRect();
+                box.style.left = ((e.clientX - dragX - parentRect.left) / scale) + &#39;px&#39;;
+                box.style.top = ((e.clientY - dragY - parentRect.top) / scale) + &#39;px&#39;;
             });
-            box.addEventListener(&#39;pointerup&#39;, (e) =&gt; { isDragging = false; try { box.releasePointerCapture(e.pointerId); } catch(err){} });
+            box.addEventListener(&#39;pointerup&#39;, (e) =&gt; { 
+                if (isDragging) {
+                    isDragging = false; 
+                    try { box.releasePointerCapture(e.pointerId); } catch(err){} 
+                    reassignOverlaysToCorrectPages();
+                }
+            });
 
             let isResizing = false, startW = 0, startH = 0, startX = 0, startY = 0;
             const rh = box.querySelector(&#39;.resize-handle&#39;);
@@ -2205,7 +2428,7 @@
 
             deleteBtn.onclick = (e) =&gt; {
                 e.stopPropagation(); box.remove();
-                page.imageBoxes = page.imageBoxes.filter(i =&gt; i.elem !== box);
+                pages.forEach(p =&gt; p.imageBoxes = p.imageBoxes.filter(i =&gt; i.elem !== box));
             };
 
             page.imageBoxes.push(imageEntry);
@@ -2366,14 +2589,17 @@
 
         // ================= EXPORT =================
         const exportModalOverlay = document.getElementById(&#39;exportModalOverlay&#39;);
-        document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;flex&#39;;
+        document.getElementById(&#39;exportModalBtn&#39;).onclick = () =&gt; {
+            reassignOverlaysToCorrectPages();
+            exportModalOverlay.style.display = &#39;flex&#39;;
+        };
         document.getElementById(&#39;closeExportModalBtn&#39;).onclick = () =&gt; exportModalOverlay.style.display = &#39;none&#39;;
 
         function getExportFilename(suffix) {
             return (currentDocumentTitle || &#39;Handwritten_Notes&#39;).replace(/[^a-zA-Z0-9_-]/g, &#39;_&#39;) + suffix;
         }
 
-        // ================= EXPORT ENGINE (FIXED: images drawn BEFORE ink, all pages work) =================
+        // ================= EXPORT ENGINE =================
         function renderPageToCanvas(pageIdx) {
             const page = pages[pageIdx];
             const dims = getPageDimensions();
@@ -2392,10 +2618,10 @@
                 ctx.strokeRect(0, 0, dims.width, dims.height);
             }
 
-            // Draw Ink Strokes FIRST so they appear behind images in export
+            // Draw Ink Strokes
             ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
 
-            // Draw images ON TOP of ink so ink appears behind them in export
+            // Draw Images
             page.imageBoxes.forEach(ib =&gt; {
                 ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
             });
@@ -2452,6 +2678,7 @@
         }
 
         document.getElementById(&#39;exportPdfBtn&#39;).onclick = () =&gt; {
+            reassignOverlaysToCorrectPages();
             const { jsPDF } = window.jspdf;
             const dims = getPageDimensions();
             const orientation = pageSettings.orientation === &#39;portrait&#39; ? &#39;p&#39; : &#39;l&#39;;
@@ -2467,6 +2694,7 @@
         };
 
         document.getElementById(&#39;exportLongImgBtn&#39;).onclick = () =&gt; {
+            reassignOverlaysToCorrectPages();
             const dims = getPageDimensions();
             const gap = 30;
             const longCanvas = document.createElement(&#39;canvas&#39;);
@@ -2486,6 +2714,7 @@
         };
 
         document.getElementById(&#39;exportSepImgBtn&#39;).onclick = () =&gt; {
+            reassignOverlaysToCorrectPages();
             pages.forEach((_, idx) =&gt; {
                 const link = document.createElement(&#39;a&#39;);
                 link.download = getExportFilename(`_Page_${idx + 1}.jpg`);
@@ -2514,7 +2743,7 @@
         // Initialize
         loadStorageTree();
     &lt;/script&gt;
-&lt;script&gt;(function(){function c(){var b=a.contentDocument||(a.contentWindow&amp;&amp;a.contentWindow.document);if(b){var d=b.createElement(&#39;script&#39;);d.innerHTML=&quot;window.__CF$cv$params={r:&#39;a3db05d2ebc4ba26&#39;,t:&#39;MTc4OTg0NjQxMw==&#39;};var a=document.createElement(&#39;script&#39;);a.src=&#39;/cdn-cgi/challenge-platform/scripts/jsd/main.js&#39;;document.getElementsByTagName(&#39;head&#39;)[0].appendChild(a);&quot;;b.getElementsByTagName(&#39;head&#39;)[0].appendChild(d)}}if(document.body){var a=document.createElement(&#39;iframe&#39;);a.height=1;a.width=1;a.style.position=&#39;absolute&#39;;a.style.top=0;a.style.left=0;a.style.border=&#39;none&#39;;a.style.visibility=&#39;hidden&#39;;document.body.appendChild(a);if(&#39;loading&#39;!==document.readyState)c();else if(window.addEventListener)document.addEventListener(&#39;DOMContentLoaded&#39;,c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);&#39;loading&#39;!==document.readyState&amp;&amp;(document.onreadystatechange=e,c())}}}})();&lt;/script&gt;
+
 &lt;script&gt;
 (function() {
   function notifyParentInteraction() {
