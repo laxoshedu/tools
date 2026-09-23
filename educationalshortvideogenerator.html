@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v15 (Device TTS)</title>
+    <title>Perfect Sync Quiz Generator - Pro v14 (Device TTS Edition)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -451,11 +451,6 @@
             outline: none;
         }
 
-        #excelTable tr:nth-child(even) td,
-        #excelTable tr:nth-child(odd) td {
-            background: #020617;
-        }
-
         .excel-actions-btn {
             background: #be123c;
             padding: 4px 8px;
@@ -496,10 +491,6 @@
             font-size: 0.75rem;
             border-radius: 4px;
             background: #0ea5e9;
-        }
-
-        .audio-small-btn.red {
-            background: #b91c1c;
         }
 
         #videoModeModal .modal-content {
@@ -670,7 +661,7 @@
             <div class="auto-ai-box">
                 <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Hands-Free)</div>
                 <p style="font-size:0.8rem; color:#e2e8f0; margin:5px 0;">
-                    1. Auto Load Device TTS Audio<br>
+                    1. Auto Load Device Audio<br>
                     2. Record & Download Individual Videos<br>
                     3. Record & Download Combined Video
                 </p>
@@ -678,12 +669,12 @@
                 <button id="btnStopAutoAI" class="btn-auto-ai-stop" onclick="stopAutoAIFlow()">🛑 CANCEL AUTO AI</button>
             </div>
 
-            <div class="panel" style="background:#0f172a; border:1px solid #334155; margin-bottom:12px;">
-                <label style="font-weight:bold; color:var(--accent);">🔊 Device TTS Voice Selection</label>
-                <select id="voiceSelect" onchange="resetAudio()"></select>
-                <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
-                    Using system speech engine installed on your device.
-                </div>
+            <div class="panel" style="background:#020617; border-color:#6366f1; padding:12px; margin-bottom:12px;">
+                <label style="font-weight:bold; color:#a855f7;">🗣️ Device TTS Voice Selection</label>
+                <select id="deviceVoiceSelect" onchange="resetAudio()"></select>
+                <p style="font-size:0.75rem; color:#94a3b8; margin:5px 0 0 0;">
+                    Lists voices physically installed on your operating system/browser.
+                </p>
             </div>
 
             <div class="speech-mode-toggle" style="background:#0b1120; margin-top:5px;">
@@ -803,10 +794,15 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>Add Questions</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">Close</button>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">
+                Close
+            </button>
         </div>
 
         <div id="addQModeChooser">
+            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">
+                Choose how you want to add questions.
+            </p>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <button style="background:#22c55e;" onclick="handleAddSingleQuestion()">➕ Add a Single Question</button>
                 <button style="background:#0ea5e9;" onclick="openExcelEditor()">📋 Add Multiple Questions (Excel-style)</button>
@@ -846,12 +842,14 @@
     </div>
 </div>
 
-<!-- Modal: Choose Video Record Mode -->
+<!-- Modal: choose video record mode -->
 <div id="videoModeModal" class="modal-backdrop">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Select Video Recording Mode</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">Close</button>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">
+                Close
+            </button>
         </div>
         <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
             <strong>1. Record video for individual question tabs one by one</strong>
@@ -865,7 +863,7 @@
     </div>
 </div>
 
-<!-- Modal for Auto AI Setup -->
+<!-- Modal: Auto AI Setup -->
 <div id="autoAISetupModal" class="modal-backdrop">
     <div class="modal-content" style="max-width: 600px;">
         <div id="aiSetupStep1">
@@ -876,7 +874,9 @@
             <button style="width:100%; background:#0ea5e9; margin-top:15px;" onclick="goToAISetupStep2()">
                 Arrangement is Done, Go to Next Step &rarr;
             </button>
-            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">Cancel</button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
         </div>
 
         <div id="aiSetupStep2" style="display:none;">
@@ -893,7 +893,9 @@
             <button style="width:100%; background:#22c55e; margin-top:15px;" onclick="beginAutoAIExecution()">
                 🚀 Layout is Set, START AUTO AI
             </button>
-            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">Cancel</button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
         </div>
     </div>
 </div>
@@ -913,10 +915,9 @@
     let pitchFactor = 1.0;
     let loopTestEnabled = false;
 
-    let availableVoices = [];
+    let deviceVoices = [];
 
     const ANIM_DURATION = 0.75;
-
     const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Indie Flower','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
     const ANIMS = {'Fade In': 'fade','Slide from Top':'slide-t','Slide from Bottom':'slide-b','Slide from Left':'slide-l','Slide from Right':'slide-r','Zoom In':'zoom-in','Zoom Out':'zoom-out'};
 
@@ -926,17 +927,17 @@
 
     let batchEditEnabled = false;
     let batchAudioEnabled = false;
-
     let lastExcelCell = null;
 
     let perQuestionAudio = {}; 
     let perQuestionVideoBlobs = {};
     let combinedVideoBlob = null;
 
+    let captureStreamSession = null; 
+
     let cancelLoad = false;
     let cancelRecording = false;
     let cancelAutoAI = false;
-
     let wordAnimateEnabled = false;
     let autoAISettings = {};
 
@@ -945,7 +946,7 @@
         resizeCanvas();
         addQuestionPanel();
         setupCanvasInteraction();
-        initVoices();
+        initDeviceVoices();
         initMasteringLabels();
         initExcelTable();
     };
@@ -1000,7 +1001,7 @@
         const info = document.getElementById('batchAudioInfo');
         if (batchAudioEnabled) {
             toggle.classList.add('active');
-            info.textContent = 'Batch load all tabs (one by one)';
+            info.textContent = 'Batch load all tabs';
             info.style.color = '#22c55e';
         } else {
             toggle.classList.remove('active');
@@ -1015,7 +1016,7 @@
         const info = document.getElementById('wordAnimInfo');
         if (wordAnimateEnabled) {
             toggle.classList.add('active');
-            info.textContent = 'On (bounce active word)';
+            info.textContent = 'On';
             info.style.color = '#22c55e';
         } else {
             toggle.classList.remove('active');
@@ -1025,22 +1026,34 @@
         drawStatic();
     }
 
-    function initVoices() {
-        if (!('speechSynthesis' in window)) return;
-        function loadVoices() {
-            availableVoices = window.speechSynthesis.getVoices();
-            const sel = document.getElementById('voiceSelect');
+    function initDeviceVoices() {
+        if (!('speechSynthesis' in window)) {
+            alert('⚠️ Speech Synthesis API is not supported on this browser/device.');
+            return;
+        }
+        
+        function populateDeviceVoiceList() {
+            deviceVoices = window.speechSynthesis.getVoices();
+            const sel = document.getElementById('deviceVoiceSelect');
             if (!sel) return;
             sel.innerHTML = '';
-            availableVoices.forEach((v, index) => {
-                const opt = document.createElement('option');
-                opt.value = index;
-                opt.textContent = `${v.name} (${v.lang})${v.default ? ' [Default]' : ''}`;
-                sel.appendChild(opt);
+            
+            if (deviceVoices.length === 0) {
+                sel.add(new Option('No Device Voices Found', ''));
+                return;
+            }
+
+            deviceVoices.forEach((v, idx) => {
+                const opt = new Option(`${v.name} (${v.lang})`, String(idx));
+                if (v.default) opt.selected = true;
+                sel.add(opt);
             });
         }
-        loadVoices();
-        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        populateDeviceVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateDeviceVoiceList;
+        }
     }
 
     function toggleMastering() {
@@ -1208,7 +1221,7 @@
 
             <div class="audio-actions-row">
                 <span class="audio-status" id="audioStatus-${questionCounter}">Audio not loaded</span>
-                <button type="button" class="audio-small-btn" onclick="retakeAudioForTab(${questionCounter})">Retake Audio (this tab)</button>
+                <button type="button" class="audio-small-btn" onclick="retakeAudioForTab(${questionCounter})">Retake Audio</button>
             </div>
         `;
         p.positions = {
@@ -1406,15 +1419,6 @@
                 img.onload = () => {
                     p.questionImageAsset = img;
                     drawStatic();
-
-                    if (batchEditEnabled) {
-                        const applyAll = confirm("Apply this image to ALL question tabs?");
-                        if (applyAll) {
-                            document.querySelectorAll('.question-panel').forEach(panel => {
-                                panel.questionImageAsset = img;
-                            });
-                        }
-                    }
                 };
                 img.src = e.target.result;
             };
@@ -1467,54 +1471,112 @@
         }
     }
 
-    // --- Device TTS Audio Synthesizer & Buffer Recording Engine ---
-    async function synthesizeTextToBuffer(text, selectedVoice) {
-        return new Promise((resolve) => {
-            if (!text || !text.trim()) {
-                resolve(null);
-                return;
+    async function ensureCaptureStream() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+             throw new Error("Screen/Tab capture is not supported on this device/browser.");
+        }
+
+        if (!captureStreamSession || !captureStreamSession.stream || captureStreamSession.stream.getTracks().some(t => t.readyState === 'ended')) {
+            alert("AUDIO RECORDING PLAN:\n1. Choose 'Chrome Tab' (or Current Tab).\n2. Select THIS application window/tab.\n3. Verify 'Share tab audio' is CHECKED.\n4. Click 'Share'.");
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            } catch (err) {
+                throw new Error("Permission denied for Tab Audio capture.");
+            }
+            const audioTrack = stream.getAudioTracks()[0];
+            if (!audioTrack) {
+                throw new Error("No system audio track detected! Make sure to check 'Share tab audio'.");
             }
 
-            const durationEstimate = Math.max(1, text.split(' ').length * 0.4);
-            const sampleRate = 44100;
-            const offlineCtx = new OfflineAudioContext(1, sampleRate * durationEstimate, sampleRate);
-            
-            const osc = offlineCtx.createOscillator();
-            const gain = offlineCtx.createGain();
-            osc.frequency.value = 220; 
-            gain.gain.value = 0.001; 
-            osc.connect(gain);
-            gain.connect(offlineCtx.destination);
-            osc.start(0);
+            const recCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = recCtx.createMediaStreamSource(new MediaStream([audioTrack]));
+            const dest = recCtx.createMediaStreamDestination();
+            source.connect(dest);
 
-            const startTime = performance.now();
-            const utterance = new SpeechSynthesisUtterance(text);
+            captureStreamSession = { stream, recCtx, dest };
+        }
+        return captureStreamSession;
+    }
+
+    async function captureDeviceSpeech(tasks, selectedVoice) {
+        const { recCtx, dest } = await ensureCaptureStream();
+        const results = {};
+
+        for (const task of tasks) {
+            if (!task.text.trim()) continue;
+            if (cancelLoad) break;
+
+            statusMsg.innerText = `Recording Device TTS: ${task.desc}...`;
+            const recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus' });
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+            const recordingPromise = new Promise((resolve) => {
+                recorder.onstop = async () => {
+                    if (cancelLoad) { resolve(null); return; }
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const mp3Result = await convertToMp3(arrayBuffer, recCtx);
+                    resolve(mp3Result);
+                };
+            });
+
+            const utterance = new SpeechSynthesisUtterance(task.text);
             if (selectedVoice) utterance.voice = selectedVoice;
-            utterance.rate = 0.95;
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
 
-            utterance.onend = async () => {
-                const elapsedSec = Math.max(0.5, (performance.now() - startTime) / 1000);
-                const realOfflineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * elapsedSec), sampleRate);
-                
-                const realOsc = realOfflineCtx.createOscillator();
-                const realGain = realOfflineCtx.createGain();
-                realGain.gain.value = 0.05;
-                realOsc.connect(realGain);
-                realGain.connect(realOfflineCtx.destination);
-                realOsc.start(0);
+            recorder.start();
+            await new Promise(r => setTimeout(r, 120));
 
-                const renderedBuffer = await realOfflineCtx.startRendering();
-                resolve(renderedBuffer);
-            };
+            window.speechSynthesis.speak(utterance);
 
-            utterance.onerror = async () => {
-                const fallbackCtx = new OfflineAudioContext(1, sampleRate * 1, sampleRate);
-                const buf = await fallbackCtx.startRendering();
-                resolve(buf);
-            };
+            await new Promise(resolve => {
+                utterance.onend = () => { setTimeout(() => { recorder.stop(); resolve(); }, 250); };
+                utterance.onerror = () => { recorder.stop(); resolve(); };
+            });
 
-            speechSynthesis.speak(utterance);
-        });
+            if (cancelLoad) break;
+            results[task.key] = await recordingPromise;
+        }
+
+        return results;
+    }
+
+    async function convertToMp3(webmArrayBuffer, context) {
+        try {
+            const audioBuffer = await context.decodeAudioData(webmArrayBuffer);
+            const channels = 1;
+            const sampleRate = audioBuffer.sampleRate;
+            const samples = audioBuffer.getChannelData(0);
+            const int16Samples = new Int16Array(samples.length);
+            for (let i=0;i<samples.length;i++) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+            const mp3Data = [];
+            const samplesPerFrame = 1152;
+            for (let i=0;i<int16Samples.length;i+=samplesPerFrame) {
+                const chunk = int16Samples.subarray(i, i+samplesPerFrame);
+                const mp3buf = mp3encoder.encodeBuffer(chunk);
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            }
+            const mp3buf = mp3encoder.flush();
+            if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            const totalLength = mp3Data.reduce((a,arr)=>a+arr.length,0);
+            const mp3Buffer = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const c of mp3Data) { mp3Buffer.set(c, offset); offset += c.length; }
+            const mp3Blob = new Blob([mp3Buffer], { type: 'audio/mp3' });
+            const finalAB = await mp3Blob.arrayBuffer();
+            const audioBufFinal = await context.decodeAudioData(finalAB.slice(0));
+            return { audioBuffer: audioBufFinal, rawBuffer: finalAB };
+        } catch (error) {
+            console.error('MP3 conversion error:', error);
+            return { audioBuffer: await context.decodeAudioData(webmArrayBuffer), rawBuffer: webmArrayBuffer };
+        }
     }
 
     function handleLoadAudioClick() {
@@ -1529,7 +1591,7 @@
 
     function stopLoadAudio() {
         cancelLoad = true;
-        speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
         overlay.style.display = 'none';
         progressContainer.style.display = 'none';
         document.getElementById('btnStopLoad').disabled = true;
@@ -1538,7 +1600,7 @@
     async function loadAudioForActiveTab() {
         const data = getActiveQuestionData();
         if (!data || !data.questionText) {
-            alert("Select a question.");
+            alert("Select a valid question.");
             return;
         }
 
@@ -1548,6 +1610,7 @@
 
         buffers = {};
         durations = {};
+
         try {
             if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if(!destNode) destNode = audioCtx.createMediaStreamDestination();
@@ -1578,25 +1641,23 @@
 
             let progress = 0;
             const explanationBuffers = [];
-            const voiceIdx = document.getElementById('voiceSelect').value;
-            const selectedVoice = availableVoices[voiceIdx] || availableVoices[0];
+
+            const voiceIdx = document.getElementById('deviceVoiceSelect').value;
+            const selectedVoice = (voiceIdx !== "" && deviceVoices[voiceIdx]) ? deviceVoices[voiceIdx] : null;
+
+            const recordedData = await captureDeviceSpeech(tasks, selectedVoice);
 
             for (const task of tasks) {
                 if (cancelLoad) break;
-                statusMsg.innerText = `Synthesizing ${task.desc} using Device TTS...`;
-                
-                const audioBuffer = await synthesizeTextToBuffer(task.text, selectedVoice);
+                const result = recordedData[task.key];
+                if (!result) { progressBar.style.width = `${(++progress / tasks.length) * 100}%`; continue; }
 
                 if (task.key.startsWith('expl_')) {
-                    if (audioBuffer) {
-                        explanationBuffers.push(audioBuffer);
-                        explanationPartsDurations.push(audioBuffer.duration);
-                    }
+                    explanationBuffers.push(result.audioBuffer);
+                    explanationPartsDurations.push(result.audioBuffer.duration);
                 } else {
-                    if (audioBuffer) {
-                        buffers[task.key] = audioBuffer;
-                        durations[task.key] = audioBuffer.duration;
-                    }
+                    buffers[task.key] = result.audioBuffer;
+                    durations[task.key] = result.audioBuffer.duration;
                 }
                 progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
             }
@@ -1623,13 +1684,13 @@
             };
             updateAudioStatusBadge(qid, true);
 
-            if(!batchAudioEnabled && !cancelAutoAI) alert("Device TTS audio loaded successfully.");
-
+            if(!batchAudioEnabled && !cancelAutoAI) alert("Device TTS Audio captured successfully.");
+            
         } catch(e) {
             console.error(e);
             const qidNow = data.qid;
             updateAudioStatusBadge(qidNow, false);
-            if (!batchAudioEnabled && !cancelAutoAI) alert("Audio Load Error: " + e.message);
+            if (!batchAudioEnabled && !cancelAutoAI) alert("TTS Load Error: " + e.message);
             else throw e;
         } finally {
             if (!batchAudioEnabled && !cancelAutoAI) {
@@ -1637,7 +1698,7 @@
                 progressContainer.style.display = 'none';
                 document.getElementById('btnStopLoad').disabled = true;
             }
-            speechSynthesis.cancel();
+            window.speechSynthesis.cancel();
         }
     }
 
@@ -1672,7 +1733,7 @@
         if (!panels.length) return;
         
         if (!autoAI) {
-            const confirmBatch = confirm("Batch Load Audio will process all tabs one by one. Continue?");
+            const confirmBatch = confirm("Batch Load Audio will capture TTS for all tabs sequentially. Continue?");
             if (!confirmBatch) return;
         }
 
@@ -1702,7 +1763,7 @@
                 while (!success && !cancelLoad && !cancelAutoAI) {
                     try {
                         retryCount++;
-                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Loading Audio using Device TTS...`;
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Capturing Audio${retryCount > 1 ? ` (Retry ${retryCount-1})` : ''}...`;
                         await loadAudioForActiveTab();
                         if (perQuestionAudio[qid] && perQuestionAudio[qid].hasAudio) {
                             success = true;
@@ -1710,8 +1771,8 @@
                             throw new Error("Verification failed");
                         }
                     } catch (err) {
-                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Load failed. Retrying...`;
-                        await new Promise(r => setTimeout(r, 1000));
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Failed. Retrying...`;
+                        await new Promise(r => setTimeout(r, 1500));
                     }
                 }
                 progressBar.style.width = `${((i+1) / panels.length) * 100}%`;
@@ -1724,7 +1785,7 @@
                 progressContainer.style.display = 'none';
                 document.getElementById('btnStopLoad').disabled = true;
             }
-            speechSynthesis.cancel();
+            window.speechSynthesis.cancel();
         }
     }
 
@@ -1808,12 +1869,11 @@
         btnStop.style.display = 'block';
 
         try {
-            statusMsg.innerText = "Auto AI: Step 1/5 - Loading Device TTS Audio...";
+            statusMsg.innerText = "Auto AI: Step 1/5 - Loading Device Audio...";
             overlay.style.display = 'flex';
             progressContainer.style.display = 'block';
             
             await batchLoadAudioForAllTabs(true);
-            
             if(cancelAutoAI) throw new Error("Auto AI Cancelled");
 
             statusMsg.innerText = "Auto AI: Step 2/5 - Preparing for individual videos...";
@@ -1841,7 +1901,6 @@
             }
 
         } catch (e) {
-            console.log(e);
             if (e.message !== "Auto AI Cancelled") alert("Auto AI Error: " + e.message);
         } finally {
             cancelAutoAI = false;
@@ -1974,13 +2033,36 @@
             if (explFinished) {
                 hlIndex = wordsAll.length - 1;
             } else {
-                const explProgress = (elapsed === -1 || !durations.expl)
-                    ? 0
-                    : Math.max(0, Math.min(1, (elapsed - T.expl) / (durations.expl / pitchFactor)));
-                hlIndex = Math.floor(explProgress * wordsAll.length);
+                if (elapsed === -1 || !durations.expl || !T.expl || !store || !store.explParts) {
+                    const explProgress = (elapsed === -1 || !durations.expl)
+                        ? 0
+                        : Math.max(0, Math.min(1, (elapsed - T.expl) / (durations.expl / pitchFactor)));
+                    hlIndex = Math.floor(explProgress * wordsAll.length);
+                } else {
+                    const parts = store.explParts;
+                    const partDur = parts.durations || [];
+                    const partTexts = parts.texts || [];
+                    const tSample = Math.max(0, (elapsed - T.expl) * pitchFactor);
+                    let cum = 0;
+                    let partIndex = 0;
+                    for (let i=0;i<partDur.length;i++) {
+                        if (tSample < cum + partDur[i]) { partIndex = i; break; }
+                        cum += partDur[i];
+                        if (i === partDur.length-1) partIndex = i;
+                    }
+                    const curPartDur = partDur[partIndex] || 0.0001;
+                    const inside = Math.max(0, Math.min(1, (tSample - cum)/curPartDur));
+                    let wordsBefore = 0;
+                    for (let j=0;j<partIndex;j++) {
+                        wordsBefore += (partTexts[j] || '').split(' ').filter(w => w.length).length;
+                    }
+                    const curWords = (partTexts[partIndex] || '').split(' ').filter(w => w.length);
+                    const idxInPart = Math.floor(inside * curWords.length);
+                    hlIndex = Math.min(wordsAll.length-1, wordsBefore + idxInPart);
+                }
             }
             hlIndex = Math.max(0, Math.min(hlIndex, wordsAll.length-1));
-            drawKaraokeText(ctx, layoutKaraokeLines(ctx, data.explanationText, eBox.w - 40), 0, 0, hlIndex, data.styles.eSize * 1.5, eBox.h, data.styles.explText, explFinished);
+            drawKaraokeText(ctx, lines = layoutKaraokeLines(ctx, data.explanationText, eBox.w - 40), 0, 0, hlIndex, data.styles.eSize * 1.5, eBox.h, data.styles.explText, explFinished);
             ctx.restore();
         }
 
@@ -2346,7 +2428,7 @@
         cancelRecording = false;
         document.getElementById('dlLink').style.display = 'none';
         overlay.style.display = 'flex';
-        statusMsg.innerText = `Recording video for: ${data.questionText.substring(0,20)}...`;
+        statusMsg.innerText = `Recording video: ${data.questionText.substring(0,20)}...`;
 
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -2441,7 +2523,7 @@
             for (const p of panels) {
                 const qid = p.dataset.qid;
                 if (!perQuestionAudio[qid] || !perQuestionAudio[qid].hasAudio) {
-                    alert("Please load audio for ALL question tabs before recording.");
+                    alert("Please load audio for ALL question tabs before recording the full combined video.");
                     return;
                 }
             }
@@ -2458,7 +2540,7 @@
         let totalDuration = 0;
         const countValGlobal = parseInt(document.getElementById('countVal').value);
 
-        panels.forEach((p, idx) => {
+        panels.forEach((p) => {
             const qData = getQuestionDataFromPanel(p);
             const qid = qData.qid;
             const store = perQuestionAudio[qid];
@@ -2694,7 +2776,10 @@
     async function pasteFromClipboard() {
         try {
             const text = await navigator.clipboard.readText();
-            if (!text) return;
+            if (!text) {
+                alert('Clipboard is empty or not accessible.');
+                return;
+            }
             let startCell = lastExcelCell;
             if (!startCell) {
                 const tbody = document.querySelector('#excelTable tbody');
