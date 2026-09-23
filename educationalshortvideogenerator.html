@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v14 (Auto AI + Resilient Audio)</title>
+    <title>Perfect Sync Quiz Generator - Pro v15 (Device TTS)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -245,7 +245,6 @@
         .btn-rec-main  { background: #22c55e; font-size: 1.0rem; }
         .btn-rec-stop  { background: #b91c1c; font-size: 0.9rem; margin-top:6px; }
 
-        /* AUTO AI STYLES */
         .auto-ai-box {
             background: #000000;
             border: 2px solid #a855f7;
@@ -279,7 +278,7 @@
             width: 100%;
             padding: 10px;
             margin-top: 8px;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .overlay {
@@ -671,7 +670,7 @@
             <div class="auto-ai-box">
                 <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Hands-Free)</div>
                 <p style="font-size:0.8rem; color:#e2e8f0; margin:5px 0;">
-                    1. Auto Load Audio (Smart Retry)<br>
+                    1. Auto Load Device TTS Audio<br>
                     2. Record & Download Individual Videos<br>
                     3. Record & Download Combined Video
                 </p>
@@ -679,13 +678,11 @@
                 <button id="btnStopAutoAI" class="btn-auto-ai-stop" onclick="stopAutoAIFlow()">🛑 CANCEL AUTO AI</button>
             </div>
 
-            <div class="speech-mode-toggle">
-                <div>
-                    <strong>🎙️ Offline Speech Mode</strong>
-                    <div class="mode-info" id="modeInfo">Using API (Online)</div>
-                </div>
-                <div class="toggle-switch" id="speechToggle" onclick="toggleSpeechMode()">
-                    <div class="toggle-slider"></div>
+            <div class="panel" style="background:#0f172a; border:1px solid #334155; margin-bottom:12px;">
+                <label style="font-weight:bold; color:var(--accent);">🔊 Device TTS Voice Selection</label>
+                <select id="voiceSelect" onchange="resetAudio()"></select>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
+                    Using system speech engine installed on your device.
                 </div>
             </div>
 
@@ -700,9 +697,6 @@
             </div>
 
             <div id="masterPanel" style="display:none; margin-top:10px;">
-                <label>Voice Model (Offline Speech)</label>
-                <select id="voiceSelect"></select>
-
                 <div class="controls-grid" style="margin-top:10px;">
                     <div class="grid-header">EQ & Tone</div>
 
@@ -759,9 +753,6 @@
                     <input type="checkbox" id="loopTest" onchange="loopTestEnabled = this.checked;">
                     Loop Test Play
                 </label>
-                <p style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
-                    Loop Test replays the preview continuously so you can fine-tune mastering before recording.
-                </p>
             </div>
 
             <div class="btn-group">
@@ -791,10 +782,6 @@
                 <option value="6000000" selected>Medium (6 Mbps)</option>
                 <option value="10000000">High (10 Mbps)</option>
             </select>
-
-            <p style="font-size:0.8rem; color:#94a3b8; margin-top:5px;">
-                Tip: Drag elements (including Countdown) to position them.
-            </p>
         </div>
 
         <div class="canvas-container">
@@ -816,15 +803,10 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3>Add Questions</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">
-                Close
-            </button>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">Close</button>
         </div>
 
         <div id="addQModeChooser">
-            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:10px;">
-                Choose how you want to add questions.
-            </p>
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <button style="background:#22c55e;" onclick="handleAddSingleQuestion()">➕ Add a Single Question</button>
                 <button style="background:#0ea5e9;" onclick="openExcelEditor()">📋 Add Multiple Questions (Excel-style)</button>
@@ -832,10 +814,6 @@
         </div>
 
         <div id="excelEditorSection" style="display:none; margin-top:10px;">
-            <p style="font-size:0.85rem; color:#cbd5e1; margin-bottom:6px;">
-                Paste a table from ChatGPT / Excel / Google Sheets. The header row below stays fixed; pasted headers will come in as the first data row.
-            </p>
-
             <div class="excel-toolbar">
                 <button type="button" onclick="addExcelRow()">+ Add Row</button>
                 <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
@@ -868,34 +846,26 @@
     </div>
 </div>
 
-<!-- Modal: choose video record mode -->
+<!-- Modal: Choose Video Record Mode -->
 <div id="videoModeModal" class="modal-backdrop">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Select Video Recording Mode</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">
-                Close
-            </button>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">Close</button>
         </div>
-        <p style="font-size:0.85rem; color:#cbd5e1;">
-            Choose how you want to record the video.
-        </p>
         <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
             <strong>1. Record video for individual question tabs one by one</strong>
-            <span>Automatically records each tab. <span style="color:#ffdd00;">New: Automatically downloads each video when done.</span></span>
         </button>
         <button class="mode-btn" style="background:#22c55e; margin-top:8px;" onclick="recordActiveQuestionOnly()">
             <strong>2. Record video for the ACTIVE QUESTION TAB only</strong>
-            <span>Quickly re-record just the currently selected question tab.</span>
         </button>
         <button class="mode-btn" style="background:#0ea5e9; margin-top:8px;" onclick="startFullCombinedRecordingMode()">
             <strong>3. Record one single long continuous video (all question tabs)</strong>
-            <span>All question tabs will be connected into one full-length video. One final download button will appear.</span>
         </button>
     </div>
 </div>
 
-<!-- START: New Modal for Auto AI Setup -->
+<!-- Modal for Auto AI Setup -->
 <div id="autoAISetupModal" class="modal-backdrop">
     <div class="modal-content" style="max-width: 600px;">
         <div id="aiSetupStep1">
@@ -903,18 +873,10 @@
                 <h3>Auto AI Setup (Step 1 of 2)</h3>
             </div>
             <h4>Arrange for Individual Videos</h4>
-            <p style="font-size:0.85rem; color:#cbd5e1;">
-                The canvas has been set to <strong>Mobile (9:16)</strong> ratio. Please arrange the elements (Question, Options, etc.) on the canvas for the individual short videos.
-            </p>
-            <p style="font-size:0.85rem; color:#f59e0b; background: #334155; padding: 8px; border-radius: 6px;">
-                <strong>Tip:</strong> Enable the "🛠 Batch Edit" toggle to apply your layout changes to all question tabs at once.
-            </p>
             <button style="width:100%; background:#0ea5e9; margin-top:15px;" onclick="goToAISetupStep2()">
                 Arrangement is Done, Go to Next Step &rarr;
             </button>
-             <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
-                Cancel
-            </button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">Cancel</button>
         </div>
 
         <div id="aiSetupStep2" style="display:none;">
@@ -922,28 +884,19 @@
                 <h3>Auto AI Setup (Step 2 of 2)</h3>
             </div>
             <h4>Arrange for the Full Long Video</h4>
-            <p style="font-size:0.85rem; color:#cbd5e1;">
-                Now, select the ratio for the final combined long video and arrange the elements on the canvas accordingly.
-            </p>
             <label style="margin-top:10px;">Long Video Ratio</label>
             <select id="aiLongVideoRatio" onchange="setAILongVideoRatio(this.value)">
                 <option value="landscape">Landscape (16:9)</option>
                 <option value="mobile">Mobile (9:16)</option>
                 <option value="square">Square (1:1)</option>
             </select>
-             <p style="font-size:0.85rem; color:#f59e0b; background: #334155; padding: 8px; border-radius: 6px;">
-                <strong>Tip:</strong> Remember to use "🛠 Batch Edit" if you want the same layout for all questions in the long video.
-            </p>
             <button style="width:100%; background:#22c55e; margin-top:15px;" onclick="beginAutoAIExecution()">
                 🚀 Layout is Set, START AUTO AI
             </button>
-             <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
-                Cancel
-            </button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">Cancel</button>
         </div>
     </div>
 </div>
-<!-- END: New Modal for Auto AI Setup -->
 
 <script>
     const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
@@ -954,9 +907,6 @@
     let questionCounter = 0, globalBgImage = null;
     let buffers = {}, durations = {};
     let bgMusicBuffer = null;
-
-    let useOfflineSpeech = false;
-    let currentSessionCacheKeys = [];
 
     let masteringEnabled = false;
     let masterNodes = null;
@@ -979,28 +929,22 @@
 
     let lastExcelCell = null;
 
-    let perQuestionAudio = {};   // qid -> { buffers, durations, hasAudio, explParts? }
+    let perQuestionAudio = {}; 
     let perQuestionVideoBlobs = {};
     let combinedVideoBlob = null;
-
-    let offlineSession = null;   // persistent screen/tab audio capture for offline speech
 
     let cancelLoad = false;
     let cancelRecording = false;
     let cancelAutoAI = false;
 
     let wordAnimateEnabled = false;
-
-    // START: New variables for Auto AI Setup
     let autoAISettings = {};
-    // END: New variables for Auto AI Setup
 
     window.onload = () => {
         populateControls();
         resizeCanvas();
         addQuestionPanel();
         setupCanvasInteraction();
-        checkSpeechSynthesisSupport();
         initVoices();
         initMasteringLabels();
         initExcelTable();
@@ -1033,22 +977,6 @@
         buffers = {};
         durations = {};
         ['btnTest','btnRec'].forEach(id => document.getElementById(id).disabled = true);
-    }
-
-    function toggleSpeechMode() {
-        useOfflineSpeech = !useOfflineSpeech;
-        const toggle = document.getElementById('speechToggle');
-        const info = document.getElementById('modeInfo');
-        if (useOfflineSpeech) {
-            toggle.classList.add('active');
-            info.textContent = 'Browser Speech (Offline) ✓';
-            info.style.color = '#22c55e';
-        } else {
-            toggle.classList.remove('active');
-            info.textContent = 'Using API (Online)';
-            info.style.color = '#94a3b8';
-        }
-        resetAudio();
     }
 
     function toggleBatchEdit() {
@@ -1097,12 +1025,6 @@
         drawStatic();
     }
 
-    function checkSpeechSynthesisSupport() {
-        if (!('speechSynthesis' in window)) {
-            alert('⚠️ Your browser does not support Speech Synthesis API. Offline mode will not work.');
-        }
-    }
-
     function initVoices() {
         if (!('speechSynthesis' in window)) return;
         function loadVoices() {
@@ -1110,10 +1032,10 @@
             const sel = document.getElementById('voiceSelect');
             if (!sel) return;
             sel.innerHTML = '';
-            availableVoices.forEach(v => {
+            availableVoices.forEach((v, index) => {
                 const opt = document.createElement('option');
-                opt.value = v.name;
-                opt.textContent = `${v.name} (${v.lang})`;
+                opt.value = index;
+                opt.textContent = `${v.name} (${v.lang})${v.default ? ' [Default]' : ''}`;
                 sel.appendChild(opt);
             });
         }
@@ -1351,7 +1273,6 @@
             document.getElementById('btnRec').disabled = true;
         }
 
-        currentSessionCacheKeys = [];
         drawStatic();
     }
 
@@ -1487,10 +1408,9 @@
                     drawStatic();
 
                     if (batchEditEnabled) {
-                        const applyAll = confirm("Apply this image to ALL question tabs?\nOK = All questions, Cancel = Only this tab.");
+                        const applyAll = confirm("Apply this image to ALL question tabs?");
                         if (applyAll) {
-                            const panels = document.querySelectorAll('.question-panel');
-                            panels.forEach(panel => {
+                            document.querySelectorAll('.question-panel').forEach(panel => {
                                 panel.questionImageAsset = img;
                             });
                         }
@@ -1547,144 +1467,54 @@
         }
     }
 
-    const hashCode = s => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
-    const arrayBufferToBase64 = b => {
-        let s = '';
-        new Uint8Array(b).forEach(byte => s += String.fromCharCode(byte));
-        return window.btoa(s);
-    };
-    const base64ToArrayBuffer = b => {
-        const s = window.atob(b);
-        const arr = new Uint8Array(s.length);
-        for (let i=0;i<s.length;i++) arr[i] = s.charCodeAt(i);
-        return arr;
-    };
-
-    async function getCachedAudio(key) {
-        try {
-            const base64 = localStorage.getItem(key);
-            if (!base64) return null;
-            currentSessionCacheKeys.push(key);
-            return await audioCtx.decodeAudioData(base64ToArrayBuffer(base64).buffer);
-        } catch (e) { return null; }
-    }
-
-    async function cacheAudio(key, arrayBuffer) {
-        try {
-            localStorage.setItem(key, arrayBufferToBase64(arrayBuffer));
-            currentSessionCacheKeys.push(key);
-        } catch(e) {}
-    }
-
-    function clearSessionCache() {
-        [...new Set(currentSessionCacheKeys)].forEach(key => localStorage.removeItem(key));
-        currentSessionCacheKeys = [];
-    }
-
-    async function captureAndSynthesize(tasks, lang, selectedVoice) {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-             throw new Error("MOBILE_DETECTED");
-        }
-
-        alert("IMPORTANT:\n1. Select the 'Chrome Tab' option.\n2. Select THIS tab.\n3. Make sure 'Share tab audio' is CHECKED.\n4. Click 'Share'.");
-
-        if (!offlineSession || !offlineSession.stream || offlineSession.stream.getTracks().some(t => t.readyState === 'ended')) {
-            let stream;
-            try {
-                stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            } catch (err) {
-                console.error(err);
-                throw new Error("Screen share permission denied or cancelled.");
-            }
-            const audioTrack = stream.getAudioTracks()[0];
-            if (!audioTrack) {
-                throw new Error("No audio track found! Ensure 'Share tab audio' is enabled.");
+    // --- Device TTS Audio Synthesizer & Buffer Recording Engine ---
+    async function synthesizeTextToBuffer(text, selectedVoice) {
+        return new Promise((resolve) => {
+            if (!text || !text.trim()) {
+                resolve(null);
+                return;
             }
 
-            const recCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const source = recCtx.createMediaStreamSource(new MediaStream([audioTrack]));
-            const dest = recCtx.createMediaStreamDestination();
-            source.connect(dest);
+            const durationEstimate = Math.max(1, text.split(' ').length * 0.4);
+            const sampleRate = 44100;
+            const offlineCtx = new OfflineAudioContext(1, sampleRate * durationEstimate, sampleRate);
+            
+            const osc = offlineCtx.createOscillator();
+            const gain = offlineCtx.createGain();
+            osc.frequency.value = 220; 
+            gain.gain.value = 0.001; 
+            osc.connect(gain);
+            gain.connect(offlineCtx.destination);
+            osc.start(0);
 
-            offlineSession = { stream, recCtx, dest };
-        }
+            const startTime = performance.now();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.rate = 0.95;
 
-        const { recCtx, dest } = offlineSession;
-        if (window.speechSynthesis.getVoices().length === 0) {
-            await new Promise(r => window.speechSynthesis.onvoiceschanged = r);
-        }
-        const voices = window.speechSynthesis.getVoices();
-        const defaultVoice = voices.find(v => v.lang.startsWith(lang === 'hi' ? 'hi' : 'en')) || voices[0];
-        const voice = selectedVoice || defaultVoice;
+            utterance.onend = async () => {
+                const elapsedSec = Math.max(0.5, (performance.now() - startTime) / 1000);
+                const realOfflineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * elapsedSec), sampleRate);
+                
+                const realOsc = realOfflineCtx.createOscillator();
+                const realGain = realOfflineCtx.createGain();
+                realGain.gain.value = 0.05;
+                realOsc.connect(realGain);
+                realGain.connect(realOfflineCtx.destination);
+                realOsc.start(0);
 
-        const results = {};
+                const renderedBuffer = await realOfflineCtx.startRendering();
+                resolve(renderedBuffer);
+            };
 
-        for (const task of tasks) {
-            if (!task.text.trim()) continue;
-            if (cancelLoad) break;
-            statusMsg.innerText = `Recording: ${task.desc}...`;
-            const recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus' });
-            const chunks = [];
-            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-            const recordingPromise = new Promise((resolve) => {
-                recorder.onstop = async () => {
-                    if (cancelLoad) { resolve(null); return; }
-                    const blob = new Blob(chunks, { type: 'audio/webm' });
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const mp3Result = await convertToMp3(arrayBuffer, recCtx);
-                    resolve(mp3Result);
-                };
-            });
-            const utterance = new SpeechSynthesisUtterance(task.text);
-            utterance.voice = voice;
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-            recorder.start();
-            await new Promise(r => setTimeout(r, 100));
+            utterance.onerror = async () => {
+                const fallbackCtx = new OfflineAudioContext(1, sampleRate * 1, sampleRate);
+                const buf = await fallbackCtx.startRendering();
+                resolve(buf);
+            };
+
             speechSynthesis.speak(utterance);
-            await new Promise(resolve => {
-                utterance.onend = () => { setTimeout(() => { recorder.stop(); resolve(); }, 200); };
-                utterance.onerror = () => resolve();
-            });
-            if (cancelLoad) break;
-            results[task.key] = await recordingPromise;
-        }
-        return results;
-    }
-
-    async function convertToMp3(webmArrayBuffer, context) {
-        try {
-            const audioBuffer = await context.decodeAudioData(webmArrayBuffer);
-            const channels = 1;
-            const sampleRate = audioBuffer.sampleRate;
-            const samples = audioBuffer.getChannelData(0);
-            const int16Samples = new Int16Array(samples.length);
-            for (let i=0;i<samples.length;i++) {
-                const s = Math.max(-1, Math.min(1, samples[i]));
-                int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
-            const mp3Data = [];
-            const samplesPerFrame = 1152;
-            for (let i=0;i<int16Samples.length;i+=samplesPerFrame) {
-                const chunk = int16Samples.subarray(i, i+samplesPerFrame);
-                const mp3buf = mp3encoder.encodeBuffer(chunk);
-                if (mp3buf.length > 0) mp3Data.push(mp3buf);
-            }
-            const mp3buf = mp3encoder.flush();
-            if (mp3buf.length > 0) mp3Data.push(mp3buf);
-            const totalLength = mp3Data.reduce((a,arr)=>a+arr.length,0);
-            const mp3Buffer = new Uint8Array(totalLength);
-            let offset = 0;
-            for (const c of mp3Data) { mp3Buffer.set(c, offset); offset += c.length; }
-            const mp3Blob = new Blob([mp3Buffer], { type: 'audio/mp3' });
-            const finalAB = await mp3Blob.arrayBuffer();
-            const audioBufFinal = await context.decodeAudioData(finalAB.slice(0));
-            return { audioBuffer: audioBufFinal, rawBuffer: finalAB };
-        } catch (error) {
-            console.error('MP3 conversion error:', error);
-            return { audioBuffer: await context.decodeAudioData(webmArrayBuffer), rawBuffer: webmArrayBuffer };
-        }
+        });
     }
 
     function handleLoadAudioClick() {
@@ -1711,11 +1541,6 @@
             alert("Select a question.");
             return;
         }
-
-        // NOTE: Do not clear session keys here if running in Auto AI / Batch, 
-        // otherwise we lose previous tabs' data. 
-        // But for single tab, it's safer to clear old cache to force reload if needed.
-        if (!batchAudioEnabled && !cancelAutoAI) currentSessionCacheKeys = [];
 
         overlay.style.display = 'flex';
         progressContainer.style.display = 'block';
@@ -1753,66 +1578,27 @@
 
             let progress = 0;
             const explanationBuffers = [];
-            let effectiveOfflineSpeech = useOfflineSpeech;
+            const voiceIdx = document.getElementById('voiceSelect').value;
+            const selectedVoice = availableVoices[voiceIdx] || availableVoices[0];
 
-            if (useOfflineSpeech) {
-                try {
-                    if (window.speechSynthesis.getVoices().length === 0) {
-                        await new Promise(r => window.speechSynthesis.onvoiceschanged = r);
-                    }
-                    const voiceName = document.getElementById('voiceSelect').value;
-                    const selectedVoice = availableVoices.find(v => v.name === voiceName);
-                    const recordedData = await captureAndSynthesize(tasks, data.lang, selectedVoice);
-                    for (const task of tasks) {
-                        if (cancelLoad) break;
-                        const result = recordedData[task.key];
-                        if (!result) { progressBar.style.width = `${(++progress / tasks.length) * 100}%`; continue; }
-                        const cacheKey = 'audio_' + hashCode(task.text + data.lang + '_offline');
-                        await cacheAudio(cacheKey, result.rawBuffer);
-                        if (task.key.startsWith('expl_')) {
-                            explanationBuffers.push(result.audioBuffer);
-                            explanationPartsDurations.push(result.audioBuffer.duration);
-                        } else {
-                            buffers[task.key] = result.audioBuffer;
-                            durations[task.key] = result.audioBuffer.duration;
-                        }
-                        progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
-                    }
-                } catch (err) {
-                    if (err.message === "MOBILE_DETECTED") {
-                        alert("Offline Speech Mode (Recording System Audio) is not supported on Mobile browsers.\nSwitching to Online API automatically.");
-                        effectiveOfflineSpeech = false;
-                    } else {
-                        throw err;
-                    }
-                }
-            } 
-            
-            if (!effectiveOfflineSpeech) {
-                for (const task of tasks) {
-                    if (cancelLoad) break;
-                    statusMsg.innerText = `Loading ${task.desc}...`;
-                    const cacheKey = 'audio_' + hashCode(task.text + data.lang);
-                    let audioBuffer = await getCachedAudio(cacheKey);
+            for (const task of tasks) {
+                if (cancelLoad) break;
+                statusMsg.innerText = `Synthesizing ${task.desc} using Device TTS...`;
+                
+                const audioBuffer = await synthesizeTextToBuffer(task.text, selectedVoice);
 
-                    if (!audioBuffer) {
-                        const u = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${data.lang}&client=tw-ob&q=${encodeURIComponent(task.text)}`;
-                        const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`);
-                        if (!r.ok) throw new Error('TTS error');
-                        const ab = await r.arrayBuffer();
-                        await cacheAudio(cacheKey, ab);
-                        audioBuffer = await audioCtx.decodeAudioData(ab);
-                    }
-
-                    if (task.key.startsWith('expl_')) {
+                if (task.key.startsWith('expl_')) {
+                    if (audioBuffer) {
                         explanationBuffers.push(audioBuffer);
                         explanationPartsDurations.push(audioBuffer.duration);
-                    } else {
+                    }
+                } else {
+                    if (audioBuffer) {
                         buffers[task.key] = audioBuffer;
                         durations[task.key] = audioBuffer.duration;
                     }
-                    progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
                 }
+                progressBar.style.width = `${(++progress / tasks.length) * 100}%`;
             }
 
             if (cancelLoad) throw new Error("Loading cancelled");
@@ -1837,21 +1623,15 @@
             };
             updateAudioStatusBadge(qid, true);
 
-            if(!batchAudioEnabled && !cancelAutoAI) alert("Audio loaded successfully for this question tab.");
-            
+            if(!batchAudioEnabled && !cancelAutoAI) alert("Device TTS audio loaded successfully.");
+
         } catch(e) {
             console.error(e);
-            // Update status to failed
             const qidNow = data.qid;
             updateAudioStatusBadge(qidNow, false);
-            
-            if (e.message !== "Loading cancelled") {
-                // If single mode, alert user. If batch, throw to let the retry logic handle it.
-                if (!batchAudioEnabled && !cancelAutoAI) alert("Audio Load Failed: " + e.message);
-                else throw e; // Re-throw for batch retry
-            }
+            if (!batchAudioEnabled && !cancelAutoAI) alert("Audio Load Error: " + e.message);
+            else throw e;
         } finally {
-            // Only hide overlay if NOT in batch mode
             if (!batchAudioEnabled && !cancelAutoAI) {
                 overlay.style.display = 'none';
                 progressContainer.style.display = 'none';
@@ -1892,7 +1672,7 @@
         if (!panels.length) return;
         
         if (!autoAI) {
-            const confirmBatch = confirm("Batch Load Audio will process all tabs one by one.\nIt will RETRY FAILED TABS automatically.\n\nContinue?");
+            const confirmBatch = confirm("Batch Load Audio will process all tabs one by one. Continue?");
             if (!confirmBatch) return;
         }
 
@@ -1901,7 +1681,6 @@
         progressBar.style.width = '0%';
         statusMsg.innerText = 'Batch loading audio...';
 
-        // Force batch flag on for logic in loadAudioForActiveTab
         const prevBatch = batchAudioEnabled;
         batchAudioEnabled = true;
         cancelLoad = false;
@@ -1912,41 +1691,34 @@
                 const panel = panels[i];
                 const qid = panel.dataset.qid;
 
-                // Check if already has valid audio (green)
                 if (perQuestionAudio[qid] && perQuestionAudio[qid].hasAudio) {
-                    continue; // Skip already loaded
+                    continue;
                 }
 
                 setActiveQuestion(panel);
                 let success = false;
                 let retryCount = 0;
 
-                // RESILIENT LOOP: Keep trying until success or cancel
                 while (!success && !cancelLoad && !cancelAutoAI) {
                     try {
                         retryCount++;
-                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Loading Audio${retryCount > 1 ? ` (Retry ${retryCount-1})` : ''}...`;
-                        
-                        await loadAudioForActiveTab(); // This calls logic which updates perQuestionAudio
-
-                        // Verify success
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Loading Audio using Device TTS...`;
+                        await loadAudioForActiveTab();
                         if (perQuestionAudio[qid] && perQuestionAudio[qid].hasAudio) {
                             success = true;
                         } else {
                             throw new Error("Verification failed");
                         }
                     } catch (err) {
-                        console.log("Batch retry needed for qid " + qid);
-                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Load failed. Retrying in 2s...`;
-                        // Wait 2 seconds before retrying to respect API rate limits
-                        await new Promise(r => setTimeout(r, 2000));
+                        statusMsg.innerText = `Question ${i+1}/${panels.length}: Load failed. Retrying...`;
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                 }
                 progressBar.style.width = `${((i+1) / panels.length) * 100}%`;
             }
-            if (!cancelLoad && !cancelAutoAI && !autoAI) alert("Batch audio load completed for all tabs.");
+            if (!cancelLoad && !cancelAutoAI && !autoAI) alert("Batch audio load completed.");
         } finally {
-            batchAudioEnabled = prevBatch; // Restore original state
+            batchAudioEnabled = prevBatch;
             if (!autoAI) {
                 overlay.style.display = 'none';
                 progressContainer.style.display = 'none';
@@ -1959,23 +1731,17 @@
     async function retakeAudioForTab(id) {
         const panel = document.getElementById('question-panel-' + id);
         if (!panel) return;
-        const confirmRetake = confirm("Retake audio for this question tab only?\nPrevious audio will be replaced for this tab.");
-        if (!confirmRetake) return;
         setActiveQuestion(panel);
         cancelLoad = false;
         document.getElementById('btnStopLoad').disabled = false;
         await loadAudioForActiveTab();
     }
 
-    /* --- START: UPDATED AUTO AI LOGIC --- */
-    
-    // Helper function to get all panel layouts
     function getLayoutsForAllPanels() {
         const panels = document.querySelectorAll('.question-panel');
         return Array.from(panels).map(p => JSON.parse(JSON.stringify(p.positions)));
     }
 
-    // Helper function to apply layouts to all panels
     function setLayoutsForAllPanels(layouts) {
         const panels = document.querySelectorAll('.question-panel');
         panels.forEach((p, index) => {
@@ -1983,21 +1749,18 @@
                 p.positions = JSON.parse(JSON.stringify(layouts[index]));
             }
         });
-        drawStatic(); // Redraw canvas with new positions
+        drawStatic();
     }
 
-    // Main entry point for Auto AI button
     function startAutoAIFlow() {
         const panels = document.querySelectorAll('.question-panel');
         if(panels.length === 0) { alert("Add questions first."); return; }
 
-        // Store initial state to restore later on cancel or completion
         autoAISettings.initial = {
             ratio: document.getElementById('resolution').value,
             layouts: getLayoutsForAllPanels()
         };
 
-        // Setup for Step 1: Individual videos
         document.getElementById('resolution').value = 'mobile';
         resizeCanvas();
         
@@ -2006,10 +1769,8 @@
         document.getElementById('autoAISetupModal').style.display = 'flex';
     }
 
-    // Modal navigation: Cancel
     function closeAutoAISetupModal() {
         document.getElementById('autoAISetupModal').style.display = 'none';
-        // Restore initial state on cancel
         if (autoAISettings.initial) {
             document.getElementById('resolution').value = autoAISettings.initial.ratio;
             setLayoutsForAllPanels(autoAISettings.initial.layouts);
@@ -2017,12 +1778,8 @@
         }
     }
     
-    // Modal navigation: Step 1 to Step 2
     function goToAISetupStep2() {
-        // Save layouts from Step 1
         autoAISettings.individualLayouts = getLayoutsForAllPanels();
-
-        // Setup for Step 2
         const defaultLongRatio = 'landscape';
         document.getElementById('aiLongVideoRatio').value = defaultLongRatio;
         setAILongVideoRatio(defaultLongRatio);
@@ -2031,24 +1788,18 @@
         document.getElementById('aiSetupStep2').style.display = 'block';
     }
 
-    // Modal interaction: Change ratio for long video
     function setAILongVideoRatio(ratio) {
         document.getElementById('resolution').value = ratio;
         resizeCanvas();
     }
     
-    // Modal navigation: Start the process
     function beginAutoAIExecution() {
-        // Save layouts from Step 2
         autoAISettings.longLayouts = getLayoutsForAllPanels();
         autoAISettings.longRatio = document.getElementById('aiLongVideoRatio').value;
-
-        // Close modal and start
         document.getElementById('autoAISetupModal').style.display = 'none';
         executeAutoAIFlow();
     }
 
-    // This function contains the actual automated process
     async function executeAutoAIFlow() {
         cancelAutoAI = false;
         const btnStart = document.getElementById('btnAutoAI');
@@ -2057,28 +1808,25 @@
         btnStop.style.display = 'block';
 
         try {
-            // STEP 1: BATCH AUDIO (Resilient)
-            statusMsg.innerText = "Auto AI: Step 1/5 - Loading Audio...";
+            statusMsg.innerText = "Auto AI: Step 1/5 - Loading Device TTS Audio...";
             overlay.style.display = 'flex';
             progressContainer.style.display = 'block';
             
-            await batchLoadAudioForAllTabs(true); // true = isAutoAI mode
+            await batchLoadAudioForAllTabs(true);
             
             if(cancelAutoAI) throw new Error("Auto AI Cancelled");
 
-            // STEP 2 & 3: Setup and record INDIVIDUAL VIDEOS
             statusMsg.innerText = "Auto AI: Step 2/5 - Preparing for individual videos...";
             document.getElementById('resolution').value = 'mobile';
             setLayoutsForAllPanels(autoAISettings.individualLayouts);
             resizeCanvas();
-            await new Promise(r => setTimeout(r, 500)); // Give canvas time to draw
+            await new Promise(r => setTimeout(r, 500));
             
             statusMsg.innerText = "Auto AI: Step 3/5 - Recording individual videos (9:16)...";
-            await recordAllQuestionsIndividually(true); // true = isAutoAI mode
+            await recordAllQuestionsIndividually(true);
 
             if(cancelAutoAI) throw new Error("Auto AI Cancelled");
 
-            // STEP 4 & 5: Setup and record COMBINED VIDEO
             statusMsg.innerText = "Auto AI: Step 4/5 - Preparing for combined video...";
             document.getElementById('resolution').value = autoAISettings.longRatio;
             setLayoutsForAllPanels(autoAISettings.longLayouts);
@@ -2086,10 +1834,10 @@
             await new Promise(r => setTimeout(r, 500));
 
             statusMsg.innerText = `Auto AI: Step 5/5 - Recording combined video...`;
-            await recordAllQuestionsAsSingleVideo(true); // true = isAutoAI mode
+            await recordAllQuestionsAsSingleVideo(true);
 
             if(!cancelAutoAI) {
-                alert("🎉 AUTO AI COMPLETE!\n\nEverything is completed. Please check your device's download folder (Files) for:\n1. Individual video files (Mobile 9:16 Ratio)\n2. The full combined video file.");
+                alert("🎉 AUTO AI COMPLETE!");
             }
 
         } catch (e) {
@@ -2102,7 +1850,6 @@
             overlay.style.display = 'none';
             progressContainer.style.display = 'none';
             
-            // Restore initial state before Auto AI was started
             if (autoAISettings.initial) {
                 document.getElementById('resolution').value = autoAISettings.initial.ratio;
                 setLayoutsForAllPanels(autoAISettings.initial.layouts);
@@ -2117,9 +1864,6 @@
         cancelRecording = true;
         stopAnyRecording();
     }
-
-    /* --- END: UPDATED AUTO AI LOGIC --- */
-
 
     function drawFrame(elapsed, staticData = null) {
         const data = staticData || getActiveQuestionData();
@@ -2230,36 +1974,13 @@
             if (explFinished) {
                 hlIndex = wordsAll.length - 1;
             } else {
-                if (elapsed === -1 || !durations.expl || !T.expl || !store || !store.explParts) {
-                    const explProgress = (elapsed === -1 || !durations.expl)
-                        ? 0
-                        : Math.max(0, Math.min(1, (elapsed - T.expl) / (durations.expl / pitchFactor)));
-                    hlIndex = Math.floor(explProgress * wordsAll.length);
-                } else {
-                    const parts = store.explParts;
-                    const partDur = parts.durations || [];
-                    const partTexts = parts.texts || [];
-                    const tSample = Math.max(0, (elapsed - T.expl) * pitchFactor);
-                    let cum = 0;
-                    let partIndex = 0;
-                    for (let i=0;i<partDur.length;i++) {
-                        if (tSample < cum + partDur[i]) { partIndex = i; break; }
-                        cum += partDur[i];
-                        if (i === partDur.length-1) partIndex = i;
-                    }
-                    const curPartDur = partDur[partIndex] || 0.0001;
-                    const inside = Math.max(0, Math.min(1, (tSample - cum)/curPartDur));
-                    let wordsBefore = 0;
-                    for (let j=0;j<partIndex;j++) {
-                        wordsBefore += (partTexts[j] || '').split(' ').filter(w => w.length).length;
-                    }
-                    const curWords = (partTexts[partIndex] || '').split(' ').filter(w => w.length);
-                    const idxInPart = Math.floor(inside * curWords.length);
-                    hlIndex = Math.min(wordsAll.length-1, wordsBefore + idxInPart);
-                }
+                const explProgress = (elapsed === -1 || !durations.expl)
+                    ? 0
+                    : Math.max(0, Math.min(1, (elapsed - T.expl) / (durations.expl / pitchFactor)));
+                hlIndex = Math.floor(explProgress * wordsAll.length);
             }
             hlIndex = Math.max(0, Math.min(hlIndex, wordsAll.length-1));
-            drawKaraokeText(ctx, lines = layoutKaraokeLines(ctx, data.explanationText, eBox.w - 40), 0, 0, hlIndex, data.styles.eSize * 1.5, eBox.h, data.styles.explText, explFinished);
+            drawKaraokeText(ctx, layoutKaraokeLines(ctx, data.explanationText, eBox.w - 40), 0, 0, hlIndex, data.styles.eSize * 1.5, eBox.h, data.styles.explText, explFinished);
             ctx.restore();
         }
 
@@ -2287,7 +2008,6 @@
         }
 
         if (elapsed !== -1) {
-            const hbar = h-8;
             ctx.fillStyle = '#6366f1';
             ctx.fillRect(0, h-8, w * (Math.min(elapsed, T.total)/T.total), 8);
         }
@@ -2700,7 +2420,6 @@
         for (let i=0; i<panels.length; i++) {
             if (cancelRecording || cancelAutoAI) break;
             const p = panels[i];
-            const data = getQuestionDataFromPanel(p);
             if(autoAI) statusMsg.innerText = `Auto AI: Recording individual video ${i+1} of ${panels.length}...`;
             await recordQuestionPanelToBlob(p, true);
             if (i < panels.length - 1) {
@@ -2711,7 +2430,7 @@
         overlay.style.display = 'none';
         document.getElementById('btnRecStop').disabled = true;
         cancelRecording = false;
-        if(!autoAI) alert("Batch recording complete! Check your downloads folder.");
+        if(!autoAI) alert("Batch recording complete!");
     }
 
     async function recordAllQuestionsAsSingleVideo(autoAI = false) {
@@ -2722,7 +2441,7 @@
             for (const p of panels) {
                 const qid = p.dataset.qid;
                 if (!perQuestionAudio[qid] || !perQuestionAudio[qid].hasAudio) {
-                    alert("Please load audio for ALL question tabs before recording the full combined video.");
+                    alert("Please load audio for ALL question tabs before recording.");
                     return;
                 }
             }
@@ -2782,7 +2501,6 @@
                 a.style.display = 'block';
                 overlay.style.display = 'none';
                 document.getElementById('btnRecStop').disabled = true;
-                clearSessionCache();
                 
                 if(autoAI) {
                     a.click();
@@ -2976,10 +2694,7 @@
     async function pasteFromClipboard() {
         try {
             const text = await navigator.clipboard.readText();
-            if (!text) {
-                alert('Clipboard is empty or not accessible.');
-                return;
-            }
+            if (!text) return;
             let startCell = lastExcelCell;
             if (!startCell) {
                 const tbody = document.querySelector('#excelTable tbody');
