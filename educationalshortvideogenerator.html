@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
     <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <!-- fix-webm-duration to solve wrong duration / seek bar issue in video players -->
+    <script src="https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.5/fix-webm-duration.js"></script>
 
     <style>
         :root {
@@ -1338,15 +1340,23 @@
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
         mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
         let chunks = [];
+        let startTime = Date.now();
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mime });
-            const url = URL.createObjectURL(blob);
+        mediaRecorder.onstop = async () => {
+            const rawBlob = new Blob(chunks, { type: mime });
+            const duration = Date.now() - startTime;
+            
+            let finalBlob = rawBlob;
+            if (typeof ysFixWebmDuration === 'function' && mime.includes('webm')) {
+                finalBlob = await ysFixWebmDuration(rawBlob, duration, { logger: false });
+            }
+
+            const url = URL.createObjectURL(finalBlob);
             const a = document.getElementById('dlLink');
             a.href = url;
             a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
-            a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
+            a.innerText = `Download HD Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
             a.style.display = 'block';
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
@@ -1398,16 +1408,24 @@
             const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
             mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
             let chunks = [];
+            let startTime = Date.now();
 
             const donePromise = new Promise(resolve => {
                 mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: mime });
-                    const url = URL.createObjectURL(blob);
+                mediaRecorder.onstop = async () => {
+                    const rawBlob = new Blob(chunks, { type: mime });
+                    const duration = Date.now() - startTime;
+                    
+                    let finalBlob = rawBlob;
+                    if (typeof ysFixWebmDuration === 'function' && mime.includes('webm')) {
+                        finalBlob = await ysFixWebmDuration(rawBlob, duration, { logger: false });
+                    }
+
+                    const url = URL.createObjectURL(finalBlob);
                     const a = document.getElementById('dlLink');
                     a.href = url;
                     a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
-                    a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
+                    a.innerText = `Download HD Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
                     a.style.display = 'block';
                     a.click();
                     resolve();
@@ -1453,15 +1471,23 @@
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
         mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
         let chunks = [];
+        let startTime = Date.now();
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mime });
-            const url = URL.createObjectURL(blob);
+        mediaRecorder.onstop = async () => {
+            const rawBlob = new Blob(chunks, { type: mime });
+            const duration = Date.now() - startTime;
+
+            let finalBlob = rawBlob;
+            if (typeof ysFixWebmDuration === 'function' && mime.includes('webm')) {
+                finalBlob = await ysFixWebmDuration(rawBlob, duration, { logger: false });
+            }
+
+            const url = URL.createObjectURL(finalBlob);
             const a = document.getElementById('dlLink');
             a.href = url;
             a.download = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
-            a.innerText = `Download Combined Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
+            a.innerText = `Download Combined Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
             a.style.display = 'block';
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
