@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v20 (Fixed Mobile Download & Base64 Error)</title>
+    <title>Perfect Sync Quiz Generator - Pro v20 (WebView Base64 Fix)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
+    <!-- lamejs for MP3 encoding -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 
     <style>
         :root {
@@ -283,6 +285,7 @@
             text-decoration: none;
             border-radius: 6px;
             font-weight: bold;
+            text-align: center;
         }
 
         .speech-mode-toggle {
@@ -623,7 +626,7 @@
         <div class="canvas-container">
             <div id="overlay" class="overlay">
                 <div class="spinner"></div>
-                <div id="statusMsg">Recording Live Speech & Visual Stream...</div>
+                <div id="statusMsg">Recording Live Speech & Voice Stream...</div>
             </div>
             <canvas id="canvas"></canvas>
         </div>
@@ -754,6 +757,7 @@
     let currentVisualStage = "all";
     let activeCountdownNumber = "";
     let activeExplIndex = 0;
+    let recStartTime = 0;
 
     const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
     const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
@@ -772,6 +776,50 @@
         initVoices();
         initExcelTable();
     };
+
+    /* --- WEBM DURATION FIXER --- */
+    function injectWebmDuration(blob, durationMs) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const buffer = reader.result;
+                const arr = new Uint8Array(buffer);
+
+                let pos = 0;
+                let foundSegment = false;
+                while (pos < arr.length - 8) {
+                    if (arr[pos] === 0x18 && arr[pos+1] === 0x53 && arr[pos+2] === 0x80 && arr[pos+3] === 0x67) {
+                        foundSegment = true;
+                        break;
+                    }
+                    pos++;
+                }
+
+                if (!foundSegment) { resolve(blob); return; }
+
+                const durationFloat = new Float64Array([durationMs]);
+                const durationBytes = new Uint8Array(durationFloat.buffer).reverse();
+                
+                let durationHeader = new Uint8Array([0x44, 0x89, 0x88, ...durationBytes]);
+                let updatedArr = new Uint8Array(arr.length + durationHeader.length);
+                updatedArr.set(arr.subarray(0, pos + 12), 0);
+                updatedArr.set(durationHeader, pos + 12);
+                updatedArr.set(arr.subarray(pos + 12), pos + 12 + durationHeader.length);
+
+                resolve(new Blob([updatedArr], { type: blob.type || 'video/webm' }));
+            };
+            reader.readAsArrayBuffer(blob);
+        });
+    }
+
+    /* --- SAFE BLOB TO BASE64 DATA URL CONVERTER (FOR WEBVIEW COMPATIBILITY) --- */
+    function blobToBase64DataURL(blob) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+    }
 
     function getBestSupportedMimeType() {
         const types = [
@@ -1293,7 +1341,7 @@
         drawStatic();
     }
 
-    /* --- AUDIO PIPELINE + DIRECT BLOB DOWNLOAD (NO BASE64 CONVERSION TO PREVENT FAILED BAD BASE64) --- */
+    /* --- AUDIO PIPELINE --- */
     async function setupRecordingAudioStream() {
         let tracks = [];
         try {
@@ -1322,16 +1370,6 @@
             cachedAudioStream.getTracks().forEach(track => track.stop());
             cachedAudioStream = null;
         }
-    }
-
-    function createCleanDownloadLink(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.getElementById('dlLink');
-        a.href = url;
-        a.download = filename;
-        a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
-        a.style.display = 'block';
-        return a;
     }
 
     function openVideoModeModal() { document.getElementById('videoModeModal').style.display = 'flex'; }
@@ -1365,11 +1403,22 @@
         mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
         let chunks = [];
 
+        recStartTime = Date.now();
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-            const rawBlob = new Blob(chunks, { type: mime });
+            const durationMs = Date.now() - recStartTime;
+            let rawBlob = new Blob(chunks, { type: mime });
+            let finalBlob = mime.includes('webm') ? await injectWebmDuration(rawBlob, durationMs) : rawBlob;
+
+            // Convert to Base64 Data URL to prevent "bad base64" errors in mobile WebViews
+            const dataUrl = await blobToBase64DataURL(finalBlob);
+
+            const a = document.getElementById('dlLink');
+            a.href = dataUrl;
             const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            createCleanDownloadLink(rawBlob, `${sanitizeFilename(data.questionText)}.${ext}`);
+            a.download = `${sanitizeFilename(data.questionText)}.${ext}`;
+            a.innerText = `Download HD Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
+            a.style.display = 'block';
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
         };
@@ -1419,14 +1468,24 @@
             const donePromise = new Promise(resolve => {
                 mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
                 mediaRecorder.onstop = async () => {
-                    const rawBlob = new Blob(chunks, { type: mime });
+                    const durationMs = Date.now() - recStartTime;
+                    let rawBlob = new Blob(chunks, { type: mime });
+                    let finalBlob = mime.includes('webm') ? await injectWebmDuration(rawBlob, durationMs) : rawBlob;
+
+                    const dataUrl = await blobToBase64DataURL(finalBlob);
+
+                    const a = document.getElementById('dlLink');
+                    a.href = dataUrl;
                     const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-                    const a = createCleanDownloadLink(rawBlob, `${sanitizeFilename(data.questionText)}.${ext}`);
+                    a.download = `${sanitizeFilename(data.questionText)}.${ext}`;
+                    a.innerText = `Download HD Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
+                    a.style.display = 'block';
                     a.click();
                     resolve();
                 };
             });
 
+            recStartTime = Date.now();
             mediaRecorder.start(1000);
             await new Promise(r => setTimeout(r, 100));
 
@@ -1467,14 +1526,24 @@
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         mediaRecorder.onstop = async () => {
-            const rawBlob = new Blob(chunks, { type: mime });
+            const durationMs = Date.now() - recStartTime;
+            let rawBlob = new Blob(chunks, { type: mime });
+            let finalBlob = mime.includes('webm') ? await injectWebmDuration(rawBlob, durationMs) : rawBlob;
+
+            const dataUrl = await blobToBase64DataURL(finalBlob);
+
+            const a = document.getElementById('dlLink');
+            a.href = dataUrl;
             const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            const a = createCleanDownloadLink(rawBlob, `quiz_FULL_COMBINED_${Date.now()}.${ext}`);
+            a.download = `quiz_FULL_COMBINED_${Date.now()}.${ext}`;
+            a.innerText = `Download Combined Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
+            a.style.display = 'block';
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
             if (autoAI) a.click();
         };
 
+        recStartTime = Date.now();
         mediaRecorder.start(1000);
         await new Promise(r => setTimeout(r, 100));
 
