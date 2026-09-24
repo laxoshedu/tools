@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Live Mobile TTS & Video Recorder</title>
+    <title>Perfect Sync Quiz Generator - Pro v18 (Question-Only Video Thumbnail)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
+    <!-- lamejs for MP3 encoding -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 
     <style>
         :root {
@@ -15,10 +17,11 @@
             --border: #334155;
             --text: #f8fafc;
             --accent: #f59e0b;
+            --ai-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
@@ -171,6 +174,12 @@
             max-width: 100%;
             height: auto;
             background: #000;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        canvas:active {
+            cursor: grabbing;
         }
 
         .btn-group {
@@ -191,14 +200,58 @@
             font-size: 0.85rem;
         }
 
+        button:disabled {
+            background: #475569;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .btn-test { background: var(--accent); color: black; }
-        .btn-rec-main { background: #22c55e; font-size: 1.0rem; }
-        .btn-rec-stop { background: #b91c1c; font-size: 0.9rem; margin-top:6px; }
+        .btn-rec-main  { background: #22c55e; font-size: 1.0rem; }
+        .btn-rec-stop  { background: #be123c; font-size: 0.9rem; margin-top:6px; }
+
+        .auto-ai-box {
+            background: #000000;
+            border: 2px solid #a855f7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auto-ai-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: var(--ai-gradient);
+        }
+
+        .btn-auto-ai-start {
+            background: var(--ai-gradient);
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-auto-ai-stop {
+            background: #be123c;
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            display: none;
+        }
 
         .overlay {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0,0,0,0.9);
             display: none;
             justify-content: center;
@@ -212,7 +265,8 @@
         }
 
         .spinner {
-            width: 40px; height: 40px;
+            width: 40px;
+            height: 40px;
             border: 4px solid #fff;
             border-top-color: var(--primary);
             border-radius: 50%;
@@ -233,6 +287,48 @@
             font-weight: bold;
         }
 
+        .speech-mode-toggle {
+            background: #1e3a8a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #475569;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active { background: #22c55e; }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider { left: 33px; }
+
+        .mode-info {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -248,11 +344,139 @@
             padding: 20px;
             border-radius: 10px;
             border: 1px solid var(--border);
-            max-width: 520px;
+            max-width: 950px;
             width: 95%;
+            max-height: 90vh;
+            overflow: auto;
         }
 
-        .mode-btn {
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        .excel-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .excel-toolbar button {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            background: #0ea5e9;
+        }
+
+        .excel-wrapper {
+            border: 1px solid #334155;
+            max-height: 55vh;
+            overflow: auto;
+            background: #020617;
+            margin-bottom: 10px;
+        }
+
+        #excelTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        #excelTable th, #excelTable td {
+            border: 1px solid #334155;
+            padding: 4px 6px;
+            min-width: 80px;
+        }
+
+        #excelTable th {
+            background: #020617;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        #excelTable td[contenteditable="true"] {
+            cursor: text;
+            outline: none;
+        }
+
+        .excel-actions-btn {
+            background: #be123c;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+        }
+
+        .audio-status {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 999px;
+            display: inline-block;
+            background: #334155;
+            color: #e5e7eb;
+        }
+
+        .audio-status.ok {
+            background: #16a34a;
+            color: #f9fafb;
+        }
+
+        .audio-actions-row {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .expl-box-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .expl-box-row input[type="text"] {
+            flex: 1;
+        }
+
+        .btn-add-expl {
+            background: #0ea5e9;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .btn-del-expl {
+            background: #be123c;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        #videoModeModal .modal-content {
+            max-width: 520px;
+        }
+
+        #videoModeModal .mode-btn {
             width: 100%;
             margin-top: 10px;
             text-align: left;
@@ -264,25 +488,37 @@
             cursor: pointer;
         }
 
-        .mode-btn span { display: block; font-size: 0.8rem; opacity: 0.8; margin-top: 3px; }
+        #videoModeModal .mode-btn strong { display: block; font-size: 0.9rem; }
+        #videoModeModal .mode-btn span { display: block; font-size: 0.8rem; opacity:0.8; margin-top: 3px; }
     </style>
 </head>
 <body>
 
 <div class="layout">
+    <!-- LEFT: Inputs -->
     <div class="sidebar">
 
         <div id="questions-container" onclick="handlePanelClick(event)">
             <h2>1. Questions</h2>
         </div>
-        <button id="add-question-btn" onclick="addQuestionPanel()">+ Add New Question</button>
+        <button id="add-question-btn" onclick="openAddQuestionModal()">+ Add New Question</button>
 
-        <div class="panel" style="margin-top: 15px;">
-            <h2>2. Voice & Typography</h2>
+        <!-- Batch Edit toggle -->
+        <div class="speech-mode-toggle" style="background:#0b1120; margin-top:8px;">
+            <div>
+                <strong>🛠 Batch Edit</strong>
+                <div class="mode-info" id="batchInfo">Single question only</div>
+            </div>
+            <div class="toggle-switch" id="batchToggle" onclick="toggleBatchEdit()">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>2. Typography & Voice</h2>
             <div class="controls-grid">
-                <div class="grid-header">Offline Speech Voice</div>
+                <div class="grid-header">Voice Model</div>
                 <div style="grid-column: span 2;">
-                    <label>Voice Model</label>
                     <select id="voiceSelect"></select>
                 </div>
             </div>
@@ -290,9 +526,8 @@
             <div class="controls-grid">
                 <div class="grid-header">Question Text</div>
                 <select id="fontQ" onchange="drawStatic()"></select>
-                <input type="number" id="sizeQ" value="45" onchange="drawStatic()">
+                <input type="number" id="sizeQ" value="45" onchange="drawStatic()" title="Font Size">
             </div>
-
             <div class="controls-grid">
                 <div class="grid-header">Options Text</div>
                 <select id="fontO" onchange="drawStatic()"></select>
@@ -300,12 +535,12 @@
             </div>
 
             <div class="controls-grid">
-                <div class="grid-header">Countdown</div>
+                <div class="grid-header">Countdown Style</div>
                 <select id="fontC" onchange="drawStatic()"></select>
-                <input type="number" id="sizeC" value="150" onchange="drawStatic()">
-                <input type="color" id="colorC" value="#f59e0b" oninput="drawStatic()">
+                <input type="number" id="sizeC" value="150" onchange="drawStatic()" title="Font Size">
+                <input type="color" id="colorC" value="#f59e0b" oninput="drawStatic()" title="Color">
                 <div style="grid-column: span 2; margin-top:5px;">
-                    <label>Countdown Duration (Sec)</label>
+                    <label>Countdown Duration (sec)</label>
                     <input type="number" id="countVal" value="5" min="3" max="30">
                 </div>
             </div>
@@ -318,59 +553,194 @@
         </div>
 
         <div class="panel">
-            <h2>3. Visual Theme</h2>
+            <h2>3. Visuals & Background</h2>
             <div class="controls-grid">
-                <div class="grid-header">Colors</div>
+                <div class="grid-header">Colors & Background</div>
                 <input type="color" id="bgColor1" value="#1e3a8a" oninput="drawStatic()">
                 <input type="color" id="bgColor2" value="#020617" oninput="drawStatic()">
                 <input type="color" id="cardColor" value="#FFFFFF" oninput="drawStatic()">
                 <input type="color" id="correctColor" value="#22c55e" oninput="drawStatic()">
+                <div style="grid-column: span 2;">
+                    <label>Global BG Image</label>
+                    <input type="file" accept="image/*" onchange="handleGlobalImage(this)">
+                </div>
+            </div>
+
+            <div class="controls-grid" style="margin-top:15px;">
+                <div class="grid-header">Explanation Box Style</div>
+                <div>
+                    <label>Box BG</label>
+                    <input type="color" id="explBgColor" value="#000000" oninput="drawStatic()">
+                </div>
+                <div>
+                    <label>Text Color</label>
+                    <input type="color" id="explTextColor" value="#FFFFFF" oninput="drawStatic()">
+                </div>
+                <div style="grid-column: span 2; margin-top:5px;">
+                    <label style="display:flex; align-items:center;">
+                        <input type="checkbox" id="explNoBg" onchange="drawStatic()"> No Background (Text Only)
+                    </label>
+                </div>
             </div>
         </div>
 
         <div class="panel">
-            <h2>4. Live Preview & Recording</h2>
-            <div class="btn-group">
-                <button class="btn-test" onclick="testPlayback()">1. Test Play Live</button>
-                <button class="btn-rec-main" onclick="openVideoModeModal()">2. REC VIDEO</button>
+            <h2>4. Live Preview & Recording Engine</h2>
+
+            <div class="auto-ai-box">
+                <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Full Auto Exporter)</div>
+                <p style="font-size:0.8rem; color:#e2e8f0; margin:5px 0;">
+                    Automated Multi-video export in HD with full voice track synchronization.
+                </p>
+                <button id="btnAutoAI" class="btn-auto-ai-start" onclick="startAutoAIFlow()">🚀 START AUTO AI</button>
+                <button id="btnStopAutoAI" class="btn-auto-ai-stop" onclick="stopAutoAIFlow()">🛑 CANCEL AUTO AI</button>
             </div>
-            <button class="btn-rec-stop" onclick="stopAnyRecording()" style="width:100%;">Stop Live Process</button>
+
+            <div class="btn-group">
+                <button class="btn-test" id="btnTest" onclick="testPlayback()">1. Test Play Live</button>
+                <button class="btn-rec-main" id="btnRec" onclick="openVideoModeModal()">2. REC VIDEO (MB HD)</button>
+            </div>
+            <button class="btn-rec-stop" id="btnRecStop" onclick="stopAnyRecording()" style="width:100%; margin-top:8px;">Stop Live Recording</button>
         </div>
     </div>
 
+    <!-- RIGHT: Preview -->
     <div class="preview-area">
         <div class="panel" style="width:100%; margin-bottom:10px;">
-            <label>Canvas Resolution</label>
+            <label>Resolution</label>
             <select id="resolution" onchange="resizeCanvas()">
                 <option value="mobile">Mobile (9:16)</option>
                 <option value="landscape" selected>Landscape (16:9)</option>
                 <option value="square">Square (1:1)</option>
+            </select>
+
+            <label style="margin-top:8px;">Video Encoding Quality</label>
+            <select id="videoQuality">
+                <option value="4000000">Standard (4 Mbps)</option>
+                <option value="8000000" selected>High MB Quality (8 Mbps)</option>
+                <option value="15000000">Maximum Ultra (15 Mbps)</option>
             </select>
         </div>
 
         <div class="canvas-container">
             <div id="overlay" class="overlay">
                 <div class="spinner"></div>
-                <div id="statusMsg">Synthesizing Speech Live & Recording...</div>
+                <div id="statusMsg">Recording Live Speech & Visual Stream...</div>
             </div>
             <canvas id="canvas"></canvas>
         </div>
-        <a id="dlLink" class="download-link">Download Generated Video</a>
+        <a id="dlLink" class="download-link">Download HD Video File</a>
     </div>
 </div>
 
+<!-- Modal: Add Questions -->
+<div id="addQModal" class="modal-backdrop">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Questions</h3>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeAddQuestionModal()">
+                Close
+            </button>
+        </div>
+
+        <div id="addQModeChooser">
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button style="background:#22c55e;" onclick="handleAddSingleQuestion()">➕ Add a Single Question</button>
+                <button style="background:#0ea5e9;" onclick="openExcelEditor()">📋 Add Multiple Questions (Excel-style)</button>
+            </div>
+        </div>
+
+        <div id="excelEditorSection" style="display:none; margin-top:10px;">
+            <div class="excel-toolbar">
+                <button type="button" onclick="addExcelRow()">+ Add Row</button>
+                <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
+                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Paste from Clipboard</button>
+                <button type="button" onclick="backToModeChooser()" style="background:#0f172a;">◀ Back</button>
+            </div>
+
+            <div class="excel-wrapper">
+                <table id="excelTable">
+                    <thead>
+                    <tr>
+                        <th contenteditable="true">Question</th>
+                        <th contenteditable="true">Option A</th>
+                        <th contenteditable="true">Option B</th>
+                        <th contenteditable="true">Option C</th>
+                        <th contenteditable="true">Option D</th>
+                        <th contenteditable="true">Correct Option</th>
+                        <th contenteditable="true">Explanation</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <button type="button" onclick="importQuestionsFromTable()" style="background:#22c55e; margin-top:4px;">
+                ✅ Import these questions as tabs
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Choose Video Mode -->
 <div id="videoModeModal" class="modal-backdrop">
     <div class="modal-content">
-        <h3>Select Recording Mode</h3>
-        <button class="mode-btn" style="background:#16a34a;" onclick="recordActiveQuestionOnly()">
-            <strong>Record Active Tab</strong>
-            <span>Generates video during live TTS synthesis for active tab.</span>
+        <div class="modal-header">
+            <h3>Select Video Recording Mode</h3>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeVideoModeModal()">
+                Close
+            </button>
+        </div>
+        <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
+            <strong>1. Record individual question videos (Tab by Tab)</strong>
+            <span>Generates separate high-quality MB video files for each tab.</span>
         </button>
-        <button class="mode-btn" style="background:#0ea5e9;" onclick="startFullCombinedRecordingMode()">
-            <strong>Record Full Combined Video</strong>
-            <span>Synthesizes speech and records all question tabs consecutively.</span>
+        <button class="mode-btn" style="background:#22c55e; margin-top:8px;" onclick="recordActiveQuestionOnly()">
+            <strong>2. Record ACTIVE TAB only</strong>
+            <span>Quickly records current active tab into full video file.</span>
         </button>
-        <button style="background:#be123c; margin-top:10px; width:100%;" onclick="closeVideoModeModal()">Close</button>
+        <button class="mode-btn" style="background:#0ea5e9; margin-top:8px;" onclick="startFullCombinedRecordingMode()">
+            <strong>3. Record continuous combined long video</strong>
+            <span>All question tabs seamlessly merged into one full long video.</span>
+        </button>
+    </div>
+</div>
+
+<!-- Modal for Auto AI Setup -->
+<div id="autoAISetupModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 600px;">
+        <div id="aiSetupStep1">
+            <div class="modal-header">
+                <h3>Auto AI Setup (Step 1 of 2)</h3>
+            </div>
+            <h4>Arrange Layout for Individual Short Videos</h4>
+            <button style="width:100%; background:#0ea5e9; margin-top:15px;" onclick="goToAISetupStep2()">
+                Arrangement Done &rarr;
+            </button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
+        </div>
+
+        <div id="aiSetupStep2" style="display:none;">
+            <div class="modal-header">
+                <h3>Auto AI Setup (Step 2 of 2)</h3>
+            </div>
+            <h4>Arrange Layout for Full Combined Video</h4>
+            <label style="margin-top:10px;">Combined Video Aspect Ratio</label>
+            <select id="aiLongVideoRatio" onchange="setAILongVideoRatio(this.value)">
+                <option value="landscape">Landscape (16:9)</option>
+                <option value="mobile">Mobile (9:16)</option>
+                <option value="square">Square (1:1)</option>
+            </select>
+            <button style="width:100%; background:#22c55e; margin-top:15px;" onclick="beginAutoAIExecution()">
+                🚀 Layout Set, START AUTO EXPORT
+            </button>
+            <button style="width:100%; background:#475569; margin-top:8px;" onclick="closeAutoAISetupModal()">
+                Cancel
+            </button>
+        </div>
     </div>
 </div>
 
@@ -378,93 +748,245 @@
     const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay'), statusMsg = document.getElementById('statusMsg');
 
-    let mediaStreamMic = null, mediaRecorder = null;
-    let questionCounter = 0, availableVoices = [];
+    let mediaRecorder = null, cachedAudioStream = null;
+    let questionCounter = 0, globalBgImage = null;
+    let availableVoices = [];
+
     let isProcessing = false;
-
-    let currentVisualStage = "init";
+    let currentVisualStage = "all";
     let activeCountdownNumber = "";
+    let activeExplIndex = 0;
 
-    const FONTS = ['Segoe UI', 'Arial', 'Impact', 'Georgia', 'Times New Roman'];
+    const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
     const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
+    
+    let drag = { isDragging: false, activeZone: null, offsetX: 0, offsetY: 0 };
+    let batchEditEnabled = false;
+    let lastExcelCell = null;
+    let cancelRecording = false, cancelAutoAI = false;
+    let autoAISettings = {};
 
     window.onload = () => {
         populateControls();
         resizeCanvas();
         addQuestionPanel();
+        setupCanvasInteraction();
         initVoices();
+        initExcelTable();
     };
+
+    function escHtml(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function sanitizeFilename(str) {
+        if(!str) return "question";
+        return str.replace(/[^a-z0-9]/gi, '_').replace(/_{2,}/g, '_').substring(0, 50);
+    }
 
     function populateControls() {
         ['fontQ','fontO','fontE','fontC'].forEach(id => FONTS.forEach(f => document.getElementById(id).add(new Option(f, f))));
     }
 
-    function initVoices() {
-        if ('speechSynthesis' in window) {
-            const loadV = () => {
-                availableVoices = window.speechSynthesis.getVoices();
-                const sel = document.getElementById('voiceSelect');
-                sel.innerHTML = '';
-                availableVoices.forEach((v) => {
-                    const opt = document.createElement('option');
-                    opt.value = v.name;
-                    opt.textContent = `${v.name} (${v.lang})`;
-                    sel.appendChild(opt);
-                });
-            };
-            loadV();
-            window.speechSynthesis.onvoiceschanged = loadV;
+    function toggleExplanationField(cb) {
+        cb.closest('.panel').querySelector('.explanation-input-container').style.display = cb.checked ? 'block' : 'none';
+        drawStatic();
+    }
+
+    function toggleBatchEdit() {
+        batchEditEnabled = !batchEditEnabled;
+        const toggle = document.getElementById('batchToggle');
+        const info = document.getElementById('batchInfo');
+        if (batchEditEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'Apply layout to ALL tabs';
+            info.style.color = '#22c55e';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Single question only';
+            info.style.color = '#94a3b8';
         }
     }
 
-    function addQuestionPanel() {
+    function initVoices() {
+        if (!('speechSynthesis' in window)) return;
+        function loadVoices() {
+            availableVoices = window.speechSynthesis.getVoices();
+            const sel = document.getElementById('voiceSelect');
+            if (!sel) return;
+            sel.innerHTML = '';
+            availableVoices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name;
+                opt.textContent = `${v.name} (${v.lang})`;
+                sel.appendChild(opt);
+            });
+        }
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function addQuestionPanel(prefill = null) {
         questionCounter++;
+        const lang = prefill && prefill.lang ? prefill.lang : 'en';
+        const qText = prefill && prefill.question ? prefill.question : 'Which planet is the largest in our solar system?';
+        const opts  = prefill && prefill.options && prefill.options.length === 4
+            ? prefill.options : ['Earth','Mars','Jupiter','Saturn'];
+        const correctIndex = prefill && typeof prefill.correctIndex === 'number'
+            ? prefill.correctIndex : 2;
+        
+        let explList = [];
+        if (prefill && Array.isArray(prefill.explanations) && prefill.explanations.length) {
+            explList = prefill.explanations;
+        } else if (prefill && prefill.explanation) {
+            explList = [prefill.explanation];
+        } else {
+            explList = ['Jupiter is the largest planet in our solar system.'];
+        }
+
         const p = document.createElement('div');
         p.className = 'panel question-panel';
         p.id = `question-panel-${questionCounter}`;
         p.dataset.qid = String(questionCounter);
         p.innerHTML = `
             <button class="remove-btn" onclick="removeQuestionPanel(${questionCounter})">&times;</button>
-            <label>Question ${questionCounter}</label>
-            <input type="text" class="q-text" value="Which planet is the largest in our solar system?">
+            <label>Language</label>
+            <select class="q-lang">
+                <option value="en"${lang==='en'?' selected':''}>English</option>
+                <option value="hi"${lang==='hi'?' selected':''}>Hindi</option>
+            </select>
+            <label style="margin-top:10px">Question ${questionCounter}</label>
+            <input type="text" class="q-text" value="${escHtml(qText)}">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
-                <div><label>A</label><input type="text" class="q-opt" value="Earth"></div>
-                <div><label>B</label><input type="text" class="q-opt" value="Mars"></div>
-                <div><label>C</label><input type="text" class="q-opt" value="Jupiter"></div>
-                <div><label>D</label><input type="text" class="q-opt" value="Saturn"></div>
+                <div><label>A</label><input type="text" class="q-opt" value="${escHtml(opts[0])}"></div>
+                <div><label>B</label><input type="text" class="q-opt" value="${escHtml(opts[1])}"></div>
+                <div><label>C</label><input type="text" class="q-opt" value="${escHtml(opts[2])}"></div>
+                <div><label>D</label><input type="text" class="q-opt" value="${escHtml(opts[3])}"></div>
             </div>
             <label style="margin-top:10px">Correct Answer</label>
             <select class="q-ans">
-                <option value="0">A</option>
-                <option value="1">B</option>
-                <option value="2" selected>C</option>
-                <option value="3">D</option>
+                <option value="0"${correctIndex===0?' selected':''}>A</option>
+                <option value="1"${correctIndex===1?' selected':''}>B</option>
+                <option value="2"${correctIndex===2?' selected':''}>C</option>
+                <option value="3"${correctIndex===3?' selected':''}>D</option>
             </select>
-            <label style="margin-top:10px;"><input type="checkbox" class="q-expl-toggle" onchange="toggleExpl(this)"> Enable Explanation</label>
-            <div class="expl-box" style="display:none; margin-top:5px;">
-                <input type="text" class="q-expl-text" value="Jupiter is the largest planet in our solar system.">
+            <div style="margin-top: 10px;">
+                <label style="display:flex; align-items:center;">
+                    <input type="checkbox" class="q-explanation-toggle" onchange="toggleExplanationField(this)" checked>Enable Explanation
+                </label>
+            </div>
+            <div class="explanation-input-container" style="display:block; margin-top: 5px;">
+                <label>Explanations</label>
+                <div class="expl-list-box"></div>
+                <button type="button" class="btn-add-expl" onclick="addExplanationRow(this)">+ Add Explanation</button>
+            </div>
+            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
+            <label>Image (Optional)</label>
+            <input type="file" accept="image/*" class="q-img" onchange="handleQuestionImage(this)">
+            <label style="display:flex; align-items:center; margin-top:8px;">
+                <input type="checkbox" class="q-img-reveal">Reveal with Answer
+            </label>
+            <label style="margin-top:5px">Image Size</label>
+            <input type="range" class="q-img-scale" min="0.2" max="1.5" step="0.05" value="0.5" oninput="drawStatic()">
+
+            <div class="audio-actions-row">
+                <span class="audio-status ok">Ready for Recording</span>
             </div>
         `;
+
+        p.positions = prefill && prefill.positions ? JSON.parse(JSON.stringify(prefill.positions)) : {
+            question: {x:0.5,y:0.15},
+            options: {x:0.5,y:0.7},
+            image: {x:0.5,y:0.4},
+            explanation: {x:0.5,y:0.5},
+            countdown: {x:0.5,y:0.85}
+        };
+
+        const listContainer = p.querySelector('.expl-list-box');
+        explList.forEach((text, i) => {
+            const row = createExplRowElement(text, i + 1);
+            listContainer.appendChild(row);
+            
+            const explKey = i === 0 ? 'explanation' : `explanation_${i}`;
+            if (!p.positions[explKey]) {
+                p.positions[explKey] = { x: 0.5, y: 0.5 + (i * 0.08) };
+            }
+        });
+
         document.getElementById('questions-container').appendChild(p);
         setActiveQuestion(p);
+        updateRemoveButtons();
     }
 
-    function toggleExpl(cb) {
-        cb.closest('.panel').querySelector('.expl-box').style.display = cb.checked ? 'block' : 'none';
+    function createExplRowElement(text, num) {
+        const row = document.createElement('div');
+        row.className = 'expl-box-row';
+        row.innerHTML = `
+            <input type="text" class="q-explanation-text" placeholder="Explanation ${num}" value="${escHtml(text)}" oninput="drawStatic()">
+            <button type="button" class="btn-del-expl" onclick="removeExplRow(this)">✕</button>
+        `;
+        return row;
+    }
+
+    function addExplanationRow(btn) {
+        const p = btn.closest('.question-panel');
+        const container = p.querySelector('.expl-list-box');
+        const idx = container.querySelectorAll('.expl-box-row').length;
+        container.appendChild(createExplRowElement('', idx + 1));
+        
+        const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+        if (!p.positions[key]) {
+            p.positions[key] = { x: 0.5, y: 0.5 + (idx * 0.08) };
+        }
+        drawStatic();
+    }
+
+    function removeExplRow(btn) {
+        const p = btn.closest('.question-panel');
+        const container = p.querySelector('.expl-list-box');
+        if (container.querySelectorAll('.expl-box-row').length <= 1) return;
+        btn.closest('.expl-box-row').remove();
+        drawStatic();
+    }
+
+    function updateRemoveButtons() {
+        const panels = document.querySelectorAll('.question-panel');
+        panels.forEach(b => {
+            const rmBtn = b.querySelector('.remove-btn');
+            if (rmBtn) rmBtn.style.display = panels.length > 1 ? 'flex' : 'none';
+        });
     }
 
     function removeQuestionPanel(id) {
-        if (document.querySelectorAll('.question-panel').length <= 1) return;
-        document.getElementById(`question-panel-${id}`).remove();
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (panels.length <= 1) return;
+
+        const p = document.getElementById(`question-panel-${id}`);
+        if (!p) return;
+
+        const isActive = p.classList.contains('active-question');
+        p.remove();
+
+        const remainingPanels = Array.from(document.querySelectorAll('.question-panel'));
+        if (isActive && remainingPanels.length > 0) {
+            setActiveQuestion(remainingPanels[0]);
+        } else {
+            drawStatic();
+        }
+
+        updateRemoveButtons();
     }
 
     function handlePanelClick(event) {
-        if (event.target.closest('.question-panel')) {
-            setActiveQuestion(event.target.closest('.question-panel'));
+        const panel = event.target.closest('.question-panel');
+        if (panel && !event.target.classList.contains('remove-btn') && !event.target.classList.contains('btn-del-expl') && !event.target.classList.contains('btn-add-expl')) {
+            setActiveQuestion(panel);
         }
     }
 
     function setActiveQuestion(p) {
+        if (!p) return;
         document.querySelectorAll('.question-panel').forEach(el => el.classList.remove('active-question'));
         p.classList.add('active-question');
         drawStatic();
@@ -472,27 +994,203 @@
 
     function getQuestionDataFromPanel(p) {
         if (!p) return null;
+        const qid = p.dataset.qid;
+
+        if (!p.positions) {
+            p.positions = {
+                question: {x:0.5,y:0.15},
+                options: {x:0.5,y:0.7},
+                image: {x:0.5,y:0.4},
+                explanation: {x:0.5,y:0.5},
+                countdown: {x:0.5,y:0.85}
+            };
+        }
+
+        const explInputs = Array.from(p.querySelectorAll('.q-explanation-text'));
+        const explanations = explInputs.map(i => i.value.trim()).filter(v => v.length > 0);
+
+        explanations.forEach((_, idx) => {
+            const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+            if (!p.positions[key]) {
+                p.positions[key] = { x: 0.5, y: 0.5 + (idx * 0.08) };
+            }
+        });
+
         return {
-            qid: p.dataset.qid,
+            qid,
+            lang: p.querySelector('.q-lang').value,
             questionText: p.querySelector('.q-text').value,
             options: Array.from(p.querySelectorAll('.q-opt')).map(i => i.value),
             correctAnswerIndex: p.querySelector('.q-ans').value,
-            hasExplanation: p.querySelector('.q-expl-toggle').checked,
-            explanationText: p.querySelector('.q-expl-text').value,
+            image: p.questionImageAsset,
+            imgReveal: p.querySelector('.q-img-reveal').checked,
+            imgScale: parseFloat(p.querySelector('.q-img-scale').value),
+            hasExplanation: p.querySelector('.q-explanation-toggle').checked && explanations.length > 0,
+            explanations: explanations,
+            positions: p.positions,
             styles: {
-                qFont: document.getElementById('fontQ').value, qSize: document.getElementById('sizeQ').value,
-                oFont: document.getElementById('fontO').value, oSize: document.getElementById('sizeO').value,
-                eFont: document.getElementById('fontE').value, eSize: document.getElementById('sizeE').value,
-                cFont: document.getElementById('fontC').value, cSize: document.getElementById('sizeC').value, cColor: document.getElementById('colorC').value,
-                countVal: parseInt(document.getElementById('countVal').value)
+                qFont: document.getElementById('fontQ').value,
+                qSize: document.getElementById('sizeQ').value,
+                oFont: document.getElementById('fontO').value,
+                oSize: document.getElementById('sizeO').value,
+                eFont: document.getElementById('fontE').value,
+                eSize: document.getElementById('sizeE').value,
+                cFont: document.getElementById('fontC').value,
+                cSize: document.getElementById('sizeC').value,
+                cColor: document.getElementById('colorC').value,
+                countVal: parseInt(document.getElementById('countVal').value),
+                explBg: document.getElementById('explBgColor').value,
+                explText: document.getElementById('explTextColor').value,
+                explNoBg: document.getElementById('explNoBg').checked
             }
         };
     }
 
     function getActiveQuestionData() {
-        return getQuestionDataFromPanel(document.querySelector('.question-panel.active-question'));
+        const p = document.querySelector('.question-panel.active-question') || document.querySelector('.question-panel');
+        if (!p) return null;
+        return getQuestionDataFromPanel(p);
     }
 
+    function setupCanvasInteraction() {
+        const getPointerPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+            const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top)  * (canvas.height / rect.height)
+            };
+        };
+
+        const getHitZone = (mx, my, data) => {
+            const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
+            const zones = ['image','question','options', ...explKeys, 'countdown'];
+
+            for (const zone of zones) {
+                const box = getBoundingBox(zone, data);
+                if (box && mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) return zone;
+            }
+            return null;
+        };
+
+        const handleStart = (e) => {
+            if (e.type === 'touchstart') e.preventDefault();
+            const data = getActiveQuestionData();
+            if (!data) return;
+            const pos = getPointerPos(e);
+            const zone = getHitZone(pos.x, pos.y, data);
+            if (zone) {
+                drag = {
+                    isDragging: true,
+                    activeZone: zone,
+                    offsetX: pos.x - data.positions[zone].x * canvas.width,
+                    offsetY: pos.y - data.positions[zone].y * canvas.height
+                };
+            }
+        };
+
+        const handleMove = (e) => {
+            if (!drag.isDragging) return;
+            if (e.type === 'touchmove') e.preventDefault();
+            const data = getActiveQuestionData();
+            if (!data) return;
+            const pos = getPointerPos(e);
+            const zone = drag.activeZone;
+
+            if (!data.positions[zone]) data.positions[zone] = {x: 0.5, y: 0.5};
+            data.positions[zone].x = (pos.x - drag.offsetX) / canvas.width;
+            data.positions[zone].y = (pos.y - drag.offsetY) / canvas.height;
+
+            if (batchEditEnabled && zone !== 'image') {
+                const panels = document.querySelectorAll('.question-panel');
+                panels.forEach(panel => {
+                    if (!panel.positions) {
+                        panel.positions = {
+                            question: {x:0.5,y:0.15},
+                            options: {x:0.5,y:0.7},
+                            image: {x:0.5,y:0.4},
+                            explanation: {x:0.5,y:0.5},
+                            countdown: {x:0.5,y:0.85}
+                        };
+                    }
+                    if (!panel.positions[zone]) panel.positions[zone] = {x:0.5,y:0.5};
+                    panel.positions[zone].x = data.positions[zone].x;
+                    panel.positions[zone].y = data.positions[zone].y;
+                });
+            }
+            drawStatic();
+        };
+
+        const handleEnd = (e) => {
+            if (e.type === 'touchend') e.preventDefault();
+            drag.isDragging = false;
+        };
+
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        canvas.addEventListener('touchend', handleEnd, { passive: false });
+    }
+
+    function handleQuestionImage(input) {
+        const p = input.closest('.question-panel');
+        if (input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    p.questionImageAsset = img;
+                    drawStatic();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function handleGlobalImage(input) {
+        if (input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                globalBgImage = new Image();
+                globalBgImage.onload = () => drawStatic();
+                globalBgImage.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function resizeCanvas() {
+        const r = RESOLUTIONS[document.getElementById('resolution').value];
+        canvas.width = r.w;
+        canvas.height = r.h;
+        drawStatic();
+    }
+
+    function drawStatic() {
+        const data = getActiveQuestionData();
+        currentVisualStage = "all";
+        activeExplIndex = 0;
+        drawFrame(data);
+        
+        if (data && !isProcessing) {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+
+            const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
+            ['question','options','image', ...explKeys, 'countdown'].forEach(zone => {
+                const box = getBoundingBox(zone, data);
+                if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
+            });
+            ctx.setLineDash([]);
+        }
+    }
+
+    /* --- REAL-TIME LIVE SPEECH & QUIZ ENGINE --- */
     function speakUtterance(text, voiceName) {
         return new Promise((resolve) => {
             if (!('speechSynthesis' in window) || !text || !isProcessing) { resolve(); return; }
@@ -519,14 +1217,16 @@
 
         // 2. Options Intro & Options Speech
         currentVisualStage = "options";
-        await speakUtterance("The options are", voiceName);
+        const preOptsText = data.lang === 'hi' ? "विकल्प हैं" : "The options are";
+        await speakUtterance(preOptsText, voiceName);
         await speakUtterance(data.options.join(', '), voiceName);
 
         if (!isProcessing) return;
 
         // 3. Countdown Intro Speech
         currentVisualStage = "countdown";
-        await speakUtterance("Your time starts now", voiceName);
+        const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
+        await speakUtterance(introText, voiceName);
 
         // 4. Countdown Numbers
         for (let i = data.styles.countVal; i >= 1; i--) {
@@ -541,15 +1241,27 @@
         currentVisualStage = "answer";
         activeCountdownNumber = "";
         const correctOptText = data.options[parseInt(data.correctAnswerIndex)];
-        await speakUtterance(`The correct answer is option ${['A','B','C','D'][data.correctAnswerIndex]} ${correctOptText}`, voiceName);
+        const ansText = data.lang === 'hi'
+            ? `सही उत्तर है विकल्प ${['A','B','C','D'][data.correctAnswerIndex]} ${correctOptText}`
+            : `The correct answer is option ${['A','B','C','D'][data.correctAnswerIndex]} ${correctOptText}`;
+        await speakUtterance(ansText, voiceName);
 
         if (!isProcessing) return;
 
-        // 6. Explanation (Conditional Check)
-        if (data.hasExplanation && data.explanationText.trim()) {
+        // 6. Sequential Explanations (Previous Explanation box disappears, "The explanation is" spoken ONCE only)
+        if (data.hasExplanation && data.explanations.length > 0) {
             currentVisualStage = "explanation";
-            await speakUtterance("The explanation is", voiceName);
-            await speakUtterance(data.explanationText, voiceName);
+            const preExplText = data.lang === 'hi' ? "स्पष्टीकरण" : "The explanation is";
+
+            for (let idx = 0; idx < data.explanations.length; idx++) {
+                if (!isProcessing) return;
+                activeExplIndex = idx;
+
+                if (idx === 0) {
+                    await speakUtterance(preExplText, voiceName);
+                }
+                await speakUtterance(data.explanations[idx], voiceName);
+            }
         }
     }
 
@@ -569,17 +1281,36 @@
         drawStatic();
     }
 
+    /* --- CACHED SINGLE PERMISSION AUDIO PIPELINE --- */
+    async function setupRecordingAudioStream() {
+        if (cachedAudioStream && cachedAudioStream.active && cachedAudioStream.getAudioTracks().length > 0) {
+            return cachedAudioStream.getAudioTracks();
+        }
+
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                cachedAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                return cachedAudioStream.getAudioTracks();
+            }
+        } catch(e) {
+            console.warn("Microphone access skipped or denied.");
+        }
+        return [];
+    }
+
+    function releaseRecordingAudioStream() {
+        if (cachedAudioStream) {
+            cachedAudioStream.getTracks().forEach(track => track.stop());
+            cachedAudioStream = null;
+        }
+    }
+
     function openVideoModeModal() { document.getElementById('videoModeModal').style.display = 'flex'; }
     function closeVideoModeModal() { document.getElementById('videoModeModal').style.display = 'none'; }
 
-    async function setupMobileMicrophone() {
-        try {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                mediaStreamMic = await navigator.mediaDevices.getUserMedia({ audio: true });
-            }
-        } catch (e) {
-            console.warn("Microphone permission bypassed.");
-        }
+    async function startPerQuestionRecordingMode() {
+        closeVideoModeModal();
+        await recordAllQuestionsIndividually();
     }
 
     async function recordActiveQuestionOnly() {
@@ -587,24 +1318,25 @@
         const data = getActiveQuestionData();
         if (!data) return;
 
-        await setupMobileMicrophone();
-
         overlay.style.display = 'flex';
-        statusMsg.innerText = "Synthesizing Speech Live & Recording Video...";
+        statusMsg.innerText = "Encoding HD Video & Voice Stream...";
         isProcessing = true;
 
+        // Render question-only frame on canvas BEFORE MediaRecorder starts so video thumbnail shows only question
+        currentVisualStage = "question-only";
+        drawFrame(data);
+
+        const audioTracks = await setupRecordingAudioStream();
         const canvasStream = canvas.captureStream(30);
-        let tracks = [...canvasStream.getVideoTracks()];
+        
+        let combinedTracks = [...canvasStream.getVideoTracks(), ...audioTracks];
+        const combinedStream = new MediaStream(combinedTracks);
 
-        if (mediaStreamMic) {
-            tracks.push(mediaStreamMic.getAudioTracks()[0]);
-        }
-
-        const combinedStream = new MediaStream(tracks);
-        let mime = 'video/webm';
+        let mime = 'video/webm;codecs=vp8,opus';
         if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
 
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime });
+        const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
         let chunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -613,12 +1345,18 @@
             const url = URL.createObjectURL(blob);
             const a = document.getElementById('dlLink');
             a.href = url;
-            a.download = `quiz_video_export.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
             a.style.display = 'block';
             overlay.style.display = 'none';
+            releaseRecordingAudioStream();
         };
 
-        mediaRecorder.start();
+        mediaRecorder.start(1000);
+        
+        // Brief pause to solidify question-only thumbnail frame
+        await new Promise(r => setTimeout(r, 100));
+
         renderLoop(data);
         await executeLiveQuizSequence(data);
 
@@ -629,29 +1367,91 @@
         drawStatic();
     }
 
-    async function startFullCombinedRecordingMode() {
+    async function recordAllQuestionsIndividually(autoAI = false) {
+        const panels = Array.from(document.querySelectorAll('.question-panel'));
+        if (!panels.length) return;
+
+        cancelRecording = false;
+        overlay.style.display = 'flex';
+
+        const audioTracks = await setupRecordingAudioStream();
+
+        for (let i = 0; i < panels.length; i++) {
+            if (cancelRecording || cancelAutoAI) break;
+            const p = panels[i];
+            setActiveQuestion(p);
+            const data = getQuestionDataFromPanel(p);
+
+            statusMsg.innerText = `Recording HD video ${i+1} of ${panels.length}...`;
+            isProcessing = true;
+
+            // Render question-only frame first for thumbnail
+            currentVisualStage = "question-only";
+            drawFrame(data);
+
+            const canvasStream = canvas.captureStream(30);
+            const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+
+            let mime = 'video/webm;codecs=vp8,opus';
+            if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
+
+            const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
+            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+            let chunks = [];
+
+            const donePromise = new Promise(resolve => {
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: mime });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.getElementById('dlLink');
+                    a.href = url;
+                    a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
+                    a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
+                    a.style.display = 'block';
+                    a.click();
+                    resolve();
+                };
+            });
+
+            mediaRecorder.start(1000);
+            await new Promise(r => setTimeout(r, 100));
+
+            renderLoop(data);
+            await executeLiveQuizSequence(data);
+
+            isProcessing = false;
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+            await donePromise;
+        }
+
+        releaseRecordingAudioStream();
+        overlay.style.display = 'none';
+        drawStatic();
+    }
+
+    async function startFullCombinedRecordingMode(autoAI = false) {
         closeVideoModeModal();
         const panels = Array.from(document.querySelectorAll('.question-panel'));
         if (!panels.length) return;
 
-        await setupMobileMicrophone();
-
         overlay.style.display = 'flex';
-        statusMsg.innerText = "Recording Full Combined Video...";
+        statusMsg.innerText = "Recording Combined Multi-question Video (HD)...";
         isProcessing = true;
 
+        const firstData = getQuestionDataFromPanel(panels[0]);
+        currentVisualStage = "question-only";
+        drawFrame(firstData);
+
+        const audioTracks = await setupRecordingAudioStream();
         const canvasStream = canvas.captureStream(30);
-        let tracks = [...canvasStream.getVideoTracks()];
+        const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
-        if (mediaStreamMic) {
-            tracks.push(mediaStreamMic.getAudioTracks()[0]);
-        }
-
-        const combinedStream = new MediaStream(tracks);
-        let mime = 'video/webm';
+        let mime = 'video/webm;codecs=vp8,opus';
         if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
 
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime });
+        const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
         let chunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -660,15 +1460,19 @@
             const url = URL.createObjectURL(blob);
             const a = document.getElementById('dlLink');
             a.href = url;
-            a.download = `quiz_FULL_COMBINED.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.download = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.innerText = `Download Combined Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
             a.style.display = 'block';
             overlay.style.display = 'none';
+            releaseRecordingAudioStream();
+            if (autoAI) a.click();
         };
 
-        mediaRecorder.start();
+        mediaRecorder.start(1000);
+        await new Promise(r => setTimeout(r, 100));
 
         for (let i = 0; i < panels.length; i++) {
-            if (!isProcessing) break;
+            if (!isProcessing || cancelRecording || cancelAutoAI) break;
             const p = panels[i];
             setActiveQuestion(p);
             const data = getQuestionDataFromPanel(p);
@@ -683,12 +1487,101 @@
         drawStatic();
     }
 
-    function drawStatic() {
-        const data = getActiveQuestionData();
-        currentVisualStage = "all";
-        drawFrame(data);
+    /* --- AUTO AI ENGINE --- */
+    function getLayoutsForAllPanels() {
+        return Array.from(document.querySelectorAll('.question-panel')).map(p => JSON.parse(JSON.stringify(p.positions)));
     }
 
+    function setLayoutsForAllPanels(layouts) {
+        document.querySelectorAll('.question-panel').forEach((p, idx) => {
+            if (layouts[idx]) p.positions = JSON.parse(JSON.stringify(layouts[idx]));
+        });
+        drawStatic();
+    }
+
+    function startAutoAIFlow() {
+        const panels = document.querySelectorAll('.question-panel');
+        if(panels.length === 0) { alert("Add questions first."); return; }
+
+        autoAISettings.initial = {
+            ratio: document.getElementById('resolution').value,
+            layouts: getLayoutsForAllPanels()
+        };
+
+        document.getElementById('resolution').value = 'mobile';
+        resizeCanvas();
+        
+        document.getElementById('aiSetupStep1').style.display = 'block';
+        document.getElementById('aiSetupStep2').style.display = 'none';
+        document.getElementById('autoAISetupModal').style.display = 'flex';
+    }
+
+    function closeAutoAISetupModal() {
+        document.getElementById('autoAISetupModal').style.display = 'none';
+        if (autoAISettings.initial) {
+            document.getElementById('resolution').value = autoAISettings.initial.ratio;
+            setLayoutsForAllPanels(autoAISettings.initial.layouts);
+            resizeCanvas();
+        }
+    }
+
+    function goToAISetupStep2() {
+        autoAISettings.individualLayouts = getLayoutsForAllPanels();
+        document.getElementById('aiLongVideoRatio').value = 'landscape';
+        setAILongVideoRatio('landscape');
+        document.getElementById('aiSetupStep1').style.display = 'none';
+        document.getElementById('aiSetupStep2').style.display = 'block';
+    }
+
+    function setAILongVideoRatio(ratio) {
+        document.getElementById('resolution').value = ratio;
+        resizeCanvas();
+    }
+
+    function beginAutoAIExecution() {
+        autoAISettings.longLayouts = getLayoutsForAllPanels();
+        autoAISettings.longRatio = document.getElementById('aiLongVideoRatio').value;
+        document.getElementById('autoAISetupModal').style.display = 'none';
+        executeAutoAIFlow();
+    }
+
+    async function executeAutoAIFlow() {
+        cancelAutoAI = false;
+        const btnStart = document.getElementById('btnAutoAI');
+        const btnStop = document.getElementById('btnStopAutoAI');
+        btnStart.style.display = 'none';
+        btnStop.style.display = 'block';
+
+        try {
+            document.getElementById('resolution').value = 'mobile';
+            setLayoutsForAllPanels(autoAISettings.individualLayouts);
+            resizeCanvas();
+            await recordAllQuestionsIndividually(true);
+
+            if(cancelAutoAI) throw new Error("Auto AI Cancelled");
+
+            document.getElementById('resolution').value = autoAISettings.longRatio;
+            setLayoutsForAllPanels(autoAISettings.longLayouts);
+            resizeCanvas();
+            await startFullCombinedRecordingMode(true);
+
+            if(!cancelAutoAI) alert("🎉 AUTO AI COMPLETE!");
+        } catch (e) {
+            if (e.message !== "Auto AI Cancelled") alert("Auto AI Error: " + e.message);
+        } finally {
+            cancelAutoAI = false;
+            btnStart.style.display = 'block';
+            btnStop.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+    }
+
+    function stopAutoAIFlow() {
+        cancelAutoAI = true;
+        stopAnyRecording();
+    }
+
+    /* --- CANVAS FRAME RENDER ENGINE --- */
     function drawFrame(data) {
         if (!data) return;
         const w = canvas.width, h = canvas.height;
@@ -699,93 +1592,342 @@
         ctx.fillStyle = bg;
         ctx.fillRect(0,0,w,h);
 
-        if (currentVisualStage !== "init") {
+        if (globalBgImage) {
+            ctx.globalAlpha = 0.3;
+            drawImageCover(ctx, globalBgImage, 0,0,w,h);
+            ctx.globalAlpha = 1;
+        }
+
+        const qBox = getBoundingBox('question', data);
+        if (qBox && currentVisualStage !== "init") {
+            ctx.save();
             ctx.fillStyle = 'white';
             ctx.font = `bold ${data.styles.qSize}px "${data.styles.qFont}"`;
             ctx.textAlign = 'center';
-            wrapText(ctx, data.questionText, w/2, h*0.15, w*0.9, data.styles.qSize * 1.3);
+            ctx.textBaseline = 'top';
+            wrapText(ctx, data.questionText, qBox.x + qBox.w/2, qBox.y, qBox.w, data.styles.qSize * 1.3);
+            ctx.restore();
         }
 
-        if (["options", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
+        // If thumbnail frame ("question-only"), skip options, images, countdowns, and explanations
+        if (currentVisualStage === "question-only") return;
+
+        if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
+            const iBox = getBoundingBox('image', data);
+            if (iBox) ctx.drawImage(data.image, iBox.x, iBox.y, iBox.w, iBox.h);
+        }
+
+        const oBox = getBoundingBox('options', data);
+        if (oBox && ["options", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
+            ctx.save();
             const isP = h > w;
             const bH = isP ? h*0.07 : h*0.1;
             const bW = isP ? w*0.85 : w*0.4;
             const cardColor = document.getElementById('cardColor').value;
             const correctColor = document.getElementById('correctColor').value;
-            const correctIndex = parseInt(data.correctAnswerIndex);
+            const correct = parseInt(data.correctAnswerIndex);
 
             const pos = isP
-                ? Array.from({length:4},(_,i)=>({x:w/2, y:h*0.4 + i*(bH+15)}))
+                ? Array.from({length:4},(_,i)=>({x:oBox.x + oBox.w/2, y:oBox.y + i*(bH+10) + bH/2}))
                 : [
-                    {x:w/2-bW/2-10, y:h*0.45}, {x:w/2+bW/2+10, y:h*0.45},
-                    {x:w/2-bW/2-10, y:h*0.45+bH+15}, {x:w/2+bW/2+10, y:h*0.45+bH+15}
+                    {x:oBox.x + bW/2, y:oBox.y + bH/2},
+                    {x:oBox.x + oBox.w - bW/2, y:oBox.y + bH/2},
+                    {x:oBox.x + bW/2, y:oBox.y + oBox.h - bH/2},
+                    {x:oBox.x + oBox.w - bW/2, y:oBox.y + oBox.h - bH/2}
                 ];
 
-            data.options.forEach((opt, i) => {
+            pos.forEach((pPos, i) => {
                 let color = `${cardColor}1A`;
                 if (["answer", "explanation", "all"].includes(currentVisualStage)) {
-                    color = (i === correctIndex) ? correctColor : `${cardColor}1A`;
+                    color = (i === correct) ? correctColor : `${cardColor}1A`;
                 }
-
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.roundRect(pos[i].x - bW/2, pos[i].y - bH/2, bW, bH, 10);
+                ctx.roundRect(pPos.x - bW/2, pPos.y - bH/2, bW, bH, 10);
                 ctx.fill();
 
                 ctx.fillStyle = '#f59e0b';
-                ctx.font = `bold ${bH*0.4}px Arial`;
                 ctx.textAlign = 'left';
-                ctx.fillText(['A','B','C','D'][i], pos[i].x - bW/2 + 20, pos[i].y + 5);
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${bH*0.4}px Arial`;
+                ctx.fillText(['A','B','C','D'][i], pPos.x - bW/2 + 20, pPos.y);
 
                 ctx.fillStyle = 'white';
                 ctx.font = `${data.styles.oSize}px "${data.styles.oFont}"`;
-                ctx.fillText(opt, pos[i].x - bW/2 + 60, pos[i].y + 5);
+                fitText(ctx, data.options[i], pPos.x - bW/2 + 50, pPos.y, bW-60);
             });
+            ctx.restore();
         }
 
-        if (currentVisualStage === "countdown" && activeCountdownNumber) {
+        // Render Explanations
+        if (data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
+            if (currentVisualStage === "all") {
+                // Static editing state: render all boxes in their distinct canvas positions
+                data.explanations.forEach((text, idx) => {
+                    const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+                    const eBox = getBoundingBox(key, data);
+                    if (eBox) renderSingleExplBox(eBox, text, data);
+                });
+            } else {
+                // Live playback/recording state: render ONLY current active explanation box (previous disappears)
+                const text = data.explanations[activeExplIndex];
+                if (text) {
+                    const key = activeExplIndex === 0 ? 'explanation' : `explanation_${activeExplIndex}`;
+                    const eBox = getBoundingBox(key, data);
+                    if (eBox) renderSingleExplBox(eBox, text, data);
+                }
+            }
+        }
+
+        const cBox = getBoundingBox('countdown', data);
+        if (cBox && currentVisualStage === "countdown" && activeCountdownNumber) {
+            ctx.save();
             ctx.fillStyle = data.styles.cColor;
             ctx.font = `bold ${data.styles.cSize}px "${data.styles.cFont}"`;
             ctx.textAlign = 'center';
-            ctx.fillText(activeCountdownNumber, w/2, h*0.85);
-        }
-
-        if (data.hasExplanation && data.explanationText.trim() && ["explanation", "all"].includes(currentVisualStage)) {
-            ctx.fillStyle = 'white';
-            ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
-            ctx.textAlign = 'center';
-            wrapText(ctx, data.explanationText, w/2, h*0.82, w*0.9, data.styles.eSize * 1.3);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(activeCountdownNumber, cBox.x + cBox.w/2, cBox.y + cBox.h/2);
+            ctx.restore();
         }
     }
 
-    function resizeCanvas() {
-        const r = RESOLUTIONS[document.getElementById('resolution').value];
-        canvas.width = r.w; canvas.height = r.h;
-        drawStatic();
+    function renderSingleExplBox(eBox, text, data) {
+        ctx.save();
+        if (!data.styles.explNoBg) {
+            ctx.fillStyle = data.styles.explBg;
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            ctx.roundRect(eBox.x, eBox.y, eBox.w, eBox.h, 15);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = data.styles.explText;
+        ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
+        ctx.textAlign = 'center';
+        wrapText(ctx, text, eBox.x + eBox.w/2, eBox.y + 20, eBox.w - 40, data.styles.eSize * 1.3);
+        ctx.restore();
     }
 
-    function wrapText(c, text, x, y, maxW, lineH) {
-        const words = text.split(' ');
-        let line = '';
-        for (let i = 0; i < words.length; i++) {
-            let testLine = line + words[i] + ' ';
-            if (c.measureText(testLine).width > maxW && i > 0) {
-                c.fillText(line, x, y);
-                line = words[i] + ' ';
-                y += lineH;
-            } else {
-                line = testLine;
+    function getBoundingBox(zone, data) {
+        if (!data || (zone==='image' && !data.image)) return null;
+        const w = canvas.width, h = canvas.height, pos = data.positions[zone];
+        if (!pos) return null;
+
+        let boxW, boxH;
+        if (zone === 'question') {
+            boxW = w*0.9; boxH = data.styles.qSize*3;
+        } else if (zone === 'options') {
+            const isP = h>w;
+            boxW = isP ? w*0.9 : (w*0.4+20)*2;
+            boxH = isP ? (h*0.07+10)*4 : (h*0.1+20)*2;
+        } else if (zone === 'image') {
+            boxH = h*0.4*data.imgScale;
+            boxW = (data.image.width/data.image.height)*boxH;
+        } else if (zone.startsWith('explanation')) {
+            boxW = w*0.85;
+            boxH = parseInt(data.styles.eSize)*1.5*2.5;
+        } else if (zone === 'countdown') {
+            boxH = parseInt(data.styles.cSize);
+            boxW = boxH;
+        }
+        return {x:pos.x*w-boxW/2, y:pos.y*h-boxH/2, w:boxW, h:boxH};
+    }
+
+    const drawImageCover = (c,i,x,y,w,h) => {
+        const r=w/h, ir=i.width/i.height;
+        let dw=w, dh=h;
+        if (ir>r) dw=h*ir; else dh=w/ir;
+        c.drawImage(i,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+    };
+
+    const wrapText = (c,t,x,y,maxW,lineH) => {
+        const paragraphs = String(t || '').split('\n');
+        let currentY = y;
+
+        paragraphs.forEach(p => {
+            const words = p.split(' ');
+            let line = '';
+            for(let i=0; i<words.length; i++){
+                let test = line + words[i] + ' ';
+                if(c.measureText(test).width > maxW && i > 0){
+                    c.fillText(line, x, currentY);
+                    line = words[i] + ' ';
+                    currentY += lineH;
+                } else {
+                    line = test;
+                }
             }
-        }
-        c.fillText(line, x, y);
-    }
+            c.fillText(line, x, currentY);
+            currentY += lineH * 1.1;
+        });
+    };
+
+    const fitText = (c,t,x,y,maxW) => {
+        let u=t;
+        while(c.measureText(u).width>maxW&&u.length>0) u=u.slice(0,-1);
+        if(u.length<t.length) u+='...';
+        c.fillText(u,x,y);
+    };
 
     function stopAnyRecording() {
         isProcessing = false;
-        window.speechSynthesis.cancel();
+        cancelRecording = true;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+        releaseRecordingAudioStream();
         overlay.style.display = 'none';
         drawStatic();
+    }
+
+    /* --- EXCEL IMPORTER --- */
+    function initExcelTable() {
+        const tbody = document.querySelector('#excelTable tbody');
+        for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
+        const table = document.getElementById('excelTable');
+        table.addEventListener('click', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
+        table.addEventListener('focusin', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
+        table.addEventListener('paste', handleExcelPaste);
+    }
+
+    function createExcelRow(initial = []) {
+        const tr = document.createElement('tr');
+        for (let i=0;i<7;i++) {
+            const td = document.createElement('td');
+            td.contentEditable = "true";
+            td.textContent = initial[i] || '';
+            tr.appendChild(td);
+        }
+        const actionTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = '✕';
+        btn.className = 'excel-actions-btn';
+        btn.onclick = () => tr.remove();
+        actionTd.appendChild(btn);
+        tr.appendChild(actionTd);
+        return tr;
+    }
+
+    function addExcelRow() { document.querySelector('#excelTable tbody').appendChild(createExcelRow()); }
+
+    function clearExcelTable() {
+        const tbody = document.querySelector('#excelTable tbody');
+        tbody.innerHTML = '';
+        for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
+    }
+
+    function pasteTextIntoExcel(text, startCell) {
+        if (!text) return;
+        const tbody = document.querySelector('#excelTable tbody');
+        const rows = text.trim().split(/\r?\n/).filter(r => r.length);
+        const grid = rows.map(rowStr => rowStr.split('\t'));
+        let startRow = 0, startCol = 0;
+
+        if (startCell) {
+            const td = startCell.closest('td');
+            const tr = startCell.closest('tr');
+            if (td && tr && tr.parentElement === tbody) {
+                startRow = Array.from(tbody.rows).indexOf(tr);
+                startCol = td.cellIndex;
+                if (startCol > 6) startCol = 0;
+            }
+        }
+
+        while (tbody.rows.length < startRow + grid.length) tbody.appendChild(createExcelRow());
+
+        grid.forEach((cols, rIdx) => {
+            const tr = tbody.rows[startRow + rIdx];
+            for (let cIdx = 0; cIdx < cols.length && (startCol + cIdx) < 7; cIdx++) {
+                const targetCell = tr.cells[startCol + cIdx];
+                if (targetCell) targetCell.textContent = cols[cIdx];
+            }
+        });
+    }
+
+    function handleExcelPaste(e) {
+        const clipboard = e.clipboardData || window.clipboardData;
+        if (!clipboard) return;
+        const text = clipboard.getData('text/plain');
+        if (!text) return;
+        e.preventDefault();
+        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
+    }
+
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) return;
+            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+        } catch (err) {
+            alert('Clipboard access blocked. Click a cell and use Ctrl+V.');
+        }
+    }
+
+    function importQuestionsFromTable() {
+        const rows = Array.from(document.querySelector('#excelTable tbody').rows);
+        let imported = 0;
+
+        const currentActive = getActiveQuestionData();
+        const basePositions = currentActive && currentActive.positions ? JSON.parse(JSON.stringify(currentActive.positions)) : {
+            question: {x:0.5,y:0.15},
+            options: {x:0.5,y:0.7},
+            image: {x:0.5,y:0.4},
+            explanation: {x:0.5,y:0.5},
+            countdown: {x:0.5,y:0.85}
+        };
+
+        rows.forEach(tr => {
+            const cells = Array.from(tr.cells);
+            if (cells.length < 7) return;
+            const q = cells[0].innerText.trim();
+            const a = cells[1].innerText.trim();
+            const b = cells[2].innerText.trim();
+            const c = cells[3].innerText.trim();
+            const d = cells[4].innerText.trim();
+            const correctRaw = cells[5].innerText.trim();
+            const expl = cells[6].innerText.trim();
+            if (!q && !a && !b && !c && !d) return;
+
+            const options = [a,b,c,d];
+            let correctIndex = 0;
+            if (correctRaw) {
+                const upper = correctRaw.toUpperCase();
+                if (['A','B','C','D'].includes(upper)) correctIndex = upper.charCodeAt(0) - 65;
+                else if (/^[1-4]$/.test(correctRaw)) correctIndex = parseInt(correctRaw,10) - 1;
+            }
+
+            addQuestionPanel({ 
+                lang: 'en', 
+                question: q, 
+                options, 
+                correctIndex, 
+                explanation: expl,
+                positions: JSON.parse(JSON.stringify(basePositions))
+            });
+            imported++;
+        });
+
+        if (imported) closeAddQuestionModal();
+    }
+
+    function openAddQuestionModal() {
+        document.getElementById('addQModal').style.display = 'flex';
+        document.getElementById('addQModeChooser').style.display = 'block';
+        document.getElementById('excelEditorSection').style.display = 'none';
+    }
+
+    function closeAddQuestionModal() { document.getElementById('addQModal').style.display = 'none'; }
+    function handleAddSingleQuestion() { closeAddQuestionModal(); addQuestionPanel(); }
+    function openExcelEditor() {
+        document.getElementById('addQModeChooser').style.display = 'none';
+        document.getElementById('excelEditorSection').style.display = 'block';
+    }
+    function backToModeChooser() {
+        document.getElementById('excelEditorSection').style.display = 'none';
+        document.getElementById('addQModeChooser').style.display = 'block';
     }
 </script>
 </body>
