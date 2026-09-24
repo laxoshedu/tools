@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v18 (Question-Only Video Thumbnail)</title>
+    <title>Perfect Sync Quiz Generator - Pro v19 (WhatsApp & Duration Metadata Fix)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -756,6 +756,7 @@
     let currentVisualStage = "all";
     let activeCountdownNumber = "";
     let activeExplIndex = 0;
+    let renderIntervalId = null;
 
     const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
     const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
@@ -1268,20 +1269,37 @@
     function renderLoop(data) {
         if (!isProcessing) return;
         drawFrame(data);
-        requestAnimationFrame(() => renderLoop(data));
+    }
+
+    function startRenderLoop(data) {
+        if (renderIntervalId) clearInterval(renderIntervalId);
+        // Fixed 30 FPS interval forces a deterministic timestamp clock to solve incorrect video length issues
+        renderIntervalId = setInterval(() => {
+            if (isProcessing) {
+                renderLoop(data);
+            }
+        }, 1000 / 30);
+    }
+
+    function stopRenderLoop() {
+        if (renderIntervalId) {
+            clearInterval(renderIntervalId);
+            renderIntervalId = null;
+        }
     }
 
     async function testPlayback() {
         const data = getActiveQuestionData();
         if (!data) return;
         isProcessing = true;
-        renderLoop(data);
+        startRenderLoop(data);
         await executeLiveQuizSequence(data);
         isProcessing = false;
+        stopRenderLoop();
         drawStatic();
     }
 
-    /* --- CACHED SINGLE PERMISSION AUDIO PIPELINE --- */
+    /* --- WHATSAPP & DURATION METADATA AUDIO PIPELINE --- */
     async function setupRecordingAudioStream() {
         if (cachedAudioStream && cachedAudioStream.active && cachedAudioStream.getAudioTracks().length > 0) {
             return cachedAudioStream.getAudioTracks();
@@ -1289,7 +1307,16 @@
 
         try {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                cachedAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                // Request standard stereo mic stream at standard 44.1kHz rate for WhatsApp compatibility
+                cachedAudioStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 44100,
+                        channelCount: 2
+                    }, 
+                    video: false 
+                });
                 return cachedAudioStream.getAudioTracks();
             }
         } catch(e) {
@@ -1303,6 +1330,21 @@
             cachedAudioStream.getTracks().forEach(track => track.stop());
             cachedAudioStream = null;
         }
+    }
+
+    function getSupportedMimeType() {
+        // Selection hierarchy favoring codecs fully supported by WhatsApp & cross-platform players
+        const types = [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4;codecs=h264,aac',
+            'video/mp4',
+            'video/webm;codecs=vp8,opus',
+            'video/webm'
+        ];
+        for (let t of types) {
+            if (MediaRecorder.isTypeSupported(t)) return t;
+        }
+        return 'video/webm';
     }
 
     function openVideoModeModal() { document.getElementById('videoModeModal').style.display = 'flex'; }
@@ -1322,7 +1364,6 @@
         statusMsg.innerText = "Encoding HD Video & Voice Stream...";
         isProcessing = true;
 
-        // Render question-only frame on canvas BEFORE MediaRecorder starts so video thumbnail shows only question
         currentVisualStage = "question-only";
         drawFrame(data);
 
@@ -1332,11 +1373,14 @@
         let combinedTracks = [...canvasStream.getVideoTracks(), ...audioTracks];
         const combinedStream = new MediaStream(combinedTracks);
 
-        let mime = 'video/webm;codecs=vp8,opus';
-        if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
-
+        const mime = getSupportedMimeType();
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        
+        mediaRecorder = new MediaRecorder(combinedStream, { 
+            mimeType: mime, 
+            videoBitsPerSecond: bitrate,
+            audioBitsPerSecond: 128000
+        });
         let chunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -1352,15 +1396,16 @@
             releaseRecordingAudioStream();
         };
 
-        mediaRecorder.start(1000);
+        // Standard 500ms chunk slice ensures duration headers are properly written
+        mediaRecorder.start(500);
         
-        // Brief pause to solidify question-only thumbnail frame
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 200));
 
-        renderLoop(data);
+        startRenderLoop(data);
         await executeLiveQuizSequence(data);
 
         isProcessing = false;
+        stopRenderLoop();
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
         }
@@ -1385,18 +1430,20 @@
             statusMsg.innerText = `Recording HD video ${i+1} of ${panels.length}...`;
             isProcessing = true;
 
-            // Render question-only frame first for thumbnail
             currentVisualStage = "question-only";
             drawFrame(data);
 
             const canvasStream = canvas.captureStream(30);
             const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
-            let mime = 'video/webm;codecs=vp8,opus';
-            if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
-
+            const mime = getSupportedMimeType();
             const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+            
+            mediaRecorder = new MediaRecorder(combinedStream, { 
+                mimeType: mime, 
+                videoBitsPerSecond: bitrate,
+                audioBitsPerSecond: 128000 
+            });
             let chunks = [];
 
             const donePromise = new Promise(resolve => {
@@ -1414,13 +1461,14 @@
                 };
             });
 
-            mediaRecorder.start(1000);
-            await new Promise(r => setTimeout(r, 100));
+            mediaRecorder.start(500);
+            await new Promise(r => setTimeout(r, 200));
 
-            renderLoop(data);
+            startRenderLoop(data);
             await executeLiveQuizSequence(data);
 
             isProcessing = false;
+            stopRenderLoop();
             if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
             await donePromise;
         }
@@ -1447,11 +1495,14 @@
         const canvasStream = canvas.captureStream(30);
         const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
-        let mime = 'video/webm;codecs=vp8,opus';
-        if (MediaRecorder.isTypeSupported('video/mp4')) mime = 'video/mp4';
-
+        const mime = getSupportedMimeType();
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        
+        mediaRecorder = new MediaRecorder(combinedStream, { 
+            mimeType: mime, 
+            videoBitsPerSecond: bitrate,
+            audioBitsPerSecond: 128000 
+        });
         let chunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -1468,19 +1519,21 @@
             if (autoAI) a.click();
         };
 
-        mediaRecorder.start(1000);
-        await new Promise(r => setTimeout(r, 100));
+        mediaRecorder.start(500);
+        await new Promise(r => setTimeout(r, 200));
 
         for (let i = 0; i < panels.length; i++) {
             if (!isProcessing || cancelRecording || cancelAutoAI) break;
             const p = panels[i];
             setActiveQuestion(p);
             const data = getQuestionDataFromPanel(p);
-            renderLoop(data);
+            startRenderLoop(data);
             await executeLiveQuizSequence(data);
+            stopRenderLoop();
         }
 
         isProcessing = false;
+        stopRenderLoop();
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
         }
@@ -1609,7 +1662,7 @@
             ctx.restore();
         }
 
-        // If thumbnail frame ("question-only"), skip options, images, countdowns, and explanations
+        // Thumbnail stage: Show only the question on the first frame
         if (currentVisualStage === "question-only") return;
 
         if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
@@ -1775,6 +1828,7 @@
     function stopAnyRecording() {
         isProcessing = false;
         cancelRecording = true;
+        stopRenderLoop();
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
         releaseRecordingAudioStream();
