@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v20 (WebView Base64 Fix)</title>
+    <title>Perfect Sync Quiz Generator - Pro v20 (WebView Base64 & MP4 Fix)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -285,6 +285,7 @@
             text-decoration: none;
             border-radius: 6px;
             font-weight: bold;
+            text-align: center;
         }
 
         .speech-mode-toggle {
@@ -629,7 +630,7 @@
             </div>
             <canvas id="canvas"></canvas>
         </div>
-        <a id="dlLink" class="download-link" onclick="triggerDownload(event)">Download HD Video File</a>
+        <a id="dlLink" class="download-link">Download HD Video File</a>
     </div>
 </div>
 
@@ -694,7 +695,7 @@
         </div>
         <button class="mode-btn" style="background:#16a34a;" onclick="startPerQuestionRecordingMode()">
             <strong>1. Record individual question videos (Tab by Tab)</strong>
-            <span>Generates separate high-quality MB video files for each tab.</span>
+            <span>Generates separate high-quality MP4 video files for each tab.</span>
         </button>
         <button class="mode-btn" style="background:#22c55e; margin-top:8px;" onclick="recordActiveQuestionOnly()">
             <strong>2. Record ACTIVE TAB only</strong>
@@ -756,7 +757,7 @@
     let currentVisualStage = "all";
     let activeCountdownNumber = "";
     let activeExplIndex = 0;
-    let currentVideoBlobUrl = null;
+    let recStartTime = 0;
 
     const FONTS = ['Roboto','Open Sans','Montserrat','Poppins','Oswald','Raleway','Nunito','Playfair Display','Merriweather','Anton','Bebas Neue','Lobster','Pacifico','Dancing Script','Fredoka','Righteous','Bangers','Permanent Marker','Satisfy'];
     const RESOLUTIONS = { 'mobile': { w: 720, h: 1280 }, 'landscape': { w: 1280, h: 720 }, 'square': { w: 1080, h: 1080 } };
@@ -776,31 +777,31 @@
         initExcelTable();
     };
 
-    function getBestSupportedMimeType() {
+    /* --- SAFE WEBVIEW-COMPATIBLE BASE64 DOWNLOAD GENERATOR --- */
+    function processBlobToSafeDownload(blob, filename, downloadAnchor) {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const base64data = reader.result; // Data URI format: data:video/mp4;base64,...
+            downloadAnchor.href = base64data;
+            downloadAnchor.download = filename;
+            downloadAnchor.innerText = `Download HD MP4 Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
+            downloadAnchor.style.display = 'block';
+        };
+        reader.readAsDataURL(blob);
+    }
+
+    function getBestSupportedMp4MimeType() {
         const types = [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4',
+            'video/webm;codecs=h264,opus',
             'video/webm;codecs=vp9,opus',
-            'video/webm;codecs=vp8,opus',
-            'video/webm',
-            'video/mp4'
+            'video/webm'
         ];
         for (let t of types) {
             if (MediaRecorder.isTypeSupported(t)) return t;
         }
-        return 'video/webm';
-    }
-
-    function triggerDownload(e) {
-        e.preventDefault();
-        const a = document.getElementById('dlLink');
-        if (!currentVideoBlobUrl) return;
-        
-        // Safe WebView blob downloader hook
-        const anchor = document.createElement('ahref');
-        anchor.href = currentVideoBlobUrl;
-        anchor.download = a.download || 'quiz_video.webm';
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
+        return 'video/mp4';
     }
 
     function escHtml(str) {
@@ -1309,7 +1310,7 @@
         drawStatic();
     }
 
-    /* --- AUDIO PIPELINE + WEBVIEW BASE64 SAFE DOWNLOAD PIPELINE --- */
+    /* --- AUDIO PIPELINE + UNIVERSAL MP4 COMPATIBILITY --- */
     async function setupRecordingAudioStream() {
         let tracks = [];
         try {
@@ -1321,6 +1322,7 @@
             console.warn("Microphone access skipped or unavailable.");
         }
 
+        // Generate silent WebAudio track if microphone track is missing so MP4 muxing container stays healthy
         if (tracks.length === 0) {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = audioCtx.createOscillator();
@@ -1354,7 +1356,7 @@
         if (!data) return;
 
         overlay.style.display = 'flex';
-        statusMsg.innerText = "Encoding HD Video & Voice Stream...";
+        statusMsg.innerText = "Encoding MP4 Video & Voice Stream...";
         isProcessing = true;
 
         currentVisualStage = "question-only";
@@ -1366,23 +1368,23 @@
         let combinedTracks = [...canvasStream.getVideoTracks(), ...audioTracks];
         const combinedStream = new MediaStream(combinedTracks);
 
-        let mime = getBestSupportedMimeType();
+        let mime = getBestSupportedMp4MimeType();
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        
+        try {
+            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        } catch (err) {
+            mediaRecorder = new MediaRecorder(combinedStream); // fallback
+        }
+
         let chunks = [];
+        recStartTime = Date.now();
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mime });
-            if (currentVideoBlobUrl) URL.revokeObjectURL(currentVideoBlobUrl);
-            currentVideoBlobUrl = URL.createObjectURL(blob);
-
+            const rawBlob = new Blob(chunks, { type: mime.includes('mp4') ? 'video/mp4' : mime });
             const a = document.getElementById('dlLink');
-            a.href = currentVideoBlobUrl;
-            const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            a.download = `${sanitizeFilename(data.questionText)}.${ext}`;
-            a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
-            a.style.display = 'block';
+            processBlobToSafeDownload(rawBlob, `${sanitizeFilename(data.questionText)}.mp4`, a);
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
         };
@@ -1424,29 +1426,29 @@
             const canvasStream = canvas.captureStream(30);
             const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
-            let mime = getBestSupportedMimeType();
+            let mime = getBestSupportedMp4MimeType();
             const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+            
+            try {
+                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+            } catch (err) {
+                mediaRecorder = new MediaRecorder(combinedStream);
+            }
+
             let chunks = [];
 
             const donePromise = new Promise(resolve => {
                 mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
                 mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: mime });
-                    if (currentVideoBlobUrl) URL.revokeObjectURL(currentVideoBlobUrl);
-                    currentVideoBlobUrl = URL.createObjectURL(blob);
-
+                    const rawBlob = new Blob(chunks, { type: mime.includes('mp4') ? 'video/mp4' : mime });
                     const a = document.getElementById('dlLink');
-                    a.href = currentVideoBlobUrl;
-                    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-                    a.download = `${sanitizeFilename(data.questionText)}.${ext}`;
-                    a.innerText = `Download HD Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
-                    a.style.display = 'block';
+                    processBlobToSafeDownload(rawBlob, `${sanitizeFilename(data.questionText)}.mp4`, a);
                     a.click();
                     resolve();
                 };
             });
 
+            recStartTime = Date.now();
             mediaRecorder.start(1000);
             await new Promise(r => setTimeout(r, 100));
 
@@ -1480,28 +1482,28 @@
         const canvasStream = canvas.captureStream(30);
         const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
-        let mime = getBestSupportedMimeType();
+        let mime = getBestSupportedMp4MimeType();
         const bitrate = parseInt(document.getElementById('videoQuality').value || '8000000');
-        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        
+        try {
+            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+        } catch (err) {
+            mediaRecorder = new MediaRecorder(combinedStream);
+        }
+
         let chunks = [];
 
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mime });
-            if (currentVideoBlobUrl) URL.revokeObjectURL(currentVideoBlobUrl);
-            currentVideoBlobUrl = URL.createObjectURL(blob);
-
+            const rawBlob = new Blob(chunks, { type: mime.includes('mp4') ? 'video/mp4' : mime });
             const a = document.getElementById('dlLink');
-            a.href = currentVideoBlobUrl;
-            const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-            a.download = `quiz_FULL_COMBINED_${Date.now()}.${ext}`;
-            a.innerText = `Download Combined Video (${(blob.size / (1024*1024)).toFixed(2)} MB)`;
-            a.style.display = 'block';
+            processBlobToSafeDownload(rawBlob, `quiz_FULL_COMBINED_${Date.now()}.mp4`, a);
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
             if (autoAI) a.click();
         };
 
+        recStartTime = Date.now();
         mediaRecorder.start(1000);
         await new Promise(r => setTimeout(r, 100));
 
@@ -1643,6 +1645,7 @@
             ctx.restore();
         }
 
+        // If thumbnail frame ("question-only"), skip options, images, countdowns, and explanations
         if (currentVisualStage === "question-only") return;
 
         if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
