@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v16 (Multi-Explanation Engine)</title>
+    <title>Perfect Sync Quiz Generator - Pro v18 (Question-Only Video Thumbnail)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -905,7 +905,13 @@
 
         const listContainer = p.querySelector('.expl-list-box');
         explList.forEach((text, i) => {
-            listContainer.appendChild(createExplRowElement(text, i + 1));
+            const row = createExplRowElement(text, i + 1);
+            listContainer.appendChild(row);
+            
+            const explKey = i === 0 ? 'explanation' : `explanation_${i}`;
+            if (!p.positions[explKey]) {
+                p.positions[explKey] = { x: 0.5, y: 0.5 + (i * 0.08) };
+            }
         });
 
         document.getElementById('questions-container').appendChild(p);
@@ -924,14 +930,21 @@
     }
 
     function addExplanationRow(btn) {
-        const container = btn.closest('.explanation-input-container').querySelector('.expl-list-box');
-        const count = container.querySelectorAll('.expl-box-row').length + 1;
-        container.appendChild(createExplRowElement('', count));
+        const p = btn.closest('.question-panel');
+        const container = p.querySelector('.expl-list-box');
+        const idx = container.querySelectorAll('.expl-box-row').length;
+        container.appendChild(createExplRowElement('', idx + 1));
+        
+        const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+        if (!p.positions[key]) {
+            p.positions[key] = { x: 0.5, y: 0.5 + (idx * 0.08) };
+        }
         drawStatic();
     }
 
     function removeExplRow(btn) {
-        const container = btn.closest('.expl-list-box');
+        const p = btn.closest('.question-panel');
+        const container = p.querySelector('.expl-list-box');
         if (container.querySelectorAll('.expl-box-row').length <= 1) return;
         btn.closest('.expl-box-row').remove();
         drawStatic();
@@ -996,6 +1009,13 @@
         const explInputs = Array.from(p.querySelectorAll('.q-explanation-text'));
         const explanations = explInputs.map(i => i.value.trim()).filter(v => v.length > 0);
 
+        explanations.forEach((_, idx) => {
+            const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+            if (!p.positions[key]) {
+                p.positions[key] = { x: 0.5, y: 0.5 + (idx * 0.08) };
+            }
+        });
+
         return {
             qid,
             lang: p.querySelector('.q-lang').value,
@@ -1044,7 +1064,10 @@
         };
 
         const getHitZone = (mx, my, data) => {
-            for (const zone of ['image','question','options','explanation','countdown']) {
+            const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
+            const zones = ['image','question','options', ...explKeys, 'countdown'];
+
+            for (const zone of zones) {
                 const box = getBoundingBox(zone, data);
                 if (box && mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) return zone;
             }
@@ -1075,6 +1098,7 @@
             const pos = getPointerPos(e);
             const zone = drag.activeZone;
 
+            if (!data.positions[zone]) data.positions[zone] = {x: 0.5, y: 0.5};
             data.positions[zone].x = (pos.x - drag.offsetX) / canvas.width;
             data.positions[zone].y = (pos.y - drag.offsetY) / canvas.height;
 
@@ -1156,7 +1180,9 @@
             ctx.strokeStyle = '#f59e0b';
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
-            ['question','options','image','explanation','countdown'].forEach(zone => {
+
+            const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
+            ['question','options','image', ...explKeys, 'countdown'].forEach(zone => {
                 const box = getBoundingBox(zone, data);
                 if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
             });
@@ -1222,7 +1248,7 @@
 
         if (!isProcessing) return;
 
-        // 6. Sequential Explanations ("The explanation is" spoken ONCE for the first explanation box only)
+        // 6. Sequential Explanations (Previous Explanation box disappears, "The explanation is" spoken ONCE only)
         if (data.hasExplanation && data.explanations.length > 0) {
             currentVisualStage = "explanation";
             const preExplText = data.lang === 'hi' ? "स्पष्टीकरण" : "The explanation is";
@@ -1296,6 +1322,10 @@
         statusMsg.innerText = "Encoding HD Video & Voice Stream...";
         isProcessing = true;
 
+        // Render question-only frame on canvas BEFORE MediaRecorder starts so video thumbnail shows only question
+        currentVisualStage = "question-only";
+        drawFrame(data);
+
         const audioTracks = await setupRecordingAudioStream();
         const canvasStream = canvas.captureStream(30);
         
@@ -1323,6 +1353,10 @@
         };
 
         mediaRecorder.start(1000);
+        
+        // Brief pause to solidify question-only thumbnail frame
+        await new Promise(r => setTimeout(r, 100));
+
         renderLoop(data);
         await executeLiveQuizSequence(data);
 
@@ -1351,6 +1385,10 @@
             statusMsg.innerText = `Recording HD video ${i+1} of ${panels.length}...`;
             isProcessing = true;
 
+            // Render question-only frame first for thumbnail
+            currentVisualStage = "question-only";
+            drawFrame(data);
+
             const canvasStream = canvas.captureStream(30);
             const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
 
@@ -1377,6 +1415,8 @@
             });
 
             mediaRecorder.start(1000);
+            await new Promise(r => setTimeout(r, 100));
+
             renderLoop(data);
             await executeLiveQuizSequence(data);
 
@@ -1398,6 +1438,10 @@
         overlay.style.display = 'flex';
         statusMsg.innerText = "Recording Combined Multi-question Video (HD)...";
         isProcessing = true;
+
+        const firstData = getQuestionDataFromPanel(panels[0]);
+        currentVisualStage = "question-only";
+        drawFrame(firstData);
 
         const audioTracks = await setupRecordingAudioStream();
         const canvasStream = canvas.captureStream(30);
@@ -1425,6 +1469,7 @@
         };
 
         mediaRecorder.start(1000);
+        await new Promise(r => setTimeout(r, 100));
 
         for (let i = 0; i < panels.length; i++) {
             if (!isProcessing || cancelRecording || cancelAutoAI) break;
@@ -1564,6 +1609,9 @@
             ctx.restore();
         }
 
+        // If thumbnail frame ("question-only"), skip options, images, countdowns, and explanations
+        if (currentVisualStage === "question-only") return;
+
         if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
             const iBox = getBoundingBox('image', data);
             if (iBox) ctx.drawImage(data.image, iBox.x, iBox.y, iBox.w, iBox.h);
@@ -1611,30 +1659,24 @@
             ctx.restore();
         }
 
-        const eBox = getBoundingBox('explanation', data);
-        if (eBox && data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
-            ctx.save();
-            
-            const currentExplText = currentVisualStage === "all"
-                ? data.explanations.join('\n\n')
-                : (data.explanations[activeExplIndex] || data.explanations[0]);
-
-            if (!data.styles.explNoBg) {
-                ctx.fillStyle = data.styles.explBg;
-                ctx.globalAlpha = 0.85;
-                ctx.beginPath();
-                ctx.roundRect(eBox.x, eBox.y, eBox.w, eBox.h, 15);
-                ctx.fill();
-                ctx.strokeStyle = '#f59e0b';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
+        // Render Explanations
+        if (data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
+            if (currentVisualStage === "all") {
+                // Static editing state: render all boxes in their distinct canvas positions
+                data.explanations.forEach((text, idx) => {
+                    const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
+                    const eBox = getBoundingBox(key, data);
+                    if (eBox) renderSingleExplBox(eBox, text, data);
+                });
+            } else {
+                // Live playback/recording state: render ONLY current active explanation box (previous disappears)
+                const text = data.explanations[activeExplIndex];
+                if (text) {
+                    const key = activeExplIndex === 0 ? 'explanation' : `explanation_${activeExplIndex}`;
+                    const eBox = getBoundingBox(key, data);
+                    if (eBox) renderSingleExplBox(eBox, text, data);
+                }
             }
-            ctx.fillStyle = data.styles.explText;
-            ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
-            ctx.textAlign = 'center';
-            wrapText(ctx, currentExplText, eBox.x + eBox.w/2, eBox.y + 20, eBox.w - 40, data.styles.eSize * 1.3);
-            ctx.restore();
         }
 
         const cBox = getBoundingBox('countdown', data);
@@ -1649,31 +1691,47 @@
         }
     }
 
+    function renderSingleExplBox(eBox, text, data) {
+        ctx.save();
+        if (!data.styles.explNoBg) {
+            ctx.fillStyle = data.styles.explBg;
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            ctx.roundRect(eBox.x, eBox.y, eBox.w, eBox.h, 15);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = data.styles.explText;
+        ctx.font = `bold ${data.styles.eSize}px "${data.styles.eFont}"`;
+        ctx.textAlign = 'center';
+        wrapText(ctx, text, eBox.x + eBox.w/2, eBox.y + 20, eBox.w - 40, data.styles.eSize * 1.3);
+        ctx.restore();
+    }
+
     function getBoundingBox(zone, data) {
-        if (!data || (zone==='image' && !data.image) || (zone==='explanation' && !data.hasExplanation)) return null;
+        if (!data || (zone==='image' && !data.image)) return null;
         const w = canvas.width, h = canvas.height, pos = data.positions[zone];
         if (!pos) return null;
 
         let boxW, boxH;
-        switch(zone) {
-            case 'question': boxW = w*0.9; boxH = data.styles.qSize*3; break;
-            case 'options':
-                const isP = h>w;
-                boxW = isP ? w*0.9 : (w*0.4+20)*2;
-                boxH = isP ? (h*0.07+10)*4 : (h*0.1+20)*2;
-                break;
-            case 'image':
-                boxH = h*0.4*data.imgScale;
-                boxW = (data.image.width/data.image.height)*boxH;
-                break;
-            case 'explanation':
-                boxW = w*0.9;
-                boxH = parseInt(data.styles.eSize)*1.5*4;
-                break;
-            case 'countdown':
-                boxH = parseInt(data.styles.cSize);
-                boxW = boxH;
-                break;
+        if (zone === 'question') {
+            boxW = w*0.9; boxH = data.styles.qSize*3;
+        } else if (zone === 'options') {
+            const isP = h>w;
+            boxW = isP ? w*0.9 : (w*0.4+20)*2;
+            boxH = isP ? (h*0.07+10)*4 : (h*0.1+20)*2;
+        } else if (zone === 'image') {
+            boxH = h*0.4*data.imgScale;
+            boxW = (data.image.width/data.image.height)*boxH;
+        } else if (zone.startsWith('explanation')) {
+            boxW = w*0.85;
+            boxH = parseInt(data.styles.eSize)*1.5*2.5;
+        } else if (zone === 'countdown') {
+            boxH = parseInt(data.styles.cSize);
+            boxW = boxH;
         }
         return {x:pos.x*w-boxW/2, y:pos.y*h-boxH/2, w:boxW, h:boxH};
     }
