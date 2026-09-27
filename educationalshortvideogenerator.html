@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Sync Quiz Generator - Pro v18 (Question-Only Video Thumbnail)</title>
+    <title>Perfect Sync Quiz Generator - Pro v18 (YouTube Shorts/Videos Auto Router)</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Dancing+Script&family=Fredoka:wght@300..700&family=Indie+Flower&family=Lobster&family=Merriweather:wght@300;700&family=Montserrat:wght@300;700&family=Nunito:wght@300;700&family=Open+Sans:wght@300;700&family=Oswald:wght@300;700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;700&family=Raleway:wght@300;700&family=Righteous&family=Roboto:wght@300;700&family=Satisfy&family=Ubuntu:wght@300;700&display=swap" rel="stylesheet">
     <!-- lamejs for MP3 encoding -->
@@ -589,10 +589,16 @@
         <div class="panel">
             <h2>4. Live Preview & Recording Engine</h2>
 
+            <div style="margin-bottom: 15px; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                <label style="color: #a855f7; font-weight: bold;">🔗 Google Apps Script Web App URL</label>
+                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue.</div>
+            </div>
+
             <div class="auto-ai-box">
-                <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Full Auto Exporter)</div>
+                <div style="font-weight:bold; font-size:1rem; color:white;">🤖 Auto AI (Full Auto Exporter & YouTube Publisher)</div>
                 <p style="font-size:0.8rem; color:#e2e8f0; margin:5px 0;">
-                    Automated Multi-video export in HD with full voice track synchronization.
+                    Automated Multi-video export in HD with full voice track synchronization & automatic Google Drive / YouTube scheduling.
                 </p>
                 <button id="btnAutoAI" class="btn-auto-ai-start" onclick="startAutoAIFlow()">🚀 START AUTO AI</button>
                 <button id="btnStopAutoAI" class="btn-auto-ai-stop" onclick="stopAutoAIFlow()">🛑 CANCEL AUTO AI</button>
@@ -1334,6 +1340,62 @@
         return finalBlob;
     }
 
+    /* --- SYNCHRONIZED BACKEND APPS SCRIPT UPLOADER --- */
+    async function uploadVideoToBackend(blob, fileName, questionTitle) {
+        const webAppUrl = document.getElementById('appsScriptUrl').value.trim();
+        if (!webAppUrl) {
+            console.warn("Apps Script Web App URL is empty. Skipping upload to Drive/YouTube.");
+            return;
+        }
+
+        // Ensure status prompt overlay is displayed during backend upload
+        overlay.style.display = 'flex';
+        statusMsg.innerText = `Uploading ${fileName} to Google Drive & YouTube Queue...`;
+
+        // Convert finalized Blob cleanly via ArrayBuffer to guarantee binary integrity
+        const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const buffer = reader.result;
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                resolve(window.btoa(binary));
+            };
+            reader.readAsArrayBuffer(blob);
+        });
+
+        // Pass active orientation resolution ('mobile', 'landscape', or 'square') so backend routes to Shorts or Videos
+        const orientation = document.getElementById('resolution').value;
+
+        const payload = {
+            fileName: fileName,
+            fileData: base64Data,
+            mimeType: blob.type,
+            questionTitle: questionTitle,
+            orientation: orientation
+        };
+
+        try {
+            const res = await fetch(webAppUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (result.status === "SUCCESS") {
+                console.log("Uploaded successfully:", result);
+            } else {
+                console.error("Backend Error:", result.message);
+            }
+        } catch (err) {
+            console.error("Failed to upload video to Apps Script backend:", err);
+        }
+    }
+
     async function recordActiveQuestionOnly() {
         closeVideoModeModal();
         const data = getActiveQuestionData();
@@ -1343,7 +1405,6 @@
         statusMsg.innerText = "Encoding HD Video & Voice Stream...";
         isProcessing = true;
 
-        // Render question-only frame on canvas BEFORE MediaRecorder starts so video thumbnail shows only question
         currentVisualStage = "question-only";
         drawFrame(data);
 
@@ -1379,16 +1440,12 @@
             releaseRecordingAudioStream();
         };
 
-        // Start continuous recording stream (Without timeslice intervals to avoid broken WebM chunks on mobile devices)
         mediaRecorder.start();
-        
-        // Brief pause to solidify question-only thumbnail frame
         await new Promise(r => setTimeout(r, 150));
 
         renderLoop(data);
         await executeLiveQuizSequence(data);
 
-        // Allow trailing mobile audio flush delay before closing recorder
         await new Promise(r => setTimeout(r, 500));
 
         isProcessing = false;
@@ -1416,7 +1473,6 @@
             statusMsg.innerText = `Recording HD video ${i+1} of ${panels.length}...`;
             isProcessing = true;
 
-            // Render question-only frame first for thumbnail
             currentVisualStage = "question-only";
             drawFrame(data);
 
@@ -1440,13 +1496,20 @@
                     
                     const finalBlob = await processAndFixBlob(rawBlob, duration, mime);
 
+                    const fileName = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
+
                     const url = URL.createObjectURL(finalBlob);
                     const a = document.getElementById('dlLink');
                     a.href = url;
-                    a.download = `${sanitizeFilename(data.questionText)}.${mime.includes('mp4')?'mp4':'webm'}`;
+                    a.download = fileName;
                     a.innerText = `Download HD Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
                     a.style.display = 'block';
                     a.click();
+
+                    if (autoAI) {
+                        await uploadVideoToBackend(finalBlob, fileName, data.questionText);
+                    }
+
                     resolve();
                 };
             });
@@ -1501,16 +1564,23 @@
             const duration = Date.now() - startTime;
 
             const finalBlob = await processAndFixBlob(rawBlob, duration, mime);
+            const fileName = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
 
             const url = URL.createObjectURL(finalBlob);
             const a = document.getElementById('dlLink');
             a.href = url;
-            a.download = `quiz_FULL_COMBINED_${Date.now()}.${mime.includes('mp4')?'mp4':'webm'}`;
+            a.download = fileName;
             a.innerText = `Download Combined Video (${(finalBlob.size / (1024*1024)).toFixed(2)} MB)`;
             a.style.display = 'block';
+
+            if (autoAI) {
+                a.click();
+                // Prompt user on UI overlay during backend upload
+                await uploadVideoToBackend(finalBlob, fileName, "Full Combined Quiz Video");
+            }
+
             overlay.style.display = 'none';
             releaseRecordingAudioStream();
-            if (autoAI) a.click();
         };
 
         mediaRecorder.start();
@@ -1612,7 +1682,7 @@
             resizeCanvas();
             await startFullCombinedRecordingMode(true);
 
-            if(!cancelAutoAI) alert("🎉 AUTO AI COMPLETE!");
+            if(!cancelAutoAI) alert("🎉 AUTO AI COMPLETE & QUEUED FOR YOUTUBE!");
         } catch (e) {
             if (e.message !== "Auto AI Cancelled") alert("Auto AI Error: " + e.message);
         } finally {
@@ -1656,7 +1726,6 @@
             ctx.restore();
         }
 
-        // If thumbnail frame ("question-only"), skip options, images, countdowns, and explanations
         if (currentVisualStage === "question-only") return;
 
         if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
@@ -1706,17 +1775,14 @@
             ctx.restore();
         }
 
-        // Render Explanations
         if (data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
             if (currentVisualStage === "all") {
-                // Static editing state: render all boxes in their distinct canvas positions
                 data.explanations.forEach((text, idx) => {
                     const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
                     const eBox = getBoundingBox(key, data);
                     if (eBox) renderSingleExplBox(eBox, text, data);
                 });
             } else {
-                // Live playback/recording state: render ONLY current active explanation box (previous disappears)
                 const text = data.explanations[activeExplIndex];
                 if (text) {
                     const key = activeExplIndex === 0 ? 'explanation' : `explanation_${activeExplIndex}`;
