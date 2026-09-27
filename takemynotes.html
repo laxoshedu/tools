@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v6</title>
+<title>take my notes v8</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -561,10 +561,11 @@
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             overflow: hidden;
-            cursor: crosshair;
+            cursor: grab;
             touch-action: none; 
             overscroll-behavior: none;
         }
+        #viewport:active { cursor: grabbing; }
 
         #pagesContainer {
             position: absolute;
@@ -582,6 +583,7 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.5);
             border-radius: 2px;
             box-sizing: content-box;
+            cursor: crosshair;
         }
 
         .page-number-tag {
@@ -609,7 +611,7 @@
             display: block;
             position: absolute;
             top: 0; left: 0;
-            z-index: 1;
+            z-index: 0;
             background: #ffffff;
         }
 
@@ -617,8 +619,111 @@
             display: block;
             position: absolute;
             top: 0; left: 0;
-            z-index: 2;
+            z-index: 3;
             background: transparent;
+            pointer-events: auto;
+        }
+
+        /* Mode states */
+        body.mode-edit-image canvas.ink-canvas {
+            pointer-events: none !important;
+        }
+
+        body.mode-write-image canvas.ink-canvas {
+            pointer-events: none !important;
+        }
+
+        /* LASSO BOX SELECTION STYLING */
+        #lassoOverlayBox {
+            position: absolute;
+            border: 2px dashed #2563eb;
+            background: rgba(37, 99, 235, 0.12);
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+            border-radius: 4px;
+        }
+
+        /* LASSO ACTION POPOVER TOOLBAR */
+        #lassoActionMenu {
+            position: fixed;
+            background: #222528;
+            border: 1px solid #3b82f6;
+            border-radius: 30px;
+            padding: 6px 12px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 2500;
+        }
+
+        #lassoActionMenu button {
+            font-size: 11px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #2d3136;
+            color: #f3f4f6;
+            border: 1px solid #4b5563;
+        }
+        #lassoActionMenu button:hover { background: #3b82f6; color: white; }
+
+        /* PRESETS GALLERY GRID STYLING */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .preset-card {
+            background: #1e2124;
+            border: 1px solid #3a3f44;
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.15s ease;
+        }
+        .preset-card:hover { border-color: #3b82f6; transform: scale(1.03); }
+
+        .preset-card img {
+            width: 100%;
+            height: 80px;
+            object-fit: contain;
+            background: repeating-conic-gradient(#2a2d30 0% 25%, #181a1b 0% 50%) 50% / 12px 12px;
+            border-radius: 6px;
+        }
+
+        .preset-card-title {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 6px;
+            width: 100%;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preset-del-btn {
+            position: absolute;
+            top: -4px; right: -4px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* TRANSPARENT &amp; BOUNDED TEXTBOX STYLING */
@@ -689,15 +794,32 @@
             vertical-align: bottom;
         }
 
-        /* Image Box */
+        /* IMAGE BOX UNDER INK (Z-INDEX 1) */
         .image-box {
             position: absolute;
-            z-index: 9;
+            z-index: 1;
             border: 2px solid #2563eb;
             background: rgba(255, 255, 255, 0.2);
             box-shadow: 0 6px 18px rgba(0,0,0,0.25);
             cursor: move;
             touch-action: none;
+            pointer-events: none;
+        }
+
+        body.mode-edit-image .image-box {
+            pointer-events: auto !important;
+            z-index: 4 !important;
+        }
+
+        body.mode-write-image .image-box {
+            pointer-events: auto !important;
+            z-index: 4 !important;
+            border-color: #059669;
+        }
+
+        body.mode-write-image .image-box .resize-handle,
+        body.mode-write-image .image-box .image-delete-btn {
+            display: none !important;
         }
 
         .image-delete-btn {
@@ -727,6 +849,16 @@
             width: 100%; height: 100%;
             object-fit: fill;
             pointer-events: none;
+            display: block;
+        }
+
+        canvas.image-ink-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 2;
+            pointer-events: auto;
+            touch-action: none;
         }
 
         .resize-handle {
@@ -842,13 +974,14 @@
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;button id=&quot;penBtn&quot; class=&quot;active&quot; title=&quot;Pen Tool&quot;&gt;✏️&lt;/button&gt;
                 &lt;button id=&quot;eraserBtn&quot; title=&quot;Eraser Tool&quot;&gt;🧹&lt;/button&gt;
+                &lt;button id=&quot;lassoBtn&quot; title=&quot;Lasso BoX Tool&quot;&gt;🎯 Lasso&lt;/button&gt;
                 &lt;button id=&quot;textBtn&quot; title=&quot;Add Text Box&quot;&gt;🔤&lt;/button&gt;
-                &lt;button id=&quot;imgBtn&quot; title=&quot;Add Image&quot;&gt;🖼️&lt;/button&gt;
+                &lt;button id=&quot;imgMenuToggleBtn&quot; title=&quot;Image Actions Menu&quot;&gt;🖼️ Image Menu ▼&lt;/button&gt;
             &lt;/div&gt;
 
             &lt;div class=&quot;tool-group&quot;&gt;
                 &lt;select id=&quot;penStyle&quot; title=&quot;Pen Style&quot;&gt;
-                    &lt;option value=&quot;fountain&quot; selected&gt;Fountain (Google Keep)&lt;/option&gt;
+                    &lt;option value=&quot;fountain&quot; selected&gt;Fountain&lt;/option&gt;
                     &lt;option value=&quot;sharptaper&quot;&gt;Sharp Taper Pen&lt;/option&gt;
                     &lt;option value=&quot;fineliner&quot;&gt;Fineliner&lt;/option&gt;
                     &lt;option value=&quot;ballpoint&quot;&gt;Ballpoint&lt;/option&gt;
@@ -897,6 +1030,13 @@
             &lt;/div&gt;
         &lt;/div&gt;
 
+        &lt;div id=&quot;imageMenuPopover&quot; class=&quot;popover-menu&quot;&gt;
+            &lt;button id=&quot;optAddImageBtn&quot;&gt;➕🖼️ Add Image&lt;/button&gt;
+            &lt;button id=&quot;optMoveImageBtn&quot;&gt;🖐️ Move / Resize Image&lt;/button&gt;
+            &lt;button id=&quot;optWriteInsideImageBtn&quot;&gt;✍️ Write Inside Image Container&lt;/button&gt;
+            &lt;button id=&quot;optSavedPresetsBtn&quot;&gt;⭐ My Saved Presets&lt;/button&gt;
+        &lt;/div&gt;
+
         &lt;div id=&quot;pageMenuPopover&quot; class=&quot;popover-menu&quot;&gt;
             &lt;select id=&quot;bgSelect&quot; title=&quot;Page Pattern&quot;&gt;
                 &lt;option value=&quot;bg-blank&quot;&gt;Blank Page&lt;/option&gt;
@@ -909,6 +1049,19 @@
             &lt;button id=&quot;deletePageModalBtn&quot; style=&quot;color: #dc2626;&quot;&gt;🗑️ Delete Page&lt;/button&gt;
         &lt;/div&gt;
 
+        &lt;!-- LASSO OVERLAY BOX --&gt;
+        &lt;div id=&quot;lassoOverlayBox&quot;&gt;&lt;/div&gt;
+
+        &lt;!-- LASSO ACTION POPOVER TOOLBAR --&gt;
+        &lt;div id=&quot;lassoActionMenu&quot;&gt;
+            &lt;input type=&quot;color&quot; id=&quot;lassoColorPicker&quot; title=&quot;Change Color&quot; value=&quot;#2563eb&quot;&gt;
+            &lt;button id=&quot;lassoScaleUpBtn&quot;&gt;➕ Size&lt;/button&gt;
+            &lt;button id=&quot;lassoScaleDownBtn&quot;&gt;➖ Size&lt;/button&gt;
+            &lt;button id=&quot;lassoRemoveBgBtn&quot;&gt;✨ Remove BG&lt;/button&gt;
+            &lt;button id=&quot;lassoSavePresetBtn&quot; style=&quot;color: #60a5fa;&quot;&gt;⭐ Save Preset&lt;/button&gt;
+            &lt;button id=&quot;lassoDeleteBtn&quot; style=&quot;color: #f87171;&quot;&gt;🗑️ Delete&lt;/button&gt;
+        &lt;/div&gt;
+
         &lt;input type=&quot;file&quot; id=&quot;imageInput&quot; accept=&quot;image/*&quot; style=&quot;display:none;&quot;&gt;
 
         &lt;div id=&quot;viewport&quot;&gt;
@@ -917,6 +1070,17 @@
     &lt;/div&gt;
 
     &lt;!-- ================= MODALS ================= --&gt;
+    &lt;div id=&quot;savedPresetsModal&quot; class=&quot;modal-overlay&quot;&gt;
+        &lt;div class=&quot;modal&quot; style=&quot;width: 420px;&quot;&gt;
+            &lt;h3&gt;⭐ Saved Diagram Presets&lt;/h3&gt;
+            &lt;p style=&quot;font-size: 11px; color: #9ca3af; margin-bottom: 12px;&quot;&gt;Click any preset to insert it as a background-free image onto your active page.&lt;/p&gt;
+            &lt;div class=&quot;preset-grid&quot; id=&quot;presetGrid&quot;&gt;&lt;/div&gt;
+            &lt;div class=&quot;modal-actions&quot;&gt;
+                &lt;button id=&quot;closePresetsModalBtn&quot;&gt;Close&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
     &lt;div id=&quot;createFolderModal&quot; class=&quot;modal-overlay&quot;&gt;
         &lt;div class=&quot;modal&quot;&gt;
             &lt;h3&gt;Create Folder&lt;/h3&gt;
@@ -1063,12 +1227,10 @@
     &lt;div id=&quot;toast&quot;&gt;Saved Successfully!&lt;/div&gt;
 
     &lt;script&gt;
-        // Request persistent storage from Webview/browser
         if (navigator.storage &amp;&amp; navigator.storage.persist) {
             navigator.storage.persist();
         }
 
-        // Configure IndexedDB via localForage
         localforage.config({
             name: &#39;ProHandwritingNotesStudioDB&#39;,
             storeName: &#39;app_notes_store&#39;
@@ -1086,7 +1248,8 @@
         let appState = {
             currentFolderId: &#39;root&#39;,
             folders: [],
-            notes: []
+            notes: [],
+            presets: []
         };
 
         let currentNoteId = null;
@@ -1113,7 +1276,6 @@
         const viewport = document.getElementById(&#39;viewport&#39;);
         let pages = [];
         
-        // Undo and Redo Stack Management
         let undoStack = [];
         let redoStack = [];
 
@@ -1127,6 +1289,18 @@
         let initialPanX = panX, initialPanY = panY, initialCenter = { x: 0, y: 0 };
         let isDrawing = false, activePageIndex = null, hasZoomedOrPanned = false;
 
+        // Single Finger Panning Outside Page
+        let isPanningCanvas = false;
+        let lastPanPos = { x: 0, y: 0 };
+
+        // Lasso Box State Variables
+        let isLassoing = false;
+        let lassoStartPos = { x: 0, y: 0 };
+        let currentLassoRect = null; 
+        let currentLassoTargetImage = null; 
+        const lassoOverlayBox = document.getElementById(&#39;lassoOverlayBox&#39;);
+        const lassoActionMenu = document.getElementById(&#39;lassoActionMenu&#39;);
+
         function showToast(msg) {
             const toast = document.getElementById(&#39;toast&#39;);
             toast.innerText = msg;
@@ -1134,7 +1308,6 @@
             setTimeout(() =&gt; toast.classList.remove(&#39;show&#39;), 2500);
         }
 
-        // Helper to format raw byte count into human-readable unit string (KB, MB, GB)
         function formatBytes(bytes, decimals = 1) {
             if (!bytes || bytes === 0) return &#39;0 KB&#39;;
             const k = 1024;
@@ -1158,6 +1331,7 @@
                 const data = await localforage.getItem(&#39;notes_studio_app_state&#39;);
                 if (data) {
                     appState = data;
+                    if (!appState.presets) appState.presets = [];
                 }
             } catch(e) {
                 console.error(&quot;Storage load error:&quot;, e);
@@ -1173,13 +1347,11 @@
             }
         }
 
-        // Helper to re-evaluate and assign absolute cross-page image/text locations
         function reassignOverlaysToCorrectPages() {
             const dims = getPageDimensions();
             let allImages = [];
             let allTexts = [];
 
-            // Gather all image and text instances from pages
             pages.forEach(p =&gt; {
                 allImages.push(...p.imageBoxes);
                 allTexts.push(...p.textBoxes);
@@ -1187,10 +1359,8 @@
                 p.textBoxes = [];
             });
 
-            // Re-assign images based on bounding center coordinates
             allImages.forEach(ib =&gt; {
                 const rect = ib.elem.getBoundingClientRect();
-                const centerPointX = rect.left + rect.width / 2;
                 const centerPointY = rect.top + rect.height / 2;
 
                 let targetPageIndex = 0;
@@ -1211,7 +1381,6 @@
                     targetCard.appendChild(ib.elem);
                 }
 
-                // Convert position relative to target page origin
                 const tRect = targetCard.getBoundingClientRect();
                 const relLeft = (rect.left - tRect.left) / scale;
                 const relTop = (rect.top - tRect.top) / scale;
@@ -1222,7 +1391,6 @@
                 pages[targetPageIndex].imageBoxes.push(ib);
             });
 
-            // Re-assign text boxes based on bounding center coordinates
             allTexts.forEach(tb =&gt; {
                 const rect = tb.elem.getBoundingClientRect();
                 const centerPointY = rect.top + rect.height / 2;
@@ -1539,9 +1707,6 @@
             const note = appState.notes.find(n =&gt; n.id === currentNoteId);
             if (!note) return;
 
-            // Re-sync all image/text elements to proper pages before serialization
-            reassignOverlaysToCorrectPages();
-
             note.title = currentDocumentTitle;
             note.pageSettings = Object.assign({}, pageSettings);
             note.pageCount = pages.length;
@@ -1552,7 +1717,8 @@
                     left: parseFloat(ib.elem.style.left) || 60,
                     top: parseFloat(ib.elem.style.top) || 60,
                     width: ib.elem.offsetWidth,
-                    height: ib.elem.offsetHeight
+                    height: ib.elem.offsetHeight,
+                    imageInkData: ib.inkCanvas.toDataURL()
                 })),
                 textBoxes: p.textBoxes.map(tb =&gt; ({
                     left: parseFloat(tb.elem.style.left) || 60,
@@ -1589,6 +1755,7 @@
         document.getElementById(&#39;backToDashBtn&#39;).onclick = async () =&gt; {
             await executeNoteSave(true);
             stopAutoSaveTimer();
+            clearLassoBox();
             studioView.style.display = &#39;none&#39;;
             dashboardView.style.display = &#39;flex&#39;;
             renderDashboard();
@@ -1609,6 +1776,7 @@
         // ================= CANVAS DRAWING &amp; GESTURE =================
         function updateTransform() {
             pagesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            if (currentLassoRect) updateLassoOverlayPosition();
         }
 
         function centerPages() {
@@ -1863,7 +2031,6 @@
             }
         }
 
-        // Catmull-Rom Spline Interpolation for Curved Smoothness even at High Speeds
         function catmullRomSpline(p0, p1, p2, p3, t) {
             const v0 = (p2.x - p0.x) * 0.5, v1 = (p3.x - p1.x) * 0.5;
             const t2 = t * t, t3 = t2 * t;
@@ -1875,9 +2042,8 @@
             return { x, y };
         }
 
-        // Seamless Curved Contour Generator for Ultra-Smooth Sharp Taper Pen at High Speeds
-        function renderSharpTaperStroke(ctx, points) {
-            const baseW = strokeSize * 1.2;
+        function renderSharpTaperStroke(ctx, points, customSize = strokeSize) {
+            const baseW = customSize * 1.2;
 
             if (points.length === 1) {
                 ctx.fillStyle = currentColor;
@@ -1887,7 +2053,6 @@
                 return;
             }
 
-            // Smooth input points using Catmull-Rom Spline interpolation
             let pts = points;
             if (pts.length &gt;= 2) {
                 let smoothPts = [pts[0]];
@@ -1909,7 +2074,6 @@
                 pts = smoothPts;
             }
 
-            // Calculate cumulative length
             let totalDist = 0;
             let cumDists = [0];
             for (let i = 1; i &lt; pts.length; i++) {
@@ -1925,7 +2089,6 @@
             for (let i = 0; i &lt; pts.length; i++) {
                 let progress = cumDists[i] / totalDist;
                 
-                // Continuous Sine Envelope tapering
                 let taperFactor = Math.sin(progress * Math.PI);
                 let currentWidth = baseW * Math.pow(taperFactor, 0.8);
 
@@ -1957,12 +2120,10 @@
                 });
             }
 
-            // Draw fluid curved stroke boundary using quadratic curves
             ctx.fillStyle = currentColor;
             ctx.beginPath();
             ctx.moveTo(leftSide[0].x, leftSide[0].y);
 
-            // Left side curve interpolation
             for (let i = 1; i &lt; leftSide.length - 1; i++) {
                 let xc = (leftSide[i].x + leftSide[i + 1].x) / 2;
                 let yc = (leftSide[i].y + leftSide[i + 1].y) / 2;
@@ -1973,7 +2134,6 @@
                 ctx.lineTo(lastL.x, lastL.y);
             }
 
-            // Right side curve interpolation
             for (let i = rightSide.length - 1; i &gt; 0; i--) {
                 let xc = (rightSide[i].x + rightSide[i - 1].x) / 2;
                 let yc = (rightSide[i].y + rightSide[i - 1].y) / 2;
@@ -1985,13 +2145,13 @@
             ctx.fill();
         }
 
-        function renderSmoothStroke(ctx, points) {
+        function renderSmoothStroke(ctx, points, customSize = strokeSize) {
             if (!points || points.length === 0) return;
 
             if (currentPenStyle === &#39;sharptaper&#39; &amp;&amp; activeTool !== &#39;eraser&#39;) {
                 ctx.globalCompositeOperation = &#39;source-over&#39;;
                 ctx.globalAlpha = 1.0;
-                renderSharpTaperStroke(ctx, points);
+                renderSharpTaperStroke(ctx, points, customSize);
                 return;
             }
 
@@ -2003,7 +2163,7 @@
                 ctx.lineJoin = &#39;round&#39;;
                 ctx.globalAlpha = 1.0;
 
-                const baseW = strokeSize * 1.0;
+                const baseW = customSize * 1.0;
 
                 if (points.length === 1) {
                     ctx.beginPath();
@@ -2062,7 +2222,7 @@
                 return;
             }
 
-            configurePenStyle(ctx, currentPenStyle, currentColor, strokeSize);
+            configurePenStyle(ctx, currentPenStyle, currentColor, customSize);
 
             if (points.length === 1) {
                 ctx.beginPath();
@@ -2102,24 +2262,44 @@
             return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale, time: Date.now() };
         }
 
-        // Pointer Gestures
+        // Pointer Gestures &amp; Empty-Space Canvas Drag Scrolling
         viewport.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
-            if (e.target.closest(&#39;.textbox-wrapper&#39;) || e.target.closest(&#39;.image-box&#39;) || e.target.closest(&#39;#toolbar&#39;) || e.target.closest(&#39;.popover-menu&#39;)) return;
+            if (activeTool === &#39;editImage&#39; || activeTool === &#39;writeInsideImage&#39;) return; 
+            if (e.target.closest(&#39;.textbox-wrapper&#39;) || e.target.closest(&#39;.image-box&#39;) || e.target.closest(&#39;#toolbar&#39;) || e.target.closest(&#39;.popover-menu&#39;) || e.target.closest(&#39;#lassoActionMenu&#39;)) return;
+            
             pointers.push(e);
 
             if (pointers.length === 1) {
                 const card = e.target.closest(&#39;.page-card&#39;);
-                if (!card) return;
+
+                // If pointer is pressed in empty space outside pages -&gt; start single finger scrolling/panning
+                if (!card) {
+                    clearLassoBox();
+                    isPanningCanvas = true;
+                    lastPanPos = { x: e.clientX, y: e.clientY };
+                    return;
+                }
 
                 activePageIndex = parseInt(card.dataset.index);
                 const page = pages[activePageIndex];
 
+                if (activeTool === &#39;lasso&#39;) {
+                    clearLassoBox();
+                    isLassoing = true;
+                    const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
+                    lassoStartPos = coords;
+                    currentLassoRect = { pageIdx: activePageIndex, x: coords.x, y: coords.y, width: 0, height: 0 };
+                    return;
+                }
+
                 if (activeTool === &#39;text&#39;) {
+                    clearLassoBox();
                     const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
                     createTextBox(activePageIndex, coords.x, coords.y);
                     return;
                 }
 
+                clearLassoBox();
                 isDrawing = true;
                 hasZoomedOrPanned = false;
                 preStrokeSnapshot = page.ctx.getImageData(0, 0, page.canvas.width, page.canvas.height);
@@ -2130,6 +2310,8 @@
             } 
             else if (pointers.length === 2) {
                 isDrawing = false;
+                isLassoing = false;
+                isPanningCanvas = false;
                 hasZoomedOrPanned = true;
                 currentStrokePoints = [];
 
@@ -2149,7 +2331,30 @@
             const index = pointers.findIndex(p =&gt; p.pointerId === e.pointerId);
             if (index !== -1) pointers[index] = e;
 
-            if (pointers.length === 1 &amp;&amp; isDrawing &amp;&amp; !hasZoomedOrPanned &amp;&amp; activePageIndex !== null) {
+            if (pointers.length === 1 &amp;&amp; isPanningCanvas) {
+                hasZoomedOrPanned = true;
+                const dx = e.clientX - lastPanPos.x;
+                const dy = e.clientY - lastPanPos.y;
+                panX += dx;
+                panY += dy;
+                lastPanPos = { x: e.clientX, y: e.clientY };
+                updateTransform();
+                return;
+            }
+
+            if (pointers.length === 1 &amp;&amp; isLassoing &amp;&amp; activePageIndex !== null) {
+                const page = pages[activePageIndex];
+                const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
+                
+                const minX = Math.min(lassoStartPos.x, coords.x);
+                const minY = Math.min(lassoStartPos.y, coords.y);
+                const width = Math.abs(coords.x - lassoStartPos.x);
+                const height = Math.abs(coords.y - lassoStartPos.y);
+
+                currentLassoRect = { pageIdx: activePageIndex, x: minX, y: minY, width, height };
+                updateLassoOverlayPosition();
+            }
+            else if (pointers.length === 1 &amp;&amp; isDrawing &amp;&amp; !hasZoomedOrPanned &amp;&amp; activePageIndex !== null) {
                 const page = pages[activePageIndex];
                 const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
                 currentStrokePoints.push(coords);
@@ -2178,7 +2383,18 @@
             if (pointers.length &lt; 2) initialZoomDist = null;
 
             if (pointers.length === 0) {
-                if (isDrawing &amp;&amp; activePageIndex !== null &amp;&amp; !hasZoomedOrPanned) {
+                if (isPanningCanvas) {
+                    isPanningCanvas = false;
+                }
+                else if (isLassoing) {
+                    isLassoing = false;
+                    if (currentLassoRect &amp;&amp; (currentLassoRect.width &lt; 10 || currentLassoRect.height &lt; 10)) {
+                        clearLassoBox();
+                    } else {
+                        showLassoActionMenu();
+                    }
+                }
+                else if (isDrawing &amp;&amp; activePageIndex !== null &amp;&amp; !hasZoomedOrPanned) {
                     savePageState(activePageIndex);
                 }
                 isDrawing = false;
@@ -2205,6 +2421,301 @@
             }
             updateTransform();
         }, { passive: false });
+
+        // ================= LASSO SELECTION ENGINE =================
+        function clearLassoBox() {
+            currentLassoRect = null;
+            currentLassoTargetImage = null;
+            lassoOverlayBox.style.display = &#39;none&#39;;
+            lassoActionMenu.style.display = &#39;none&#39;;
+        }
+
+        function updateLassoOverlayPosition() {
+            if (!currentLassoRect) return;
+            const page = pages[currentLassoRect.pageIdx];
+            if (!page) return;
+
+            const cardRect = page.card.getBoundingClientRect();
+            
+            const screenLeft = cardRect.left + (currentLassoRect.x * scale);
+            const screenTop = cardRect.top + (currentLassoRect.y * scale);
+            const screenW = currentLassoRect.width * scale;
+            const screenH = currentLassoRect.height * scale;
+
+            lassoOverlayBox.style.left = screenLeft + &#39;px&#39;;
+            lassoOverlayBox.style.top = screenTop + &#39;px&#39;;
+            lassoOverlayBox.style.width = screenW + &#39;px&#39;;
+            lassoOverlayBox.style.height = screenH + &#39;px&#39;;
+            lassoOverlayBox.style.display = &#39;block&#39;;
+        }
+
+        function showLassoActionMenu() {
+            if (!currentLassoRect) return;
+            updateLassoOverlayPosition();
+
+            const boxLeft = parseFloat(lassoOverlayBox.style.left);
+            const boxTop = parseFloat(lassoOverlayBox.style.top);
+
+            lassoActionMenu.style.left = boxLeft + &#39;px&#39;;
+            lassoActionMenu.style.top = Math.max(10, boxTop - 45) + &#39;px&#39;;
+            lassoActionMenu.style.display = &#39;flex&#39;;
+        }
+
+        function hexToRgb(hex) {
+            let c = hex.replace(&#39;#&#39;, &#39;&#39;);
+            if (c.length === 3) c = c.split(&#39;&#39;).map(x =&gt; x + x).join(&#39;&#39;);
+            const num = parseInt(c, 16);
+            return { r: (num &gt;&gt; 16) &amp; 255, g: (num &gt;&gt; 8) &amp; 255, b: num &amp; 255 };
+        }
+
+        // Lasso Color Change Logic
+        document.getElementById(&#39;lassoColorPicker&#39;).oninput = (e) =&gt; {
+            if (!currentLassoRect) return;
+            const page = pages[currentLassoRect.pageIdx];
+            const targetColor = hexToRgb(e.target.value);
+
+            const rx = currentLassoRect.x * RENDER_SCALE;
+            const ry = currentLassoRect.y * RENDER_SCALE;
+            const rw = currentLassoRect.width * RENDER_SCALE;
+            const rh = currentLassoRect.height * RENDER_SCALE;
+
+            const imgData = page.ctx.getImageData(rx, ry, rw, rh);
+            const data = imgData.data;
+
+            for (let i = 0; i &lt; data.length; i += 4) {
+                if (data[i + 3] &gt; 20) {
+                    data[i] = targetColor.r;
+                    data[i + 1] = targetColor.g;
+                    data[i + 2] = targetColor.b;
+                }
+            }
+            page.ctx.putImageData(imgData, rx, ry);
+            savePageState(currentLassoRect.pageIdx);
+        };
+
+        // Real-Time Simultaneous Lasso Scaling (Content + Box)
+        function scaleLassoContent(scaleFactor) {
+            if (!currentLassoRect) return;
+            const page = pages[currentLassoRect.pageIdx];
+
+            if (currentLassoTargetImage) {
+                let currentW = parseFloat(currentLassoTargetImage.elem.style.width) || currentLassoRect.width;
+                let currentH = parseFloat(currentLassoTargetImage.elem.style.height) || currentLassoRect.height;
+
+                let newW = currentW * scaleFactor;
+                let newH = currentH * scaleFactor;
+
+                currentLassoTargetImage.elem.style.width = newW + &#39;px&#39;;
+                currentLassoTargetImage.elem.style.height = newH + &#39;px&#39;;
+
+                currentLassoRect.width = newW;
+                currentLassoRect.height = newH;
+
+                updateLassoOverlayPosition();
+                showLassoActionMenu();
+                return;
+            }
+
+            const rx = currentLassoRect.x * RENDER_SCALE;
+            const ry = currentLassoRect.y * RENDER_SCALE;
+            const rw = currentLassoRect.width * RENDER_SCALE;
+            const rh = currentLassoRect.height * RENDER_SCALE;
+
+            if (rw &lt;= 0 || rh &lt;= 0) return;
+
+            const tempCanvas = document.createElement(&#39;canvas&#39;);
+            tempCanvas.width = rw; tempCanvas.height = rh;
+            const tempCtx = tempCanvas.getContext(&#39;2d&#39;);
+            tempCtx.putImageData(page.ctx.getImageData(rx, ry, rw, rh), 0, 0);
+
+            page.ctx.clearRect(rx, ry, rw, rh);
+
+            const newW = rw * scaleFactor;
+            const newH = rh * scaleFactor;
+
+            page.ctx.save();
+            page.ctx.drawImage(tempCanvas, 0, 0, rw, rh, rx, ry, newW, newH);
+            page.ctx.restore();
+
+            currentLassoRect.width *= scaleFactor;
+            currentLassoRect.height *= scaleFactor;
+
+            page.textBoxes.forEach(tb =&gt; {
+                const tbLeft = parseFloat(tb.elem.style.left) || 0;
+                const tbTop = parseFloat(tb.elem.style.top) || 0;
+                if (tbLeft &gt;= currentLassoRect.x &amp;&amp; tbLeft &lt;= currentLassoRect.x + currentLassoRect.width &amp;&amp;
+                    tbTop &gt;= currentLassoRect.y &amp;&amp; tbTop &lt;= currentLassoRect.y + currentLassoRect.height) {
+                    let curW = parseFloat(tb.elem.style.width) || tb.elem.offsetWidth;
+                    tb.elem.style.width = (curW * scaleFactor) + &#39;px&#39;;
+                }
+            });
+
+            updateLassoOverlayPosition();
+            showLassoActionMenu();
+            savePageState(currentLassoRect.pageIdx);
+        }
+
+        document.getElementById(&#39;lassoScaleUpBtn&#39;).onclick = () =&gt; scaleLassoContent(1.15);
+        document.getElementById(&#39;lassoScaleDownBtn&#39;).onclick = () =&gt; scaleLassoContent(0.85);
+
+        // Lasso Delete Content
+        document.getElementById(&#39;lassoDeleteBtn&#39;).onclick = () =&gt; {
+            if (!currentLassoRect) return;
+            const page = pages[currentLassoRect.pageIdx];
+
+            if (currentLassoTargetImage) {
+                currentLassoTargetImage.elem.remove();
+                page.imageBoxes = page.imageBoxes.filter(i =&gt; i.elem !== currentLassoTargetImage.elem);
+            } else {
+                const rx = currentLassoRect.x * RENDER_SCALE;
+                const ry = currentLassoRect.y * RENDER_SCALE;
+                const rw = currentLassoRect.width * RENDER_SCALE;
+                const rh = currentLassoRect.height * RENDER_SCALE;
+                page.ctx.clearRect(rx, ry, rw, rh);
+            }
+
+            savePageState(currentLassoRect.pageIdx);
+            clearLassoBox();
+        };
+
+        // Extract Lasso Image on Clean Transparent Background
+        function extractTransparentLassoImage() {
+            if (!currentLassoRect) return null;
+            const page = pages[currentLassoRect.pageIdx];
+
+            const rx = currentLassoRect.x * RENDER_SCALE;
+            const ry = currentLassoRect.y * RENDER_SCALE;
+            const rw = currentLassoRect.width * RENDER_SCALE;
+            const rh = currentLassoRect.height * RENDER_SCALE;
+
+            if (rw &lt;= 0 || rh &lt;= 0) return null;
+
+            const cropCanvas = document.createElement(&#39;canvas&#39;);
+            cropCanvas.width = rw; cropCanvas.height = rh;
+            const cropCtx = cropCanvas.getContext(&#39;2d&#39;);
+
+            cropCtx.drawImage(page.canvas, rx, ry, rw, rh, 0, 0, rw, rh);
+
+            const imgData = cropCtx.getImageData(0, 0, rw, rh);
+            const data = imgData.data;
+
+            for (let i = 0; i &lt; data.length; i += 4) {
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                if (r &gt; 235 &amp;&amp; g &gt; 235 &amp;&amp; b &gt; 235) {
+                    data[i + 3] = 0;
+                }
+            }
+            cropCtx.putImageData(imgData, 0, 0);
+            return cropCanvas.toDataURL(&#39;image/png&#39;);
+        }
+
+        // Persistent Selection After Background Removal
+        document.getElementById(&#39;lassoRemoveBgBtn&#39;).onclick = () =&gt; {
+            if (!currentLassoRect) return;
+            const dataUrl = extractTransparentLassoImage();
+            if (!dataUrl) return;
+
+            const pageIdx = currentLassoRect.pageIdx;
+            const targetX = currentLassoRect.x;
+            const targetY = currentLassoRect.y;
+            const savedRect = Object.assign({}, currentLassoRect);
+
+            const page = pages[pageIdx];
+            page.ctx.clearRect(savedRect.x * RENDER_SCALE, savedRect.y * RENDER_SCALE, savedRect.width * RENDER_SCALE, savedRect.height * RENDER_SCALE);
+
+            const img = new Image();
+            img.onload = () =&gt; {
+                insertImageToPage(pageIdx, img, dataUrl, {
+                    left: targetX,
+                    top: targetY,
+                    width: savedRect.width,
+                    height: savedRect.height
+                });
+
+                currentLassoTargetImage = page.imageBoxes[page.imageBoxes.length - 1];
+                currentLassoRect = savedRect;
+
+                updateLassoOverlayPosition();
+                showLassoActionMenu();
+                showToast(&quot;Background Removed! Selection retained.&quot;);
+            };
+            img.src = dataUrl;
+        };
+
+        document.getElementById(&#39;lassoSavePresetBtn&#39;).onclick = async () =&gt; {
+            const dataUrl = extractTransparentLassoImage();
+            if (!dataUrl) return;
+
+            const name = prompt(&quot;Enter a name for this diagram preset:&quot;, &quot;Diagram &quot; + (appState.presets.length + 1));
+            if (!name) return;
+
+            const newPreset = {
+                id: &#39;preset_&#39; + Date.now(),
+                title: name.trim(),
+                dataUrl: dataUrl
+            };
+
+            appState.presets.push(newPreset);
+            await saveStorageTree();
+            showToast(`Saved preset &quot;${newPreset.title}&quot;!`);
+        };
+
+        // ================= PRESET GALLERY ENGINE =================
+        const savedPresetsModal = document.getElementById(&#39;savedPresetsModal&#39;);
+        const presetGrid = document.getElementById(&#39;presetGrid&#39;);
+
+        function renderPresetsGallery() {
+            presetGrid.innerHTML = &#39;&#39;;
+            if (!appState.presets || appState.presets.length === 0) {
+                presetGrid.innerHTML = `
+                    &lt;div style=&quot;grid-column: 1/-1; text-align: center; color: #9ca3af; padding: 25px; font-size: 12px;&quot;&gt;
+                        No presets saved yet.&lt;br&gt;Use the &lt;b&gt;🎯 Lasso Box&lt;/b&gt; to select any drawn diagram and click &lt;b&gt;⭐ Save Preset&lt;/b&gt;!
+                    &lt;/div&gt;
+                `;
+                return;
+            }
+
+            appState.presets.forEach(p =&gt; {
+                const card = document.createElement(&#39;div&#39;);
+                card.className = &#39;preset-card&#39;;
+                card.innerHTML = `
+                    &lt;button class=&quot;preset-del-btn&quot; title=&quot;Delete Preset&quot;&gt;✕&lt;/button&gt;
+                    &lt;img src=&quot;${p.dataUrl}&quot; alt=&quot;${p.title}&quot;&gt;
+                    &lt;div class=&quot;preset-card-title&quot;&gt;${p.title}&lt;/div&gt;
+                `;
+
+                card.onclick = (e) =&gt; {
+                    if (e.target.classList.contains(&#39;preset-del-btn&#39;)) return;
+                    const img = new Image();
+                    const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
+                    img.onload = () =&gt; {
+                        insertImageToPage(targetPage, img, p.dataUrl);
+                        savedPresetsModal.style.display = &#39;none&#39;;
+                        showToast(`Inserted preset &quot;${p.title}&quot;`);
+                    };
+                    img.src = p.dataUrl;
+                };
+
+                card.querySelector(&#39;.preset-del-btn&#39;).onclick = async (e) =&gt; {
+                    e.stopPropagation();
+                    if (confirm(`Delete preset &quot;${p.title}&quot;?`)) {
+                        appState.presets = appState.presets.filter(x =&gt; x.id !== p.id);
+                        await saveStorageTree();
+                        renderPresetsGallery();
+                    }
+                };
+
+                presetGrid.appendChild(card);
+            });
+        }
+
+        document.getElementById(&#39;optSavedPresetsBtn&#39;).onclick = () =&gt; {
+            imageMenuPopover.style.display = &#39;none&#39;;
+            renderPresetsGallery();
+            savedPresetsModal.style.display = &#39;flex&#39;;
+        };
+
+        document.getElementById(&#39;closePresetsModalBtn&#39;).onclick = () =&gt; savedPresetsModal.style.display = &#39;none&#39;;
 
         // ================= TRANSPARENT BOUNDED TEXT BOX SYSTEM WITH BASELINE ALIGNMENT =================
         function createTextBox(pageIdx, x, y, initialText = &#39;&#39;, initialColor = null, initialWidth = 220) {
@@ -2340,7 +2851,13 @@
 
         // ================= IMAGE INSERTION =================
         const imageInput = document.getElementById(&#39;imageInput&#39;);
-        document.getElementById(&#39;imgBtn&#39;).onclick = () =&gt; imageInput.click();
+        const optAddImageBtn = document.getElementById(&#39;optAddImageBtn&#39;);
+
+        optAddImageBtn.onclick = () =&gt; {
+            imageMenuPopover.style.display = &#39;none&#39;;
+            imageInput.click();
+        };
+
         imageInput.onchange = (e) =&gt; {
             const file = e.target.files[0];
             if (!file) return;
@@ -2377,18 +2894,85 @@
             const img = document.createElement(&#39;img&#39;);
             img.src = src;
 
+            const inkCanvas = document.createElement(&#39;canvas&#39;);
+            inkCanvas.className = &#39;image-ink-canvas&#39;;
+            
+            inkCanvas.width = 1000;
+            inkCanvas.height = 1000 * (initH / initW);
+            const inkCtx = inkCanvas.getContext(&#39;2d&#39;);
+
             container.appendChild(img);
+            container.appendChild(inkCanvas);
+
             const resizeHandle = document.createElement(&#39;div&#39;);
             resizeHandle.className = &#39;resize-handle&#39;;
 
             box.appendChild(deleteBtn);
-            box.appendChild(container); box.appendChild(resizeHandle);
+            box.appendChild(container); 
+            box.appendChild(resizeHandle);
             page.card.appendChild(box);
 
-            const imageEntry = { elem: box, imgElem: img };
+            if (savedState &amp;&amp; savedState.imageInkData) {
+                const loadedInk = new Image();
+                loadedInk.src = savedState.imageInkData;
+                loadedInk.onload = () =&gt; {
+                    inkCtx.drawImage(loadedInk, 0, 0, inkCanvas.width, inkCanvas.height);
+                };
+            }
+
+            const imageEntry = { elem: box, imgElem: img, inkCanvas: inkCanvas, inkCtx: inkCtx };
+
+            let isWritingOnImage = false;
+            let imgStrokePoints = [];
+            let imgSnapshot = null;
+
+            function getInnerImageCoords(e) {
+                const rect = inkCanvas.getBoundingClientRect();
+                return {
+                    x: ((e.clientX - rect.left) / rect.width) * inkCanvas.width,
+                    y: ((e.clientY - rect.top) / rect.height) * inkCanvas.height
+                };
+            }
+
+            inkCanvas.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                if (activeTool !== &#39;writeInsideImage&#39;) return;
+                e.stopPropagation();
+                isWritingOnImage = true;
+                inkCanvas.setPointerCapture(e.pointerId);
+
+                imgSnapshot = inkCtx.getImageData(0, 0, inkCanvas.width, inkCanvas.height);
+                const coords = getInnerImageCoords(e);
+                imgStrokePoints = [coords];
+
+                const scaleFactor = inkCanvas.width / box.offsetWidth;
+                renderSmoothStroke(inkCtx, imgStrokePoints, strokeSize * scaleFactor);
+            });
+
+            inkCanvas.addEventListener(&#39;pointermove&#39;, (e) =&gt; {
+                if (!isWritingOnImage) return;
+                e.stopPropagation();
+                const coords = getInnerImageCoords(e);
+                imgStrokePoints.push(coords);
+
+                if (imgSnapshot) {
+                    inkCtx.putImageData(imgSnapshot, 0, 0);
+                }
+                const scaleFactor = inkCanvas.width / box.offsetWidth;
+                renderSmoothStroke(inkCtx, imgStrokePoints, strokeSize * scaleFactor);
+            });
+
+            inkCanvas.addEventListener(&#39;pointerup&#39;, (e) =&gt; {
+                if (!isWritingOnImage) return;
+                e.stopPropagation();
+                isWritingOnImage = false;
+                try { inkCanvas.releasePointerCapture(e.pointerId); } catch(err){}
+                imgStrokePoints = [];
+                imgSnapshot = null;
+            });
 
             let isDragging = false, dragX = 0, dragY = 0;
             box.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                if (activeTool !== &#39;editImage&#39;) return;
                 if (e.target === resizeHandle || e.target === deleteBtn) return;
                 e.stopPropagation(); isDragging = true;
                 dragX = e.clientX - box.getBoundingClientRect().left;
@@ -2412,6 +2996,7 @@
             let isResizing = false, startW = 0, startH = 0, startX = 0, startY = 0;
             const rh = box.querySelector(&#39;.resize-handle&#39;);
             rh.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
+                if (activeTool !== &#39;editImage&#39;) return;
                 e.stopPropagation(); isResizing = true;
                 startW = box.offsetWidth; startH = box.offsetHeight;
                 startX = e.clientX; startY = e.clientY;
@@ -2437,7 +3022,13 @@
         // ================= TOOLBAR CONTROLS =================
         const penBtn = document.getElementById(&#39;penBtn&#39;);
         const eraserBtn = document.getElementById(&#39;eraserBtn&#39;);
+        const lassoBtn = document.getElementById(&#39;lassoBtn&#39;);
         const textBtn = document.getElementById(&#39;textBtn&#39;);
+        const imgMenuToggleBtn = document.getElementById(&#39;imgMenuToggleBtn&#39;);
+        const imageMenuPopover = document.getElementById(&#39;imageMenuPopover&#39;);
+        const optMoveImageBtn = document.getElementById(&#39;optMoveImageBtn&#39;);
+        const optWriteInsideImageBtn = document.getElementById(&#39;optWriteInsideImageBtn&#39;);
+
         const colorPicker = document.getElementById(&#39;colorPicker&#39;);
         const sizePicker = document.getElementById(&#39;sizePicker&#39;);
         const penStyleSelect = document.getElementById(&#39;penStyle&#39;);
@@ -2448,16 +3039,46 @@
             activeTool = tool;
             penBtn.classList.toggle(&#39;active&#39;, tool === &#39;pen&#39;);
             eraserBtn.classList.toggle(&#39;active&#39;, tool === &#39;eraser&#39;);
+            lassoBtn.classList.toggle(&#39;active&#39;, tool === &#39;lasso&#39;);
             textBtn.classList.toggle(&#39;active&#39;, tool === &#39;text&#39;);
+            imgMenuToggleBtn.classList.toggle(&#39;active&#39;, tool === &#39;editImage&#39; || tool === &#39;writeInsideImage&#39;);
+
+            if (tool !== &#39;lasso&#39;) clearLassoBox();
+
+            document.body.classList.remove(&#39;mode-edit-image&#39;, &#39;mode-write-image&#39;);
+            if (tool === &#39;editImage&#39;) {
+                document.body.classList.add(&#39;mode-edit-image&#39;);
+            } else if (tool === &#39;writeInsideImage&#39;) {
+                document.body.classList.add(&#39;mode-write-image&#39;);
+            }
         }
 
         penBtn.onclick = () =&gt; setActiveTool(&#39;pen&#39;);
         eraserBtn.onclick = () =&gt; setActiveTool(&#39;eraser&#39;);
+        lassoBtn.onclick = () =&gt; setActiveTool(&#39;lasso&#39;);
         textBtn.onclick = () =&gt; setActiveTool(&#39;text&#39;);
+
+        imgMenuToggleBtn.onpointerdown = (e) =&gt; {
+            e.stopPropagation();
+            const rect = imgMenuToggleBtn.getBoundingClientRect();
+            imageMenuPopover.style.top = (rect.bottom + 6) + &#39;px&#39;;
+            imageMenuPopover.style.left = rect.left + &#39;px&#39;;
+            imageMenuPopover.style.display = imageMenuPopover.style.display === &#39;flex&#39; ? &#39;none&#39; : &#39;flex&#39;;
+        };
+
+        optMoveImageBtn.onclick = () =&gt; {
+            setActiveTool(&#39;editImage&#39;);
+            imageMenuPopover.style.display = &#39;none&#39;;
+        };
+
+        optWriteInsideImageBtn.onclick = () =&gt; {
+            setActiveTool(&#39;writeInsideImage&#39;);
+            imageMenuPopover.style.display = &#39;none&#39;;
+        };
 
         function setColor(hex) {
             currentColor = hex; colorPicker.value = hex;
-            if (activeTool === &#39;eraser&#39;) setActiveTool(&#39;pen&#39;);
+            if (activeTool === &#39;eraser&#39; || activeTool === &#39;editImage&#39;) setActiveTool(&#39;pen&#39;);
             swatches.forEach(s =&gt; s.classList.remove(&#39;active&#39;));
             const matched = document.querySelector(`.swatch[data-color=&quot;${hex}&quot;]`);
             if (matched) matched.classList.add(&#39;active&#39;);
@@ -2488,6 +3109,9 @@
         document.addEventListener(&#39;pointerdown&#39;, (e) =&gt; {
             if (!pageMenuPopover.contains(e.target) &amp;&amp; e.target !== pageMenuToggleBtn) {
                 pageMenuPopover.style.display = &#39;none&#39;;
+            }
+            if (!imageMenuPopover.contains(e.target) &amp;&amp; e.target !== imgMenuToggleBtn) {
+                imageMenuPopover.style.display = &#39;none&#39;;
             }
         });
 
@@ -2608,7 +3232,7 @@
             expCanvas.width = dims.width * 2; expCanvas.height = dims.height * 2;
             const ctx = expCanvas.getContext(&#39;2d&#39;); ctx.scale(2, 2);
 
-            // Draw Background Pattern
+            // 1. Draw Background Pattern
             ctx.drawImage(page.bgCanvas, 0, 0, dims.width, dims.height);
             drawMarginGuidesOnCanvas(ctx, dims);
 
@@ -2618,15 +3242,21 @@
                 ctx.strokeRect(0, 0, dims.width, dims.height);
             }
 
-            // Draw Ink Strokes
-            ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
-
-            // Draw Images
+            // 2. Draw Images UNDER Ink along with inner handwriting
             page.imageBoxes.forEach(ib =&gt; {
-                ctx.drawImage(ib.imgElem, parseFloat(ib.elem.style.left), parseFloat(ib.elem.style.top), ib.elem.offsetWidth, ib.elem.offsetHeight);
+                const boxLeft = parseFloat(ib.elem.style.left);
+                const boxTop = parseFloat(ib.elem.style.top);
+                const boxW = ib.elem.offsetWidth;
+                const boxH = ib.elem.offsetHeight;
+
+                ctx.drawImage(ib.imgElem, boxLeft, boxTop, boxW, boxH);
+                ctx.drawImage(ib.inkCanvas, boxLeft, boxTop, boxW, boxH);
             });
 
-            // Draw Text Boxes aligned to Alphabetic Baseline
+            // 3. Draw Ink Strokes ABOVE Images
+            ctx.drawImage(page.canvas, 0, 0, dims.width, dims.height);
+
+            // 4. Draw Text Boxes aligned to Alphabetic Baseline
             page.textBoxes.forEach(tb =&gt; {
                 const text = tb.contentElem.innerText;
                 if (text.trim().length &gt; 0) {
@@ -2757,7 +3387,8 @@
 })();
 &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;"></iframe>
+&lt;/html&gt;
+"></iframe>
   </div>
 </div>
 
