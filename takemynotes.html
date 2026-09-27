@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-<title>take my notes v8</title>
+<title>take my notes v10</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -1344,6 +1344,60 @@
                 await localforage.setItem(&#39;notes_studio_app_state&#39;, appState);
             } catch(e) {
                 console.error(&quot;Storage save error:&quot;, e);
+            }
+        }
+
+        // DYNAMICALLY RE-ASSIGN AN IMAGE OR TEXT BOX TO THE PAGE IT NOW HOVERS OVER
+        function reassignElementToPage(elem, itemType) {
+            const elemRect = elem.getBoundingClientRect();
+            const centerPointY = elemRect.top + elemRect.height / 2;
+
+            let targetPageIndex = 0;
+            let minDistance = Infinity;
+
+            pages.forEach((p, idx) =&gt; {
+                const pRect = p.card.getBoundingClientRect();
+                const pCenterY = pRect.top + pRect.height / 2;
+                const dist = Math.abs(centerPointY - pCenterY);
+                if (dist &lt; minDistance) {
+                    minDistance = dist;
+                    targetPageIndex = idx;
+                }
+            });
+
+            const targetPage = pages[targetPageIndex];
+            const targetCard = targetPage.card;
+
+            // Find current page owner
+            let currentOwnerIndex = pages.findIndex(p =&gt; p.card === elem.parentElement);
+
+            if (currentOwnerIndex !== -1 &amp;&amp; currentOwnerIndex !== targetPageIndex) {
+                const oldPage = pages[currentOwnerIndex];
+
+                if (itemType === &#39;image&#39;) {
+                    const entryIdx = oldPage.imageBoxes.findIndex(ib =&gt; ib.elem === elem);
+                    if (entryIdx !== -1) {
+                        const entry = oldPage.imageBoxes.splice(entryIdx, 1)[0];
+                        targetPage.imageBoxes.push(entry);
+                    }
+                } else if (itemType === &#39;text&#39;) {
+                    const entryIdx = oldPage.textBoxes.findIndex(tb =&gt; tb.elem === elem);
+                    if (entryIdx !== -1) {
+                        const entry = oldPage.textBoxes.splice(entryIdx, 1)[0];
+                        targetPage.textBoxes.push(entry);
+                    }
+                }
+
+                // Transfer DOM element to new page card
+                targetCard.appendChild(elem);
+
+                // Re-calculate local coordinate relative to new page card
+                const tRect = targetCard.getBoundingClientRect();
+                const relLeft = (elemRect.left - tRect.left) / scale;
+                const relTop = (elemRect.top - tRect.top) / scale;
+
+                elem.style.left = relLeft + &#39;px&#39;;
+                elem.style.top = relTop + &#39;px&#39;;
             }
         }
 
@@ -2743,6 +2797,7 @@
                 if (isDragging) {
                     isDragging = false; 
                     try { wrapper.releasePointerCapture(e.pointerId); } catch(err){}
+                    reassignElementToPage(wrapper, &#39;text&#39;);
                 }
             });
 
@@ -2929,6 +2984,7 @@
                 if (isDragging) {
                     isDragging = false; 
                     try { box.releasePointerCapture(e.pointerId); } catch(err){} 
+                    reassignElementToPage(box, &#39;image&#39;);
                 }
             });
 
