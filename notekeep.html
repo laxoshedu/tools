@@ -909,7 +909,7 @@
 
         <div id="imageMenuPopover" class="popover-menu">
             <button id="optAddImageBtn">➕🖼️ Add Image</button>
-            <button id="optMoveImageBtn">🖐️ Move / Resize Image</button>
+            <button id="optMoveImageBtn">🖐️️ Move / Resize Image</button>
             <button id="optWriteInsideImageBtn">✍ Write Inside Image Container</button>
             <button id="optSavedPresetsBtn">⭐ My Saved Presets</button>
         </div>
@@ -948,7 +948,7 @@
     <div id="textStudioView">
         <div class="app-toolbar">
             <div class="tool-group">
-                <button id="textBackToDashBtn" class="back-btn">⬅️️</button>
+                <button id="textBackToDashBtn" class="back-btn">⬅</button>
                 <button id="textSaveBtn" class="save-btn">💾</button>
                 <div id="textDocTitleBadge" class="doc-badge">Untitled Text Note</div>
             </div>
@@ -1040,7 +1040,7 @@
             </div>
 
             <div class="tool-group">
-                <button id="insertTextNoteImageBtn">🖼️️ Insert Image</button>
+                <button id="insertTextNoteImageBtn">🖼 Insert Image</button>
                 <input type="color" id="textImageInkColorPicker" value="#dc2626" title="Image Ink Color">
                 <button id="textExportModalBtn" class="export-btn">📤 Export</button>
             </div>
@@ -1738,7 +1738,12 @@
                         img.onload = () => {
                             const dims = getPageDimensions();
                             pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
+                            // Push initial restored state to undo stack so user can undo back to initial session state
+                            savePageState(i);
                         };
+                    } else {
+                        // Push blank initial page state for undo capability
+                        savePageState(i);
                     }
                     if (pData.imageBoxes) {
                         pData.imageBoxes.forEach(sImg => {
@@ -1750,6 +1755,8 @@
                     if (pData.textBoxes) {
                         pData.textBoxes.forEach(sTb => createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color, sTb.width));
                     }
+                } else {
+                    savePageState(i);
                 }
             }
 
@@ -1786,7 +1793,6 @@
                 note.patternType = document.getElementById('textProceduralPatternSelect').value;
                 note.paperColor = document.getElementById('textPaperColorPicker').value;
 
-                // ISSUE 2 FIX: ISOLATED STORAGE OF IMAGES FOR TEXT NOTES
                 const textImgBoxes = textPaperCard.querySelectorAll('.text-img-box');
                 note.imagesData = Array.from(textImgBoxes).map(box => {
                     const img = box.querySelector('img');
@@ -1801,7 +1807,6 @@
                     };
                 });
 
-                // ISSUE 3 FIX: GENERATE HOME DASHBOARD PREVIEW THUMBNAIL FOR TEXT NOTES
                 try {
                     document.body.classList.add('exporting-clean-mode');
                     const canvas = await html2canvas(textPaperCard, {
@@ -1945,7 +1950,8 @@
                 canvas: inkCanvas,
                 ctx: inkCanvas.getContext('2d', { willReadFrequently: true }),
                 textBoxes: [],
-                imageBoxes: []
+                imageBoxes: [],
+                snapshotSequence: 0 // Sequence tracker to avoid race conditions during fast Undo/Redo
             };
 
             pages.push(pageObj);
@@ -3329,7 +3335,7 @@
             const undoBtn = document.getElementById('undoBtn');
             const redoBtn = document.getElementById('redoBtn');
 
-            undoBtn.disabled = undoStack.length === 0;
+            undoBtn.disabled = undoStack.length <= pages.length;
             redoBtn.disabled = redoStack.length === 0;
         }
 
@@ -3341,20 +3347,41 @@
         }
 
         document.getElementById('undoBtn').onclick = () => {
-            if (undoStack.length > 0) {
+            if (undoStack.length > pages.length) {
                 const actionToUndo = undoStack.pop();
                 const page = pages[actionToUndo.pageIndex];
 
                 if (page) {
-                    redoStack.push({ pageIndex: actionToUndo.pageIndex, data: page.canvas.toDataURL() });
+                    redoStack.push({ pageIndex: actionToUndo.pageIndex, data: actionToUndo.data });
 
-                    const img = new Image();
-                    img.src = actionToUndo.data;
-                    img.onload = () => {
-                        const dims = getPageDimensions();
-                        page.ctx.clearRect(0, 0, dims.width, dims.height);
-                        page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
-                    };
+                    // Find the most recent snapshot for this specific page remaining in undoStack
+                    let prevSnapshot = null;
+                    for (let i = undoStack.length - 1; i >= 0; i--) {
+                        if (undoStack[i].pageIndex === actionToUndo.pageIndex) {
+                            prevSnapshot = undoStack[i].data;
+                            break;
+                        }
+                    }
+
+                    page.snapshotSequence++;
+                    const currentSeq = page.snapshotSequence;
+                    const dims = getPageDimensions();
+
+                    if (prevSnapshot) {
+                        const img = new Image();
+                        img.src = prevSnapshot;
+                        img.onload = () => {
+                            if (page.snapshotSequence === currentSeq) {
+                                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                                page.ctx.save();
+                                page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                                page.ctx.drawImage(img, 0, 0);
+                                page.ctx.restore();
+                            }
+                        };
+                    } else {
+                        page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                    }
                 }
                 updateUndoRedoUI();
             }
@@ -3366,14 +3393,21 @@
                 const page = pages[nextState.pageIndex];
 
                 if (page) {
-                    undoStack.push({ pageIndex: nextState.pageIndex, data: page.canvas.toDataURL() });
+                    undoStack.push({ pageIndex: nextState.pageIndex, data: nextState.data });
+
+                    page.snapshotSequence++;
+                    const currentSeq = page.snapshotSequence;
 
                     const img = new Image();
                     img.src = nextState.data;
                     img.onload = () => {
-                        const dims = getPageDimensions();
-                        page.ctx.clearRect(0, 0, dims.width, dims.height);
-                        page.ctx.drawImage(img, 0, 0, dims.width, dims.height);
+                        if (page.snapshotSequence === currentSeq) {
+                            page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                            page.ctx.save();
+                            page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            page.ctx.drawImage(img, 0, 0);
+                            page.ctx.restore();
+                        }
                     };
                 }
                 updateUndoRedoUI();
@@ -3401,18 +3435,15 @@
 
             applyTextPaperBackground();
 
-            // Clear existing DOM images inside editor to prevent duplicates
             const oldBoxes = textPaperCard.querySelectorAll('.text-img-box');
             oldBoxes.forEach(b => b.remove());
 
-            // ISSUE 2 FIX: RESTORE SAVED ISOLATED TEXT NOTE IMAGES
             if (note.imagesData && Array.from(note.imagesData).length > 0) {
                 note.imagesData.forEach(imgSaved => {
                     restoreTextNoteImageInstance(imgSaved);
                 });
             }
 
-            // ISSUE 2 FIX: AUTO-EXPAND CARD HEIGHT BASED ON ENTIRE CONTENT LENGTH
             setTimeout(() => {
                 textPaperCard.style.minHeight = Math.max(1100, richEditor.scrollHeight + 150) + 'px';
             }, 50);
@@ -3519,7 +3550,6 @@
             richEditor.focus();
         };
 
-        // ISSUE 1 FIX: ACCURATE PIXEL FONT SIZE APPLIER (PREVENTS 12px OVERRIDE TO BIGGER SIZE)
         document.getElementById('textFontSizeSelect').onchange = (e) => {
             const chosenSize = e.target.value;
             const sel = window.getSelection();
@@ -3685,7 +3715,6 @@
             }
         }
 
-        // ISSUE 2 FIX: RESTORE DYNAMIC ISOLATED IMAGE INSTANCES IN TEXT NOTE
         function restoreTextNoteImageInstance(imgSaved) {
             const box = document.createElement('div');
             box.className = 'text-img-box';
