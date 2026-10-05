@@ -834,21 +834,25 @@
     <!-- ================= HANDWRITING STUDIO VIEW ================= -->
     <div id="studioView">
         <div id="toolbar" class="app-toolbar">
+            <!-- 1) BACK TO DASHBOARD & 2) SAVE NOTES -->
             <div class="tool-group">
                 <button id="backToDashBtn" class="back-btn" title="Back to Dashboard (Auto-Saves)">🔙</button>
                 <button id="quickSaveBtn" class="save-btn" title="Save Note">💾</button>
-                <div id="docTitleBadge" class="doc-badge" title="Click to rename note">Untitled Note</div>
-                <div id="docSizeBadge" class="size-badge" title="Estimated Note Data Size">0 KB</div>
             </div>
 
+            <!-- 3) PEN TOOL & 4) ERASER TOOL -->
             <div class="tool-group">
                 <button id="penBtn" class="active" title="Pen Tool">✒️</button>
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
-                <button id="lassoBtn" title="Lasso Box Tool">🎯</button>
-                <button id="textBtn" title="Add Text Box">🔤</button>
-                <button id="imgMenuToggleBtn" title="Image Actions Menu">🖼️▼</button>
             </div>
 
+            <!-- 5) UNDO & 6) REDO -->
+            <div class="tool-group">
+                <button id="undoBtn" title="Undo Action" disabled>↩ U</button>
+                <button id="redoBtn" title="Redo Action" disabled>↪ R</button>
+            </div>
+
+            <!-- 7) PEN STYLE, 8) INK/FONT SIZE & 9) COLOURS -->
             <div class="tool-group">
                 <select id="penStyle" title="Pen Style">
                     <option value="fountain" selected>Fountain</option>
@@ -895,21 +899,42 @@
                 </div>
             </div>
 
+            <!-- 10) IMAGE -->
+            <div class="tool-group">
+                <button id="imgMenuToggleBtn" title="Image Actions Menu">🖼️▼</button>
+            </div>
+
+            <!-- 11) PAGE SETTINGS -->
             <div class="tool-group">
                 <button id="pageMenuToggleBtn">📜P▼</button>
             </div>
 
+            <!-- 12) LASSO BOX TOOL & 13) ADD TEXT BOX -->
             <div class="tool-group">
-                <button id="undoBtn" title="Undo Action" disabled>↩ U</button>
-                <button id="redoBtn" title="Redo Action" disabled>↪ R</button>
+                <button id="lassoBtn" title="Lasso Box Tool">🎯</button>
+                <button id="textBtn" title="Add Text Box">🔤</button>
+            </div>
+
+            <!-- 14) RECENTER WORK SPACE -->
+            <div class="tool-group">
                 <button id="recenterBtn" title="Recenter Workspace">🎯</button>
-                <button id="exportModalBtn" class="export-btn" title="Export Note">🖨️</button>
+            </div>
+
+            <!-- 15) CLICK TO RENAME NOTE & 16) ESTIMATED NOTE DATA SIZE -->
+            <div class="tool-group">
+                <div id="docTitleBadge" class="doc-badge" title="Click to rename note">Untitled Note</div>
+                <div id="docSizeBadge" class="size-badge" title="Estimated Note Data Size">0 KB</div>
+            </div>
+
+            <!-- 17) EXPORT NOTES -->
+            <div class="tool-group">
+                <button id="exportModalBtn" class="export-btn" title="Export Note">🖨</button>
             </div>
         </div>
 
         <div id="imageMenuPopover" class="popover-menu">
             <button id="optAddImageBtn">➕🖼️ Add Image</button>
-            <button id="optMoveImageBtn">🖐️️ Move / Resize Image</button>
+            <button id="optMoveImageBtn">🖐 Move / Resize Image</button>
             <button id="optWriteInsideImageBtn">✍ Write Inside Image Container</button>
             <button id="optSavedPresetsBtn">⭐ My Saved Presets</button>
         </div>
@@ -1733,16 +1758,17 @@
                 if (pData) {
                     if (pData.inkData) {
                         const img = new Image();
-                        const pageCtx = pages[i].ctx;
+                        const pageObj = pages[i];
                         img.src = pData.inkData;
                         img.onload = () => {
-                            const dims = getPageDimensions();
-                            pageCtx.drawImage(img, 0, 0, dims.width, dims.height);
-                            // Push initial restored state to undo stack so user can undo back to initial session state
+                            pageObj.ctx.save();
+                            pageObj.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            pageObj.ctx.clearRect(0, 0, pageObj.canvas.width, pageObj.canvas.height);
+                            pageObj.ctx.drawImage(img, 0, 0, pageObj.canvas.width, pageObj.canvas.height);
+                            pageObj.ctx.restore();
                             savePageState(i);
                         };
                     } else {
-                        // Push blank initial page state for undo capability
                         savePageState(i);
                     }
                     if (pData.imageBoxes) {
@@ -1951,7 +1977,7 @@
                 ctx: inkCanvas.getContext('2d', { willReadFrequently: true }),
                 textBoxes: [],
                 imageBoxes: [],
-                snapshotSequence: 0 // Sequence tracker to avoid race conditions during fast Undo/Redo
+                snapshotSequence: 0
             };
 
             pages.push(pageObj);
@@ -3308,8 +3334,11 @@
         document.getElementById('confirmClearInkBtn').onclick = () => {
             const pageIdx = parseInt(deletePageSelect.value);
             if (!isNaN(pageIdx) && pages[pageIdx]) {
-                const dims = getPageDimensions();
-                pages[pageIdx].ctx.clearRect(0, 0, dims.width, dims.height);
+                const page = pages[pageIdx];
+                page.ctx.save();
+                page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                page.ctx.restore();
                 savePageState(pageIdx);
             }
             deleteModalOverlay.style.display = 'none';
@@ -3319,7 +3348,11 @@
             const pageIdx = parseInt(deletePageSelect.value);
             if (!isNaN(pageIdx) && pages[pageIdx]) {
                 if (pages.length <= 1) {
-                    const dims = getPageDimensions(); pages[0].ctx.clearRect(0, 0, dims.width, dims.height);
+                    const page = pages[0];
+                    page.ctx.save();
+                    page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                    page.ctx.restore();
                     savePageState(0);
                 } else {
                     pages[pageIdx].card.remove(); pages.splice(pageIdx, 1);
@@ -3354,7 +3387,6 @@
                 if (page) {
                     redoStack.push({ pageIndex: actionToUndo.pageIndex, data: actionToUndo.data });
 
-                    // Find the most recent snapshot for this specific page remaining in undoStack
                     let prevSnapshot = null;
                     for (let i = undoStack.length - 1; i >= 0; i--) {
                         if (undoStack[i].pageIndex === actionToUndo.pageIndex) {
@@ -3365,22 +3397,24 @@
 
                     page.snapshotSequence++;
                     const currentSeq = page.snapshotSequence;
-                    const dims = getPageDimensions();
 
                     if (prevSnapshot) {
                         const img = new Image();
                         img.src = prevSnapshot;
                         img.onload = () => {
                             if (page.snapshotSequence === currentSeq) {
-                                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
                                 page.ctx.save();
                                 page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                                page.ctx.drawImage(img, 0, 0);
+                                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                                page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
                                 page.ctx.restore();
                             }
                         };
                     } else {
+                        page.ctx.save();
+                        page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                         page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                        page.ctx.restore();
                     }
                 }
                 updateUndoRedoUI();
@@ -3402,10 +3436,10 @@
                     img.src = nextState.data;
                     img.onload = () => {
                         if (page.snapshotSequence === currentSeq) {
-                            page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
                             page.ctx.save();
                             page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                            page.ctx.drawImage(img, 0, 0);
+                            page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                            page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
                             page.ctx.restore();
                         }
                     };
