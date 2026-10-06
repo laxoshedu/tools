@@ -842,7 +842,7 @@
 
             <!-- 3) PEN TOOL & 4) ERASER TOOL -->
             <div class="tool-group">
-                <button id="penBtn" class="active" title="Pen Tool">✒️</button>
+                <button id="penBtn" class="active" title="Pen Tool">✒️️</button>
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
             </div>
 
@@ -1248,7 +1248,7 @@
                     </div>
                 </div>
                 <div class="export-option-card" id="exportLongImgBtn">
-                    <div style="font-size: 24px;">🖼️</div>
+                    <div style="font-size: 24px;">🖼️️</div>
                     <div>
                         <h4>Single Long Image (JPG)</h4>
                         <p>Export vertical stitched image</p>
@@ -1761,10 +1761,16 @@
                         const pageObj = pages[i];
                         img.src = pData.inkData;
                         img.onload = () => {
+                            pageObj.baseLayerCanvas.width = pageObj.canvas.width;
+                            pageObj.baseLayerCanvas.height = pageObj.canvas.height;
+                            pageObj.baseLayerCtx.imageSmoothingEnabled = false;
+                            pageObj.baseLayerCtx.drawImage(img, 0, 0, pageObj.canvas.width, pageObj.canvas.height);
+
                             pageObj.ctx.save();
                             pageObj.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                            pageObj.ctx.imageSmoothingEnabled = false;
                             pageObj.ctx.clearRect(0, 0, pageObj.canvas.width, pageObj.canvas.height);
-                            pageObj.ctx.drawImage(img, 0, 0, pageObj.canvas.width, pageObj.canvas.height);
+                            pageObj.ctx.drawImage(pageObj.baseLayerCanvas, 0, 0, pageObj.canvas.width, pageObj.canvas.height);
                             pageObj.ctx.restore();
                             savePageState(i);
                         };
@@ -1967,6 +1973,8 @@
 
             pagesContainer.appendChild(card);
 
+            const baseLayerCanvas = document.createElement('canvas');
+
             const pageObj = {
                 card: card,
                 pageTag: pageTag,
@@ -1975,6 +1983,8 @@
                 bgCtx: bgCanvas.getContext('2d'),
                 canvas: inkCanvas,
                 ctx: inkCanvas.getContext('2d', { willReadFrequently: true }),
+                baseLayerCanvas: baseLayerCanvas,
+                baseLayerCtx: baseLayerCanvas.getContext('2d'),
                 textBoxes: [],
                 imageBoxes: [],
                 snapshotSequence: 0
@@ -2020,6 +2030,9 @@
             page.canvas.style.width = dims.width + 'px';
             page.canvas.style.height = dims.height + 'px';
             page.ctx.scale(RENDER_SCALE, RENDER_SCALE);
+
+            page.baseLayerCanvas.width = dims.width * RENDER_SCALE;
+            page.baseLayerCanvas.height = dims.height * RENDER_SCALE;
 
             const offset = parseInt(pageSettings.borderMargin) || 0;
             const color = pageSettings.borderColor;
@@ -3335,6 +3348,7 @@
             const pageIdx = parseInt(deletePageSelect.value);
             if (!isNaN(pageIdx) && pages[pageIdx]) {
                 const page = pages[pageIdx];
+                page.baseLayerCtx.clearRect(0, 0, page.baseLayerCanvas.width, page.baseLayerCanvas.height);
                 page.ctx.save();
                 page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
@@ -3349,6 +3363,7 @@
             if (!isNaN(pageIdx) && pages[pageIdx]) {
                 if (pages.length <= 1) {
                     const page = pages[0];
+                    page.baseLayerCtx.clearRect(0, 0, page.baseLayerCanvas.width, page.baseLayerCanvas.height);
                     page.ctx.save();
                     page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                     page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
@@ -3379,6 +3394,33 @@
             updateUndoRedoUI();
         }
 
+        function restoreCanvasSnapshot(page, snapshotDataUrl, sequenceId) {
+            if (!snapshotDataUrl) {
+                page.ctx.save();
+                page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                page.ctx.imageSmoothingEnabled = false;
+                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                if (page.baseLayerCanvas.width > 0) {
+                    page.ctx.drawImage(page.baseLayerCanvas, 0, 0, page.canvas.width, page.canvas.height);
+                }
+                page.ctx.restore();
+                return;
+            }
+
+            const img = new Image();
+            img.src = snapshotDataUrl;
+            img.onload = () => {
+                if (page.snapshotSequence === sequenceId) {
+                    page.ctx.save();
+                    page.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    page.ctx.imageSmoothingEnabled = false;
+                    page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
+                    page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
+                    page.ctx.restore();
+                }
+            };
+        }
+
         document.getElementById('undoBtn').onclick = () => {
             if (undoStack.length > pages.length) {
                 const actionToUndo = undoStack.pop();
@@ -3396,26 +3438,7 @@
                     }
 
                     page.snapshotSequence++;
-                    const currentSeq = page.snapshotSequence;
-
-                    if (prevSnapshot) {
-                        const img = new Image();
-                        img.src = prevSnapshot;
-                        img.onload = () => {
-                            if (page.snapshotSequence === currentSeq) {
-                                page.ctx.save();
-                                page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
-                                page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
-                                page.ctx.restore();
-                            }
-                        };
-                    } else {
-                        page.ctx.save();
-                        page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                        page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
-                        page.ctx.restore();
-                    }
+                    restoreCanvasSnapshot(page, prevSnapshot, page.snapshotSequence);
                 }
                 updateUndoRedoUI();
             }
@@ -3430,19 +3453,7 @@
                     undoStack.push({ pageIndex: nextState.pageIndex, data: nextState.data });
 
                     page.snapshotSequence++;
-                    const currentSeq = page.snapshotSequence;
-
-                    const img = new Image();
-                    img.src = nextState.data;
-                    img.onload = () => {
-                        if (page.snapshotSequence === currentSeq) {
-                            page.ctx.save();
-                            page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                            page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
-                            page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
-                            page.ctx.restore();
-                        }
-                    };
+                    restoreCanvasSnapshot(page, nextState.data, page.snapshotSequence);
                 }
                 updateUndoRedoUI();
             }
