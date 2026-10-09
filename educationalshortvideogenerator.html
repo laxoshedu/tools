@@ -2006,23 +2006,21 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER (FIXED FIRST COLUMN INDEX & TARGET ANCHOR) --- */
+    /* --- EXCEL IMPORTER (CROSS-PLATFORM & CELL ALIGNMENT FIX) --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
-        tbody.innerHTML = '';
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
         const table = document.getElementById('excelTable');
         
-        const trackCell = (e) => {
-            const td = e.target.closest('td');
-            if (td && td.parentElement && td.parentElement.parentElement === tbody) {
-                if (td.cellIndex < 7) lastExcelCell = td;
+        const setTargetCell = e => {
+            if (e.target && e.target.tagName === 'TD') {
+                lastExcelCell = e.target;
             }
         };
 
-        table.addEventListener('click', trackCell);
-        table.addEventListener('focusin', trackCell);
-        table.addEventListener('touchstart', trackCell, { passive: true });
+        table.addEventListener('click', setTargetCell);
+        table.addEventListener('focusin', setTargetCell);
+        table.addEventListener('touchstart', setTargetCell, { passive: true });
         table.addEventListener('paste', handleExcelPaste);
     }
 
@@ -2051,11 +2049,11 @@
         const tbody = document.querySelector('#excelTable tbody');
         tbody.innerHTML = '';
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
-        lastExcelCell = null;
     }
 
     function parsePastedText(text) {
         if (!text) return [];
+        
         const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
         const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
 
@@ -2088,7 +2086,7 @@
             if (td && tr && tr.parentElement === tbody) {
                 startRow = Array.from(tbody.rows).indexOf(tr);
                 startCol = td.cellIndex;
-                if (startCol > 6) startCol = 0;
+                if (startCol < 0 || startCol > 6) startCol = 0;
             }
         }
 
@@ -2109,7 +2107,11 @@
         const text = clipboard.getData('text/plain');
         if (!text) return;
         e.preventDefault();
-        const targetCell = e.target.closest('td') || lastExcelCell;
+        
+        let targetCell = e.target;
+        if (!targetCell || targetCell.tagName !== 'TD') {
+            targetCell = lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0];
+        }
         pasteTextIntoExcel(text, targetCell);
     }
 
@@ -2120,7 +2122,7 @@
             const targetCell = lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0];
             pasteTextIntoExcel(text, targetCell);
         } catch (err) {
-            alert('Clipboard access blocked. Tap the exact cell in the table and use your device paste menu or Ctrl+V.');
+            alert('Clipboard access blocked. Please tap a cell in the table and use your device paste popup or Ctrl+V.');
         }
     }
 
