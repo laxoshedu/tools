@@ -84,7 +84,7 @@
             margin-bottom: 4px;
         }
 
-        input[type="text"], select, input[type="number"], input[type="color"], textarea {
+        input[type="text"], select, input[type="number"], input[type="color"] {
             width: 100%;
             padding: 8px;
             background: #020617;
@@ -382,7 +382,7 @@
 
         .excel-wrapper {
             border: 1px solid #334155;
-            max-height: 45vh;
+            max-height: 55vh;
             overflow: auto;
             background: #020617;
             margin-bottom: 10px;
@@ -676,12 +676,6 @@
                 <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
                 <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Paste from Clipboard</button>
                 <button type="button" onclick="backToModeChooser()" style="background:#0f172a;">◀ Back</button>
-            </div>
-
-            <!-- Mobile Quick Direct Paste Box -->
-            <div style="margin-bottom:10px;">
-                <label style="font-size:0.8rem; color:#38bdf8;">📱 Mobile Bulk Paste Area (Optional): Paste copied text below if direct table pasting fails</label>
-                <textarea id="mobilePasteBox" rows="2" placeholder="Paste text here and click 'Process Text Into Table' below..." style="margin-top:4px; font-size:0.8rem;" oninput="handleMobileDirectInput(this.value)"></textarea>
             </div>
 
             <div class="excel-wrapper">
@@ -2012,7 +2006,7 @@
         drawStatic();
     }
 
-    /* --- ENHANCED EXCEL IMPORTER (MOBILE & DESKTOP FIX) --- */
+    /* --- EXCEL IMPORTER (FIXED FOR MOBILE CLIPBOARD & MULTI-DELIMITER SPLITTING) --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2020,9 +2014,6 @@
         table.addEventListener('click', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
         table.addEventListener('focusin', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
         table.addEventListener('paste', handleExcelPaste);
-
-        // Fallback paste on the modal section for mobile browsers
-        document.getElementById('excelEditorSection').addEventListener('paste', handleExcelPaste);
     }
 
     function createExcelRow(initial = []) {
@@ -2049,31 +2040,43 @@
     function clearExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         tbody.innerHTML = '';
-        const mobileBox = document.getElementById('mobilePasteBox');
-        if (mobileBox) mobileBox.value = '';
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
-    function parseRawTextIntoGrid(text) {
-        if (!text) return [];
-        const lines = text.trim().split(/\r?\n/).filter(line => line.trim().length > 0);
-        return lines.map(line => {
-            if (line.includes('\t')) {
-                return line.split('\t').map(c => c.trim());
-            } else if (line.includes(',')) {
-                return line.split(',').map(c => c.trim());
-            } else {
-                return line.split(/\s{2,}/).map(c => c.trim());
+    function parseRowTextIntoCols(rowStr) {
+        if (!rowStr) return [];
+        // Detect primary separator: tab, comma, or semicolon
+        if (rowStr.includes('\t')) {
+            return rowStr.split('\t');
+        } else if (rowStr.includes(';') && rowStr.split(';').length >= 5) {
+            return rowStr.split(';');
+        } else if (rowStr.includes(',') && rowStr.split(',').length >= 5) {
+            // Split CSV taking basic quotes into account
+            const cols = [];
+            let current = '', inQuotes = false;
+            for (let i = 0; i < rowStr.length; i++) {
+                const char = rowStr[i];
+                if (char === '"' || char === "'") inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) {
+                    cols.push(current.trim());
+                    current = '';
+                } else current += char;
             }
-        });
+            cols.push(current.trim());
+            return cols;
+        } else if (/\s{2,}/.test(rowStr)) {
+            // Split by 2 or more spaces (common in mobile copy-paste)
+            return rowStr.split(/\s{2,}/);
+        }
+        return [rowStr];
     }
 
     function pasteTextIntoExcel(text, startCell) {
         if (!text) return;
         const tbody = document.querySelector('#excelTable tbody');
-        const grid = parseRawTextIntoGrid(text);
-        if (!grid.length) return;
-
+        const rawLines = text.trim().split(/\r?\n/).filter(r => r.trim().length > 0);
+        
+        const grid = rawLines.map(line => parseRowTextIntoCols(line));
         let startRow = 0, startCol = 0;
 
         if (startCell) {
@@ -2092,14 +2095,13 @@
             const tr = tbody.rows[startRow + rIdx];
             for (let cIdx = 0; cIdx < cols.length && (startCol + cIdx) < 7; cIdx++) {
                 const targetCell = tr.cells[startCol + cIdx];
-                if (targetCell) targetCell.textContent = cols[cIdx];
+                if (targetCell) {
+                    let cellVal = cols[cIdx] || '';
+                    cellVal = cellVal.replace(/^["']|["']\$/g, '').trim();
+                    targetCell.textContent = cellVal;
+                }
             }
         });
-    }
-
-    function handleMobileDirectInput(text) {
-        if (!text || !text.trim()) return;
-        pasteTextIntoExcel(text, document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
     }
 
     function handleExcelPaste(e) {
@@ -2108,16 +2110,25 @@
         const text = clipboard.getData('text/plain');
         if (!text) return;
         e.preventDefault();
-        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
     }
 
     async function pasteFromClipboard() {
         try {
-            const text = await navigator.clipboard.readText();
+            let text = '';
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                text = await navigator.clipboard.readText();
+            }
+            if (!text) {
+                text = prompt("Paste your questions/table content here:");
+            }
             if (!text) return;
             pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
         } catch (err) {
-            alert('Clipboard access blocked. Please use the mobile bulk paste area directly.');
+            const text = prompt("Paste your questions/table content here:");
+            if (text) {
+                pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+            }
         }
     }
 
