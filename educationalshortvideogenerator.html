@@ -291,7 +291,7 @@
 
         .speech-mode-toggle {
             background: #1e3a8a;
-            padding: 15px;
+            padding: 12px 15px;
             border-radius: 8px;
             border: 2px solid var(--primary);
             margin-bottom: 10px;
@@ -328,7 +328,7 @@
         .mode-info {
             font-size: 0.75rem;
             color: #94a3b8;
-            margin-top: 5px;
+            margin-top: 3px;
         }
 
         .modal-backdrop {
@@ -518,14 +518,14 @@
 
         <div class="panel">
             <h2>2. Typography & Voice</h2>
-            
-            <!-- Hide Answer Toggle -->
-            <div class="speech-mode-toggle" style="background:#111827; margin-bottom:15px;">
+
+            <!-- Don't Reveal Answer Toggle -->
+            <div class="speech-mode-toggle" style="background:#1e1b4b; border-color:#818cf8; margin-bottom:15px;">
                 <div>
-                    <strong>🙈 Don't Reveal The Answer</strong>
-                    <div class="mode-info" id="hideAnsInfo">Answers are revealed normally</div>
+                    <strong style="color:#a5b4fc;">🚫 Don't Reveal Answer Mode</strong>
+                    <div class="mode-info" id="hideAnswerInfo">Normal Quiz (Reveals & Speaks Answer)</div>
                 </div>
-                <div class="toggle-switch" id="hideAnsToggle" onclick="toggleHideAnswer()">
+                <div class="toggle-switch" id="hideAnswerToggle" onclick="toggleHideAnswer()">
                     <div class="toggle-slider"></div>
                 </div>
             </div>
@@ -603,8 +603,8 @@
 
             <div style="margin-bottom: 15px; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
                 <label style="color: #a855f7; font-weight: bold;">🔗 Google Apps Script Web App URL</label>
-                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;" oninput="saveAppsScriptUrl(this.value)">
-                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue. Automatically saved.</div>
+                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;" oninput="saveBackendUrl(this.value)">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue. Auto-saved locally!</div>
             </div>
 
             <div class="auto-ai-box">
@@ -788,41 +788,24 @@
     let autoAISettings = {};
 
     window.onload = () => {
+        loadBackendUrl();
         populateControls();
         resizeCanvas();
         addQuestionPanel();
         setupCanvasInteraction();
         initVoices();
         initExcelTable();
-        loadSavedAppsScriptUrl();
     };
 
-    /* --- PERSISTENT BACKEND URL LOGIC --- */
-    function loadSavedAppsScriptUrl() {
-        const savedUrl = localStorage.getItem('quiz_generator_backend_url');
+    function loadBackendUrl() {
+        const savedUrl = localStorage.getItem('apps_script_backend_url');
         if (savedUrl) {
             document.getElementById('appsScriptUrl').value = savedUrl;
         }
     }
 
-    function saveAppsScriptUrl(url) {
-        localStorage.setItem('quiz_generator_backend_url', url.trim());
-    }
-
-    function toggleHideAnswer() {
-        hideAnswerEnabled = !hideAnswerEnabled;
-        const toggle = document.getElementById('hideAnsToggle');
-        const info = document.getElementById('hideAnsInfo');
-        if (hideAnswerEnabled) {
-            toggle.classList.add('active');
-            info.textContent = 'Answers will NOT be revealed or spoken';
-            info.style.color = '#eab308';
-        } else {
-            toggle.classList.remove('active');
-            info.textContent = 'Answers are revealed normally';
-            info.style.color = '#94a3b8';
-        }
-        drawStatic();
+    function saveBackendUrl(val) {
+        localStorage.setItem('apps_script_backend_url', val.trim());
     }
 
     function escHtml(str) {
@@ -857,6 +840,22 @@
             info.textContent = 'Single question only';
             info.style.color = '#94a3b8';
         }
+    }
+
+    function toggleHideAnswer() {
+        hideAnswerEnabled = !hideAnswerEnabled;
+        const toggle = document.getElementById('hideAnswerToggle');
+        const info = document.getElementById('hideAnswerInfo');
+        if (hideAnswerEnabled) {
+            toggle.classList.add('active');
+            info.textContent = "Answer Hidden (Prompts Comments & Ends)";
+            info.style.color = '#818cf8';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = "Normal Quiz (Reveals & Speaks Answer)";
+            info.style.color = '#94a3b8';
+        }
+        drawStatic();
     }
 
     function initVoices() {
@@ -951,8 +950,7 @@
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
             countdown: {x:0.5,y:0.85},
-            commentPrompt: {x:0.5,y:0.45},
-            timePrompt: {x:0.5,y:0.55}
+            comment_prompt: {x:0.5,y:0.5}
         };
 
         const listContainer = p.querySelector('.expl-list-box');
@@ -1055,13 +1053,13 @@
                 image: {x:0.5,y:0.4},
                 explanation: {x:0.5,y:0.5},
                 countdown: {x:0.5,y:0.85},
-                commentPrompt: {x:0.5,y:0.45},
-                timePrompt: {x:0.5,y:0.55}
+                comment_prompt: {x:0.5,y:0.5}
             };
         }
 
-        if (!p.positions.commentPrompt) p.positions.commentPrompt = {x:0.5, y:0.45};
-        if (!p.positions.timePrompt) p.positions.timePrompt = {x:0.5, y:0.55};
+        if (!p.positions.comment_prompt) {
+            p.positions.comment_prompt = {x:0.5, y:0.5};
+        }
 
         const explInputs = Array.from(p.querySelectorAll('.q-explanation-text'));
         const explanations = explInputs.map(i => i.value.trim()).filter(v => v.length > 0);
@@ -1122,7 +1120,7 @@
 
         const getHitZone = (mx, my, data) => {
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            const zones = ['image','question','options', ...explKeys, 'countdown', 'commentPrompt', 'timePrompt'];
+            const zones = ['image','question','options', ...explKeys, 'comment_prompt', 'countdown'];
 
             for (const zone of zones) {
                 const box = getBoundingBox(zone, data);
@@ -1169,8 +1167,7 @@
                             image: {x:0.5,y:0.4},
                             explanation: {x:0.5,y:0.5},
                             countdown: {x:0.5,y:0.85},
-                            commentPrompt: {x:0.5,y:0.45},
-                            timePrompt: {x:0.5,y:0.55}
+                            comment_prompt: {x:0.5,y:0.5}
                         };
                     }
                     if (!panel.positions[zone]) panel.positions[zone] = {x:0.5,y:0.5};
@@ -1241,13 +1238,7 @@
             ctx.setLineDash([5, 5]);
 
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            let zones = ['question','options','image', ...explKeys, 'countdown'];
-            
-            if (hideAnswerEnabled) {
-                zones.push('commentPrompt', 'timePrompt');
-            }
-
-            zones.forEach(zone => {
+            ['question','options','image', ...explKeys, 'comment_prompt', 'countdown'].forEach(zone => {
                 const box = getBoundingBox(zone, data);
                 if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
             });
@@ -1288,19 +1279,17 @@
 
         if (!isProcessing) return;
 
-        // BRANCH: DON'T REVEAL ANSWER MODE
+        // --- DON'T REVEAL ANSWER MODE FLOW ---
         if (hideAnswerEnabled) {
-            // Speak custom comment prompt & show visual box
-            currentVisualStage = "commentPrompt";
-            const commentPrompt = data.lang === 'hi' 
-                ? "अपना उत्तर कमेंट सेक्शन में लिखें" 
-                : "Write your answer in the comments section";
-            await speakUtterance(commentPrompt, voiceName);
+            // Speak "Write your answer in the comments section" & show on-screen box
+            currentVisualStage = "comment_prompt";
+            const commentText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
+            await speakUtterance(commentText, voiceName);
 
             if (!isProcessing) return;
 
-            // Countdown Intro Speech & show time prompt visual box
-            currentVisualStage = "timePrompt";
+            // Speak "Your time starts now" & show box/countdown stage
+            currentVisualStage = "countdown_prompt";
             const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
             await speakUtterance(introText, voiceName);
 
@@ -1314,19 +1303,20 @@
                 await speakUtterance(String(i), voiceName);
             }
 
-            // Finish video without revealing or speaking answer
-            activeCountdownNumber = "";
-            currentVisualStage = "options";
+            // End cleanly without revealing the answer or playing explanations
             return;
         }
 
-        // STANDARD MODE (REVEALS ANSWER)
+        // --- STANDARD MODE FLOW ---
         // 3. Countdown Intro Speech
-        currentVisualStage = "countdown";
+        currentVisualStage = "countdown_prompt";
         const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
         await speakUtterance(introText, voiceName);
 
+        if (!isProcessing) return;
+
         // 4. Countdown Numbers
+        currentVisualStage = "countdown";
         for (let i = data.styles.countVal; i >= 1; i--) {
             if (!isProcessing) return;
             activeCountdownNumber = String(i);
@@ -1438,11 +1428,9 @@
             return;
         }
 
-        // Ensure status prompt overlay is displayed during backend upload
         overlay.style.display = 'flex';
         statusMsg.innerText = `Uploading ${fileName} to Google Drive & YouTube Queue...`;
 
-        // Convert finalized Blob cleanly via ArrayBuffer to guarantee binary integrity
         const base64Data = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -1458,7 +1446,6 @@
             reader.readAsArrayBuffer(blob);
         });
 
-        // Pass active orientation resolution ('mobile', 'landscape', or 'square') so backend routes to Shorts or Videos
         const orientation = document.getElementById('resolution').value;
 
         const payload = {
@@ -1817,13 +1804,13 @@
 
         if (currentVisualStage === "question-only") return;
 
-        if (data.image && (["answer", "explanation", "all"].includes(currentVisualStage) || hideAnswerEnabled)) {
+        if (data.image && (["answer", "explanation", "all"].includes(currentVisualStage) || (hideAnswerEnabled && ["comment_prompt","countdown_prompt","countdown"].includes(currentVisualStage)))) {
             const iBox = getBoundingBox('image', data);
             if (iBox) ctx.drawImage(data.image, iBox.x, iBox.y, iBox.w, iBox.h);
         }
 
         const oBox = getBoundingBox('options', data);
-        if (oBox && ["options", "countdown", "commentPrompt", "timePrompt", "answer", "explanation", "all"].includes(currentVisualStage)) {
+        if (oBox && ["options", "countdown_prompt", "comment_prompt", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
             ctx.save();
             const isP = h > w;
             const bH = isP ? h*0.07 : h*0.1;
@@ -1843,7 +1830,7 @@
 
             pos.forEach((pPos, i) => {
                 let color = `${cardColor}1A`;
-                // Don't highlight correct answer if hideAnswerEnabled is ON
+                // Reveal correct option only if "Don't Reveal Answer" mode is OFF
                 if (!hideAnswerEnabled && ["answer", "explanation", "all"].includes(currentVisualStage)) {
                     color = (i === correct) ? correctColor : `${cardColor}1A`;
                 }
@@ -1865,27 +1852,26 @@
             ctx.restore();
         }
 
-        // HIDE ANSWER SPECIAL VISUAL BOXES
-        if (hideAnswerEnabled) {
-            if (["commentPrompt", "all"].includes(currentVisualStage)) {
-                const promptBox = getBoundingBox('commentPrompt', data);
-                if (promptBox) {
-                    const text = data.lang === 'hi' 
-                        ? "अपना उत्तर कमेंट सेक्शन में लिखें" 
-                        : "Write your answer in the comments section";
-                    renderSingleExplBox(promptBox, text, data);
+        // On-Screen Explanation-Style Banner Boxes during "Don't Reveal Answer" sequence
+        if (hideAnswerEnabled && ["comment_prompt", "countdown_prompt", "countdown", "all"].includes(currentVisualStage)) {
+            const promptBox = getBoundingBox('comment_prompt', data);
+            if (promptBox) {
+                let promptText = "";
+                if (currentVisualStage === "comment_prompt") {
+                    promptText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
+                } else if (["countdown_prompt", "countdown"].includes(currentVisualStage)) {
+                    promptText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
+                } else if (currentVisualStage === "all") {
+                    promptText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
                 }
-            }
 
-            if (["timePrompt", "all"].includes(currentVisualStage)) {
-                const promptBox = getBoundingBox('timePrompt', data);
-                if (promptBox) {
-                    const text = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
-                    renderSingleExplBox(promptBox, text, data);
+                if (promptText) {
+                    renderSingleExplBox(promptBox, promptText, data);
                 }
             }
         }
 
+        // Standard Explanations
         if (!hideAnswerEnabled && data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
             if (currentVisualStage === "all") {
                 data.explanations.forEach((text, idx) => {
@@ -1950,7 +1936,7 @@
         } else if (zone === 'image') {
             boxH = h*0.4*data.imgScale;
             boxW = (data.image.width/data.image.height)*boxH;
-        } else if (zone.startsWith('explanation') || zone === 'commentPrompt' || zone === 'timePrompt') {
+        } else if (zone.startsWith('explanation') || zone === 'comment_prompt') {
             boxW = w*0.85;
             boxH = parseInt(data.styles.eSize)*1.5*2.5;
         } else if (zone === 'countdown') {
@@ -2006,7 +1992,7 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER (CROSS-PLATFORM & ZERO-COLUMN SHIFT FIX) --- */
+    /* --- EXCEL IMPORTER --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2043,36 +2029,12 @@
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
-    function parsePastedText(text) {
-        if (!text) return [];
-        
-        // Clean up Windows (\r\n) or Mac (\r) newlines to standard \n
-        const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-        const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
-
-        return rawRows.map(rowStr => {
-            let cols = [];
-            if (rowStr.includes('\t')) {
-                cols = rowStr.split('\t');
-            } else if (rowStr.includes('|')) {
-                cols = rowStr.split('|');
-            } else if (rowStr.includes(',')) {
-                cols = rowStr.split(',');
-            } else {
-                cols = rowStr.split(/\s{2,}/);
-            }
-            return cols.map(c => c.trim());
-        });
-    }
-
     function pasteTextIntoExcel(text, startCell) {
         if (!text) return;
         const tbody = document.querySelector('#excelTable tbody');
-        const grid = parsePastedText(text);
-        if (!grid.length) return;
-
-        let startRow = 0;
-        let startCol = 0; // Default to Column 0 (Question) to prevent column shift
+        const rows = text.trim().split(/\r?\n/).filter(r => r.length);
+        const grid = rows.map(rowStr => rowStr.split('\t'));
+        let startRow = 0, startCol = 0;
 
         if (startCell) {
             const td = startCell.closest('td');
@@ -2108,11 +2070,9 @@
         try {
             const text = await navigator.clipboard.readText();
             if (!text) return;
-            // Target first column explicitly to lock paste position
-            const firstCell = document.querySelector('#excelTable tbody').rows[0]?.cells[0];
-            pasteTextIntoExcel(text, lastExcelCell || firstCell);
+            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
         } catch (err) {
-            alert('Clipboard access blocked. Please tap a cell in the table and use your device paste popup or Ctrl+V.');
+            alert('Clipboard access blocked. Click a cell and use Ctrl+V.');
         }
     }
 
@@ -2127,8 +2087,7 @@
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
             countdown: {x:0.5,y:0.85},
-            commentPrompt: {x:0.5,y:0.45},
-            timePrompt: {x:0.5,y:0.55}
+            comment_prompt: {x:0.5,y:0.5}
         };
 
         rows.forEach(tr => {
