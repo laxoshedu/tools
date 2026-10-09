@@ -2006,21 +2006,13 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER (CROSS-PLATFORM & CELL ALIGNMENT FIX) --- */
+    /* --- EXCEL IMPORTER (CROSS-PLATFORM & ZERO-COLUMN SHIFT FIX) --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
         const table = document.getElementById('excelTable');
-        
-        const setTargetCell = e => {
-            if (e.target && e.target.tagName === 'TD') {
-                lastExcelCell = e.target;
-            }
-        };
-
-        table.addEventListener('click', setTargetCell);
-        table.addEventListener('focusin', setTargetCell);
-        table.addEventListener('touchstart', setTargetCell, { passive: true });
+        table.addEventListener('click', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
+        table.addEventListener('focusin', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
         table.addEventListener('paste', handleExcelPaste);
     }
 
@@ -2054,6 +2046,7 @@
     function parsePastedText(text) {
         if (!text) return [];
         
+        // Clean up Windows (\r\n) or Mac (\r) newlines to standard \n
         const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
         const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
 
@@ -2078,7 +2071,8 @@
         const grid = parsePastedText(text);
         if (!grid.length) return;
 
-        let startRow = 0, startCol = 0;
+        let startRow = 0;
+        let startCol = 0; // Default to Column 0 (Question) to prevent column shift
 
         if (startCell) {
             const td = startCell.closest('td');
@@ -2086,7 +2080,7 @@
             if (td && tr && tr.parentElement === tbody) {
                 startRow = Array.from(tbody.rows).indexOf(tr);
                 startCol = td.cellIndex;
-                if (startCol < 0 || startCol > 6) startCol = 0;
+                if (startCol > 6) startCol = 0;
             }
         }
 
@@ -2107,20 +2101,16 @@
         const text = clipboard.getData('text/plain');
         if (!text) return;
         e.preventDefault();
-        
-        let targetCell = e.target;
-        if (!targetCell || targetCell.tagName !== 'TD') {
-            targetCell = lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0];
-        }
-        pasteTextIntoExcel(text, targetCell);
+        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
     }
 
     async function pasteFromClipboard() {
         try {
             const text = await navigator.clipboard.readText();
             if (!text) return;
-            const targetCell = lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0];
-            pasteTextIntoExcel(text, targetCell);
+            // Target first column explicitly to lock paste position
+            const firstCell = document.querySelector('#excelTable tbody').rows[0]?.cells[0];
+            pasteTextIntoExcel(text, lastExcelCell || firstCell);
         } catch (err) {
             alert('Clipboard access blocked. Please tap a cell in the table and use your device paste popup or Ctrl+V.');
         }
