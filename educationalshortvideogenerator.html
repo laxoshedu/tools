@@ -518,6 +518,18 @@
 
         <div class="panel">
             <h2>2. Typography & Voice</h2>
+            
+            <!-- Hide Answer Toggle -->
+            <div class="speech-mode-toggle" style="background:#111827; margin-bottom:15px;">
+                <div>
+                    <strong>🙈 Don't Reveal The Answer</strong>
+                    <div class="mode-info" id="hideAnsInfo">Answers are revealed normally</div>
+                </div>
+                <div class="toggle-switch" id="hideAnsToggle" onclick="toggleHideAnswer()">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+
             <div class="controls-grid">
                 <div class="grid-header">Voice Model</div>
                 <div style="grid-column: span 2;">
@@ -591,8 +603,8 @@
 
             <div style="margin-bottom: 15px; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
                 <label style="color: #a855f7; font-weight: bold;">🔗 Google Apps Script Web App URL</label>
-                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;">
-                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue.</div>
+                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;" oninput="saveAppsScriptUrl(this.value)">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue. Automatically saved.</div>
             </div>
 
             <div class="auto-ai-box">
@@ -770,6 +782,7 @@
     
     let drag = { isDragging: false, activeZone: null, offsetX: 0, offsetY: 0 };
     let batchEditEnabled = false;
+    let hideAnswerEnabled = false;
     let lastExcelCell = null;
     let cancelRecording = false, cancelAutoAI = false;
     let autoAISettings = {};
@@ -781,7 +794,36 @@
         setupCanvasInteraction();
         initVoices();
         initExcelTable();
+        loadSavedAppsScriptUrl();
     };
+
+    /* --- PERSISTENT BACKEND URL LOGIC --- */
+    function loadSavedAppsScriptUrl() {
+        const savedUrl = localStorage.getItem('quiz_generator_backend_url');
+        if (savedUrl) {
+            document.getElementById('appsScriptUrl').value = savedUrl;
+        }
+    }
+
+    function saveAppsScriptUrl(url) {
+        localStorage.setItem('quiz_generator_backend_url', url.trim());
+    }
+
+    function toggleHideAnswer() {
+        hideAnswerEnabled = !hideAnswerEnabled;
+        const toggle = document.getElementById('hideAnsToggle');
+        const info = document.getElementById('hideAnsInfo');
+        if (hideAnswerEnabled) {
+            toggle.classList.add('active');
+            info.textContent = 'Answers will NOT be revealed or spoken';
+            info.style.color = '#eab308';
+        } else {
+            toggle.classList.remove('active');
+            info.textContent = 'Answers are revealed normally';
+            info.style.color = '#94a3b8';
+        }
+        drawStatic();
+    }
 
     function escHtml(str) {
         return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -908,7 +950,9 @@
             options: {x:0.5,y:0.7},
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
-            countdown: {x:0.5,y:0.85}
+            countdown: {x:0.5,y:0.85},
+            commentPrompt: {x:0.5,y:0.45},
+            timePrompt: {x:0.5,y:0.55}
         };
 
         const listContainer = p.querySelector('.expl-list-box');
@@ -1010,9 +1054,14 @@
                 options: {x:0.5,y:0.7},
                 image: {x:0.5,y:0.4},
                 explanation: {x:0.5,y:0.5},
-                countdown: {x:0.5,y:0.85}
+                countdown: {x:0.5,y:0.85},
+                commentPrompt: {x:0.5,y:0.45},
+                timePrompt: {x:0.5,y:0.55}
             };
         }
+
+        if (!p.positions.commentPrompt) p.positions.commentPrompt = {x:0.5, y:0.45};
+        if (!p.positions.timePrompt) p.positions.timePrompt = {x:0.5, y:0.55};
 
         const explInputs = Array.from(p.querySelectorAll('.q-explanation-text'));
         const explanations = explInputs.map(i => i.value.trim()).filter(v => v.length > 0);
@@ -1073,7 +1122,7 @@
 
         const getHitZone = (mx, my, data) => {
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            const zones = ['image','question','options', ...explKeys, 'countdown'];
+            const zones = ['image','question','options', ...explKeys, 'countdown', 'commentPrompt', 'timePrompt'];
 
             for (const zone of zones) {
                 const box = getBoundingBox(zone, data);
@@ -1119,7 +1168,9 @@
                             options: {x:0.5,y:0.7},
                             image: {x:0.5,y:0.4},
                             explanation: {x:0.5,y:0.5},
-                            countdown: {x:0.5,y:0.85}
+                            countdown: {x:0.5,y:0.85},
+                            commentPrompt: {x:0.5,y:0.45},
+                            timePrompt: {x:0.5,y:0.55}
                         };
                     }
                     if (!panel.positions[zone]) panel.positions[zone] = {x:0.5,y:0.5};
@@ -1190,7 +1241,13 @@
             ctx.setLineDash([5, 5]);
 
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            ['question','options','image', ...explKeys, 'countdown'].forEach(zone => {
+            let zones = ['question','options','image', ...explKeys, 'countdown'];
+            
+            if (hideAnswerEnabled) {
+                zones.push('commentPrompt', 'timePrompt');
+            }
+
+            zones.forEach(zone => {
                 const box = getBoundingBox(zone, data);
                 if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
             });
@@ -1231,6 +1288,39 @@
 
         if (!isProcessing) return;
 
+        // BRANCH: DON'T REVEAL ANSWER MODE
+        if (hideAnswerEnabled) {
+            // Speak custom comment prompt & show visual box
+            currentVisualStage = "commentPrompt";
+            const commentPrompt = data.lang === 'hi' 
+                ? "अपना उत्तर कमेंट सेक्शन में लिखें" 
+                : "Write your answer in the comments section";
+            await speakUtterance(commentPrompt, voiceName);
+
+            if (!isProcessing) return;
+
+            // Countdown Intro Speech & show time prompt visual box
+            currentVisualStage = "timePrompt";
+            const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
+            await speakUtterance(introText, voiceName);
+
+            if (!isProcessing) return;
+
+            // Countdown Numbers
+            currentVisualStage = "countdown";
+            for (let i = data.styles.countVal; i >= 1; i--) {
+                if (!isProcessing) return;
+                activeCountdownNumber = String(i);
+                await speakUtterance(String(i), voiceName);
+            }
+
+            // Finish video without revealing or speaking answer
+            activeCountdownNumber = "";
+            currentVisualStage = "options";
+            return;
+        }
+
+        // STANDARD MODE (REVEALS ANSWER)
         // 3. Countdown Intro Speech
         currentVisualStage = "countdown";
         const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
@@ -1256,7 +1346,7 @@
 
         if (!isProcessing) return;
 
-        // 6. Sequential Explanations (Previous Explanation box disappears, "The explanation is" spoken ONCE only)
+        // 6. Sequential Explanations
         if (data.hasExplanation && data.explanations.length > 0) {
             currentVisualStage = "explanation";
             const preExplText = data.lang === 'hi' ? "स्पष्टीकरण" : "The explanation is";
@@ -1575,7 +1665,6 @@
 
             if (autoAI) {
                 a.click();
-                // Prompt user on UI overlay during backend upload
                 await uploadVideoToBackend(finalBlob, fileName, "Full Combined Quiz Video");
             }
 
@@ -1728,13 +1817,13 @@
 
         if (currentVisualStage === "question-only") return;
 
-        if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
+        if (data.image && (["answer", "explanation", "all"].includes(currentVisualStage) || hideAnswerEnabled)) {
             const iBox = getBoundingBox('image', data);
             if (iBox) ctx.drawImage(data.image, iBox.x, iBox.y, iBox.w, iBox.h);
         }
 
         const oBox = getBoundingBox('options', data);
-        if (oBox && ["options", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
+        if (oBox && ["options", "countdown", "commentPrompt", "timePrompt", "answer", "explanation", "all"].includes(currentVisualStage)) {
             ctx.save();
             const isP = h > w;
             const bH = isP ? h*0.07 : h*0.1;
@@ -1754,7 +1843,8 @@
 
             pos.forEach((pPos, i) => {
                 let color = `${cardColor}1A`;
-                if (["answer", "explanation", "all"].includes(currentVisualStage)) {
+                // Don't highlight correct answer if hideAnswerEnabled is ON
+                if (!hideAnswerEnabled && ["answer", "explanation", "all"].includes(currentVisualStage)) {
                     color = (i === correct) ? correctColor : `${cardColor}1A`;
                 }
                 ctx.fillStyle = color;
@@ -1775,7 +1865,28 @@
             ctx.restore();
         }
 
-        if (data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
+        // HIDE ANSWER SPECIAL VISUAL BOXES
+        if (hideAnswerEnabled) {
+            if (["commentPrompt", "all"].includes(currentVisualStage)) {
+                const promptBox = getBoundingBox('commentPrompt', data);
+                if (promptBox) {
+                    const text = data.lang === 'hi' 
+                        ? "अपना उत्तर कमेंट सेक्शन में लिखें" 
+                        : "Write your answer in the comments section";
+                    renderSingleExplBox(promptBox, text, data);
+                }
+            }
+
+            if (["timePrompt", "all"].includes(currentVisualStage)) {
+                const promptBox = getBoundingBox('timePrompt', data);
+                if (promptBox) {
+                    const text = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
+                    renderSingleExplBox(promptBox, text, data);
+                }
+            }
+        }
+
+        if (!hideAnswerEnabled && data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
             if (currentVisualStage === "all") {
                 data.explanations.forEach((text, idx) => {
                     const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
@@ -1839,7 +1950,7 @@
         } else if (zone === 'image') {
             boxH = h*0.4*data.imgScale;
             boxW = (data.image.width/data.image.height)*boxH;
-        } else if (zone.startsWith('explanation')) {
+        } else if (zone.startsWith('explanation') || zone === 'commentPrompt' || zone === 'timePrompt') {
             boxW = w*0.85;
             boxH = parseInt(data.styles.eSize)*1.5*2.5;
         } else if (zone === 'countdown') {
@@ -1989,7 +2100,9 @@
             options: {x:0.5,y:0.7},
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
-            countdown: {x:0.5,y:0.85}
+            countdown: {x:0.5,y:0.85},
+            commentPrompt: {x:0.5,y:0.45},
+            timePrompt: {x:0.5,y:0.55}
         };
 
         rows.forEach(tr => {
@@ -2009,7 +2122,7 @@
             if (correctRaw) {
                 const upper = correctRaw.toUpperCase();
                 if (['A','B','C','D'].includes(upper)) correctIndex = upper.charCodeAt(0) - 65;
-                else if (/^[1-4]$/.test(correctRaw)) correctIndex = parseInt(correctRaw,10) - 1;
+                else if (/^[1-4]\$/.test(correctRaw)) correctIndex = parseInt(correctRaw,10) - 1;
             }
 
             addQuestionPanel({ 
