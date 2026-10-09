@@ -2006,13 +2006,23 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER (CROSS-PLATFORM & MOBILE FIX) --- */
+    /* --- EXCEL IMPORTER (FIXED FIRST COLUMN INDEX & TARGET ANCHOR) --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
+        tbody.innerHTML = '';
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
         const table = document.getElementById('excelTable');
-        table.addEventListener('click', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
-        table.addEventListener('focusin', e => { if (e.target.tagName === 'TD') lastExcelCell = e.target; });
+        
+        const trackCell = (e) => {
+            const td = e.target.closest('td');
+            if (td && td.parentElement && td.parentElement.parentElement === tbody) {
+                if (td.cellIndex < 7) lastExcelCell = td;
+            }
+        };
+
+        table.addEventListener('click', trackCell);
+        table.addEventListener('focusin', trackCell);
+        table.addEventListener('touchstart', trackCell, { passive: true });
         table.addEventListener('paste', handleExcelPaste);
     }
 
@@ -2041,17 +2051,15 @@
         const tbody = document.querySelector('#excelTable tbody');
         tbody.innerHTML = '';
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
+        lastExcelCell = null;
     }
 
     function parsePastedText(text) {
         if (!text) return [];
-        
-        // Clean up Windows (\r\n) or Mac (\r) newlines to standard \n
         const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
         const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
 
         return rawRows.map(rowStr => {
-            // Detect split delimiter: Tab \t, Comma, Pipe |, or multiple spaces
             let cols = [];
             if (rowStr.includes('\t')) {
                 cols = rowStr.split('\t');
@@ -2060,7 +2068,6 @@
             } else if (rowStr.includes(',')) {
                 cols = rowStr.split(',');
             } else {
-                // Fallback for space or mobile text formatting
                 cols = rowStr.split(/\s{2,}/);
             }
             return cols.map(c => c.trim());
@@ -2102,16 +2109,18 @@
         const text = clipboard.getData('text/plain');
         if (!text) return;
         e.preventDefault();
-        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
+        const targetCell = e.target.closest('td') || lastExcelCell;
+        pasteTextIntoExcel(text, targetCell);
     }
 
     async function pasteFromClipboard() {
         try {
             const text = await navigator.clipboard.readText();
             if (!text) return;
-            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+            const targetCell = lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0];
+            pasteTextIntoExcel(text, targetCell);
         } catch (err) {
-            alert('Clipboard access blocked. Please tap a cell in the table and use your device paste popup or Ctrl+V.');
+            alert('Clipboard access blocked. Tap the exact cell in the table and use your device paste menu or Ctrl+V.');
         }
     }
 
