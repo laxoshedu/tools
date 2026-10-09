@@ -84,7 +84,7 @@
             margin-bottom: 4px;
         }
 
-        input[type="text"], select, input[type="number"], input[type="color"], textarea {
+        input[type="text"], select, input[type="number"], input[type="color"] {
             width: 100%;
             padding: 8px;
             background: #020617;
@@ -674,8 +674,7 @@
             <div class="excel-toolbar">
                 <button type="button" onclick="addExcelRow()">+ Add Row</button>
                 <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
-                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Laptop Paste</button>
-                <button type="button" onclick="openMobilePasteModal()" style="background:#a855f7;">📱 Mobile Quick Paste</button>
+                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Paste from Clipboard</button>
                 <button type="button" onclick="backToModeChooser()" style="background:#0f172a;">◀ Back</button>
             </div>
 
@@ -701,19 +700,6 @@
                 ✅ Import these questions as tabs
             </button>
         </div>
-    </div>
-</div>
-
-<!-- Modal: Mobile Quick Paste -->
-<div id="mobilePasteModal" class="modal-backdrop" style="z-index: 60;">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h3>📱 Mobile Quick Paste Input</h3>
-            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeMobilePasteModal()">Close</button>
-        </div>
-        <p style="font-size:0.8rem; color:#cbd5e1; margin-top:0;">Paste your copied Excel / CSV / tabbed text directly inside this box on mobile devices:</p>
-        <textarea id="mobilePasteBox" rows="8" placeholder="Paste questions here..."></textarea>
-        <button type="button" onclick="processMobilePasteInput()" style="background:#22c55e; width:100%; margin-top:10px; padding:10px;">📥 Parse & Import to Table</button>
     </div>
 </div>
 
@@ -2020,7 +2006,7 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER & MULTI-PLATFORM PASTING LOGIC --- */
+    /* --- EXCEL IMPORTER (CROSS-PLATFORM & MOBILE FIX) --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2057,21 +2043,34 @@
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
-    function parseRawTextToGrid(text) {
+    function parsePastedText(text) {
         if (!text) return [];
-        const lines = text.trim().split(/\r?\n/).filter(r => r.length > 0);
-        return lines.map(line => {
-            if (line.includes('\t')) return line.split('\t');
-            if (line.includes(',')) return line.split(',');
-            if (line.includes(';')) return line.split(';');
-            return line.split(/\s{2,}/);
+        
+        // Clean up Windows (\r\n) or Mac (\r) newlines to standard \n
+        const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
+
+        return rawRows.map(rowStr => {
+            // Detect split delimiter: Tab \t, Comma, Pipe |, or multiple spaces
+            let cols = [];
+            if (rowStr.includes('\t')) {
+                cols = rowStr.split('\t');
+            } else if (rowStr.includes('|')) {
+                cols = rowStr.split('|');
+            } else if (rowStr.includes(',')) {
+                cols = rowStr.split(',');
+            } else {
+                // Fallback for space or mobile text formatting
+                cols = rowStr.split(/\s{2,}/);
+            }
+            return cols.map(c => c.trim());
         });
     }
 
     function pasteTextIntoExcel(text, startCell) {
         if (!text) return;
         const tbody = document.querySelector('#excelTable tbody');
-        const grid = parseRawTextToGrid(text);
+        const grid = parsePastedText(text);
         if (!grid.length) return;
 
         let startRow = 0, startCol = 0;
@@ -2092,7 +2091,7 @@
             const tr = tbody.rows[startRow + rIdx];
             for (let cIdx = 0; cIdx < cols.length && (startCol + cIdx) < 7; cIdx++) {
                 const targetCell = tr.cells[startCol + cIdx];
-                if (targetCell) targetCell.textContent = cols[cIdx].trim();
+                if (targetCell) targetCell.textContent = cols[cIdx];
             }
         });
     }
@@ -2112,26 +2111,7 @@
             if (!text) return;
             pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
         } catch (err) {
-            openMobilePasteModal();
-        }
-    }
-
-    function openMobilePasteModal() {
-        document.getElementById('mobilePasteModal').style.display = 'flex';
-        document.getElementById('mobilePasteBox').value = '';
-    }
-
-    function closeMobilePasteModal() {
-        document.getElementById('mobilePasteModal').style.display = 'none';
-    }
-
-    function processMobilePasteInput() {
-        const text = document.getElementById('mobilePasteBox').value;
-        if (text && text.trim().length > 0) {
-            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
-            closeMobilePasteModal();
-        } else {
-            alert('Please paste text inside the box first.');
+            alert('Clipboard access blocked. Please tap a cell in the table and use your device paste popup or Ctrl+V.');
         }
     }
 
