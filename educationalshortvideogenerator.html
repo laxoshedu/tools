@@ -2006,7 +2006,7 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER --- */
+    /* --- MOBILE-OPTIMIZED EXCEL IMPORTER --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2043,11 +2043,30 @@
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
+    function parseClipboardText(text) {
+        if (!text) return [];
+        // Normalize mobile line endings (\r\n or \r to \n)
+        const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+        const rawRows = cleanText.split('\n').filter(r => r.trim().length > 0);
+        
+        return rawRows.map(rowStr => {
+            if (rowStr.includes('\t')) {
+                return rowStr.split('\t').map(c => c.trim());
+            } else if (rowStr.includes(',')) {
+                return rowStr.split(',').map(c => c.trim());
+            } else if (rowStr.includes(';')) {
+                return rowStr.split(';').map(c => c.trim());
+            } else {
+                return [rowStr.trim()];
+            }
+        });
+    }
+
     function pasteTextIntoExcel(text, startCell) {
-        if (!text) return;
+        const grid = parseClipboardText(text);
+        if (!grid.length) return;
+
         const tbody = document.querySelector('#excelTable tbody');
-        const rows = text.trim().split(/\r?\n/).filter(r => r.length);
-        const grid = rows.map(rowStr => rowStr.split('\t'));
         let startRow = 0, startCol = 0;
 
         if (startCell) {
@@ -2074,7 +2093,7 @@
     function handleExcelPaste(e) {
         const clipboard = e.clipboardData || window.clipboardData;
         if (!clipboard) return;
-        const text = clipboard.getData('text/plain');
+        const text = clipboard.getData('text/plain') || clipboard.getData('text');
         if (!text) return;
         e.preventDefault();
         pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
@@ -2086,7 +2105,7 @@
             if (!text) return;
             pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
         } catch (err) {
-            alert('Clipboard access blocked. Click a cell and use Ctrl+V.');
+            alert('Clipboard access blocked. Long press a cell and tap Paste.');
         }
     }
 
