@@ -291,7 +291,7 @@
 
         .speech-mode-toggle {
             background: #1e3a8a;
-            padding: 12px 15px;
+            padding: 15px;
             border-radius: 8px;
             border: 2px solid var(--primary);
             margin-bottom: 10px;
@@ -328,7 +328,7 @@
         .mode-info {
             font-size: 0.75rem;
             color: #94a3b8;
-            margin-top: 3px;
+            margin-top: 5px;
         }
 
         .modal-backdrop {
@@ -518,18 +518,6 @@
 
         <div class="panel">
             <h2>2. Typography & Voice</h2>
-
-            <!-- Don't Reveal Answer Toggle -->
-            <div class="speech-mode-toggle" style="background:#1e1b4b; border-color:#818cf8; margin-bottom:15px;">
-                <div>
-                    <strong style="color:#a5b4fc;">🚫 Don't Reveal Answer Mode</strong>
-                    <div class="mode-info" id="hideAnswerInfo">Normal Quiz (Reveals & Speaks Answer)</div>
-                </div>
-                <div class="toggle-switch" id="hideAnswerToggle" onclick="toggleHideAnswer()">
-                    <div class="toggle-slider"></div>
-                </div>
-            </div>
-
             <div class="controls-grid">
                 <div class="grid-header">Voice Model</div>
                 <div style="grid-column: span 2;">
@@ -603,8 +591,8 @@
 
             <div style="margin-bottom: 15px; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
                 <label style="color: #a855f7; font-weight: bold;">🔗 Google Apps Script Web App URL</label>
-                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:4px;" oninput="saveBackendUrl(this.value)">
-                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue. Auto-saved locally!</div>
+                <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" oninput="handleBackendUrlChange(this.value)" style="margin-top:4px;">
+                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Used in Auto AI mode to upload videos to Drive & YouTube Queue.</div>
             </div>
 
             <div class="auto-ai-box">
@@ -782,13 +770,12 @@
     
     let drag = { isDragging: false, activeZone: null, offsetX: 0, offsetY: 0 };
     let batchEditEnabled = false;
-    let hideAnswerEnabled = false;
     let lastExcelCell = null;
     let cancelRecording = false, cancelAutoAI = false;
     let autoAISettings = {};
 
     window.onload = () => {
-        loadBackendUrl();
+        loadSavedBackendUrl();
         populateControls();
         resizeCanvas();
         addQuestionPanel();
@@ -797,15 +784,16 @@
         initExcelTable();
     };
 
-    function loadBackendUrl() {
-        const savedUrl = localStorage.getItem('apps_script_backend_url');
+    /* --- PERSISTENT BACKEND URL (LOCALSTORAGE) --- */
+    function loadSavedBackendUrl() {
+        const savedUrl = localStorage.getItem('appsScriptUrl');
         if (savedUrl) {
             document.getElementById('appsScriptUrl').value = savedUrl;
         }
     }
 
-    function saveBackendUrl(val) {
-        localStorage.setItem('apps_script_backend_url', val.trim());
+    function handleBackendUrlChange(val) {
+        localStorage.setItem('appsScriptUrl', val.trim());
     }
 
     function escHtml(str) {
@@ -842,22 +830,6 @@
         }
     }
 
-    function toggleHideAnswer() {
-        hideAnswerEnabled = !hideAnswerEnabled;
-        const toggle = document.getElementById('hideAnswerToggle');
-        const info = document.getElementById('hideAnswerInfo');
-        if (hideAnswerEnabled) {
-            toggle.classList.add('active');
-            info.textContent = "Answer Hidden (Prompts Comments & Ends)";
-            info.style.color = '#818cf8';
-        } else {
-            toggle.classList.remove('active');
-            info.textContent = "Normal Quiz (Reveals & Speaks Answer)";
-            info.style.color = '#94a3b8';
-        }
-        drawStatic();
-    }
-
     function initVoices() {
         if (!('speechSynthesis' in window)) return;
         function loadVoices() {
@@ -884,6 +856,7 @@
             ? prefill.options : ['Earth','Mars','Jupiter','Saturn'];
         const correctIndex = prefill && typeof prefill.correctIndex === 'number'
             ? prefill.correctIndex : 2;
+        const dontReveal = prefill && typeof prefill.dontRevealAnswer === 'boolean' ? prefill.dontRevealAnswer : false;
         
         let explList = [];
         if (prefill && Array.isArray(prefill.explanations) && prefill.explanations.length) {
@@ -920,6 +893,11 @@
                 <option value="2"${correctIndex===2?' selected':''}>C</option>
                 <option value="3"${correctIndex===3?' selected':''}>D</option>
             </select>
+            <div style="margin-top: 10px; background: #0f172a; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                <label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#f59e0b; font-weight:bold;">
+                    <input type="checkbox" class="q-dont-reveal" ${dontReveal ? 'checked' : ''} onchange="drawStatic()"> Don't Reveal Answer
+                </label>
+            </div>
             <div style="margin-top: 10px;">
                 <label style="display:flex; align-items:center;">
                     <input type="checkbox" class="q-explanation-toggle" onchange="toggleExplanationField(this)" checked>Enable Explanation
@@ -950,8 +928,12 @@
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
             countdown: {x:0.5,y:0.85},
-            comment_prompt: {x:0.5,y:0.5}
+            overlayComment: {x:0.5,y:0.45},
+            overlayTimeStart: {x:0.5,y:0.45}
         };
+
+        if (!p.positions.overlayComment) p.positions.overlayComment = {x:0.5, y:0.45};
+        if (!p.positions.overlayTimeStart) p.positions.overlayTimeStart = {x:0.5, y:0.45};
 
         const listContainer = p.querySelector('.expl-list-box');
         explList.forEach((text, i) => {
@@ -1053,13 +1035,12 @@
                 image: {x:0.5,y:0.4},
                 explanation: {x:0.5,y:0.5},
                 countdown: {x:0.5,y:0.85},
-                comment_prompt: {x:0.5,y:0.5}
+                overlayComment: {x:0.5,y:0.45},
+                overlayTimeStart: {x:0.5,y:0.45}
             };
         }
-
-        if (!p.positions.comment_prompt) {
-            p.positions.comment_prompt = {x:0.5, y:0.5};
-        }
+        if (!p.positions.overlayComment) p.positions.overlayComment = {x:0.5, y:0.45};
+        if (!p.positions.overlayTimeStart) p.positions.overlayTimeStart = {x:0.5, y:0.45};
 
         const explInputs = Array.from(p.querySelectorAll('.q-explanation-text'));
         const explanations = explInputs.map(i => i.value.trim()).filter(v => v.length > 0);
@@ -1077,6 +1058,7 @@
             questionText: p.querySelector('.q-text').value,
             options: Array.from(p.querySelectorAll('.q-opt')).map(i => i.value),
             correctAnswerIndex: p.querySelector('.q-ans').value,
+            dontRevealAnswer: p.querySelector('.q-dont-reveal').checked,
             image: p.questionImageAsset,
             imgReveal: p.querySelector('.q-img-reveal').checked,
             imgScale: parseFloat(p.querySelector('.q-img-scale').value),
@@ -1120,7 +1102,7 @@
 
         const getHitZone = (mx, my, data) => {
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            const zones = ['image','question','options', ...explKeys, 'comment_prompt', 'countdown'];
+            const zones = ['image','question','options', ...explKeys, 'overlayComment', 'overlayTimeStart', 'countdown'];
 
             for (const zone of zones) {
                 const box = getBoundingBox(zone, data);
@@ -1167,7 +1149,8 @@
                             image: {x:0.5,y:0.4},
                             explanation: {x:0.5,y:0.5},
                             countdown: {x:0.5,y:0.85},
-                            comment_prompt: {x:0.5,y:0.5}
+                            overlayComment: {x:0.5,y:0.45},
+                            overlayTimeStart: {x:0.5,y:0.45}
                         };
                     }
                     if (!panel.positions[zone]) panel.positions[zone] = {x:0.5,y:0.5};
@@ -1238,7 +1221,12 @@
             ctx.setLineDash([5, 5]);
 
             const explKeys = (data.explanations || []).map((_, i) => i === 0 ? 'explanation' : `explanation_${i}`);
-            ['question','options','image', ...explKeys, 'comment_prompt', 'countdown'].forEach(zone => {
+            let zones = ['question','options','image', ...explKeys, 'countdown'];
+            if (data.dontRevealAnswer) {
+                zones.push('overlayComment', 'overlayTimeStart');
+            }
+
+            zones.forEach(zone => {
                 const box = getBoundingBox(zone, data);
                 if (box) ctx.strokeRect(box.x, box.y, box.w, box.h);
             });
@@ -1279,23 +1267,25 @@
 
         if (!isProcessing) return;
 
-        // --- DON'T REVEAL ANSWER MODE FLOW ---
-        if (hideAnswerEnabled) {
-            // Speak "Write your answer in the comments section" & show on-screen box
-            currentVisualStage = "comment_prompt";
-            const commentText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
+        // --- BRANCH: DON'T REVEAL ANSWER MODE ---
+        if (data.dontRevealAnswer) {
+            // 3a. Speak "Write your answer in the comments section"
+            currentVisualStage = "comment-prompt";
+            const commentText = data.lang === 'hi'
+                ? "अपना उत्तर कमेंट बॉक्स में लिखें"
+                : "Write your answer in the comments section";
             await speakUtterance(commentText, voiceName);
 
             if (!isProcessing) return;
 
-            // Speak "Your time starts now" & show box/countdown stage
-            currentVisualStage = "countdown_prompt";
+            // 4a. Speak "Your time starts now"
+            currentVisualStage = "time-start-prompt";
             const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
             await speakUtterance(introText, voiceName);
 
             if (!isProcessing) return;
 
-            // Countdown Numbers
+            // 5a. Countdown Numbers
             currentVisualStage = "countdown";
             for (let i = data.styles.countVal; i >= 1; i--) {
                 if (!isProcessing) return;
@@ -1303,20 +1293,17 @@
                 await speakUtterance(String(i), voiceName);
             }
 
-            // End cleanly without revealing the answer or playing explanations
+            // End immediately without revealing answer or explanation
             return;
         }
 
-        // --- STANDARD MODE FLOW ---
-        // 3. Countdown Intro Speech
-        currentVisualStage = "countdown_prompt";
+        // --- ORIGINAL FLOW (WHEN DON'T REVEAL ANSWER IS DISABLED) ---
+        // 3b. Countdown Intro Speech
+        currentVisualStage = "countdown";
         const introText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
         await speakUtterance(introText, voiceName);
 
-        if (!isProcessing) return;
-
-        // 4. Countdown Numbers
-        currentVisualStage = "countdown";
+        // 4b. Countdown Numbers
         for (let i = data.styles.countVal; i >= 1; i--) {
             if (!isProcessing) return;
             activeCountdownNumber = String(i);
@@ -1325,7 +1312,7 @@
 
         if (!isProcessing) return;
 
-        // 5. Correct Answer
+        // 5b. Correct Answer
         currentVisualStage = "answer";
         activeCountdownNumber = "";
         const correctOptText = data.options[parseInt(data.correctAnswerIndex)];
@@ -1336,7 +1323,7 @@
 
         if (!isProcessing) return;
 
-        // 6. Sequential Explanations
+        // 6b. Sequential Explanations
         if (data.hasExplanation && data.explanations.length > 0) {
             currentVisualStage = "explanation";
             const preExplText = data.lang === 'hi' ? "स्पष्टीकरण" : "The explanation is";
@@ -1428,9 +1415,11 @@
             return;
         }
 
+        // Ensure status prompt overlay is displayed during backend upload
         overlay.style.display = 'flex';
         statusMsg.innerText = `Uploading ${fileName} to Google Drive & YouTube Queue...`;
 
+        // Convert finalized Blob cleanly via ArrayBuffer to guarantee binary integrity
         const base64Data = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -1446,6 +1435,7 @@
             reader.readAsArrayBuffer(blob);
         });
 
+        // Pass active orientation resolution ('mobile', 'landscape', or 'square') so backend routes to Shorts or Videos
         const orientation = document.getElementById('resolution').value;
 
         const payload = {
@@ -1804,13 +1794,13 @@
 
         if (currentVisualStage === "question-only") return;
 
-        if (data.image && (["answer", "explanation", "all"].includes(currentVisualStage) || (hideAnswerEnabled && ["comment_prompt","countdown_prompt","countdown"].includes(currentVisualStage)))) {
+        if (data.image && ["answer", "explanation", "all"].includes(currentVisualStage)) {
             const iBox = getBoundingBox('image', data);
             if (iBox) ctx.drawImage(data.image, iBox.x, iBox.y, iBox.w, iBox.h);
         }
 
         const oBox = getBoundingBox('options', data);
-        if (oBox && ["options", "countdown_prompt", "comment_prompt", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
+        if (oBox && ["options", "comment-prompt", "time-start-prompt", "countdown", "answer", "explanation", "all"].includes(currentVisualStage)) {
             ctx.save();
             const isP = h > w;
             const bH = isP ? h*0.07 : h*0.1;
@@ -1830,8 +1820,7 @@
 
             pos.forEach((pPos, i) => {
                 let color = `${cardColor}1A`;
-                // Reveal correct option only if "Don't Reveal Answer" mode is OFF
-                if (!hideAnswerEnabled && ["answer", "explanation", "all"].includes(currentVisualStage)) {
+                if (!data.dontRevealAnswer && ["answer", "explanation", "all"].includes(currentVisualStage)) {
                     color = (i === correct) ? correctColor : `${cardColor}1A`;
                 }
                 ctx.fillStyle = color;
@@ -1852,27 +1841,26 @@
             ctx.restore();
         }
 
-        // On-Screen Explanation-Style Banner Boxes during "Don't Reveal Answer" sequence
-        if (hideAnswerEnabled && ["comment_prompt", "countdown_prompt", "countdown", "all"].includes(currentVisualStage)) {
-            const promptBox = getBoundingBox('comment_prompt', data);
-            if (promptBox) {
-                let promptText = "";
-                if (currentVisualStage === "comment_prompt") {
-                    promptText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
-                } else if (["countdown_prompt", "countdown"].includes(currentVisualStage)) {
-                    promptText = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
-                } else if (currentVisualStage === "all") {
-                    promptText = data.lang === 'hi' ? "अपना उत्तर कमेंट सेक्शन में लिखें" : "Write your answer in the comments section";
+        // On-screen Engagement Phrases (When Don't Reveal Answer is Enabled)
+        if (data.dontRevealAnswer) {
+            if (["comment-prompt", "all"].includes(currentVisualStage)) {
+                const commentBox = getBoundingBox('overlayComment', data);
+                if (commentBox) {
+                    const txt = data.lang === 'hi' ? "अपना उत्तर कमेंट बॉक्स में लिखें" : "Write your answer in the comments section";
+                    renderSingleExplBox(commentBox, txt, data);
                 }
-
-                if (promptText) {
-                    renderSingleExplBox(promptBox, promptText, data);
+            }
+            if (["time-start-prompt", "all"].includes(currentVisualStage)) {
+                const timeStartBox = getBoundingBox('overlayTimeStart', data);
+                if (timeStartBox) {
+                    const txt = data.lang === 'hi' ? "समय शुरू होता है" : "Your time starts now";
+                    renderSingleExplBox(timeStartBox, txt, data);
                 }
             }
         }
 
-        // Standard Explanations
-        if (!hideAnswerEnabled && data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
+        // Explanations (When Don't Reveal Answer is Disabled)
+        if (!data.dontRevealAnswer && data.hasExplanation && ["explanation", "all"].includes(currentVisualStage)) {
             if (currentVisualStage === "all") {
                 data.explanations.forEach((text, idx) => {
                     const key = idx === 0 ? 'explanation' : `explanation_${idx}`;
@@ -1923,8 +1911,8 @@
 
     function getBoundingBox(zone, data) {
         if (!data || (zone==='image' && !data.image)) return null;
-        const w = canvas.width, h = canvas.height, pos = data.positions[zone];
-        if (!pos) return null;
+        const w = canvas.width, h = canvas.height;
+        const pos = data.positions[zone] || {x:0.5, y:0.5};
 
         let boxW, boxH;
         if (zone === 'question') {
@@ -1936,7 +1924,7 @@
         } else if (zone === 'image') {
             boxH = h*0.4*data.imgScale;
             boxW = (data.image.width/data.image.height)*boxH;
-        } else if (zone.startsWith('explanation') || zone === 'comment_prompt') {
+        } else if (zone.startsWith('explanation') || zone === 'overlayComment' || zone === 'overlayTimeStart') {
             boxW = w*0.85;
             boxH = parseInt(data.styles.eSize)*1.5*2.5;
         } else if (zone === 'countdown') {
@@ -2087,7 +2075,8 @@
             image: {x:0.5,y:0.4},
             explanation: {x:0.5,y:0.5},
             countdown: {x:0.5,y:0.85},
-            comment_prompt: {x:0.5,y:0.5}
+            overlayComment: {x:0.5,y:0.45},
+            overlayTimeStart: {x:0.5,y:0.45}
         };
 
         rows.forEach(tr => {
