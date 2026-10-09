@@ -1168,7 +1168,7 @@
 
         canvas.addEventListener('mousedown', handleStart);
         window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleEnd);
+        window.mouseup = handleEnd;
         canvas.addEventListener('touchstart', handleStart, { passive: false });
         canvas.addEventListener('touchmove', handleMove, { passive: false });
         canvas.addEventListener('touchend', handleEnd, { passive: false });
@@ -1415,11 +1415,9 @@
             return;
         }
 
-        // Ensure status prompt overlay is displayed during backend upload
         overlay.style.display = 'flex';
         statusMsg.innerText = `Uploading ${fileName} to Google Drive & YouTube Queue...`;
 
-        // Convert finalized Blob cleanly via ArrayBuffer to guarantee binary integrity
         const base64Data = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -1435,7 +1433,6 @@
             reader.readAsArrayBuffer(blob);
         });
 
-        // Pass active orientation resolution ('mobile', 'landscape', or 'square') so backend routes to Shorts or Videos
         const orientation = document.getElementById('resolution').value;
 
         const payload = {
@@ -1980,7 +1977,7 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER --- */
+    /* --- EXCEL IMPORTER & MULTI-FORMAT CLIPBOARD PARSER --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2017,11 +2014,51 @@
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
-    function pasteTextIntoExcel(text, startCell) {
-        if (!text) return;
+    function parseMultiFormatClipboardData(htmlText, rawText) {
+        let grid = [];
+
+        // 1. Try HTML Table parsing (Google Docs, Word, Web pages)
+        if (htmlText && htmlText.includes('<table')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const rows = Array.from(doc.querySelectorAll('tr'));
+            if (rows.length > 0) {
+                grid = rows.map(tr => Array.from(tr.querySelectorAll('th, td')).map(cell => cell.textContent.trim()));
+            }
+        }
+
+        // 2. Try Markdown Table parsing (| Col1 | Col2 |)
+        if (grid.length === 0 && rawText && rawText.includes('|')) {
+            const lines = rawText.trim().split(/\r?\n/).filter(line => line.includes('|'));
+            if (lines.length > 0) {
+                grid = lines
+                    .filter(line => !line.match(/^\|?\s*[-:]+\s*\|/)) // Filter out divider rows (|---|---|)
+                    .map(line => {
+                        const parts = line.split('|');
+                        if (parts.length > 1) {
+                            if (parts[0].trim() === '') parts.shift();
+                            if (parts[parts.length - 1].trim() === '') parts.pop();
+                        }
+                        return parts.map(c => c.trim());
+                    });
+            }
+        }
+
+        // 3. Fallback to Tab-Separated Values (TSV / Excel / Sheets) or Comma-Separated Values
+        if (grid.length === 0 && rawText) {
+            const lines = rawText.trim().split(/\r?\n/).filter(l => l.length > 0);
+            grid = lines.map(line => {
+                if (line.includes('\t')) return line.split('\t').map(c => c.trim());
+                return [line.trim()];
+            });
+        }
+
+        return grid;
+    }
+
+    function pasteGridIntoExcelTable(grid, startCell) {
+        if (!grid || grid.length === 0) return;
         const tbody = document.querySelector('#excelTable tbody');
-        const rows = text.trim().split(/\r?\n/).filter(r => r.length);
-        const grid = rows.map(rowStr => rowStr.split('\t'));
         let startRow = 0, startCol = 0;
 
         if (startCell) {
@@ -2048,19 +2085,44 @@
     function handleExcelPaste(e) {
         const clipboard = e.clipboardData || window.clipboardData;
         if (!clipboard) return;
-        const text = clipboard.getData('text/plain');
-        if (!text) return;
-        e.preventDefault();
-        pasteTextIntoExcel(text, e.target.closest('td') || lastExcelCell);
+
+        const htmlText = clipboard.getData('text/html');
+        const rawText = clipboard.getData('text/plain');
+
+        const grid = parseMultiFormatClipboardData(htmlText, rawText);
+        if (grid.length > 0) {
+            e.preventDefault();
+            pasteGridIntoExcelTable(grid, e.target.closest('td') || lastExcelCell);
+        }
     }
 
     async function pasteFromClipboard() {
         try {
-            const text = await navigator.clipboard.readText();
-            if (!text) return;
-            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+            let htmlText = '', rawText = '';
+            if (navigator.clipboard && navigator.clipboard.read) {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    if (item.types.includes('text/html')) {
+                        const blob = await item.getType('text/html');
+                        htmlText = await blob.text();
+                    }
+                    if (item.types.includes('text/plain')) {
+                        const blob = await item.getType('text/plain');
+                        rawText = await blob.text();
+                    }
+                }
+            } else if (navigator.clipboard && navigator.clipboard.readText) {
+                rawText = await navigator.clipboard.readText();
+            }
+
+            const grid = parseMultiFormatClipboardData(htmlText, rawText);
+            if (grid.length > 0) {
+                pasteGridIntoExcelTable(grid, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+            } else {
+                alert('No compatible text/table data found in clipboard.');
+            }
         } catch (err) {
-            alert('Clipboard access blocked. Click a cell and use Ctrl+V.');
+            alert('Clipboard access blocked or restricted. Select an entry cell and press Ctrl+V directly.');
         }
     }
 
