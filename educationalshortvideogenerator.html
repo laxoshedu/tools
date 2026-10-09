@@ -84,7 +84,7 @@
             margin-bottom: 4px;
         }
 
-        input[type="text"], select, input[type="number"], input[type="color"] {
+        input[type="text"], select, input[type="number"], input[type="color"], textarea {
             width: 100%;
             padding: 8px;
             background: #020617;
@@ -674,7 +674,8 @@
             <div class="excel-toolbar">
                 <button type="button" onclick="addExcelRow()">+ Add Row</button>
                 <button type="button" onclick="clearExcelTable()" style="background:#475569;">Clear All Rows</button>
-                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Paste from Clipboard</button>
+                <button type="button" onclick="pasteFromClipboard()" style="background:#22c55e;">📋 Laptop Paste</button>
+                <button type="button" onclick="openMobilePasteModal()" style="background:#a855f7;">📱 Mobile Quick Paste</button>
                 <button type="button" onclick="backToModeChooser()" style="background:#0f172a;">◀ Back</button>
             </div>
 
@@ -700,6 +701,19 @@
                 ✅ Import these questions as tabs
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Modal: Mobile Quick Paste -->
+<div id="mobilePasteModal" class="modal-backdrop" style="z-index: 60;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>📱 Mobile Quick Paste Input</h3>
+            <button style="background:#be123c; padding:4px 8px; font-size:0.8rem; border-radius:4px;" onclick="closeMobilePasteModal()">Close</button>
+        </div>
+        <p style="font-size:0.8rem; color:#cbd5e1; margin-top:0;">Paste your copied Excel / CSV / tabbed text directly inside this box on mobile devices:</p>
+        <textarea id="mobilePasteBox" rows="8" placeholder="Paste questions here..."></textarea>
+        <button type="button" onclick="processMobilePasteInput()" style="background:#22c55e; width:100%; margin-top:10px; padding:10px;">📥 Parse & Import to Table</button>
     </div>
 </div>
 
@@ -2006,7 +2020,7 @@
         drawStatic();
     }
 
-    /* --- EXCEL IMPORTER (FIXED FOR MOBILE CLIPBOARD & MULTI-DELIMITER SPLITTING) --- */
+    /* --- EXCEL IMPORTER & MULTI-PLATFORM PASTING LOGIC --- */
     function initExcelTable() {
         const tbody = document.querySelector('#excelTable tbody');
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
@@ -2043,40 +2057,23 @@
         for (let i=0;i<5;i++) tbody.appendChild(createExcelRow());
     }
 
-    function parseRowTextIntoCols(rowStr) {
-        if (!rowStr) return [];
-        // Detect primary separator: tab, comma, or semicolon
-        if (rowStr.includes('\t')) {
-            return rowStr.split('\t');
-        } else if (rowStr.includes(';') && rowStr.split(';').length >= 5) {
-            return rowStr.split(';');
-        } else if (rowStr.includes(',') && rowStr.split(',').length >= 5) {
-            // Split CSV taking basic quotes into account
-            const cols = [];
-            let current = '', inQuotes = false;
-            for (let i = 0; i < rowStr.length; i++) {
-                const char = rowStr[i];
-                if (char === '"' || char === "'") inQuotes = !inQuotes;
-                else if (char === ',' && !inQuotes) {
-                    cols.push(current.trim());
-                    current = '';
-                } else current += char;
-            }
-            cols.push(current.trim());
-            return cols;
-        } else if (/\s{2,}/.test(rowStr)) {
-            // Split by 2 or more spaces (common in mobile copy-paste)
-            return rowStr.split(/\s{2,}/);
-        }
-        return [rowStr];
+    function parseRawTextToGrid(text) {
+        if (!text) return [];
+        const lines = text.trim().split(/\r?\n/).filter(r => r.length > 0);
+        return lines.map(line => {
+            if (line.includes('\t')) return line.split('\t');
+            if (line.includes(',')) return line.split(',');
+            if (line.includes(';')) return line.split(';');
+            return line.split(/\s{2,}/);
+        });
     }
 
     function pasteTextIntoExcel(text, startCell) {
         if (!text) return;
         const tbody = document.querySelector('#excelTable tbody');
-        const rawLines = text.trim().split(/\r?\n/).filter(r => r.trim().length > 0);
-        
-        const grid = rawLines.map(line => parseRowTextIntoCols(line));
+        const grid = parseRawTextToGrid(text);
+        if (!grid.length) return;
+
         let startRow = 0, startCol = 0;
 
         if (startCell) {
@@ -2095,11 +2092,7 @@
             const tr = tbody.rows[startRow + rIdx];
             for (let cIdx = 0; cIdx < cols.length && (startCol + cIdx) < 7; cIdx++) {
                 const targetCell = tr.cells[startCol + cIdx];
-                if (targetCell) {
-                    let cellVal = cols[cIdx] || '';
-                    cellVal = cellVal.replace(/^["']|["']\$/g, '').trim();
-                    targetCell.textContent = cellVal;
-                }
+                if (targetCell) targetCell.textContent = cols[cIdx].trim();
             }
         });
     }
@@ -2115,20 +2108,30 @@
 
     async function pasteFromClipboard() {
         try {
-            let text = '';
-            if (navigator.clipboard && navigator.clipboard.readText) {
-                text = await navigator.clipboard.readText();
-            }
-            if (!text) {
-                text = prompt("Paste your questions/table content here:");
-            }
+            const text = await navigator.clipboard.readText();
             if (!text) return;
             pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
         } catch (err) {
-            const text = prompt("Paste your questions/table content here:");
-            if (text) {
-                pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
-            }
+            openMobilePasteModal();
+        }
+    }
+
+    function openMobilePasteModal() {
+        document.getElementById('mobilePasteModal').style.display = 'flex';
+        document.getElementById('mobilePasteBox').value = '';
+    }
+
+    function closeMobilePasteModal() {
+        document.getElementById('mobilePasteModal').style.display = 'none';
+    }
+
+    function processMobilePasteInput() {
+        const text = document.getElementById('mobilePasteBox').value;
+        if (text && text.trim().length > 0) {
+            pasteTextIntoExcel(text, lastExcelCell || document.querySelector('#excelTable tbody').rows[0]?.cells[0]);
+            closeMobilePasteModal();
+        } else {
+            alert('Please paste text inside the box first.');
         }
     }
 
