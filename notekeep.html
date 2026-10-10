@@ -530,6 +530,7 @@
             width: 340px;
             height: 240px;
             user-select: none;
+            -webkit-user-select: none;
             z-index: 10;
             touch-action: none;
         }
@@ -1355,30 +1356,6 @@
         let currentLassoTargetImage = null; 
         const lassoOverlayBox = document.getElementById('lassoOverlayBox');
         const lassoActionMenu = document.getElementById('lassoActionMenu');
-
-        // Persistent Text Selection State across Mobile Dropdown Focus Changes
-        let savedTextSelectionRange = null;
-
-        function saveTextSelection() {
-            const richEditorElem = document.getElementById('richEditor');
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0 && richEditorElem) {
-                const range = sel.getRangeAt(0);
-                if (richEditorElem.contains(range.commonAncestorContainer)) {
-                    savedTextSelectionRange = range.cloneRange();
-                }
-            }
-        }
-
-        function restoreSavedTextSelection() {
-            const richEditorElem = document.getElementById('richEditor');
-            if (savedTextSelectionRange && richEditorElem) {
-                richEditorElem.focus();
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(savedTextSelectionRange);
-            }
-        }
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -3490,6 +3467,30 @@
         };
 
         // ================= RICH TEXT NOTE ENGINE =================
+        const richEditor = document.getElementById('richEditor');
+        const textPaperCard = document.getElementById('textPaperCard');
+
+        let lastRichEditorRange = null;
+
+        document.addEventListener('selectionchange', () => {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && richEditor && richEditor.contains(sel.anchorNode)) {
+                if (!sel.isCollapsed) {
+                    lastRichEditorRange = sel.getRangeAt(0).cloneRange();
+                }
+            }
+        });
+
+        function restoreRichEditorSelection() {
+            if (lastRichEditorRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(lastRichEditorRange);
+                return true;
+            }
+            return false;
+        }
+
         function openTextNoteStudio(noteId) {
             currentNoteId = noteId;
             const note = appState.notes.find(n => n.id === noteId);
@@ -3501,7 +3502,6 @@
             const textHeaderInput = document.getElementById('textNoteHeaderInput');
             textHeaderInput.value = note.headerTitle || '';
 
-            const richEditor = document.getElementById('richEditor');
             richEditor.innerHTML = note.content || '';
 
             document.getElementById('textPaperBgStyleSelect').value = note.bgStyle || 'pattern';
@@ -3530,43 +3530,22 @@
             startAutoSaveTimer();
         }
 
-        const richEditor = document.getElementById('richEditor');
-        const textPaperCard = document.getElementById('textPaperCard');
-
         richEditor.addEventListener('input', () => {
             textPaperCard.style.minHeight = Math.max(1100, richEditor.scrollHeight + 150) + 'px';
         });
 
-        // TRACK AND SAVE TEXT SELECTION RANGES IN RICH EDITOR
-        richEditor.addEventListener('keyup', saveTextSelection);
-        richEditor.addEventListener('mouseup', saveTextSelection);
-        richEditor.addEventListener('touchend', saveTextSelection);
-
-        document.addEventListener('selectionchange', () => {
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
-                if (richEditor.contains(range.commonAncestorContainer) && !sel.isCollapsed) {
-                    savedTextSelectionRange = range.cloneRange();
-                }
-            }
-            if (document.activeElement === richEditor) {
-                if (sel && sel.isCollapsed) {
-                    clearInlineFormattingState();
-                }
-            }
-        });
-
         function applyEffectToSelectionOnly(cmd, value = null) {
-            restoreSavedTextSelection();
-            const sel = window.getSelection();
+            let sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || sel.isCollapsed || !richEditor.contains(sel.anchorNode)) {
+                restoreRichEditorSelection();
+                sel = window.getSelection();
+            }
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please highlight/select text first to apply effect!");
                 return;
             }
             document.execCommand(cmd, false, value);
             richEditor.focus();
-            saveTextSelection();
         }
 
         function clearInlineFormattingState() {
@@ -3580,11 +3559,30 @@
             document.execCommand('hiliteColor', false, 'transparent');
         }
 
+        document.addEventListener('selectionchange', () => {
+            if (document.activeElement === richEditor) {
+                const sel = window.getSelection();
+                if (sel && sel.isCollapsed) {
+                    clearInlineFormattingState();
+                }
+            }
+        });
+
         richEditor.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 setTimeout(() => {
                     clearInlineFormattingState();
                 }, 10);
+            }
+        });
+
+        const textFormatButtons = ['btnBold', 'btnItalic', 'btnUnderline', 'btnStrike', 'btnSub', 'btnSup', 'btnAlignLeft', 'btnAlignCenter', 'btnAlignRight', 'btnListUl', 'btnListOl'];
+        textFormatButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                });
             }
         });
 
@@ -3595,31 +3593,15 @@
         document.getElementById('btnSub').onclick = () => applyEffectToSelectionOnly('subscript');
         document.getElementById('btnSup').onclick = () => applyEffectToSelectionOnly('superscript');
 
-        document.getElementById('btnAlignLeft').onclick = () => document.execCommand('justifyLeft', false, null);
-        document.getElementById('btnAlignCenter').onclick = () => document.execCommand('justifyCenter', false, null);
-        document.getElementById('btnAlignRight').onclick = () => document.execCommand('justifyRight', false, null);
-        document.getElementById('btnListUl').onclick = () => document.execCommand('insertUnorderedList', false, null);
-        document.getElementById('btnListOl').onclick = () => document.execCommand('insertOrderedList', false, null);
+        document.getElementById('btnAlignLeft').onclick = () => applyEffectToSelectionOnly('justifyLeft');
+        document.getElementById('btnAlignCenter').onclick = () => applyEffectToSelectionOnly('justifyCenter');
+        document.getElementById('btnAlignRight').onclick = () => applyEffectToSelectionOnly('justifyRight');
+        document.getElementById('btnListUl').onclick = () => applyEffectToSelectionOnly('insertUnorderedList');
+        document.getElementById('btnListOl').onclick = () => applyEffectToSelectionOnly('insertOrderedList');
 
-        // Save selection on pointerdown/mousedown before dropdown stealing focus
-        const preventSelectionLossOnDropdown = (elem) => {
-            elem.addEventListener('pointerdown', saveTextSelection);
-            elem.addEventListener('touchstart', saveTextSelection, { passive: true });
-        };
-
-        const fontSelectElem = document.getElementById('textFontFamilySelect');
-        const sizeSelectElem = document.getElementById('textFontSizeSelect');
-        const textColorElem = document.getElementById('textColorPicker');
-        const textHighlightElem = document.getElementById('textHighlightColorPicker');
-
-        preventSelectionLossOnDropdown(fontSelectElem);
-        preventSelectionLossOnDropdown(sizeSelectElem);
-        preventSelectionLossOnDropdown(textColorElem);
-        preventSelectionLossOnDropdown(textHighlightElem);
-
-        fontSelectElem.onchange = (e) => {
+        document.getElementById('textFontFamilySelect').onchange = (e) => {
             const fontName = e.target.value;
-            restoreSavedTextSelection();
+            restoreRichEditorSelection();
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
@@ -3634,12 +3616,11 @@
                 document.execCommand('fontName', false, fontName);
             }
             richEditor.focus();
-            saveTextSelection();
         };
 
-        textHighlightElem.oninput = (e) => {
+        document.getElementById('textHighlightColorPicker').oninput = (e) => {
             const color = e.target.value;
-            restoreSavedTextSelection();
+            restoreRichEditorSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please select text to apply highlight!");
@@ -3655,12 +3636,11 @@
                 document.execCommand('hiliteColor', false, color);
             }
             richEditor.focus();
-            saveTextSelection();
         };
 
-        sizeSelectElem.onchange = (e) => {
+        document.getElementById('textFontSizeSelect').onchange = (e) => {
             const chosenSize = e.target.value;
-            restoreSavedTextSelection();
+            restoreRichEditorSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
 
@@ -3690,10 +3670,9 @@
                 sel.addRange(newRange);
             }
             richEditor.focus();
-            saveTextSelection();
         };
 
-        textColorElem.oninput = (e) => applyEffectToSelectionOnly('foreColor', e.target.value);
+        document.getElementById('textColorPicker').oninput = (e) => applyEffectToSelectionOnly('foreColor', e.target.value);
 
         function generateProceduralSvgPattern(type, color) {
             const svgHeader = `data:image/svg+xml;utf8,`;
@@ -3739,7 +3718,6 @@
         document.getElementById('textProceduralPatternSelect').onchange = applyTextPaperBackground;
         document.getElementById('textPaperColorPicker').oninput = applyTextPaperBackground;
 
-        // HIGH PERFORMANCE SMOOTH MOBILE IMAGE DRAG & RESIZE ENGINE
         function makeTextImgBoxInteractive(box) {
             const dragHandle = box.querySelector('.text-img-drag-handle');
             const deleteBtn = box.querySelector('.text-img-delete-btn');
@@ -3752,43 +3730,41 @@
             };
 
             let isDragging = false, startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
-            
-            dragHandle.addEventListener('pointerdown', (e) => {
+
+            const onPointerStart = (e) => {
                 e.stopPropagation();
-                e.preventDefault();
+                if (e.target === deleteBtn || e.target === resizeHandle || e.target === canvas) return;
                 isDragging = true;
                 startX = e.clientX;
                 startY = e.clientY;
                 initialLeft = parseFloat(box.style.left) || 40;
                 initialTop = parseFloat(box.style.top) || 120;
-                try { dragHandle.setPointerCapture(e.pointerId); } catch(err){}
-            });
+                try { (e.currentTarget || dragHandle).setPointerCapture(e.pointerId); } catch(err){}
+            };
 
-            dragHandle.addEventListener('pointermove', (e) => {
+            const onPointerMove = (e) => {
                 if (!isDragging) return;
                 e.stopPropagation();
-                e.preventDefault();
                 let dx = e.clientX - startX;
                 let dy = e.clientY - startY;
                 box.style.left = (initialLeft + dx) + 'px';
                 box.style.top = (initialTop + dy) + 'px';
-            });
-
-            const stopDragging = (e) => {
-                if (!isDragging) return;
-                e.stopPropagation();
-                isDragging = false;
-                try { dragHandle.releasePointerCapture(e.pointerId); } catch(err){}
             };
 
-            dragHandle.addEventListener('pointerup', stopDragging);
-            dragHandle.addEventListener('pointercancel', stopDragging);
+            const onPointerEnd = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                try { (e.currentTarget || dragHandle).releasePointerCapture(e.pointerId); } catch(err){}
+            };
+
+            dragHandle.addEventListener('pointerdown', onPointerStart);
+            dragHandle.addEventListener('pointermove', onPointerMove);
+            dragHandle.addEventListener('pointerup', onPointerEnd);
+            dragHandle.addEventListener('pointercancel', onPointerEnd);
 
             let isResizing = false, rStartX = 0, rStartY = 0, startW = 0, startH = 0;
-            
             resizeHandle.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
-                e.preventDefault();
                 isResizing = true;
                 rStartX = e.clientX;
                 rStartY = e.clientY;
@@ -3800,22 +3776,20 @@
             resizeHandle.addEventListener('pointermove', (e) => {
                 if (!isResizing) return;
                 e.stopPropagation();
-                e.preventDefault();
                 let dw = e.clientX - rStartX;
                 let dh = e.clientY - rStartY;
                 box.style.width = Math.max(120, startW + dw) + 'px';
                 box.style.height = Math.max(80, startH + dh) + 'px';
             });
 
-            const stopResizing = (e) => {
+            const stopResize = (e) => {
                 if (!isResizing) return;
-                e.stopPropagation();
                 isResizing = false;
                 try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
             };
 
-            resizeHandle.addEventListener('pointerup', stopResizing);
-            resizeHandle.addEventListener('pointercancel', stopResizing);
+            resizeHandle.addEventListener('pointerup', stopResize);
+            resizeHandle.addEventListener('pointercancel', stopResize);
 
             if (canvas) {
                 const ctx = canvas.getContext('2d');
@@ -3840,15 +3814,9 @@
                     ctx.stroke();
                 });
 
-                const stopDrawingOnCanvas = (ev) => {
-                    if (isDrawingImg) {
-                        ev.stopPropagation();
-                        isDrawingImg = false;
-                    }
-                };
-
-                canvas.addEventListener('pointerup', stopDrawingOnCanvas);
-                canvas.addEventListener('pointercancel', stopDrawingOnCanvas);
+                const stopImgDraw = () => { isDrawingImg = false; };
+                canvas.addEventListener('pointerup', stopImgDraw);
+                canvas.addEventListener('pointercancel', stopImgDraw);
             }
         }
 
