@@ -531,6 +531,7 @@
             height: 240px;
             user-select: none;
             z-index: 10;
+            touch-action: none;
         }
 
         .text-img-box img {
@@ -554,6 +555,9 @@
             cursor: move;
             z-index: 10;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .text-img-delete-btn {
@@ -573,6 +577,7 @@
             cursor: pointer;
             z-index: 10;
             border: 1.5px solid white;
+            touch-action: none;
         }
 
         .text-img-resize-handle {
@@ -586,6 +591,7 @@
             border-radius: 50%;
             cursor: nwse-resize;
             z-index: 10;
+            touch-action: none;
         }
 
         .text-img-ink-canvas {
@@ -842,7 +848,7 @@
 
             <!-- 3) PEN TOOL & 4) ERASER TOOL -->
             <div class="tool-group">
-                <button id="penBtn" class="active" title="Pen Tool">✒️️</button>
+                <button id="penBtn" class="active" title="Pen Tool">✒</button>
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
             </div>
 
@@ -1248,7 +1254,7 @@
                     </div>
                 </div>
                 <div class="export-option-card" id="exportLongImgBtn">
-                    <div style="font-size: 24px;">🖼️️</div>
+                    <div style="font-size: 24px;">🖼</div>
                     <div>
                         <h4>Single Long Image (JPG)</h4>
                         <p>Export vertical stitched image</p>
@@ -1349,6 +1355,30 @@
         let currentLassoTargetImage = null; 
         const lassoOverlayBox = document.getElementById('lassoOverlayBox');
         const lassoActionMenu = document.getElementById('lassoActionMenu');
+
+        // Persistent Text Selection State across Mobile Dropdown Focus Changes
+        let savedTextSelectionRange = null;
+
+        function saveTextSelection() {
+            const richEditorElem = document.getElementById('richEditor');
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && richEditorElem) {
+                const range = sel.getRangeAt(0);
+                if (richEditorElem.contains(range.commonAncestorContainer)) {
+                    savedTextSelectionRange = range.cloneRange();
+                }
+            }
+        }
+
+        function restoreSavedTextSelection() {
+            const richEditorElem = document.getElementById('richEditor');
+            if (savedTextSelectionRange && richEditorElem) {
+                richEditorElem.focus();
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedTextSelectionRange);
+            }
+        }
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -3507,7 +3537,28 @@
             textPaperCard.style.minHeight = Math.max(1100, richEditor.scrollHeight + 150) + 'px';
         });
 
+        // TRACK AND SAVE TEXT SELECTION RANGES IN RICH EDITOR
+        richEditor.addEventListener('keyup', saveTextSelection);
+        richEditor.addEventListener('mouseup', saveTextSelection);
+        richEditor.addEventListener('touchend', saveTextSelection);
+
+        document.addEventListener('selectionchange', () => {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                if (richEditor.contains(range.commonAncestorContainer) && !sel.isCollapsed) {
+                    savedTextSelectionRange = range.cloneRange();
+                }
+            }
+            if (document.activeElement === richEditor) {
+                if (sel && sel.isCollapsed) {
+                    clearInlineFormattingState();
+                }
+            }
+        });
+
         function applyEffectToSelectionOnly(cmd, value = null) {
+            restoreSavedTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please highlight/select text first to apply effect!");
@@ -3515,6 +3566,7 @@
             }
             document.execCommand(cmd, false, value);
             richEditor.focus();
+            saveTextSelection();
         }
 
         function clearInlineFormattingState() {
@@ -3527,15 +3579,6 @@
             document.execCommand('foreColor', false, '#111827');
             document.execCommand('hiliteColor', false, 'transparent');
         }
-
-        document.addEventListener('selectionchange', () => {
-            if (document.activeElement === richEditor) {
-                const sel = window.getSelection();
-                if (sel && sel.isCollapsed) {
-                    clearInlineFormattingState();
-                }
-            }
-        });
 
         richEditor.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -3558,8 +3601,25 @@
         document.getElementById('btnListUl').onclick = () => document.execCommand('insertUnorderedList', false, null);
         document.getElementById('btnListOl').onclick = () => document.execCommand('insertOrderedList', false, null);
 
-        document.getElementById('textFontFamilySelect').onchange = (e) => {
+        // Save selection on pointerdown/mousedown before dropdown stealing focus
+        const preventSelectionLossOnDropdown = (elem) => {
+            elem.addEventListener('pointerdown', saveTextSelection);
+            elem.addEventListener('touchstart', saveTextSelection, { passive: true });
+        };
+
+        const fontSelectElem = document.getElementById('textFontFamilySelect');
+        const sizeSelectElem = document.getElementById('textFontSizeSelect');
+        const textColorElem = document.getElementById('textColorPicker');
+        const textHighlightElem = document.getElementById('textHighlightColorPicker');
+
+        preventSelectionLossOnDropdown(fontSelectElem);
+        preventSelectionLossOnDropdown(sizeSelectElem);
+        preventSelectionLossOnDropdown(textColorElem);
+        preventSelectionLossOnDropdown(textHighlightElem);
+
+        fontSelectElem.onchange = (e) => {
             const fontName = e.target.value;
+            restoreSavedTextSelection();
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
@@ -3574,10 +3634,12 @@
                 document.execCommand('fontName', false, fontName);
             }
             richEditor.focus();
+            saveTextSelection();
         };
 
-        document.getElementById('textHighlightColorPicker').oninput = (e) => {
+        textHighlightElem.oninput = (e) => {
             const color = e.target.value;
+            restoreSavedTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please select text to apply highlight!");
@@ -3593,10 +3655,12 @@
                 document.execCommand('hiliteColor', false, color);
             }
             richEditor.focus();
+            saveTextSelection();
         };
 
-        document.getElementById('textFontSizeSelect').onchange = (e) => {
+        sizeSelectElem.onchange = (e) => {
             const chosenSize = e.target.value;
+            restoreSavedTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
 
@@ -3626,9 +3690,10 @@
                 sel.addRange(newRange);
             }
             richEditor.focus();
+            saveTextSelection();
         };
 
-        document.getElementById('textColorPicker').oninput = (e) => applyEffectToSelectionOnly('foreColor', e.target.value);
+        textColorElem.oninput = (e) => applyEffectToSelectionOnly('foreColor', e.target.value);
 
         function generateProceduralSvgPattern(type, color) {
             const svgHeader = `data:image/svg+xml;utf8,`;
@@ -3674,6 +3739,7 @@
         document.getElementById('textProceduralPatternSelect').onchange = applyTextPaperBackground;
         document.getElementById('textPaperColorPicker').oninput = applyTextPaperBackground;
 
+        // HIGH PERFORMANCE SMOOTH MOBILE IMAGE DRAG & RESIZE ENGINE
         function makeTextImgBoxInteractive(box) {
             const dragHandle = box.querySelector('.text-img-drag-handle');
             const deleteBtn = box.querySelector('.text-img-delete-btn');
@@ -3686,52 +3752,70 @@
             };
 
             let isDragging = false, startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+            
             dragHandle.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 isDragging = true;
                 startX = e.clientX;
                 startY = e.clientY;
                 initialLeft = parseFloat(box.style.left) || 40;
                 initialTop = parseFloat(box.style.top) || 120;
-                dragHandle.setPointerCapture(e.pointerId);
+                try { dragHandle.setPointerCapture(e.pointerId); } catch(err){}
             });
 
             dragHandle.addEventListener('pointermove', (e) => {
                 if (!isDragging) return;
+                e.stopPropagation();
+                e.preventDefault();
                 let dx = e.clientX - startX;
                 let dy = e.clientY - startY;
                 box.style.left = (initialLeft + dx) + 'px';
                 box.style.top = (initialTop + dy) + 'px';
             });
 
-            dragHandle.addEventListener('pointerup', (e) => {
+            const stopDragging = (e) => {
+                if (!isDragging) return;
+                e.stopPropagation();
                 isDragging = false;
                 try { dragHandle.releasePointerCapture(e.pointerId); } catch(err){}
-            });
+            };
+
+            dragHandle.addEventListener('pointerup', stopDragging);
+            dragHandle.addEventListener('pointercancel', stopDragging);
 
             let isResizing = false, rStartX = 0, rStartY = 0, startW = 0, startH = 0;
+            
             resizeHandle.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 isResizing = true;
                 rStartX = e.clientX;
                 rStartY = e.clientY;
                 startW = box.offsetWidth;
                 startH = box.offsetHeight;
-                resizeHandle.setPointerCapture(e.pointerId);
+                try { resizeHandle.setPointerCapture(e.pointerId); } catch(err){}
             });
 
             resizeHandle.addEventListener('pointermove', (e) => {
                 if (!isResizing) return;
+                e.stopPropagation();
+                e.preventDefault();
                 let dw = e.clientX - rStartX;
                 let dh = e.clientY - rStartY;
                 box.style.width = Math.max(120, startW + dw) + 'px';
                 box.style.height = Math.max(80, startH + dh) + 'px';
             });
 
-            resizeHandle.addEventListener('pointerup', (e) => {
+            const stopResizing = (e) => {
+                if (!isResizing) return;
+                e.stopPropagation();
                 isResizing = false;
                 try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
-            });
+            };
+
+            resizeHandle.addEventListener('pointerup', stopResizing);
+            resizeHandle.addEventListener('pointercancel', stopResizing);
 
             if (canvas) {
                 const ctx = canvas.getContext('2d');
@@ -3756,7 +3840,15 @@
                     ctx.stroke();
                 });
 
-                canvas.addEventListener('pointerup', () => isDrawingImg = false);
+                const stopDrawingOnCanvas = (ev) => {
+                    if (isDrawingImg) {
+                        ev.stopPropagation();
+                        isDrawingImg = false;
+                    }
+                };
+
+                canvas.addEventListener('pointerup', stopDrawingOnCanvas);
+                canvas.addEventListener('pointercancel', stopDrawingOnCanvas);
             }
         }
 
