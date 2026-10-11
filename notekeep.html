@@ -478,19 +478,44 @@
             background: #ffffff;
             border-radius: 8px;
             box-shadow: 0 12px 35px rgba(0,0,0,0.4);
-            padding: 40px 45px;
+            padding: 30px;
             position: relative;
             color: #111827;
             transition: min-height 0.2s ease;
-            box-sizing: border-box;
-            overflow: visible;
         }
 
-        .text-note-header-wrapper {
-            margin-bottom: 24px;
-            border-bottom: 2px dashed #cbd5e1;
-            padding-bottom: 12px;
+        /* BANNER & HEADER STYLING AT TOP OF TEXT NOTE */
+        .text-note-banner-wrapper {
+            position: relative;
             width: 100%;
+            height: 190px;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+            background: #1e293b;
+        }
+
+        .text-note-banner-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .text-note-banner-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.25) 60%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .text-note-header-container {
+            position: absolute;
+            bottom: 12px;
+            left: 16px;
+            right: 140px;
+            z-index: 5;
         }
 
         .text-note-header-input {
@@ -498,15 +523,44 @@
             border: none;
             outline: none;
             background: transparent;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 800;
-            color: #1e293b;
+            color: #ffffff;
             padding: 4px 0;
-            box-sizing: border-box;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.75);
         }
         .text-note-header-input::placeholder {
-            color: #94a3b8;
+            color: rgba(255, 255, 255, 0.7);
             font-weight: 600;
+        }
+
+        .banner-replace-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+        .banner-replace-btn:hover {
+            background: rgba(37, 99, 235, 0.9);
+            border-color: #60a5fa;
+        }
+
+        body.exporting-clean-mode .banner-replace-btn {
+            display: none !important;
         }
 
         .rich-editor {
@@ -518,9 +572,6 @@
             color: #111827;
             position: relative;
             z-index: 1;
-            box-sizing: border-box;
-            word-break: break-word;
-            overflow-wrap: break-word;
             -webkit-touch-callout: none;
         }
 
@@ -1084,12 +1135,22 @@
         </div>
 
         <input type="file" id="textNoteImageInput" accept="image/*" style="display:none;">
+        <input type="file" id="bannerImageFileInput" accept="image/*" style="display:none;">
 
         <div id="textNoteViewport">
             <div class="text-paper-card" id="textPaperCard">
-                <div class="text-note-header-wrapper">
-                    <input type="text" id="textNoteHeaderInput" class="text-note-header-input" placeholder="Heading / Note Title...">
+                <!-- TOP COVER BANNER WITH CORNER RADIUS & BOTTOM-LEFT HEADING -->
+                <div class="text-note-banner-wrapper" id="textNoteBannerWrapper">
+                    <img id="textNoteBannerImg" class="text-note-banner-img" src="" alt="Banner Cover">
+                    <div class="text-note-banner-overlay"></div>
+                    
+                    <div class="text-note-header-container">
+                        <input type="text" id="textNoteHeaderInput" class="text-note-header-input" placeholder="Heading / Note Title...">
+                    </div>
+
+                    <button class="banner-replace-btn" id="replaceBannerBtn" title="Change Cover Image">🖼️ Replace Cover</button>
                 </div>
+
                 <div class="rich-editor" id="richEditor" contenteditable="true" placeholder="Start typing your note content here..."></div>
             </div>
         </div>
@@ -1299,6 +1360,30 @@
             storeName: 'app_notes_store'
         });
 
+        // ================= SYSTEM DEFAULT BANNER SVG =================
+        const DEFAULT_BANNER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="850" height="220" viewBox="0 0 850 220">
+          <defs>
+            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e1b4b" />
+              <stop offset="40%" stop-color="#312e81" />
+              <stop offset="80%" stop-color="#1e40af" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <radialGradient id="glowCircle" cx="85%" cy="25%" r="65%">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#312e81" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="850" height="220" fill="url(#bgGrad)" />
+          <rect width="850" height="220" fill="url(#glowCircle)" />
+          <circle cx="750" cy="50" r="140" fill="#ffffff" opacity="0.06" />
+          <circle cx="120" cy="190" r="160" fill="#ffffff" opacity="0.04" />
+          <path d="M0 160 Q 220 110 440 160 T 850 130 L 850 220 L 0 220 Z" fill="#ffffff" opacity="0.07" />
+          <path d="M0 190 Q 280 140 520 180 T 850 160 L 850 220 L 0 220 Z" fill="#38bdf8" opacity="0.12" />
+        </svg>
+        `);
+
         // ================= STATE & STORAGE ENGINE =================
         const PAGE_SIZES = {
             A4: { width: 794, height: 1123 },
@@ -1317,6 +1402,7 @@
 
         let currentNoteId = null;
         let currentDocumentTitle = null;
+        let currentBannerImage = null;
         let noteTypeToCreate = 'canvas';
         let autoSaveIntervalTimer = null;
 
@@ -1710,7 +1796,8 @@
                     id: 'textnote_' + Date.now(),
                     type: 'text',
                     title: title,
-                    headerTitle: '',
+                    headerTitle: title,
+                    bannerImage: DEFAULT_BANNER_SVG,
                     folderId: targetFolderId,
                     content: '',
                     imagesData: [],
@@ -1839,6 +1926,7 @@
             if (note.type === 'text') {
                 note.title = currentDocumentTitle;
                 note.headerTitle = document.getElementById('textNoteHeaderInput').value;
+                note.bannerImage = currentBannerImage || DEFAULT_BANNER_SVG;
                 note.content = document.getElementById('richEditor').innerHTML;
                 note.bgStyle = document.getElementById('textPaperBgStyleSelect').value;
                 note.patternType = document.getElementById('textProceduralPatternSelect').value;
@@ -1863,9 +1951,7 @@
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 0.5,
                         useCORS: true,
-                        backgroundColor: null,
-                        scrollX: 0,
-                        scrollY: 0
+                        backgroundColor: null
                     });
                     document.body.classList.remove('exporting-clean-mode');
                     note.thumbnail = canvas.toDataURL('image/jpeg', 0.6);
@@ -3601,6 +3687,29 @@
             };
         }
 
+        // BANNER COVER IMAGE REPLACEMENT LOGIC
+        const replaceBannerBtn = document.getElementById('replaceBannerBtn');
+        const bannerImageFileInput = document.getElementById('bannerImageFileInput');
+        const textNoteBannerImg = document.getElementById('textNoteBannerImg');
+
+        if (replaceBannerBtn && bannerImageFileInput) {
+            replaceBannerBtn.onclick = () => bannerImageFileInput.click();
+
+            bannerImageFileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    currentBannerImage = event.target.result;
+                    textNoteBannerImg.src = currentBannerImage;
+                    showToast("Cover Image Updated!");
+                };
+                reader.readAsDataURL(file);
+                bannerImageFileInput.value = '';
+            };
+        }
+
         function openTextNoteStudio(noteId) {
             currentNoteId = noteId;
             const note = appState.notes.find(n => n.id === noteId);
@@ -3610,7 +3719,10 @@
             document.getElementById('textDocTitleBadge').innerText = note.title;
 
             const textHeaderInput = document.getElementById('textNoteHeaderInput');
-            textHeaderInput.value = note.headerTitle || '';
+            textHeaderInput.value = note.headerTitle || note.title || '';
+
+            currentBannerImage = note.bannerImage || DEFAULT_BANNER_SVG;
+            textNoteBannerImg.src = currentBannerImage;
 
             const richEditor = document.getElementById('richEditor');
             richEditor.innerHTML = note.content || '';
@@ -4189,49 +4301,20 @@
                 document.body.classList.add('exporting-clean-mode');
                 
                 try {
-                    const textViewport = document.getElementById('textNoteViewport');
-                    const prevScroll = textViewport.scrollTop;
-                    textViewport.scrollTop = 0;
-
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null,
-                        scrollX: 0,
-                        scrollY: 0,
-                        onclone: (clonedDoc) => {
-                            const clonedCard = clonedDoc.getElementById('textPaperCard');
-                            if (clonedCard) {
-                                clonedCard.style.overflow = 'visible';
-                                clonedCard.style.boxShadow = 'none';
-                                clonedCard.style.transform = 'none';
-                            }
-                        }
+                        backgroundColor: null
                     });
 
-                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     const pdf = new jsPDF('p', 'pt', 'a4');
                     const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfPageHeight = pdf.internal.pageSize.getHeight();
+                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-                    const imgWidth = pdfWidth;
-                    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-                    let heightLeft = imgHeight;
-                    let position = 0;
-
-                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pdfPageHeight;
-
-                    while (heightLeft > 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pdfPageHeight;
-                    }
-
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
                     pdf.save(getExportFilename('.pdf'));
                     showToast("Exported PDF successfully!");
                 } catch(e) {
@@ -4261,27 +4344,12 @@
                 document.body.classList.add('exporting-clean-mode');
 
                 try {
-                    const textViewport = document.getElementById('textNoteViewport');
-                    const prevScroll = textViewport.scrollTop;
-                    textViewport.scrollTop = 0;
-
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null,
-                        scrollX: 0,
-                        scrollY: 0,
-                        onclone: (clonedDoc) => {
-                            const clonedCard = clonedDoc.getElementById('textPaperCard');
-                            if (clonedCard) {
-                                clonedCard.style.overflow = 'visible';
-                                clonedCard.style.boxShadow = 'none';
-                                clonedCard.style.transform = 'none';
-                            }
-                        }
+                        backgroundColor: null
                     });
 
-                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
                     const link = document.createElement('a');
@@ -4321,27 +4389,12 @@
                 document.body.classList.add('exporting-clean-mode');
 
                 try {
-                    const textViewport = document.getElementById('textNoteViewport');
-                    const prevScroll = textViewport.scrollTop;
-                    textViewport.scrollTop = 0;
-
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null,
-                        scrollX: 0,
-                        scrollY: 0,
-                        onclone: (clonedDoc) => {
-                            const clonedCard = clonedDoc.getElementById('textPaperCard');
-                            if (clonedCard) {
-                                clonedCard.style.overflow = 'visible';
-                                clonedCard.style.boxShadow = 'none';
-                                clonedCard.style.transform = 'none';
-                            }
-                        }
+                        backgroundColor: null
                     });
 
-                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
                     const link = document.createElement('a');
