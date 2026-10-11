@@ -909,13 +909,7 @@
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
             </div>
 
-            <!-- 5) UNDO & 6) REDO -->
-            <div class="tool-group">
-                <button id="undoBtn" title="Undo Action" disabled>↩ U</button>
-                <button id="redoBtn" title="Redo Action" disabled>↪ R</button>
-            </div>
-
-            <!-- 7) PEN STYLE, 8) INK/FONT SIZE & 9) COLOURS -->
+            <!-- 5) PEN STYLE, 6) INK/FONT SIZE & 7) COLOURS -->
             <div class="tool-group">
                 <select id="penStyle" title="Pen Style">
                     <option value="fountain" selected>Fountain</option>
@@ -962,37 +956,46 @@
                 </div>
             </div>
 
-            <!-- 10) IMAGE -->
+            <!-- 8) IMAGE -->
             <div class="tool-group">
                 <button id="imgMenuToggleBtn" title="Image Actions Menu">🖼️▼</button>
             </div>
 
-            <!-- 11) PAGE SETTINGS -->
+            <!-- 9) PAGE SETTINGS -->
             <div class="tool-group">
                 <button id="pageMenuToggleBtn">📜P▼</button>
             </div>
 
-            <!-- 12) LASSO BOX TOOL & 13) ADD TEXT BOX -->
+            <!-- 10) LASSO BOX TOOL & 11) ADD TEXT BOX -->
             <div class="tool-group">
                 <button id="lassoBtn" title="Lasso Box Tool">🎯</button>
                 <button id="textBtn" title="Add Text Box">🔤</button>
             </div>
 
-            <!-- 14) RECENTER WORK SPACE -->
+            <!-- 12) RECENTER WORK SPACE -->
             <div class="tool-group">
                 <button id="recenterBtn" title="Recenter Workspace">🎯</button>
             </div>
 
-            <!-- 15) CLICK TO RENAME NOTE & 16) ESTIMATED NOTE DATA SIZE -->
+            <!-- 13) CLICK TO RENAME NOTE & 14) ESTIMATED NOTE DATA SIZE -->
             <div class="tool-group">
                 <div id="docTitleBadge" class="doc-badge" title="Click to rename note">Untitled Note</div>
                 <div id="docSizeBadge" class="size-badge" title="Estimated Note Data Size">0 KB</div>
             </div>
 
-            <!-- 17) EXPORT NOTES -->
+            <!-- 15) EXPORT NOTES -->
             <div class="tool-group">
                 <button id="exportModalBtn" class="export-btn" title="Export Note">🖨</button>
             </div>
+        </div>
+
+        <!-- ERASER SIZE SELECTION POPOVER -->
+        <div id="eraserSizePopover" class="popover-menu" style="min-width: 150px; padding: 10px; align-items: center; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 800; color: #1f2937; display: flex; justify-content: space-between; width: 100%;">
+                <span>🧽 Eraser Size:</span>
+                <span id="eraserSizeValue" style="color: #2563eb;">10</span>
+            </div>
+            <input type="range" id="eraserSizeSlider" min="1" max="20" value="10" style="width: 100%; cursor: pointer;">
         </div>
 
         <div id="imageMenuPopover" class="popover-menu">
@@ -1426,14 +1429,12 @@
         let gradientPrimary = '#ec4899';
         let gradientSecondary = '#3b82f6';
         let strokeSize = 4;
+        let lastEraserSize = 10; // Remembers previous eraser size selection
         let currentPenStyle = 'fountain';
 
         const pagesContainer = document.getElementById('pagesContainer');
         const viewport = document.getElementById('viewport');
         let pages = [];
-        
-        let undoStack = [];
-        let redoStack = [];
 
         let currentStrokePoints = [];
         let preStrokeSnapshot = null;
@@ -1854,8 +1855,6 @@
 
             pagesContainer.innerHTML = '';
             pages = [];
-            undoStack = [];
-            redoStack = [];
 
             const count = note.pageCount || 1;
             for (let i = 0; i < count; i++) {
@@ -1878,10 +1877,7 @@
                             pageObj.ctx.clearRect(0, 0, pageObj.canvas.width, pageObj.canvas.height);
                             pageObj.ctx.drawImage(pageObj.baseLayerCanvas, 0, 0, pageObj.canvas.width, pageObj.canvas.height);
                             pageObj.ctx.restore();
-                            savePageState(i);
                         };
-                    } else {
-                        savePageState(i);
                     }
                     if (pData.imageBoxes) {
                         pData.imageBoxes.forEach(sImg => {
@@ -1893,12 +1889,9 @@
                     if (pData.textBoxes) {
                         pData.textBoxes.forEach(sTb => createTextBox(i, sTb.left, sTb.top, sTb.content, sTb.color, sTb.width));
                     }
-                } else {
-                    savePageState(i);
                 }
             }
 
-            updateUndoRedoUI();
             dashboardView.style.display = 'none';
             textStudioView.style.display = 'none';
             studioView.style.display = 'block';
@@ -2093,16 +2086,11 @@
                 baseLayerCanvas: baseLayerCanvas,
                 baseLayerCtx: baseLayerCanvas.getContext('2d'),
                 textBoxes: [],
-                imageBoxes: [],
-                snapshotSequence: 0
+                imageBoxes: []
             };
 
             pages.push(pageObj);
             applyLayoutToPage(pageIndex);
-            
-            if (!isOpeningSession) {
-                savePageState(pageIndex);
-            }
         }
 
         function getPageDimensions() {
@@ -2295,14 +2283,11 @@
             ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
             if (activeTool === 'eraser') {
                 ctx.globalCompositeOperation = 'destination-out';
-                ctx.strokeStyle = '#000000'; ctx.lineWidth = width * 2.5;
-                ctx.globalAlpha = 1.0; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                return;
-            }
-            if (style === 'highlighter') {
-                ctx.globalCompositeOperation = 'destination-over';
-                ctx.strokeStyle = getStrokeStyle(ctx, p1 || {x:0,y:0}, p2); ctx.lineWidth = width * 4.5;
-                ctx.lineCap = 'square'; ctx.lineJoin = 'miter'; ctx.globalAlpha = 0.45;
+                ctx.strokeStyle = '#000000'; 
+                ctx.lineWidth = lastEraserSize * 2.5; // Uses remembered Eraser Size (1 to 20)
+                ctx.globalAlpha = 1.0; 
+                ctx.lineCap = 'round'; 
+                ctx.lineJoin = 'round';
                 return;
             }
             ctx.globalCompositeOperation = 'source-over';
@@ -2319,6 +2304,11 @@
                 case 'pencil': ctx.lineWidth = width * 0.75; ctx.globalAlpha = 0.55; break;
                 case 'neon': ctx.lineWidth = width * 1.2; ctx.globalAlpha = 1.0; ctx.shadowColor = useGradient ? gradientPrimary : color; ctx.shadowBlur = 12; break;
                 case 'charcoal': ctx.lineWidth = width * 2.0; ctx.globalAlpha = 0.65; break;
+                case 'highlighter':
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.lineWidth = width * 4.5;
+                    ctx.lineCap = 'square'; ctx.lineJoin = 'miter'; ctx.globalAlpha = 0.45;
+                    break;
             }
         }
 
@@ -2690,9 +2680,6 @@
                         showLassoActionMenu();
                     }
                 }
-                else if (isDrawing && activePageIndex !== null && !hasZoomedOrPanned) {
-                    savePageState(activePageIndex);
-                }
                 isDrawing = false;
                 hasZoomedOrPanned = false;
                 currentStrokePoints = [];
@@ -2785,7 +2772,6 @@
                 }
             }
             page.ctx.putImageData(imgData, rx, ry);
-            savePageState(currentLassoRect.pageIdx);
         };
 
         function scaleLassoContent(scaleFactor) {
@@ -2846,7 +2832,6 @@
 
             updateLassoOverlayPosition();
             showLassoActionMenu();
-            savePageState(currentLassoRect.pageIdx);
         }
 
         document.getElementById('lassoScaleUpBtn').onclick = () => scaleLassoContent(1.15);
@@ -2867,7 +2852,6 @@
                 page.ctx.clearRect(rx, ry, rw, rh);
             }
 
-            savePageState(currentLassoRect.pageIdx);
             clearLassoBox();
         };
 
@@ -3326,9 +3310,13 @@
             page.imageBoxes.push(imageEntry);
         }
 
-        // ================= TOOLBAR CONTROLS =================
+        // ================= TOOLBAR & ERASER SIZE CONTROLS =================
         const penBtn = document.getElementById('penBtn');
         const eraserBtn = document.getElementById('eraserBtn');
+        const eraserSizePopover = document.getElementById('eraserSizePopover');
+        const eraserSizeSlider = document.getElementById('eraserSizeSlider');
+        const eraserSizeValue = document.getElementById('eraserSizeValue');
+
         const lassoBtn = document.getElementById('lassoBtn');
         const textBtn = document.getElementById('textBtn');
         const imgMenuToggleBtn = document.getElementById('imgMenuToggleBtn');
@@ -3345,6 +3333,28 @@
         const useGradientToggle = document.getElementById('useGradientToggle');
         const gradientPrimaryColor = document.getElementById('gradientPrimaryColor');
         const gradientSecondaryColor = document.getElementById('gradientSecondaryColor');
+
+        // ERASER SIZE SCROLLER LOGIC (UP TO 20)
+        eraserSizeSlider.oninput = (e) => {
+            lastEraserSize = parseFloat(e.target.value);
+            eraserSizeValue.innerText = lastEraserSize;
+        };
+
+        eraserBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isAlreadyActive = activeTool === 'eraser';
+            setActiveTool('eraser');
+
+            // Position size popover directly below the eraser button
+            const rect = eraserBtn.getBoundingClientRect();
+            eraserSizePopover.style.top = (rect.bottom + 6) + 'px';
+            eraserSizePopover.style.left = rect.left + 'px';
+            eraserSizePopover.style.display = (eraserSizePopover.style.display === 'flex' && isAlreadyActive) ? 'none' : 'flex';
+
+            // Load remembered size
+            eraserSizeSlider.value = lastEraserSize;
+            eraserSizeValue.innerText = lastEraserSize;
+        };
 
         useGradientToggle.onchange = (e) => {
             useGradient = e.target.checked;
@@ -3363,6 +3373,10 @@
             textBtn.classList.toggle('active', tool === 'text');
             imgMenuToggleBtn.classList.toggle('active', tool === 'editImage' || tool === 'writeInsideImage');
 
+            if (tool !== 'eraser') {
+                eraserSizePopover.style.display = 'none';
+            }
+
             if (tool !== 'lasso') clearLassoBox();
 
             document.body.classList.remove('mode-edit-image', 'mode-write-image');
@@ -3374,7 +3388,6 @@
         }
 
         penBtn.onclick = () => setActiveTool('pen');
-        eraserBtn.onclick = () => setActiveTool('eraser');
         lassoBtn.onclick = () => setActiveTool('lasso');
         textBtn.onclick = () => setActiveTool('text');
 
@@ -3433,6 +3446,9 @@
             if (!imageMenuPopover.contains(e.target) && e.target !== imgMenuToggleBtn) {
                 imageMenuPopover.style.display = 'none';
             }
+            if (!eraserSizePopover.contains(e.target) && e.target !== eraserBtn) {
+                eraserSizePopover.style.display = 'none';
+            }
         });
 
         document.getElementById('addPageBtn').onclick = () => { createNewPage(false); centerPages(); pageMenuPopover.style.display = 'none'; };
@@ -3460,7 +3476,6 @@
                 page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
                 page.ctx.restore();
-                savePageState(pageIdx);
             }
             deleteModalOverlay.style.display = 'none';
         };
@@ -3475,95 +3490,12 @@
                     page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                     page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
                     page.ctx.restore();
-                    savePageState(0);
                 } else {
                     pages[pageIdx].card.remove(); pages.splice(pageIdx, 1);
                     pages.forEach((p, idx) => { p.card.dataset.index = idx; p.pageTag.innerText = `PAGE ${idx + 1}`; });
-                    savePageState(Math.max(0, pageIdx - 1));
                 }
             }
             deleteModalOverlay.style.display = 'none';
-        };
-
-        // ================= SESSION-ISOLATED UNDO & REDO =================
-        function updateUndoRedoUI() {
-            const undoBtn = document.getElementById('undoBtn');
-            const redoBtn = document.getElementById('redoBtn');
-
-            undoBtn.disabled = undoStack.length <= pages.length;
-            redoBtn.disabled = redoStack.length === 0;
-        }
-
-        function savePageState(pageIdx) {
-            if (undoStack.length > 30) undoStack.shift();
-            undoStack.push({ pageIndex: pageIdx, data: pages[pageIdx].canvas.toDataURL() });
-            redoStack = [];
-            updateUndoRedoUI();
-        }
-
-        function restoreCanvasSnapshot(page, snapshotDataUrl, sequenceId) {
-            if (!snapshotDataUrl) {
-                page.ctx.save();
-                page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                page.ctx.imageSmoothingEnabled = false;
-                page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
-                if (page.baseLayerCanvas.width > 0) {
-                    page.ctx.drawImage(page.baseLayerCanvas, 0, 0, page.canvas.width, page.canvas.height);
-                }
-                page.ctx.restore();
-                return;
-            }
-
-            const img = new Image();
-            img.src = snapshotDataUrl;
-            img.onload = () => {
-                if (page.snapshotSequence === sequenceId) {
-                    page.ctx.save();
-                    page.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    page.ctx.imageSmoothingEnabled = false;
-                    page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
-                    page.ctx.drawImage(img, 0, 0, page.canvas.width, page.canvas.height);
-                    page.ctx.restore();
-                }
-            };
-        }
-
-        document.getElementById('undoBtn').onclick = () => {
-            if (undoStack.length > pages.length) {
-                const actionToUndo = undoStack.pop();
-                const page = pages[actionToUndo.pageIndex];
-
-                if (page) {
-                    redoStack.push({ pageIndex: actionToUndo.pageIndex, data: actionToUndo.data });
-
-                    let prevSnapshot = null;
-                    for (let i = undoStack.length - 1; i >= 0; i--) {
-                        if (undoStack[i].pageIndex === actionToUndo.pageIndex) {
-                            prevSnapshot = undoStack[i].data;
-                            break;
-                        }
-                    }
-
-                    page.snapshotSequence++;
-                    restoreCanvasSnapshot(page, prevSnapshot, page.snapshotSequence);
-                }
-                updateUndoRedoUI();
-            }
-        };
-
-        document.getElementById('redoBtn').onclick = () => {
-            if (redoStack.length > 0) {
-                const nextState = redoStack.pop();
-                const page = pages[nextState.pageIndex];
-
-                if (page) {
-                    undoStack.push({ pageIndex: nextState.pageIndex, data: nextState.data });
-
-                    page.snapshotSequence++;
-                    restoreCanvasSnapshot(page, nextState.data, page.snapshotSequence);
-                }
-                updateUndoRedoUI();
-            }
         };
 
         // ================= RICH TEXT NOTE ENGINE =================
