@@ -478,16 +478,19 @@
             background: #ffffff;
             border-radius: 8px;
             box-shadow: 0 12px 35px rgba(0,0,0,0.4);
-            padding: 40px;
+            padding: 40px 45px;
             position: relative;
             color: #111827;
             transition: min-height 0.2s ease;
+            box-sizing: border-box;
+            overflow: visible;
         }
 
         .text-note-header-wrapper {
             margin-bottom: 24px;
             border-bottom: 2px dashed #cbd5e1;
             padding-bottom: 12px;
+            width: 100%;
         }
 
         .text-note-header-input {
@@ -499,6 +502,7 @@
             font-weight: 800;
             color: #1e293b;
             padding: 4px 0;
+            box-sizing: border-box;
         }
         .text-note-header-input::placeholder {
             color: #94a3b8;
@@ -514,6 +518,10 @@
             color: #111827;
             position: relative;
             z-index: 1;
+            box-sizing: border-box;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            -webkit-touch-callout: none;
         }
 
         .rich-editor ul, .rich-editor ol { padding-left: 24px; margin: 8px 0; }
@@ -531,6 +539,7 @@
             height: 240px;
             user-select: none;
             z-index: 10;
+            touch-action: none;
         }
 
         .text-img-box img {
@@ -554,6 +563,8 @@
             cursor: move;
             z-index: 10;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            touch-action: none;
+            -webkit-touch-callout: none;
         }
 
         .text-img-delete-btn {
@@ -586,6 +597,7 @@
             border-radius: 50%;
             cursor: nwse-resize;
             z-index: 10;
+            touch-action: none;
         }
 
         .text-img-ink-canvas {
@@ -842,7 +854,7 @@
 
             <!-- 3) PEN TOOL & 4) ERASER TOOL -->
             <div class="tool-group">
-                <button id="penBtn" class="active" title="Pen Tool">✒️️</button>
+                <button id="penBtn" class="active" title="Pen Tool">✒</button>
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
             </div>
 
@@ -971,7 +983,7 @@
 
     <!-- ================= RICH TEXT NOTE STUDIO VIEW ================= -->
     <div id="textStudioView">
-        <div class="app-toolbar">
+        <div class="app-toolbar" id="textStudioToolbar">
             <div class="tool-group">
                 <button id="textBackToDashBtn" class="back-btn">⬅</button>
                 <button id="textSaveBtn" class="save-btn">💾</button>
@@ -1080,6 +1092,13 @@
                 </div>
                 <div class="rich-editor" id="richEditor" contenteditable="true" placeholder="Start typing your note content here..."></div>
             </div>
+        </div>
+
+        <!-- Floating Selection Context Menu (Copy, Paste, Delete) -->
+        <div id="textSelectContextMenu" style="display:none; position:fixed; z-index:2600; background:#222528; border:1px solid #3b82f6; border-radius:20px; padding:4px 8px; gap:6px; box-shadow:0 8px 20px rgba(0,0,0,0.5);">
+            <button id="btnCustomCopy" style="font-size:11px; padding:4px 8px; border-radius:12px; background:#2d3136; color:#fff; border:1px solid #4b5563;">📋 Copy</button>
+            <button id="btnCustomPaste" style="font-size:11px; padding:4px 8px; border-radius:12px; background:#2d3136; color:#fff; border:1px solid #4b5563;">📋 Paste</button>
+            <button id="btnCustomDelete" style="font-size:11px; padding:4px 8px; border-radius:12px; background:#2d3136; color:#ef4444; border:1px solid #4b5563;">🗑️ Delete</button>
         </div>
     </div>
 
@@ -1248,7 +1267,7 @@
                     </div>
                 </div>
                 <div class="export-option-card" id="exportLongImgBtn">
-                    <div style="font-size: 24px;">🖼️️</div>
+                    <div style="font-size: 24px;">🖼</div>
                     <div>
                         <h4>Single Long Image (JPG)</h4>
                         <p>Export vertical stitched image</p>
@@ -1844,7 +1863,9 @@
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 0.5,
                         useCORS: true,
-                        backgroundColor: null
+                        backgroundColor: null,
+                        scrollX: 0,
+                        scrollY: 0
                     });
                     document.body.classList.remove('exporting-clean-mode');
                     note.thumbnail = canvas.toDataURL('image/jpeg', 0.6);
@@ -3460,6 +3481,126 @@
         };
 
         // ================= RICH TEXT NOTE ENGINE =================
+        let savedTextRange = null;
+
+        function saveCurrentTextSelection() {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                const container = range.commonAncestorContainer;
+                const richEditorElem = document.getElementById('richEditor');
+                if (richEditorElem && richEditorElem.contains(container)) {
+                    savedTextRange = range.cloneRange();
+                }
+            }
+        }
+
+        function restoreTextSelection() {
+            if (savedTextRange) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedTextRange);
+                return true;
+            }
+            return false;
+        }
+
+        document.addEventListener('selectionchange', () => {
+            const richEditorElem = document.getElementById('richEditor');
+            if (!richEditorElem) return;
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const anchorNode = sel.anchorNode;
+                if (document.activeElement === richEditorElem || (anchorNode && richEditorElem.contains(anchorNode))) {
+                    saveCurrentTextSelection();
+                    updateCustomTextSelectionMenu();
+                }
+            }
+        });
+
+        const textStudioToolbar = document.getElementById('textStudioToolbar');
+        if (textStudioToolbar) {
+            textStudioToolbar.addEventListener('pointerdown', (e) => {
+                if (!e.target.closest('select')) {
+                    saveCurrentTextSelection();
+                }
+            });
+        }
+
+        const textSelectContextMenu = document.getElementById('textSelectContextMenu');
+        const btnCustomCopy = document.getElementById('btnCustomCopy');
+        const btnCustomPaste = document.getElementById('btnCustomPaste');
+        const btnCustomDelete = document.getElementById('btnCustomDelete');
+
+        function updateCustomTextSelectionMenu() {
+            if (textStudioView.style.display !== 'block') {
+                if (textSelectContextMenu) textSelectContextMenu.style.display = 'none';
+                return;
+            }
+            const sel = window.getSelection();
+            const richEditorElem = document.getElementById('richEditor');
+            if (sel && sel.rangeCount > 0 && !sel.isCollapsed && richEditorElem) {
+                const range = sel.getRangeAt(0);
+                if (richEditorElem.contains(range.commonAncestorContainer)) {
+                    const rect = range.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        textSelectContextMenu.style.left = Math.max(10, rect.left + (rect.width / 2) - 80) + 'px';
+                        textSelectContextMenu.style.top = Math.max(10, rect.top - 45) + 'px';
+                        textSelectContextMenu.style.display = 'flex';
+                        return;
+                    }
+                }
+            }
+            if (textSelectContextMenu) textSelectContextMenu.style.display = 'none';
+        }
+
+        if (btnCustomCopy) {
+            btnCustomCopy.onpointerdown = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                restoreTextSelection();
+                const sel = window.getSelection();
+                if (sel) {
+                    const text = sel.toString();
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text);
+                    } else {
+                        document.execCommand('copy');
+                    }
+                    showToast("Copied to clipboard!");
+                }
+            };
+        }
+
+        if (btnCustomPaste) {
+            btnCustomPaste.onpointerdown = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                restoreTextSelection();
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    try {
+                        const clipText = await navigator.clipboard.readText();
+                        document.execCommand('insertText', false, clipText);
+                        showToast("Pasted successfully!");
+                    } catch (err) {
+                        document.execCommand('paste');
+                    }
+                } else {
+                    document.execCommand('paste');
+                }
+            };
+        }
+
+        if (btnCustomDelete) {
+            btnCustomDelete.onpointerdown = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                restoreTextSelection();
+                document.execCommand('delete', false, null);
+                if (textSelectContextMenu) textSelectContextMenu.style.display = 'none';
+            };
+        }
+
         function openTextNoteStudio(noteId) {
             currentNoteId = noteId;
             const note = appState.notes.find(n => n.id === noteId);
@@ -3503,17 +3644,23 @@
         const richEditor = document.getElementById('richEditor');
         const textPaperCard = document.getElementById('textPaperCard');
 
+        richEditor.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
         richEditor.addEventListener('input', () => {
             textPaperCard.style.minHeight = Math.max(1100, richEditor.scrollHeight + 150) + 'px';
         });
 
         function applyEffectToSelectionOnly(cmd, value = null) {
+            restoreTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please highlight/select text first to apply effect!");
                 return;
             }
             document.execCommand(cmd, false, value);
+            saveCurrentTextSelection();
             richEditor.focus();
         }
 
@@ -3527,15 +3674,6 @@
             document.execCommand('foreColor', false, '#111827');
             document.execCommand('hiliteColor', false, 'transparent');
         }
-
-        document.addEventListener('selectionchange', () => {
-            if (document.activeElement === richEditor) {
-                const sel = window.getSelection();
-                if (sel && sel.isCollapsed) {
-                    clearInlineFormattingState();
-                }
-            }
-        });
 
         richEditor.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -3552,14 +3690,15 @@
         document.getElementById('btnSub').onclick = () => applyEffectToSelectionOnly('subscript');
         document.getElementById('btnSup').onclick = () => applyEffectToSelectionOnly('superscript');
 
-        document.getElementById('btnAlignLeft').onclick = () => document.execCommand('justifyLeft', false, null);
-        document.getElementById('btnAlignCenter').onclick = () => document.execCommand('justifyCenter', false, null);
-        document.getElementById('btnAlignRight').onclick = () => document.execCommand('justifyRight', false, null);
-        document.getElementById('btnListUl').onclick = () => document.execCommand('insertUnorderedList', false, null);
-        document.getElementById('btnListOl').onclick = () => document.execCommand('insertOrderedList', false, null);
+        document.getElementById('btnAlignLeft').onclick = () => { restoreTextSelection(); document.execCommand('justifyLeft', false, null); };
+        document.getElementById('btnAlignCenter').onclick = () => { restoreTextSelection(); document.execCommand('justifyCenter', false, null); };
+        document.getElementById('btnAlignRight').onclick = () => { restoreTextSelection(); document.execCommand('justifyRight', false, null); };
+        document.getElementById('btnListUl').onclick = () => { restoreTextSelection(); document.execCommand('insertUnorderedList', false, null); };
+        document.getElementById('btnListOl').onclick = () => { restoreTextSelection(); document.execCommand('insertOrderedList', false, null); };
 
         document.getElementById('textFontFamilySelect').onchange = (e) => {
             const fontName = e.target.value;
+            restoreTextSelection();
             const sel = window.getSelection();
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
                 const range = sel.getRangeAt(0);
@@ -3569,15 +3708,22 @@
                     range.surroundContents(span);
                 } catch(err) {
                     document.execCommand('fontName', false, fontName);
+                    const fontElems = richEditor.querySelectorAll('font[face]');
+                    fontElems.forEach(el => {
+                        el.style.fontFamily = el.getAttribute('face');
+                        el.removeAttribute('face');
+                    });
                 }
             } else {
                 document.execCommand('fontName', false, fontName);
             }
+            saveCurrentTextSelection();
             richEditor.focus();
         };
 
         document.getElementById('textHighlightColorPicker').oninput = (e) => {
             const color = e.target.value;
+            restoreTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
                 showToast("Please select text to apply highlight!");
@@ -3592,11 +3738,13 @@
             } catch(err) {
                 document.execCommand('hiliteColor', false, color);
             }
+            saveCurrentTextSelection();
             richEditor.focus();
         };
 
         document.getElementById('textFontSizeSelect').onchange = (e) => {
             const chosenSize = e.target.value;
+            restoreTextSelection();
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
 
@@ -3625,6 +3773,7 @@
                 sel.removeAllRanges();
                 sel.addRange(newRange);
             }
+            saveCurrentTextSelection();
             richEditor.focus();
         };
 
@@ -3686,77 +3835,158 @@
             };
 
             let isDragging = false, startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
-            dragHandle.addEventListener('pointerdown', (e) => {
+
+            const onDragStart = (e) => {
                 e.stopPropagation();
+                if (e.touches && e.touches.length > 0) {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                } else {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }
                 isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
                 initialLeft = parseFloat(box.style.left) || 40;
                 initialTop = parseFloat(box.style.top) || 120;
-                dragHandle.setPointerCapture(e.pointerId);
-            });
+                if (e.pointerId && dragHandle.setPointerCapture) {
+                    try { dragHandle.setPointerCapture(e.pointerId); } catch(err){}
+                }
+            };
 
-            dragHandle.addEventListener('pointermove', (e) => {
+            const onDragMove = (e) => {
                 if (!isDragging) return;
-                let dx = e.clientX - startX;
-                let dy = e.clientY - startY;
+                e.preventDefault();
+                e.stopPropagation();
+                let clientX = e.clientX;
+                let clientY = e.clientY;
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+                let dx = clientX - startX;
+                let dy = clientY - startY;
                 box.style.left = (initialLeft + dx) + 'px';
                 box.style.top = (initialTop + dy) + 'px';
-            });
+            };
 
-            dragHandle.addEventListener('pointerup', (e) => {
-                isDragging = false;
-                try { dragHandle.releasePointerCapture(e.pointerId); } catch(err){}
-            });
+            const onDragEnd = (e) => {
+                if (isDragging) {
+                    isDragging = false;
+                    if (e.pointerId && dragHandle.releasePointerCapture) {
+                        try { dragHandle.releasePointerCapture(e.pointerId); } catch(err){}
+                    }
+                }
+            };
+
+            dragHandle.addEventListener('pointerdown', onDragStart);
+            dragHandle.addEventListener('pointermove', onDragMove);
+            dragHandle.addEventListener('pointerup', onDragEnd);
+            dragHandle.addEventListener('pointercancel', onDragEnd);
+
+            dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+            dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
+            dragHandle.addEventListener('touchend', onDragEnd);
 
             let isResizing = false, rStartX = 0, rStartY = 0, startW = 0, startH = 0;
-            resizeHandle.addEventListener('pointerdown', (e) => {
+
+            const onResizeStart = (e) => {
                 e.stopPropagation();
                 isResizing = true;
-                rStartX = e.clientX;
-                rStartY = e.clientY;
+                if (e.touches && e.touches.length > 0) {
+                    rStartX = e.touches[0].clientX;
+                    rStartY = e.touches[0].clientY;
+                } else {
+                    rStartX = e.clientX;
+                    rStartY = e.clientY;
+                }
                 startW = box.offsetWidth;
                 startH = box.offsetHeight;
-                resizeHandle.setPointerCapture(e.pointerId);
-            });
+                if (e.pointerId && resizeHandle.setPointerCapture) {
+                    try { resizeHandle.setPointerCapture(e.pointerId); } catch(err){}
+                }
+            };
 
-            resizeHandle.addEventListener('pointermove', (e) => {
+            const onResizeMove = (e) => {
                 if (!isResizing) return;
-                let dw = e.clientX - rStartX;
-                let dh = e.clientY - rStartY;
+                e.preventDefault();
+                e.stopPropagation();
+                let clientX = e.clientX;
+                let clientY = e.clientY;
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+                let dw = clientX - rStartX;
+                let dh = clientY - rStartY;
                 box.style.width = Math.max(120, startW + dw) + 'px';
                 box.style.height = Math.max(80, startH + dh) + 'px';
-            });
+            };
 
-            resizeHandle.addEventListener('pointerup', (e) => {
-                isResizing = false;
-                try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
-            });
+            const onResizeEnd = (e) => {
+                if (isResizing) {
+                    isResizing = false;
+                    if (e.pointerId && resizeHandle.releasePointerCapture) {
+                        try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
+                    }
+                }
+            };
+
+            resizeHandle.addEventListener('pointerdown', onResizeStart);
+            resizeHandle.addEventListener('pointermove', onResizeMove);
+            resizeHandle.addEventListener('pointerup', onResizeEnd);
+            resizeHandle.addEventListener('pointercancel', onResizeEnd);
+
+            resizeHandle.addEventListener('touchstart', onResizeStart, { passive: false });
+            resizeHandle.addEventListener('touchmove', onResizeMove, { passive: false });
+            resizeHandle.addEventListener('touchend', onResizeEnd);
 
             if (canvas) {
                 const ctx = canvas.getContext('2d');
                 let isDrawingImg = false;
 
-                canvas.addEventListener('pointerdown', (ev) => {
+                const getEventPos = (ev) => {
+                    const rect = canvas.getBoundingClientRect();
+                    let clientX = ev.clientX;
+                    let clientY = ev.clientY;
+                    if (ev.touches && ev.touches.length > 0) {
+                        clientX = ev.touches[0].clientX;
+                        clientY = ev.touches[0].clientY;
+                    }
+                    return {
+                        x: ((clientX - rect.left) / rect.width) * canvas.width,
+                        y: ((clientY - rect.top) / rect.height) * canvas.height
+                    };
+                };
+
+                const onDrawStart = (ev) => {
                     ev.stopPropagation();
                     isDrawingImg = true;
                     ctx.strokeStyle = document.getElementById('textImageInkColorPicker').value;
                     ctx.lineWidth = 3;
                     ctx.lineCap = 'round';
-                    const rect = canvas.getBoundingClientRect();
+                    const pos = getEventPos(ev);
                     ctx.beginPath();
-                    ctx.moveTo(((ev.clientX - rect.left) / rect.width) * canvas.width, ((ev.clientY - rect.top) / rect.height) * canvas.height);
-                });
+                    ctx.moveTo(pos.x, pos.y);
+                };
 
-                canvas.addEventListener('pointermove', (ev) => {
+                const onDrawMove = (ev) => {
                     if (!isDrawingImg) return;
                     ev.stopPropagation();
-                    const rect = canvas.getBoundingClientRect();
-                    ctx.lineTo(((ev.clientX - rect.left) / rect.width) * canvas.width, ((ev.clientY - rect.top) / rect.height) * canvas.height);
+                    ev.preventDefault();
+                    const pos = getEventPos(ev);
+                    ctx.lineTo(pos.x, pos.y);
                     ctx.stroke();
-                });
+                };
 
-                canvas.addEventListener('pointerup', () => isDrawingImg = false);
+                const onDrawEnd = () => isDrawingImg = false;
+
+                canvas.addEventListener('pointerdown', onDrawStart);
+                canvas.addEventListener('pointermove', onDrawMove);
+                canvas.addEventListener('pointerup', onDrawEnd);
+
+                canvas.addEventListener('touchstart', onDrawStart, { passive: false });
+                canvas.addEventListener('touchmove', onDrawMove, { passive: false });
+                canvas.addEventListener('touchend', onDrawEnd);
             }
         }
 
@@ -3959,20 +4189,49 @@
                 document.body.classList.add('exporting-clean-mode');
                 
                 try {
+                    const textViewport = document.getElementById('textNoteViewport');
+                    const prevScroll = textViewport.scrollTop;
+                    textViewport.scrollTop = 0;
+
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null
+                        backgroundColor: null,
+                        scrollX: 0,
+                        scrollY: 0,
+                        onclone: (clonedDoc) => {
+                            const clonedCard = clonedDoc.getElementById('textPaperCard');
+                            if (clonedCard) {
+                                clonedCard.style.overflow = 'visible';
+                                clonedCard.style.boxShadow = 'none';
+                                clonedCard.style.transform = 'none';
+                            }
+                        }
                     });
 
+                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     const pdf = new jsPDF('p', 'pt', 'a4');
                     const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                    const pdfPageHeight = pdf.internal.pageSize.getHeight();
 
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    const imgWidth = pdfWidth;
+                    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pdfPageHeight;
+
+                    while (heightLeft > 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pdfPageHeight;
+                    }
+
                     pdf.save(getExportFilename('.pdf'));
                     showToast("Exported PDF successfully!");
                 } catch(e) {
@@ -4002,12 +4261,27 @@
                 document.body.classList.add('exporting-clean-mode');
 
                 try {
+                    const textViewport = document.getElementById('textNoteViewport');
+                    const prevScroll = textViewport.scrollTop;
+                    textViewport.scrollTop = 0;
+
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null
+                        backgroundColor: null,
+                        scrollX: 0,
+                        scrollY: 0,
+                        onclone: (clonedDoc) => {
+                            const clonedCard = clonedDoc.getElementById('textPaperCard');
+                            if (clonedCard) {
+                                clonedCard.style.overflow = 'visible';
+                                clonedCard.style.boxShadow = 'none';
+                                clonedCard.style.transform = 'none';
+                            }
+                        }
                     });
 
+                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
                     const link = document.createElement('a');
@@ -4047,12 +4321,27 @@
                 document.body.classList.add('exporting-clean-mode');
 
                 try {
+                    const textViewport = document.getElementById('textNoteViewport');
+                    const prevScroll = textViewport.scrollTop;
+                    textViewport.scrollTop = 0;
+
                     const canvas = await html2canvas(textPaperCard, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: null
+                        backgroundColor: null,
+                        scrollX: 0,
+                        scrollY: 0,
+                        onclone: (clonedDoc) => {
+                            const clonedCard = clonedDoc.getElementById('textPaperCard');
+                            if (clonedCard) {
+                                clonedCard.style.overflow = 'visible';
+                                clonedCard.style.boxShadow = 'none';
+                                clonedCard.style.transform = 'none';
+                            }
+                        }
                     });
 
+                    textViewport.scrollTop = prevScroll;
                     document.body.classList.remove('exporting-clean-mode');
 
                     const link = document.createElement('a');
