@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Handwriting & Text Notes Studio</title>
+    <title>Pro Handwriting & Text Notes Studio - NoteKeep</title>
     
     <!-- jsPDF Library for Multi-Page PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -64,6 +64,32 @@
             gap: 8px;
         }
 
+        .dash-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fav-filter-btn {
+            background: #2b2f36;
+            color: #facc15;
+            border: 1px solid #4b5563;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .fav-filter-btn.active {
+            background: #facc15;
+            color: #1e2124;
+            border-color: #eab308;
+        }
+
         .breadcrumb {
             padding: 12px 24px;
             background: #1e2124;
@@ -90,7 +116,7 @@
             padding: 24px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
             gap: 18px;
             align-content: start;
             -webkit-overflow-scrolling: touch;
@@ -115,14 +141,61 @@
             background: #2d3136;
         }
 
-        .item-icon { font-size: 38px; margin-bottom: 8px; }
+        .item-card-top-bar {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .card-fav-star {
+            font-size: 16px;
+            color: #4b5563;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+        .card-fav-star.active {
+            color: #facc15;
+            text-shadow: 0 0 6px rgba(250, 204, 21, 0.5);
+        }
+
+        .card-lock-badge {
+            font-size: 13px;
+            color: #f87171;
+            margin-left: 4px;
+        }
+
+        .card-menu-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #9ca3af;
+            border: none;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .card-menu-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .item-icon { font-size: 38px; margin-top: 12px; margin-bottom: 8px; }
         
         .item-preview-thumb {
             width: 100%;
-            height: 120px;
+            height: 110px;
             object-fit: contain;
             background: #ffffff;
             border-radius: 6px;
+            margin-top: 14px;
             margin-bottom: 8px;
             border: 1px solid #444950;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -152,23 +225,6 @@
             margin-top: 4px;
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
-
-        .item-del-btn {
-            position: absolute;
-            top: 6px; right: 6px;
-            background: rgba(220, 38, 38, 0.8);
-            color: white;
-            border: none;
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            font-size: 10px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 5;
-        }
-        .item-card:hover .item-del-btn { display: flex; }
 
         /* Floating Action Button (FAB) */
         .fab-btn {
@@ -222,6 +278,40 @@
             text-align: left;
         }
         .fab-option:hover { background: #2b2f35; color: #60a5fa; }
+
+        /* Card Context Menu Popover */
+        .card-context-menu {
+            position: fixed;
+            background: #222528;
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            z-index: 2500;
+            min-width: 150px;
+        }
+        .card-context-menu button {
+            background: #2d3136;
+            color: #f3f4f6;
+            border: 1px solid #4b5563;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .card-context-menu button:hover {
+            background: #3b82f6;
+            color: white;
+        }
 
         /* --- STUDIO / CANVAS NOTE VIEW --- */
         #studioView, #textStudioView {
@@ -430,6 +520,54 @@
             padding: 2px 8px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
+        }
+
+        /* STYLISH BRANDING BAR AT BOTTOM RIGHT OF CANVAS PAGE */
+        .page-branding-bar {
+            position: absolute;
+            bottom: 12px;
+            right: 18px;
+            z-index: 8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .brand-title-badge {
+            font-size: 12px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #2563eb, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-download-link {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white !important;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+            transition: transform 0.15s;
+        }
+        .brand-download-link:hover {
+            transform: scale(1.05);
         }
 
         .margin-overlay {
@@ -705,7 +843,7 @@
 
         .preset-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
             gap: 12px;
             max-height: 350px;
             overflow-y: auto;
@@ -743,6 +881,25 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .preset-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            width: 100%;
+        }
+
+        .preset-download-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 4px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
         }
 
         .preset-del-btn {
@@ -853,7 +1010,7 @@
         .modal h3 { margin-bottom: 14px; color: #60a5fa; font-size: 16px; }
         .modal-field { margin-bottom: 10px; }
         .modal-field label { display: block; font-size: 11px; font-weight: 700; color: #9ca3af; margin-bottom: 4px; }
-        .modal-field select, .modal-field input[type="text"], .modal-field input[type="number"] {
+        .modal-field select, .modal-field input[type="text"], .modal-field input[type="number"], .modal-field input[type="password"] {
             width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #3a3f44; background: #181a1b; color: white; font-size: 13px;
         }
         .modal-row { display: flex; gap: 10px; }
@@ -879,7 +1036,10 @@
     <!-- ================= DASHBOARD / FOLDER EXPLORER VIEW ================= -->
     <div id="dashboardView">
         <div class="dash-header">
-            <div class="dash-title">📚 Pro Studio Notes</div>
+            <div class="dash-title">📚 Pro Studio Notes - NoteKeep</div>
+            <div class="dash-actions">
+                <button id="favFilterBtn" class="fav-filter-btn" title="Toggle Favorites View">⭐ Favorites</button>
+            </div>
         </div>
 
         <div class="breadcrumb" id="breadcrumbBar"></div>
@@ -892,6 +1052,13 @@
             <button class="fab-option" id="fabNewNoteBtn">📝 Create Canvas Note</button>
             <button class="fab-option" id="fabNewTextNoteBtn">🔤 Create Text Note</button>
         </div>
+    </div>
+
+    <!-- CARD CONTEXT MENU POPOVER -->
+    <div id="cardContextMenu" class="card-context-menu">
+        <button id="ctxFavBtn">⭐ Favorite</button>
+        <button id="ctxLockBtn">🔒 Lock Item</button>
+        <button id="ctxDeleteBtn" style="color: #f87171;">🗑️ Delete</button>
     </div>
 
     <!-- ================= HANDWRITING STUDIO VIEW ================= -->
@@ -1168,12 +1335,82 @@
 
     <!-- ================= MODALS ================= -->
     <div id="savedPresetsModal" class="modal-overlay">
-        <div class="modal" style="width: 420px;">
+        <div class="modal" style="width: 440px;">
             <h3>⭐ Saved Diagram Presets</h3>
-            <p style="font-size: 11px; color: #9ca3af; margin-bottom: 12px;">Click any preset to insert it as a background-free image onto your active page.</p>
+            <p style="font-size: 11px; color: #9ca3af; margin-bottom: 12px;">Click any preset to insert it on your active canvas page, or click ⬇️ Download PNG.</p>
             <div class="preset-grid" id="presetGrid"></div>
             <div class="modal-actions">
                 <button id="closePresetsModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preset Download Option Modal -->
+    <div id="presetDownloadModal" class="modal-overlay">
+        <div class="modal">
+            <h3>Download Diagram Preset</h3>
+            <p style="font-size: 11px; color: #9ca3af; margin-bottom: 14px;">Choose background option for the exported diagram image (includes NoteKeep branding tag):</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="dlTransparentBtn" style="padding: 12px; background: #2d3136; color: white; border: 1px solid #3b82f6; border-radius: 8px; justify-content: flex-start;">
+                    ✨ Transparent Background PNG
+                </button>
+                <button id="dlWhiteBgBtn" style="padding: 12px; background: #2d3136; color: white; border: 1px solid #3b82f6; border-radius: 8px; justify-content: flex-start;">
+                    ⬜ White Background PNG
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button id="closePresetDownloadModalBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lock System Modals -->
+    <div id="lockSetupModal" class="modal-overlay">
+        <div class="modal">
+            <h3 id="lockSetupHeading">🔒 Lock File / Folder</h3>
+            <div class="modal-field">
+                <label>Set Password</label>
+                <input type="password" id="lockPasswordInput" placeholder="Enter password...">
+            </div>
+            <div class="modal-field" id="nicknameSetupField">
+                <label>Password Resetting Nickname (One-time Setup)</label>
+                <input type="text" id="lockNicknameInput" placeholder="e.g. Favorite Pet, School Name...">
+                <p style="font-size: 10px; color: #9ca3af; margin-top: 4px;">Used to recover files if password is forgotten.</p>
+            </div>
+            <div class="modal-actions">
+                <button id="cancelLockSetupBtn">Cancel</button>
+                <button id="saveLockSetupBtn" style="background:#2563eb; color:white;">Set Lock</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="unlockModal" class="modal-overlay">
+        <div class="modal">
+            <h3 id="unlockModalHeading">🔒 Enter Password</h3>
+            <div class="modal-field">
+                <label>Password</label>
+                <input type="password" id="unlockPasswordInput" placeholder="Enter password...">
+            </div>
+            <div style="margin-top: 4px; text-align: right;">
+                <button id="forgotPasswordBtn" style="font-size: 11px; background: transparent; border: none; color: #60a5fa; cursor: pointer; text-decoration: underline;">Forgot Password?</button>
+            </div>
+            <div class="modal-actions">
+                <button id="cancelUnlockBtn">Cancel</button>
+                <button id="confirmUnlockBtn" style="background:#059669; color:white;">Unlock & Open</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="recoveryModal" class="modal-overlay">
+        <div class="modal">
+            <h3>🔑 Password Recovery</h3>
+            <div class="modal-field">
+                <label>Enter Resetting Nickname</label>
+                <input type="text" id="recoveryNicknameInput" placeholder="Enter your backup nickname...">
+            </div>
+            <div class="modal-actions">
+                <button id="cancelRecoveryBtn">Cancel</button>
+                <button id="confirmRecoveryBtn" style="background:#2563eb; color:white;">Verify Nickname</button>
             </div>
         </div>
     </div>
@@ -1327,21 +1564,21 @@
                     <div style="font-size: 24px;">📄</div>
                     <div>
                         <h4>PDF Document</h4>
-                        <p>Export note as a PDF file</p>
+                        <p>Export note with active Play Store hyperlink</p>
                     </div>
                 </div>
                 <div class="export-option-card" id="exportLongImgBtn">
                     <div style="font-size: 24px;">🖼</div>
                     <div>
                         <h4>Single Long Image (JPG)</h4>
-                        <p>Export vertical stitched image</p>
+                        <p>Export vertical stitched image with branding</p>
                     </div>
                 </div>
                 <div class="export-option-card" id="exportIndividualImgsBtn">
                     <div style="font-size: 24px;">🏞️</div>
                     <div>
                         <h4>All Pages as Individual Images (JPG)</h4>
-                        <p>Export each page separately as image file</p>
+                        <p>Export each page separately with branding</p>
                     </div>
                 </div>
             </div>
@@ -1362,6 +1599,8 @@
             name: 'ProHandwritingNotesStudioDB',
             storeName: 'app_notes_store'
         });
+
+        const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=laxoshedu.online.quizmaker";
 
         // ================= SYSTEM DEFAULT BANNER SVG =================
         const DEFAULT_BANNER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
@@ -1400,7 +1639,9 @@
             currentFolderId: 'root',
             folders: [],
             notes: [],
-            presets: []
+            presets: [],
+            backupNickname: null,
+            filterFavorites: false
         };
 
         let currentNoteId = null;
@@ -1408,6 +1649,10 @@
         let currentBannerImage = null;
         let noteTypeToCreate = 'canvas';
         let autoSaveIntervalTimer = null;
+
+        let activeContextItem = null; // { type: 'folder'|'note', item: Object }
+        let pendingLockedItem = null; // item to unlock after password verification
+        let selectedPresetToDownload = null;
 
         let pageSettings = {
             size: 'A4',
@@ -1429,7 +1674,7 @@
         let gradientPrimary = '#ec4899';
         let gradientSecondary = '#3b82f6';
         let strokeSize = 4;
-        let lastEraserSize = 10; // Remembers previous eraser size selection
+        let lastEraserSize = 10;
         let currentPenStyle = 'fountain';
 
         const pagesContainer = document.getElementById('pagesContainer');
@@ -1485,8 +1730,14 @@
             try {
                 const data = await localforage.getItem('notes_studio_app_state');
                 if (data) {
-                    appState = data;
-                    if (!appState.presets) appState.presets = [];
+                    appState = Object.assign({
+                        currentFolderId: 'root',
+                        folders: [],
+                        notes: [],
+                        presets: [],
+                        backupNickname: null,
+                        filterFavorites: false
+                    }, data);
                 }
             } catch(e) {
                 console.error("Storage load error:", e);
@@ -1584,6 +1835,13 @@
         const textStudioView = document.getElementById('textStudioView');
         const folderContentGrid = document.getElementById('folderContentGrid');
         const breadcrumbBar = document.getElementById('breadcrumbBar');
+        const favFilterBtn = document.getElementById('favFilterBtn');
+
+        favFilterBtn.onclick = () => {
+            appState.filterFavorites = !appState.filterFavorites;
+            favFilterBtn.classList.toggle('active', appState.filterFavorites);
+            renderDashboard();
+        };
 
         function renderDashboard() {
             folderContentGrid.innerHTML = '';
@@ -1608,33 +1866,43 @@
                 }
             });
 
-            const currentFolders = appState.folders.filter(f => f.parentId === appState.currentFolderId);
-            const currentNotes = appState.notes.filter(n => n.folderId === appState.currentFolderId);
+            let currentFolders = appState.folders.filter(f => f.parentId === appState.currentFolderId);
+            let currentNotes = appState.notes.filter(n => n.folderId === appState.currentFolderId);
+
+            if (appState.filterFavorites) {
+                currentFolders = currentFolders.filter(f => f.isFavorite);
+                currentNotes = currentNotes.filter(n => n.isFavorite);
+            }
 
             currentFolders.forEach(f => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.innerHTML = `
+                    <div class="item-card-top-bar">
+                        <span class="card-fav-star ${f.isFavorite ? 'active' : ''}" title="Favorite">★</span>
+                        <div>
+                            ${f.isLocked ? '<span class="card-lock-badge">🔒</span>' : ''}
+                            <button class="card-menu-btn" title="Options">⋮</button>
+                        </div>
+                    </div>
                     <div class="item-icon">📁</div>
                     <div class="item-title">${f.name}</div>
                     <div class="item-meta">Folder</div>
-                    <button class="item-del-btn" title="Delete Folder">✕</button>
                 `;
-                card.onclick = (e) => {
-                    if (e.target.classList.contains('item-del-btn')) return;
-                    appState.currentFolderId = f.id;
+
+                card.querySelector('.card-fav-star').onclick = (e) => {
+                    e.stopPropagation();
+                    f.isFavorite = !f.isFavorite;
+                    saveStorageTree();
                     renderDashboard();
                 };
 
-                card.querySelector('.item-del-btn').onclick = (e) => {
+                card.querySelector('.card-menu-btn').onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`Delete folder "${f.name}" and its contents?`)) {
-                        deleteFolderRecursive(f.id);
-                        saveStorageTree();
-                        renderDashboard();
-                    }
+                    showCardContextMenu(e.clientX, e.clientY, 'folder', f);
                 };
 
+                card.onclick = () => handleItemOpen('folder', f);
                 folderContentGrid.appendChild(card);
             });
 
@@ -1654,39 +1922,60 @@
                 }
 
                 card.innerHTML = `
+                    <div class="item-card-top-bar">
+                        <span class="card-fav-star ${n.isFavorite ? 'active' : ''}" title="Favorite">★</span>
+                        <div>
+                            ${n.isLocked ? '<span class="card-lock-badge">🔒</span>' : ''}
+                            <button class="card-menu-btn" title="Options">⋮</button>
+                        </div>
+                    </div>
                     ${thumbHtml}
                     <div class="item-title">${n.title}</div>
                     <div class="item-meta">${n.type === 'text' ? 'Rich Text Note' : (n.pageCount || 1) + ' Page(s)'}</div>
                     <div class="item-size-badge">📦 ${formattedSize}</div>
-                    <button class="item-del-btn" title="Delete Note">✕</button>
                 `;
-                card.onclick = (e) => {
-                    if (e.target.classList.contains('item-del-btn')) return;
-                    if (n.type === 'text') {
-                        openTextNoteStudio(n.id);
-                    } else {
-                        openNoteStudio(n.id);
-                    }
-                };
 
-                card.querySelector('.item-del-btn').onclick = (e) => {
+                card.querySelector('.card-fav-star').onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`Delete note "${n.title}"?`)) {
-                        appState.notes = appState.notes.filter(x => x.id !== n.id);
-                        saveStorageTree();
-                        renderDashboard();
-                    }
+                    n.isFavorite = !n.isFavorite;
+                    saveStorageTree();
+                    renderDashboard();
                 };
 
+                card.querySelector('.card-menu-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    showCardContextMenu(e.clientX, e.clientY, 'note', n);
+                };
+
+                card.onclick = () => handleItemOpen('note', n);
                 folderContentGrid.appendChild(card);
             });
 
             if (currentFolders.length === 0 && currentNotes.length === 0) {
                 folderContentGrid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #6b7280; font-size:13px;">
-                        This folder is empty. Click <b>"➕ Create"</b> below to add a folder or note!
+                        ${appState.filterFavorites ? 'No favorite items found.' : 'This folder is empty. Click <b>"➕ Create"</b> below to add a folder or note!'}
                     </div>
                 `;
+            }
+        }
+
+        function handleItemOpen(type, item) {
+            if (item.isLocked) {
+                pendingLockedItem = { type, item };
+                document.getElementById('unlockPasswordInput').value = '';
+                document.getElementById('unlockModalHeading').innerText = `🔒 Unlock ${item.name || item.title}`;
+                document.getElementById('unlockModal').style.display = 'flex';
+                setTimeout(() => document.getElementById('unlockPasswordInput').focus(), 100);
+            } else {
+                if (type === 'folder') {
+                    appState.currentFolderId = item.id;
+                    renderDashboard();
+                } else if (item.type === 'text') {
+                    openTextNoteStudio(item.id);
+                } else {
+                    openNoteStudio(item.id);
+                }
             }
         }
 
@@ -1711,6 +2000,165 @@
             appState.folders = appState.folders.filter(f => f.id !== folderId);
         }
 
+        // Context Menu for Item Cards
+        const cardContextMenu = document.getElementById('cardContextMenu');
+        const ctxFavBtn = document.getElementById('ctxFavBtn');
+        const ctxLockBtn = document.getElementById('ctxLockBtn');
+        const ctxDeleteBtn = document.getElementById('ctxDeleteBtn');
+
+        function showCardContextMenu(x, y, type, item) {
+            activeContextItem = { type, item };
+            ctxFavBtn.innerText = item.isFavorite ? '☆ Remove Favorite' : '⭐ Favorite';
+            ctxLockBtn.innerText = item.isLocked ? '🔓 Unlock Item' : '🔒 Lock Item';
+
+            cardContextMenu.style.left = Math.min(x, window.innerWidth - 170) + 'px';
+            cardContextMenu.style.top = Math.min(y, window.innerHeight - 130) + 'px';
+            cardContextMenu.style.display = 'flex';
+        }
+
+        ctxFavBtn.onclick = () => {
+            if (!activeContextItem) return;
+            activeContextItem.item.isFavorite = !activeContextItem.item.isFavorite;
+            saveStorageTree();
+            cardContextMenu.style.display = 'none';
+            renderDashboard();
+        };
+
+        ctxLockBtn.onclick = () => {
+            if (!activeContextItem) return;
+            const item = activeContextItem.item;
+            cardContextMenu.style.display = 'none';
+
+            if (item.isLocked) {
+                item.isLocked = false;
+                item.password = null;
+                saveStorageTree();
+                showToast("Item unlocked!");
+                renderDashboard();
+            } else {
+                document.getElementById('lockPasswordInput').value = '';
+                document.getElementById('lockNicknameInput').value = appState.backupNickname || '';
+                
+                const nicknameField = document.getElementById('nicknameSetupField');
+                if (appState.backupNickname) {
+                    nicknameField.style.display = 'none';
+                } else {
+                    nicknameField.style.display = 'block';
+                }
+
+                document.getElementById('lockSetupModal').style.display = 'flex';
+                setTimeout(() => document.getElementById('lockPasswordInput').focus(), 100);
+            }
+        };
+
+        ctxDeleteBtn.onclick = () => {
+            if (!activeContextItem) return;
+            const { type, item } = activeContextItem;
+            cardContextMenu.style.display = 'none';
+
+            if (confirm(`Delete ${type} "${item.name || item.title}"?`)) {
+                if (type === 'folder') {
+                    deleteFolderRecursive(item.id);
+                } else {
+                    appState.notes = appState.notes.filter(n => n.id !== item.id);
+                }
+                saveStorageTree();
+                renderDashboard();
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!cardContextMenu.contains(e.target)) {
+                cardContextMenu.style.display = 'none';
+            }
+        });
+
+        // LOCK SETUP & UNLOCK HANDLERS
+        document.getElementById('cancelLockSetupBtn').onclick = () => document.getElementById('lockSetupModal').style.display = 'none';
+        
+        document.getElementById('saveLockSetupBtn').onclick = () => {
+            const pwd = document.getElementById('lockPasswordInput').value.trim();
+            if (!pwd) {
+                alert("Please enter a password!");
+                return;
+            }
+
+            if (!appState.backupNickname) {
+                const nick = document.getElementById('lockNicknameInput').value.trim();
+                if (!nick) {
+                    alert("Please enter a backup nickname for password recovery!");
+                    return;
+                }
+                appState.backupNickname = nick.toLowerCase();
+            }
+
+            if (activeContextItem) {
+                activeContextItem.item.isLocked = true;
+                activeContextItem.item.password = pwd;
+                saveStorageTree();
+                showToast("Item locked successfully!");
+            }
+
+            document.getElementById('lockSetupModal').style.display = 'none';
+            renderDashboard();
+        };
+
+        document.getElementById('cancelUnlockBtn').onclick = () => {
+            document.getElementById('unlockModal').style.display = 'none';
+            pendingLockedItem = null;
+        };
+
+        document.getElementById('confirmUnlockBtn').onclick = () => {
+            if (!pendingLockedItem) return;
+            const pwd = document.getElementById('unlockPasswordInput').value;
+            
+            if (pwd === pendingLockedItem.item.password) {
+                document.getElementById('unlockModal').style.display = 'none';
+                const { type, item } = pendingLockedItem;
+                pendingLockedItem = null;
+
+                if (type === 'folder') {
+                    appState.currentFolderId = item.id;
+                    renderDashboard();
+                } else if (item.type === 'text') {
+                    openTextNoteStudio(item.id);
+                } else {
+                    openNoteStudio(item.id);
+                }
+            } else {
+                alert("Incorrect password! Please try again.");
+            }
+        };
+
+        document.getElementById('forgotPasswordBtn').onclick = () => {
+            document.getElementById('unlockModal').style.display = 'none';
+            document.getElementById('recoveryNicknameInput').value = '';
+            document.getElementById('recoveryModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('recoveryNicknameInput').focus(), 100);
+        };
+
+        document.getElementById('cancelRecoveryBtn').onclick = () => {
+            document.getElementById('recoveryModal').style.display = 'none';
+            pendingLockedItem = null;
+        };
+
+        document.getElementById('confirmRecoveryBtn').onclick = () => {
+            const inputNick = document.getElementById('recoveryNicknameInput').value.trim().toLowerCase();
+            if (appState.backupNickname && inputNick === appState.backupNickname) {
+                document.getElementById('recoveryModal').style.display = 'none';
+                showToast("Nickname verified! Please set a new password.");
+                
+                activeContextItem = pendingLockedItem;
+                document.getElementById('lockPasswordInput').value = '';
+                document.getElementById('nicknameSetupField').style.display = 'none';
+                document.getElementById('lockSetupHeading').innerText = "🔑 Set New Password";
+                document.getElementById('lockSetupModal').style.display = 'flex';
+            } else {
+                alert("Incorrect backup nickname!");
+            }
+        };
+
+        // FAB Actions
         const fabBtn = document.getElementById('fabBtn');
         const fabPopover = document.getElementById('fabPopover');
 
@@ -1741,7 +2189,10 @@
             const newFolder = {
                 id: 'folder_' + Date.now(),
                 name: name,
-                parentId: appState.currentFolderId
+                parentId: appState.currentFolderId,
+                isLocked: false,
+                password: null,
+                isFavorite: false
             };
             appState.folders.push(newFolder);
             saveStorageTree();
@@ -1785,7 +2236,10 @@
                     defaultFolder = {
                         id: 'folder_default_' + Date.now(),
                         name: 'General Notes',
-                        parentId: 'root'
+                        parentId: 'root',
+                        isLocked: false,
+                        password: null,
+                        isFavorite: false
                     };
                     appState.folders.push(defaultFolder);
                 }
@@ -1805,7 +2259,10 @@
                     bgStyle: 'pattern',
                     patternType: 'grid',
                     paperColor: '#ffffff',
-                    thumbnail: null
+                    thumbnail: null,
+                    isLocked: false,
+                    password: null,
+                    isFavorite: false
                 };
                 appState.notes.push(newNote);
                 saveStorageTree();
@@ -1820,7 +2277,10 @@
                     pageSettings: Object.assign({}, pageSettings),
                     pageCount: 1,
                     pagesData: [],
-                    thumbnail: null
+                    thumbnail: null,
+                    isLocked: false,
+                    password: null,
+                    isFavorite: false
                 };
                 appState.notes.push(newNote);
                 saveStorageTree();
@@ -2059,6 +2519,15 @@
             pageTag.style.display = pageSettings.showPageNumbers !== false ? 'block' : 'none';
             card.appendChild(pageTag);
 
+            // STYLISH BRANDING BAR AT BOTTOM RIGHT CORNER
+            const brandingBar = document.createElement('div');
+            brandingBar.className = 'page-branding-bar';
+            brandingBar.innerHTML = `
+                <div class="brand-title-badge">📝 NoteKeep</div>
+                <a class="brand-download-link" href="${PLAY_STORE_URL}" target="_blank" title="Download NoteKeep App from Play Store">⬇️ Get App</a>
+            `;
+            card.appendChild(brandingBar);
+
             const marginOverlay = document.createElement('div');
             marginOverlay.className = 'margin-overlay';
             card.appendChild(marginOverlay);
@@ -2284,7 +2753,7 @@
             if (activeTool === 'eraser') {
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.strokeStyle = '#000000'; 
-                ctx.lineWidth = lastEraserSize * 2.5; // Uses remembered Eraser Size (1 to 20)
+                ctx.lineWidth = lastEraserSize * 2.5;
                 ctx.globalAlpha = 1.0; 
                 ctx.lineCap = 'round'; 
                 ctx.lineJoin = 'round';
@@ -2545,7 +3014,7 @@
 
         window.addEventListener('pointerdown', (e) => {
             if (!studioView.contains(e.target)) return;
-            if (e.target.closest('#toolbar') || e.target.closest('.popover-menu') || e.target.closest('#lassoActionMenu') || e.target.closest('.modal-overlay')) return;
+            if (e.target.closest('#toolbar') || e.target.closest('.popover-menu') || e.target.closest('#lassoActionMenu') || e.target.closest('.modal-overlay') || e.target.closest('.page-branding-bar')) return;
 
             const pIdx = pointers.findIndex(p => p.pointerId === e.pointerId);
             if (pIdx === -1) pointers.push(e);
@@ -2935,9 +3404,10 @@
             showToast(`Saved preset "${newPreset.title}"!`);
         };
 
-        // ================= PRESET GALLERY ENGINE =================
+        // ================= PRESET GALLERY ENGINE & PNG DOWNLOAD =================
         const savedPresetsModal = document.getElementById('savedPresetsModal');
         const presetGrid = document.getElementById('presetGrid');
+        const presetDownloadModal = document.getElementById('presetDownloadModal');
 
         function renderPresetsGallery() {
             presetGrid.innerHTML = '';
@@ -2957,10 +3427,13 @@
                     <button class="preset-del-btn" title="Delete Preset">✕</button>
                     <img src="${p.dataUrl}" alt="${p.title}">
                     <div class="preset-card-title">${p.title}</div>
+                    <div class="preset-actions">
+                        <button class="preset-download-btn" title="Download PNG">⬇️ Download</button>
+                    </div>
                 `;
 
                 card.onclick = (e) => {
-                    if (e.target.classList.contains('preset-del-btn')) return;
+                    if (e.target.classList.contains('preset-del-btn') || e.target.classList.contains('preset-download-btn')) return;
                     const img = new Image();
                     const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
                     img.onload = () => {
@@ -2969,6 +3442,12 @@
                         showToast(`Inserted preset "${p.title}"`);
                     };
                     img.src = p.dataUrl;
+                };
+
+                card.querySelector('.preset-download-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    selectedPresetToDownload = p;
+                    presetDownloadModal.style.display = 'flex';
                 };
 
                 card.querySelector('.preset-del-btn').onclick = async (e) => {
@@ -2983,6 +3462,59 @@
                 presetGrid.appendChild(card);
             });
         }
+
+        function downloadPresetImage(isTransparent) {
+            if (!selectedPresetToDownload) return;
+
+            const p = selectedPresetToDownload;
+            const img = new Image();
+            img.onload = () => {
+                const padding = 30;
+                const brandingH = 35;
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width + (padding * 2);
+                canvas.height = img.height + (padding * 2) + brandingH;
+                const ctx = canvas.getContext('2d');
+
+                if (!isTransparent) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                ctx.drawImage(img, padding, padding);
+
+                // Add NoteKeep Branding Tag at bottom right corner
+                const brandX = canvas.width - 150;
+                const brandY = canvas.height - 28;
+
+                ctx.save();
+                ctx.font = 'bold 13px Segoe UI, sans-serif';
+                const grad = ctx.createLinearGradient(brandX, brandY, brandX + 80, brandY);
+                grad.addColorStop(0, '#2563eb');
+                grad.addColorStop(1, '#ec4899');
+                ctx.fillStyle = grad;
+                ctx.fillText("📝 NoteKeep", brandX, brandY);
+
+                // Play Store badge text
+                ctx.font = 'bold 10px Segoe UI, sans-serif';
+                ctx.fillStyle = '#2563eb';
+                ctx.fillText("Get App", brandX + 90, brandY);
+                ctx.restore();
+
+                const link = document.createElement('a');
+                link.download = (p.title || 'NoteKeep_Preset').replace(/[^a-zA-Z0-9_-]/g, '_') + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                presetDownloadModal.style.display = 'none';
+                showToast("Preset PNG Downloaded!");
+            };
+            img.src = p.dataUrl;
+        }
+
+        document.getElementById('dlTransparentBtn').onclick = () => downloadPresetImage(true);
+        document.getElementById('dlWhiteBgBtn').onclick = () => downloadPresetImage(false);
+        document.getElementById('closePresetDownloadModalBtn').onclick = () => presetDownloadModal.style.display = 'none';
 
         document.getElementById('optSavedPresetsBtn').onclick = () => {
             imageMenuPopover.style.display = 'none';
@@ -3334,7 +3866,6 @@
         const gradientPrimaryColor = document.getElementById('gradientPrimaryColor');
         const gradientSecondaryColor = document.getElementById('gradientSecondaryColor');
 
-        // ERASER SIZE SCROLLER LOGIC (UP TO 20)
         eraserSizeSlider.oninput = (e) => {
             lastEraserSize = parseFloat(e.target.value);
             eraserSizeValue.innerText = lastEraserSize;
@@ -3345,13 +3876,11 @@
             const isAlreadyActive = activeTool === 'eraser';
             setActiveTool('eraser');
 
-            // Position size popover directly below the eraser button
             const rect = eraserBtn.getBoundingClientRect();
             eraserSizePopover.style.top = (rect.bottom + 6) + 'px';
             eraserSizePopover.style.left = rect.left + 'px';
             eraserSizePopover.style.display = (eraserSizePopover.style.display === 'flex' && isAlreadyActive) ? 'none' : 'flex';
 
-            // Load remembered size
             eraserSizeSlider.value = lastEraserSize;
             eraserSizeValue.innerText = lastEraserSize;
         };
@@ -4216,6 +4745,23 @@
                 }
             });
 
+            // Draw NoteKeep Page Branding at Bottom Right
+            const brandX = dims.width - 150;
+            const brandY = dims.height - 18;
+
+            ctx.save();
+            ctx.font = 'bold 12px Segoe UI, sans-serif';
+            const grad = ctx.createLinearGradient(brandX, brandY, brandX + 70, brandY);
+            grad.addColorStop(0, '#2563eb');
+            grad.addColorStop(1, '#ec4899');
+            ctx.fillStyle = grad;
+            ctx.fillText("📝 NoteKeep", brandX, brandY);
+
+            ctx.font = 'bold 10px Segoe UI, sans-serif';
+            ctx.fillStyle = '#2563eb';
+            ctx.fillText("Get App", brandX + 80, brandY);
+            ctx.restore();
+
             if (pageSettings.showPageNumbers !== false) {
                 ctx.save();
                 ctx.font = 'bold 12px Segoe UI, sans-serif'; ctx.fillStyle = '#6b7280'; ctx.textAlign = 'right';
@@ -4264,11 +4810,22 @@
 
             pages.forEach((_, idx) => {
                 if (idx > 0) pdf.addPage([dims.width, dims.height], orientation);
-                pdf.addImage(renderPageToCanvas(idx).toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, dims.width, dims.height);
+                
+                const pageCanvas = renderPageToCanvas(idx);
+                pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, dims.width, dims.height);
+
+                // Add active Play Store Hyperlink annotation over the "Get App" button in the exported PDF
+                const linkX = dims.width - 75;
+                const linkY = dims.height - 30;
+                const linkW = 60;
+                const linkH = 20;
+
+                pdf.link(linkX, linkY, linkW, linkH, { url: PLAY_STORE_URL });
             });
 
             pdf.save(getExportFilename('.pdf'));
             exportModalOverlay.style.display = 'none';
+            showToast("Exported PDF with Play Store hyperlink!");
         };
 
         document.getElementById('exportLongImgBtn').onclick = async () => {
