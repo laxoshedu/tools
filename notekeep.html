@@ -1029,6 +1029,10 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 4000;
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ===== Session Undo / Redo buttons ===== */
+        button.history-btn { font-size: 16px; line-height: 1; padding: 5px 9px; min-width: 32px; justify-content: center; }
+        button.history-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -1074,6 +1078,8 @@
             <div class="tool-group">
                 <button id="penBtn" class="active" title="Pen Tool">✒</button>
                 <button id="eraserBtn" title="Eraser Tool">🧽</button>
+                <button id="undoBtn" class="history-btn" title="Undo (this session only)" disabled>↶</button>
+                <button id="redoBtn" class="history-btn" title="Redo (this session only)" disabled>↷</button>
             </div>
 
             <!-- 5) PEN STYLE, 6) INK/FONT SIZE & 7) COLOURS -->
@@ -1108,9 +1114,11 @@
 
                 <div class="color-palette" id="palette">
                     <div class="swatch active" style="background: #000000;" data-color="#000000"></div>
-                    <div class="swatch" style="background: #2563eb;" data-color="#2563eb"></div>
-                    <div class="swatch" style="background: #059669;" data-color="#059669"></div>
+                    <div class="swatch" style="background: #ffffff;" data-color="#ffffff"></div>
                     <div class="swatch" style="background: #dc2626;" data-color="#dc2626"></div>
+                    <div class="swatch" style="background: #059669;" data-color="#059669"></div>
+                    <div class="swatch" style="background: #fff700;" data-color="#fff700"></div>
+                    <div class="swatch" style="background: #2563eb;" data-color="#2563eb"></div>
                     <input type="color" id="colorPicker" value="#000000" title="Solid Color">
                 </div>
 
@@ -1600,7 +1608,7 @@
             storeName: 'app_notes_store'
         });
 
-        const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=laxoshedu.online.quizmaker";
+        const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.notekeep.app";
 
         // ================= SYSTEM DEFAULT BANNER SVG =================
         const DEFAULT_BANNER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
@@ -2291,6 +2299,7 @@
 
         // ================= HANDWRITING CANVAS STUDIO WORKSPACE =================
         function openNoteStudio(noteId) {
+            clearSessionHistory();
             currentNoteId = noteId;
             const note = appState.notes.find(n => n.id === noteId);
             if (!note) return;
@@ -2468,6 +2477,7 @@
             await executeNoteSave(true);
             stopAutoSaveTimer();
             clearLassoBox();
+            clearSessionHistory();
             studioView.style.display = 'none';
             dashboardView.style.display = 'flex';
             renderDashboard();
@@ -2484,6 +2494,238 @@
                 executeNoteSave(false);
             }
         };
+
+        // ================= SESSION-BASED UNDO / REDO ENGINE =================
+        // History lives only in memory and is wiped every time a note is opened or closed,
+        // so Undo/Redo can only ever touch changes made in the CURRENT open session.
+        // Everything saved from earlier sessions is baked into the note and stays untouched.
+        const sessionHistory = { undo: [], redo: [], bytes: 0, maxEntries: 100, maxBytes: 250 * 1024 * 1024 };
+        let pendingLassoColor = null;
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+
+        function updateUndoRedoButtons() {
+            if (!undoBtn || !redoBtn) return;
+            undoBtn.disabled = sessionHistory.undo.length === 0;
+            redoBtn.disabled = sessionHistory.redo.length === 0;
+            undoBtn.title = `Undo (this session only) - ${sessionHistory.undo.length} step(s)`;
+            redoBtn.title = `Redo (this session only) - ${sessionHistory.redo.length} step(s)`;
+        }
+
+        function clearSessionHistory() {
+            sessionHistory.undo = [];
+            sessionHistory.redo = [];
+            sessionHistory.bytes = 0;
+            pendingLassoColor = null;
+            updateUndoRedoButtons();
+        }
+
+        function trimSessionHistory() {
+            while (sessionHistory.undo.length > 1 &&
+                  (sessionHistory.undo.length > sessionHistory.maxEntries || sessionHistory.bytes > sessionHistory.maxBytes)) {
+                const old = sessionHistory.undo.shift();
+                sessionHistory.bytes -= (old.bytes || 0);
+            }
+        }
+
+        function commitHistoryEntry(entry) {
+            entry.bytes = entry.bytes || 0;
+            sessionHistory.undo.push(entry);
+            sessionHistory.bytes += entry.bytes;
+            sessionHistory.redo = [];
+            trimSessionHistory();
+            updateUndoRedoButtons();
+        }
+
+        function pushHistory(entry) {
+            flushPendingLassoColor();
+            commitHistoryEntry(entry);
+        }
+
+        // ----- pixel patch helpers (only the changed rectangle is stored, never the whole page) -----
+        function clampPatchRect(r, W, H) {
+            const x0 = Math.max(0, Math.floor(r.x));
+            const y0 = Math.max(0, Math.floor(r.y));
+            const x1 = Math.min(W, Math.ceil(r.x + r.w));
+            const y1 = Math.min(H, Math.ceil(r.y + r.h));
+            if (x1 - x0 <= 0 || y1 - y0 <= 0) return null;
+            return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+        }
+
+        function capturePatch(ctx, canvas, rect) {
+            const r = clampPatchRect(rect, canvas.width, canvas.height);
+            if (!r) return null;
+            try {
+                return { x: r.x, y: r.y, w: r.w, h: r.h, data: ctx.getImageData(r.x, r.y, r.w, r.h) };
+            } catch (e) { return null; }
+        }
+
+        function cropImageData(src, rect) {
+            const r = clampPatchRect(rect, src.width, src.height);
+            if (!r) return null;
+            const out = new ImageData(r.w, r.h);
+            for (let row = 0; row < r.h; row++) {
+                const s = ((r.y + row) * src.width + r.x) * 4;
+                out.data.set(src.data.subarray(s, s + r.w * 4), row * r.w * 4);
+            }
+            return { x: r.x, y: r.y, w: r.w, h: r.h, data: out };
+        }
+
+        function applyPatch(ctx, patch) {
+            if (patch) ctx.putImageData(patch.data, patch.x, patch.y);
+        }
+
+        function clearPatchRegion(ctx, patch) {
+            if (!patch) return;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(patch.x, patch.y, patch.w, patch.h);
+            ctx.restore();
+        }
+
+        function inkEntry(page, pre, post, clearOnRedo) {
+            return {
+                page: page,
+                bytes: (pre ? pre.w * pre.h * 4 : 0) + ((post && !clearOnRedo) ? post.w * post.h * 4 : 0),
+                undo() { applyPatch(page.ctx, pre); },
+                redo() { if (clearOnRedo) clearPatchRegion(page.ctx, pre); else applyPatch(page.ctx, post); }
+            };
+        }
+
+        function strokeRegion(points, pad) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            points.forEach(p => {
+                if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y;
+            });
+            return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+        }
+
+        function commitStrokeToHistory() {
+            const page = pages[activePageIndex];
+            if (!page || !preStrokeSnapshot || currentStrokePoints.length === 0) return;
+            const pad = (activeTool === 'eraser' ? lastEraserSize * 2.5 : strokeSize * 5) + 40;
+            const r = strokeRegion(currentStrokePoints, pad);
+            const region = { x: r.x * RENDER_SCALE, y: r.y * RENDER_SCALE, w: r.w * RENDER_SCALE, h: r.h * RENDER_SCALE };
+            const pre = cropImageData(preStrokeSnapshot, region);
+            const post = capturePatch(page.ctx, page.canvas, region);
+            if (pre && post) pushHistory(inkEntry(page, pre, post, false));
+        }
+
+        function flushPendingLassoColor() {
+            const p = pendingLassoColor;
+            if (!p) return;
+            pendingLassoColor = null;
+            const post = capturePatch(p.page.ctx, p.page.canvas, p.region);
+            if (p.pre && post) commitHistoryEntry(inkEntry(p.page, p.pre, post, false));
+        }
+
+        // ----- box / page helpers (DOM nodes are re-attached, so all their listeners keep working) -----
+        function ownerPageOf(elem) {
+            return pages.find(p => p.card === elem.parentElement) || null;
+        }
+
+        function relocateBox(elem, kind, toPage, left, top) {
+            if (!toPage || !pages.includes(toPage)) return;
+            const key = kind === 'image' ? 'imageBoxes' : 'textBoxes';
+            let entry = null;
+            pages.forEach(p => {
+                const i = p[key].findIndex(x => x.elem === elem);
+                if (i !== -1) entry = p[key].splice(i, 1)[0];
+            });
+            if (!entry) return;
+            toPage[key].push(entry);
+            toPage.card.appendChild(elem);
+            elem.style.left = left + 'px';
+            elem.style.top = top + 'px';
+        }
+
+        function renumberPages() {
+            pages.forEach((p, idx) => {
+                p.card.dataset.index = idx;
+                p.pageTag.innerText = `PAGE ${idx + 1}`;
+            });
+        }
+
+        function detachPageObj(pageObj) {
+            const idx = pages.indexOf(pageObj);
+            if (idx === -1 || pages.length <= 1) return;
+            pageObj.card.remove();
+            pages.splice(idx, 1);
+            renumberPages();
+        }
+
+        function reattachPageObj(pageObj, idx) {
+            if (pages.includes(pageObj)) return;
+            const at = Math.min(idx, pages.length);
+            const ref = pages[at] ? pages[at].card : null;
+            pagesContainer.insertBefore(pageObj.card, ref);
+            pages.splice(at, 0, pageObj);
+            renumberPages();
+        }
+
+        function recordImageAdded(pageIdx) {
+            const page = pages[pageIdx];
+            if (!page) return;
+            const entry = page.imageBoxes[page.imageBoxes.length - 1];
+            if (!entry) return;
+            pushHistory({
+                undo() {
+                    entry.elem.remove();
+                    pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i !== entry));
+                },
+                redo() {
+                    if (!pages.includes(page)) return;
+                    page.card.appendChild(entry.elem);
+                    page.imageBoxes.push(entry);
+                }
+            });
+        }
+
+        // ----- undo / redo actions -----
+        function performUndo() {
+            if (isDrawing || isLassoing) return;
+            flushPendingLassoColor();
+            let entry;
+            while ((entry = sessionHistory.undo.pop())) {
+                sessionHistory.bytes -= (entry.bytes || 0);
+                if (entry.page && !pages.includes(entry.page)) continue;
+                try { entry.undo(); } catch (err) { console.error('Undo failed:', err); }
+                sessionHistory.redo.push(entry);
+                break;
+            }
+            clearLassoBox();
+            updateUndoRedoButtons();
+        }
+
+        function performRedo() {
+            if (isDrawing || isLassoing) return;
+            flushPendingLassoColor();
+            let entry;
+            while ((entry = sessionHistory.redo.pop())) {
+                if (entry.page && !pages.includes(entry.page)) continue;
+                try { entry.redo(); } catch (err) { console.error('Redo failed:', err); }
+                sessionHistory.undo.push(entry);
+                sessionHistory.bytes += (entry.bytes || 0);
+                trimSessionHistory();
+                break;
+            }
+            clearLassoBox();
+            updateUndoRedoButtons();
+        }
+
+        undoBtn.onclick = performUndo;
+        redoBtn.onclick = performRedo;
+
+        document.addEventListener('keydown', (e) => {
+            if (studioView.style.display !== 'block') return;
+            if (!(e.ctrlKey || e.metaKey)) return;
+            const t = e.target;
+            if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+            const k = e.key.toLowerCase();
+            if (k === 'z' && !e.shiftKey) { e.preventDefault(); performUndo(); }
+            else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); performRedo(); }
+        });
 
         // ================= CANVAS DRAWING & GESTURE =================
         function updateTransform() {
@@ -2726,6 +2968,7 @@
         }
 
         function updateAllPagesLayout() {
+            const sizeSignatureBefore = pages.map(p => p.canvas.width + 'x' + p.canvas.height).join('|');
             pages.forEach((_, idx) => {
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = pages[idx].canvas.width;
@@ -2735,6 +2978,8 @@
                 applyLayoutToPage(idx);
                 pages[idx].ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width / RENDER_SCALE, tempCanvas.height / RENDER_SCALE);
             });
+            const sizeSignatureAfter = pages.map(p => p.canvas.width + 'x' + p.canvas.height).join('|');
+            if (sizeSignatureBefore !== sizeSignatureAfter) clearSessionHistory();
             centerPages();
         }
 
@@ -3049,7 +3294,21 @@
                     if (activeTool === 'text') {
                         clearLassoBox();
                         const coords = getCanvasCoords(e.clientX, e.clientY, page.canvas);
-                        createTextBox(activePageIndex, coords.x, coords.y);
+                        const newTextEntry = createTextBox(activePageIndex, coords.x, coords.y);
+                        if (newTextEntry) {
+                            const ownerPg = pages[activePageIndex];
+                            pushHistory({
+                                undo() {
+                                    newTextEntry.elem.remove();
+                                    pages.forEach(p => p.textBoxes = p.textBoxes.filter(t => t !== newTextEntry));
+                                },
+                                redo() {
+                                    if (!pages.includes(ownerPg)) return;
+                                    ownerPg.card.appendChild(newTextEntry.elem);
+                                    ownerPg.textBoxes.push(newTextEntry);
+                                }
+                            });
+                        }
                         return;
                     }
 
@@ -3149,6 +3408,9 @@
                         showLassoActionMenu();
                     }
                 }
+                if (isDrawing && activePageIndex !== null && preStrokeSnapshot && currentStrokePoints.length > 0) {
+                    commitStrokeToHistory();
+                }
                 isDrawing = false;
                 hasZoomedOrPanned = false;
                 currentStrokePoints = [];
@@ -3176,6 +3438,7 @@
 
         // ================= LASSO SELECTION ENGINE =================
         function clearLassoBox() {
+            flushPendingLassoColor();
             currentLassoRect = null;
             currentLassoTargetImage = null;
             lassoOverlayBox.style.display = 'none';
@@ -3225,6 +3488,12 @@
             const page = pages[currentLassoRect.pageIdx];
             const targetColor = hexToRgb(e.target.value);
 
+            if (!pendingLassoColor) {
+                const region = { x: currentLassoRect.x * RENDER_SCALE, y: currentLassoRect.y * RENDER_SCALE,
+                                 w: currentLassoRect.width * RENDER_SCALE, h: currentLassoRect.height * RENDER_SCALE };
+                pendingLassoColor = { page: page, region: region, pre: capturePatch(page.ctx, page.canvas, region) };
+            }
+
             const rx = currentLassoRect.x * RENDER_SCALE;
             const ry = currentLassoRect.y * RENDER_SCALE;
             const rw = currentLassoRect.width * RENDER_SCALE;
@@ -3244,6 +3513,43 @@
         };
 
         function scaleLassoContent(scaleFactor) {
+            if (!currentLassoRect) return;
+            flushPendingLassoColor();
+            const page = pages[currentLassoRect.pageIdx];
+            const targetImg = currentLassoTargetImage;
+
+            if (targetImg) {
+                const el = targetImg.elem;
+                const before = { w: el.style.width, h: el.style.height };
+                scaleLassoContentCore(scaleFactor);
+                const after = { w: el.style.width, h: el.style.height };
+                pushHistory({
+                    undo() { el.style.width = before.w; el.style.height = before.h; },
+                    redo() { el.style.width = after.w; el.style.height = after.h; }
+                });
+                return;
+            }
+
+            const f = Math.max(1, scaleFactor);
+            const region = { x: currentLassoRect.x * RENDER_SCALE, y: currentLassoRect.y * RENDER_SCALE,
+                             w: currentLassoRect.width * RENDER_SCALE * f, h: currentLassoRect.height * RENDER_SCALE * f };
+            const pre = capturePatch(page.ctx, page.canvas, region);
+            const tbBefore = page.textBoxes.map(tb => ({ tb: tb, w: tb.elem.style.width }));
+
+            scaleLassoContentCore(scaleFactor);
+
+            const post = capturePatch(page.ctx, page.canvas, region);
+            const tbAfter = tbBefore.map(o => ({ tb: o.tb, w: o.tb.elem.style.width }));
+            if (pre && post) {
+                const entry = inkEntry(page, pre, post, false);
+                const baseUndo = entry.undo, baseRedo = entry.redo;
+                entry.undo = () => { baseUndo(); tbBefore.forEach(o => o.tb.elem.style.width = o.w); };
+                entry.redo = () => { baseRedo(); tbAfter.forEach(o => o.tb.elem.style.width = o.w); };
+                pushHistory(entry);
+            }
+        }
+
+        function scaleLassoContentCore(scaleFactor) {
             if (!currentLassoRect) return;
             const page = pages[currentLassoRect.pageIdx];
 
@@ -3308,17 +3614,30 @@
 
         document.getElementById('lassoDeleteBtn').onclick = () => {
             if (!currentLassoRect) return;
+            flushPendingLassoColor();
             const page = pages[currentLassoRect.pageIdx];
 
             if (currentLassoTargetImage) {
-                currentLassoTargetImage.elem.remove();
-                page.imageBoxes = page.imageBoxes.filter(i => i.elem !== currentLassoTargetImage.elem);
+                const imgEntry = currentLassoTargetImage;
+                const ownerPg = ownerPageOf(imgEntry.elem) || page;
+                imgEntry.elem.remove();
+                page.imageBoxes = page.imageBoxes.filter(i => i.elem !== imgEntry.elem);
+                pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i !== imgEntry));
+                pushHistory({
+                    undo() { ownerPg.card.appendChild(imgEntry.elem); ownerPg.imageBoxes.push(imgEntry); },
+                    redo() {
+                        imgEntry.elem.remove();
+                        pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i !== imgEntry));
+                    }
+                });
             } else {
                 const rx = currentLassoRect.x * RENDER_SCALE;
                 const ry = currentLassoRect.y * RENDER_SCALE;
                 const rw = currentLassoRect.width * RENDER_SCALE;
                 const rh = currentLassoRect.height * RENDER_SCALE;
+                const pre = capturePatch(page.ctx, page.canvas, { x: rx, y: ry, w: rw, h: rh });
                 page.ctx.clearRect(rx, ry, rw, rh);
+                if (pre) pushHistory(inkEntry(page, pre, null, true));
             }
 
             clearLassoBox();
@@ -3365,6 +3684,8 @@
             const savedRect = Object.assign({}, currentLassoRect);
 
             const page = pages[pageIdx];
+            flushPendingLassoColor();
+            const removeBgPre = capturePatch(page.ctx, page.canvas, { x: savedRect.x * RENDER_SCALE, y: savedRect.y * RENDER_SCALE, w: savedRect.width * RENDER_SCALE, h: savedRect.height * RENDER_SCALE });
             page.ctx.clearRect(savedRect.x * RENDER_SCALE, savedRect.y * RENDER_SCALE, savedRect.width * RENDER_SCALE, savedRect.height * RENDER_SCALE);
 
             const img = new Image();
@@ -3378,6 +3699,24 @@
 
                 currentLassoTargetImage = page.imageBoxes[page.imageBoxes.length - 1];
                 currentLassoRect = savedRect;
+
+                const bgImgEntry = currentLassoTargetImage;
+                if (bgImgEntry) {
+                    pushHistory({
+                        page: page,
+                        bytes: removeBgPre ? removeBgPre.w * removeBgPre.h * 4 : 0,
+                        undo() {
+                            bgImgEntry.elem.remove();
+                            pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i !== bgImgEntry));
+                            applyPatch(page.ctx, removeBgPre);
+                        },
+                        redo() {
+                            clearPatchRegion(page.ctx, removeBgPre);
+                            page.card.appendChild(bgImgEntry.elem);
+                            page.imageBoxes.push(bgImgEntry);
+                        }
+                    });
+                }
 
                 updateLassoOverlayPosition();
                 showLassoActionMenu();
@@ -3438,6 +3777,7 @@
                     const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
                     img.onload = () => {
                         insertImageToPage(targetPage, img, p.dataUrl);
+                        recordImageAdded(targetPage);
                         savedPresetsModal.style.display = 'none';
                         showToast(`Inserted preset "${p.title}"`);
                     };
@@ -3529,6 +3869,7 @@
             const page = pages[pageIdx];
             const dims = getPageDimensions();
             const ruleH = getRuledLineHeight();
+            let editStartText = null, textDragFrom = null, textResizeFrom = null;
 
             let safeX = Math.max(0, Math.min(x, dims.width - 60));
             let safeY = Math.max(0, Math.min(y, dims.height - 30));
@@ -3582,6 +3923,7 @@
             function enableEditing() {
                 wrapper.classList.add('editing');
                 content.contentEditable = 'true';
+                if (editStartText === null) editStartText = content.innerText;
                 content.focus();
             }
 
@@ -3607,6 +3949,7 @@
                 isDragging = true;
                 startLeft = parseFloat(wrapper.style.left) || safeX;
                 startTop = parseFloat(wrapper.style.top) || safeY;
+                textDragFrom = { page: ownerPageOf(wrapper), left: startLeft, top: startTop };
                 startPointerX = e.clientX;
                 startPointerY = e.clientY;
                 wrapper.setPointerCapture(e.pointerId);
@@ -3626,6 +3969,18 @@
                     isDragging = false; 
                     try { wrapper.releasePointerCapture(e.pointerId); } catch(err){}
                     reassignElementToPage(wrapper, 'text');
+                    const toPage = ownerPageOf(wrapper);
+                    const toLeft = parseFloat(wrapper.style.left) || 0;
+                    const toTop = parseFloat(wrapper.style.top) || 0;
+                    const from = textDragFrom;
+                    textDragFrom = null;
+                    if (from && from.page && toPage &&
+                        (from.page !== toPage || Math.abs(toLeft - from.left) > 0.5 || Math.abs(toTop - from.top) > 0.5)) {
+                        pushHistory({
+                            undo() { relocateBox(wrapper, 'text', from.page, from.left, from.top); },
+                            redo() { relocateBox(wrapper, 'text', toPage, toLeft, toTop); }
+                        });
+                    }
                 }
             });
 
@@ -3634,6 +3989,7 @@
                 isResizing = true;
                 resizeStartX = e.clientX;
                 startWidth = wrapper.offsetWidth;
+                textResizeFrom = parseFloat(wrapper.style.width) || wrapper.offsetWidth;
                 resizeHandle.setPointerCapture(e.pointerId);
             });
 
@@ -3650,19 +4006,54 @@
             });
 
             resizeHandle.addEventListener('pointerup', (e) => {
+                const wasResizing = isResizing;
                 isResizing = false;
                 try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err){}
+                if (wasResizing && textResizeFrom !== null) {
+                    const fromW = textResizeFrom;
+                    const toW = parseFloat(wrapper.style.width) || wrapper.offsetWidth;
+                    textResizeFrom = null;
+                    if (Math.abs(toW - fromW) > 0.5) {
+                        pushHistory({
+                            undo() { wrapper.style.width = fromW + 'px'; },
+                            redo() { wrapper.style.width = toW + 'px'; }
+                        });
+                    }
+                }
             });
 
-            content.addEventListener('blur', () => disableEditing());
+            content.addEventListener('blur', () => {
+                disableEditing();
+                const afterText = content.innerText;
+                if (editStartText !== null && afterText !== editStartText) {
+                    const beforeText = editStartText;
+                    pushHistory({
+                        bytes: (beforeText.length + afterText.length) * 2,
+                        undo() { content.innerText = beforeText; },
+                        redo() { content.innerText = afterText; }
+                    });
+                }
+                editStartText = null;
+            });
+
+            const textEntry = { elem: wrapper, contentElem: content };
 
             deleteBtn.onclick = (e) => {
                 e.stopPropagation();
+                const ownerPg = ownerPageOf(wrapper) || page;
                 wrapper.remove();
                 pages.forEach(p => p.textBoxes = p.textBoxes.filter(t => t.elem !== wrapper));
+                pushHistory({
+                    undo() { ownerPg.card.appendChild(wrapper); ownerPg.textBoxes.push(textEntry); },
+                    redo() {
+                        wrapper.remove();
+                        pages.forEach(p => p.textBoxes = p.textBoxes.filter(t => t !== textEntry));
+                    }
+                });
             };
 
-            page.textBoxes.push({ elem: wrapper, contentElem: content });
+            page.textBoxes.push(textEntry);
+            return textEntry;
         }
 
         // ================= IMAGE INSERTION =================
@@ -3681,7 +4072,7 @@
             reader.onload = (event) => {
                 const img = new Image();
                 const targetPage = activePageIndex !== null ? activePageIndex : Math.max(0, pages.length - 1);
-                img.onload = () => insertImageToPage(targetPage, img, event.target.result);
+                img.onload = () => { insertImageToPage(targetPage, img, event.target.result); recordImageAdded(targetPage); };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
@@ -3782,11 +4173,25 @@
                 e.stopPropagation();
                 isWritingOnImage = false;
                 try { inkCanvas.releasePointerCapture(e.pointerId); } catch(err){}
+                if (imgSnapshot && imgStrokePoints.length > 0) {
+                    const sf = inkCanvas.width / (box.offsetWidth || 1);
+                    const region = strokeRegion(imgStrokePoints, strokeSize * sf * 5 + 40);
+                    const pre = cropImageData(imgSnapshot, region);
+                    const post = capturePatch(inkCtx, inkCanvas, region);
+                    if (pre && post) {
+                        pushHistory({
+                            bytes: pre.w * pre.h * 8,
+                            undo() { applyPatch(inkCtx, pre); },
+                            redo() { applyPatch(inkCtx, post); }
+                        });
+                    }
+                }
                 imgStrokePoints = [];
                 imgSnapshot = null;
             });
 
             let isDragging = false, startLeft = initLeft, startTop = initTop, startPointerX = 0, startPointerY = 0;
+            let imgDragFrom = null, imgResizeFrom = null;
             box.addEventListener('pointerdown', (e) => {
                 if (activeTool !== 'editImage' || pointers.length > 1) return;
                 if (e.target === resizeHandle || e.target === deleteBtn) return;
@@ -3794,6 +4199,7 @@
                 isDragging = true;
                 startLeft = parseFloat(box.style.left) || initLeft;
                 startTop = parseFloat(box.style.top) || initTop;
+                imgDragFrom = { page: ownerPageOf(box), left: startLeft, top: startTop };
                 startPointerX = e.clientX;
                 startPointerY = e.clientY;
                 box.setPointerCapture(e.pointerId);
@@ -3813,6 +4219,18 @@
                     isDragging = false; 
                     try { box.releasePointerCapture(e.pointerId); } catch(err){} 
                     reassignElementToPage(box, 'image');
+                    const toPage = ownerPageOf(box);
+                    const toLeft = parseFloat(box.style.left) || 0;
+                    const toTop = parseFloat(box.style.top) || 0;
+                    const from = imgDragFrom;
+                    imgDragFrom = null;
+                    if (from && from.page && toPage &&
+                        (from.page !== toPage || Math.abs(toLeft - from.left) > 0.5 || Math.abs(toTop - from.top) > 0.5)) {
+                        pushHistory({
+                            undo() { relocateBox(box, 'image', from.page, from.left, from.top); },
+                            redo() { relocateBox(box, 'image', toPage, toLeft, toTop); }
+                        });
+                    }
                 }
             });
 
@@ -3823,6 +4241,7 @@
                 e.stopPropagation(); isResizing = true;
                 startW = box.offsetWidth; startH = box.offsetHeight;
                 startX = e.clientX; startY = e.clientY;
+                imgResizeFrom = { w: box.offsetWidth, h: box.offsetHeight };
                 rh.setPointerCapture(e.pointerId);
             });
             rh.addEventListener('pointermove', (e) => {
@@ -3832,11 +4251,35 @@
                 box.style.width = Math.max(60, startW + dw) + 'px';
                 box.style.height = Math.max(60, startH + dh) + 'px';
             });
-            rh.addEventListener('pointerup', (e) => { isResizing = false; try { rh.releasePointerCapture(e.pointerId); } catch(err){} });
+            rh.addEventListener('pointerup', (e) => {
+                const wasResizing = isResizing;
+                isResizing = false;
+                try { rh.releasePointerCapture(e.pointerId); } catch(err){}
+                if (wasResizing && imgResizeFrom) {
+                    const from = imgResizeFrom;
+                    const to = { w: box.offsetWidth, h: box.offsetHeight };
+                    imgResizeFrom = null;
+                    if (Math.abs(to.w - from.w) > 0.5 || Math.abs(to.h - from.h) > 0.5) {
+                        pushHistory({
+                            undo() { box.style.width = from.w + 'px'; box.style.height = from.h + 'px'; },
+                            redo() { box.style.width = to.w + 'px'; box.style.height = to.h + 'px'; }
+                        });
+                    }
+                }
+            });
 
             deleteBtn.onclick = (e) => {
-                e.stopPropagation(); box.remove();
+                e.stopPropagation();
+                const ownerPg = ownerPageOf(box) || page;
+                box.remove();
                 pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i.elem !== box));
+                pushHistory({
+                    undo() { ownerPg.card.appendChild(box); ownerPg.imageBoxes.push(imageEntry); },
+                    redo() {
+                        box.remove();
+                        pages.forEach(p => p.imageBoxes = p.imageBoxes.filter(i => i !== imageEntry));
+                    }
+                });
             };
 
             page.imageBoxes.push(imageEntry);
@@ -3980,7 +4423,16 @@
             }
         });
 
-        document.getElementById('addPageBtn').onclick = () => { createNewPage(false); centerPages(); pageMenuPopover.style.display = 'none'; };
+        document.getElementById('addPageBtn').onclick = () => {
+            createNewPage(false);
+            const newPageObj = pages[pages.length - 1];
+            centerPages();
+            pushHistory({
+                undo() { detachPageObj(newPageObj); },
+                redo() { reattachPageObj(newPageObj, pages.length); }
+            });
+            pageMenuPopover.style.display = 'none';
+        };
 
         const deleteModalOverlay = document.getElementById('deleteModalOverlay');
         const deletePageSelect = document.getElementById('deletePageSelect');
@@ -4000,6 +4452,8 @@
             const pageIdx = parseInt(deletePageSelect.value);
             if (!isNaN(pageIdx) && pages[pageIdx]) {
                 const page = pages[pageIdx];
+                const clearPre = capturePatch(page.ctx, page.canvas, { x: 0, y: 0, w: page.canvas.width, h: page.canvas.height });
+                if (clearPre) pushHistory(inkEntry(page, clearPre, null, true));
                 page.baseLayerCtx.clearRect(0, 0, page.baseLayerCanvas.width, page.baseLayerCanvas.height);
                 page.ctx.save();
                 page.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -4014,14 +4468,21 @@
             if (!isNaN(pageIdx) && pages[pageIdx]) {
                 if (pages.length <= 1) {
                     const page = pages[0];
+                    const clearPre = capturePatch(page.ctx, page.canvas, { x: 0, y: 0, w: page.canvas.width, h: page.canvas.height });
+                    if (clearPre) pushHistory(inkEntry(page, clearPre, null, true));
                     page.baseLayerCtx.clearRect(0, 0, page.baseLayerCanvas.width, page.baseLayerCanvas.height);
                     page.ctx.save();
                     page.ctx.setTransform(1, 0, 0, 1, 0, 0);
                     page.ctx.clearRect(0, 0, page.canvas.width, page.canvas.height);
                     page.ctx.restore();
                 } else {
+                    const removedPageObj = pages[pageIdx];
                     pages[pageIdx].card.remove(); pages.splice(pageIdx, 1);
                     pages.forEach((p, idx) => { p.card.dataset.index = idx; p.pageTag.innerText = `PAGE ${idx + 1}`; });
+                    pushHistory({
+                        undo() { reattachPageObj(removedPageObj, pageIdx); },
+                        redo() { detachPageObj(removedPageObj); }
+                    });
                 }
             }
             deleteModalOverlay.style.display = 'none';
